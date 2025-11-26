@@ -1,5 +1,5 @@
 {
-  "name": "svddarmax",
+  "name": "sistema-base-ventas",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -10,6 +10,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@prisma/client": "^7.0.1",
+    "prisma": "^7.0.1",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
   },
