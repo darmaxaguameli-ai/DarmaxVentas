@@ -12,3 +12,141 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+
+// --- MODELOS DE USUARIOS ---
+
+// Para clientes de la tienda
+model User {
+  id              Int      @id @default(autoincrement())
+  createdAt       DateTime @default(now())
+  email           String   @unique
+  name            String?
+  telefono        String?
+  passwordHash    String?  // Nullable para usuarios creados desde el admin o sin cuenta
+
+  // Campos de dirección del usuario
+  calle           String?
+  colonia         String?
+  codigoPostal    String?
+  ciudad          String?
+  estadoEnvio     String?
+  pais            String?
+
+  // Relación con Pedidos y Carrito
+  pedidos         Pedido[]
+  carritoItems    CarritoItem[] // Un usuario tiene muchos items en su carrito
+}
+
+// Para administradores del panel
+model AdminUser {
+  id           Int      @id @default(autoincrement())
+  createdAt    DateTime @default(now())
+  email        String   @unique
+  name         String
+  passwordHash String
+}
+
+
+// --- MODELOS DE PRODUCTOS ---
+
+model Categoria {
+  id        Int        @id @default(autoincrement())
+  nombre    String     @unique
+  productos Producto[]
+}
+
+model Producto {
+  id          Int      @id @default(autoincrement())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  nombre      String
+  precio      Float
+  descripcion String?
+  stock       Int      @default(0)
+  imagen      String?
+
+  // Campos para envío
+  pesoKg      Float?
+  largoCm     Float?
+  anchoCm     Float?
+  altoCm      Float?
+
+  // Relación con Categoria
+  categoriaId Int
+  categoria   Categoria @relation(fields: [categoriaId], references: [id])
+
+  // Relación con Pedidos y Carrito
+  pedidos     PedidosEnProductos[]
+  carritoItems CarritoItem[] // Un producto puede estar en muchos carritos
+}
+
+
+// --- MODELOS DE PEDIDOS ---
+
+enum EstadoPedido {
+  PENDIENTE
+  PAGADO
+  ENVIADO
+  ENTREGADO
+  CANCELADO
+}
+
+model Pedido {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  orden     String   @unique @default(cuid())
+  total     Float
+  estado    EstadoPedido @default(PENDIENTE)
+
+  // Datos del cliente (se guardan en el pedido para el histórico)
+  clienteNombre   String
+  clienteEmail    String
+  clienteTelefono String?
+
+  // Dirección de envío
+  direccion       String
+  ciudad          String
+  estadoEnvio     String
+  codigoPostal    String
+
+  // Relación con User (opcional, para pedidos de invitados)
+  userId    Int?
+  user      User? @relation(fields: [userId], references: [id])
+
+  // Relación con Productos
+  productos PedidosEnProductos[]
+}
+
+// Tabla intermedia para la relación muchos-a-muchos Pedido <-> Producto
+model PedidosEnProductos {
+  pedido     Pedido   @relation(fields: [pedidoId], references: [id])
+  pedidoId   Int
+  producto   Producto @relation(fields: [productoId], references: [id])
+  productoId Int
+  cantidad   Int
+  
+  // Guardar el precio al momento de la compra por si cambia en el futuro
+  precioAlComprar Float
+
+  @@id([pedidoId, productoId])
+}
+
+// Nuevo modelo para los items del carrito
+model CarritoItem {
+  id         Int      @id @default(autoincrement())
+  cantidad   Int
+  createdAt  DateTime @default(now())
+
+  // A qué usuario pertenece este item
+  userId     Int
+  user       User     @relation(fields: [userId], references: [id])
+
+  // Qué producto es
+  productoId Int
+  producto   Producto @relation(fields: [productoId], references: [id])
+
+  // Un usuario solo puede tener una línea por producto (ej: 3x "Producto A", no dos líneas de "Producto A")
+  @@unique([userId, productoId])
+}
+
