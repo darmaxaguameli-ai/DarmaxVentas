@@ -6,8 +6,9 @@ const HomePage = () => {
   return (
     <MainLayout>
       <div
-        className="relative w-full max-w-md rounded-2xl bg-white/80 dark:bg-white/10 
-                   shadow-2xl backdrop-blur-xl p-8 flex flex-col items-center text-center"
+        className="relative w-full max-w-md rounded-2xl bg-white/90 dark:bg-dark/40 
+                   shadow-xl backdrop-blur-xl p-8 flex flex-col items-center text-center
+                   border border-light/60 dark:border-white/10"
       >
         {/* Logo DARMAX */}
         <div
@@ -19,38 +20,44 @@ const HomePage = () => {
         />
 
         {/* Título */}
-        <h1 className="text-3xl sm:text-4xl font-bold tracking-tight mb-3 text-dark dark:text-white">
+        <h1 className="text-dark dark:text-white font-black text-3xl sm:text-4xl tracking-tight">
           Bienvenido a DARMAX
         </h1>
 
         {/* Descripción */}
-        <p className="text-text-secondary dark:text-white/70 text-base mb-8 max-w-xs">
-          Tu agua purificada, a un clic de distancia.
+        <p className="text-text-secondary dark:text-white/70 text-base leading-relaxed mt-3 mb-8 max-w-xs">
+          Tu agua a un clic de distancia.
         </p>
 
         {/* Botones */}
         <div className="w-full flex flex-col gap-4">
+
+          {/* Botón primario */}
           <Link
             to="/registro"
-            className="h-12 flex items-center justify-center rounded-lg 
-                       bg-primary text-white font-bold tracking-wide
-                       transition-all hover:scale-[1.03] active:scale-[0.97]"
+            className="h-12 flex items-center justify-center rounded-lg
+                       bg-primary text-white font-semibold tracking-wide
+                       hover:bg-primary/90 active:scale-[0.98]
+                       transition-all"
           >
             Registrarse
           </Link>
 
+          {/* Botón secundario */}
           <Link
             to="/login"
             className="h-12 flex items-center justify-center rounded-lg 
-                       bg-white text-dark ring-1 ring-text-secondary/30
-                       dark:bg-dark/70 dark:text-white dark:ring-white/20
-                       font-bold tracking-wide
-                       transition-all hover:scale-[1.03] active:scale-[0.97]"
+                       bg-light text-dark border border-text-secondary/30
+                       dark:bg-dark/70 dark:text-white dark:border-white/20
+                       font-semibold tracking-wide
+                       hover:bg-light/70 dark:hover:bg-dark/60
+                       active:scale-[0.98] transition-all"
           >
             Iniciar Sesión
           </Link>
         </div>
 
+        {/* Footer link */}
         <p className="text-text-secondary dark:text-white/60 text-sm mt-10 underline cursor-pointer">
           Términos de servicio y Política de privacidad
         </p>

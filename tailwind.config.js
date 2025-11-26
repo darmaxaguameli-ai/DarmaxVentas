@@ -3,24 +3,33 @@ export default {
   darkMode: "class",
   content: [
     "./index.html",
-    "./src/**/*.{js,ts,jsx,tsx}",
+    "./src/**/*.{js,jsx,ts,tsx}",
   ],
   theme: {
     extend: {
       colors: {
-        primary: "#137FEC",
-        secondary: "#A4D4FF",
-        success: "#28A745",
-        error: "#DC3545",
-        warning: "#FFC107",
-        info: "#17A2B8",
-        white: "#FFFFFF",
-        light: "#F6F7F8",
-        dark: "#111418",
+        // 🎨 Paleta primaria
+        primary: "#137FEC",      // Azul Primario
+        secondary: "#A4D4FF",    // Azul Secundario
 
-        "text-secondary": "#617589",
+        // 🎨 Colores de sistema
+        success: "#28A745",      // Éxito
+        error: "#DC3545",        // Error
+        warning: "#FFC107",      // Advertencia
+        info: "#17A2B8",         // Información
+
+        // 🎨 Neutros
+        white: "#FFFFFF",        // Blanco
+        light: "#F6F7F8",        // Fondo Claro
+        dark: "#111418",         // Texto / Fondo Oscuro
+        "text-secondary": "#617589", // Texto Secundario
+      },
+      fontFamily: {
+        sans: ["Inter", "system-ui", "sans-serif"],
+        display: ["Inter", "system-ui", "sans-serif"],
+        body: ["Inter", "system-ui", "sans-serif"],
       },
     },
   },
   plugins: [],
-}
+};

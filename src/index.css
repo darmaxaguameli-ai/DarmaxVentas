@@ -1,18 +1,37 @@
+/* 1. Importar Inter desde Google Fonts */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap");
+
+/* 2. Tailwind layers */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Fondo global */
-html, body {
-  background-color: #F6F7F8; /* Fondo Claro */
-  color: #111418; /* Texto Oscuro */
-  margin: 0;
-  padding: 0;
-  height: 100%;
-  width: 100%;
-}
+/* 3. Estilos base globales */
+@layer base {
+  html,
+  body,
+  #root {
+    @apply min-h-screen bg-light text-dark;
+  }
 
-/* Fuente */
-body {
-  font-family: 'Inter', sans-serif;
+  body {
+    @apply font-sans;
+  }
+
+  /* Opcional: estilos por defecto para headings (según tu guía) */
+  h1 {
+    @apply font-black text-4xl;
+  }
+
+  h2 {
+    @apply font-bold text-3xl;
+  }
+
+  h3 {
+    @apply font-bold text-2xl;
+  }
+
+  p {
+    @apply text-base;
+  }
 }
