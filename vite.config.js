@@ -1,7 +1,15 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
+const { defineConfig } = require('vite');
+const react = require('@vitejs/plugin-react');
 
-// https://vite.dev/config/
-export default defineConfig({
+// https://vitejs.dev/config/
+module.exports = defineConfig({
   plugins: [react()],
-})
+  server: {
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3001',
+        changeOrigin: true,
+      },
+    },
+  },
+});
