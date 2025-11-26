@@ -14,7 +14,6 @@ export default {
         error: "#DC3545",
         warning: "#FFC107",
         info: "#17A2B8",
-
         white: "#FFFFFF",
         light: "#F6F7F8",
         dark: "#111418",
