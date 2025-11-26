@@ -1,3 +1,18 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Fondo global */
+html, body {
+  background-color: #F6F7F8; /* Fondo Claro */
+  color: #111418; /* Texto Oscuro */
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  width: 100%;
+}
+
+/* Fuente */
+body {
+  font-family: 'Inter', sans-serif;
+}
