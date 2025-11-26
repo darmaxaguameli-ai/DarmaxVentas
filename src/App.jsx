@@ -1,6 +1,7 @@
+// src/App.jsx
 import { Routes, Route } from "react-router-dom";
-import MainLayout from "./layouts/MainLayout.jsx";
 import HomePage from "./pages/HomePage.jsx";
+<<<<<<< HEAD
 import UsersPage from "./pages/UsersPage.jsx";
 import VentaMostrador from "./pages/sistemasDeVentas/VentaMostrador.jsx";
 import GestionDashboard from "./pages/Gestion/GestionDashboard.jsx";
@@ -17,6 +18,14 @@ function App() {
         <Route path="/repartidor" element={<RepartidorDashboard />} />
       </Routes>
     </MainLayout>
+=======
+
+function App() {
+  return (
+    <Routes>
+      <Route path="/" element={<HomePage />} />
+    </Routes>
+>>>>>>> fdcb154 (Update(login):new pages and routes)
   );
 }
 
