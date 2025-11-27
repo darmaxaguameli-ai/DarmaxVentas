@@ -1,6 +1,10 @@
 import React, { createContext, useState } from 'react';
 
-export const OrderContext = createContext();
+export const OrderContext = createContext({
+    orders: [],
+    addOrder: () => {},
+    updateOrder: () => {}
+});
 
 export const OrderProvider = ({ children }) => {
     const [orders, setOrders] = useState([]);
@@ -8,31 +12,30 @@ export const OrderProvider = ({ children }) => {
     const addOrder = (order) => {
         const newOrder = {
             ...order,
-            id: Date.now(), // Simple unique ID
+            id: Date.now(),
             status: 'pending',
             delivery: {
                 ...order.deliveryInfo.deliveryDetails,
-                // Assign to driver 1 for simulation
-                driverId: 1 
+                driverId: 1
             },
             items: order.orderItems,
             total: order.total
         };
+
         console.log('[OrderContext] Agregando nuevo pedido de entrega:', newOrder);
-        setOrders(prevOrders => [...prevOrders, newOrder]);
+
+        setOrders(prev => [...prev, newOrder]);
     };
 
     const updateOrder = (orderId, updateData) => {
-        setOrders(prevOrders =>
-            prevOrders.map(o => (o.id === orderId ? { ...o, ...updateData } : o))
+        setOrders(prev =>
+            prev.map(o => (o.id === orderId ? { ...o, ...updateData } : o))
         );
     };
 
-    const value = {
-        orders,
-        addOrder,
-        updateOrder
-    };
-
-    return <OrderContext.Provider value={value}>{children}</OrderContext.Provider>;
+    return (
+        <OrderContext.Provider value={{ orders, addOrder, updateOrder }}>
+            {children}
+        </OrderContext.Provider>
+    );
 };

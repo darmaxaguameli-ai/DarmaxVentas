@@ -10,6 +10,7 @@ export default {
       colors: {
         // 🎨 Paleta primaria
         primary: "#137FEC",      // Azul Primario
+        "primary-dark": "#0B67C2", // Azul Primario Oscuro
         secondary: "#A4D4FF",    // Azul Secundario
 
         // 🎨 Colores de sistema

@@ -1,0 +1,1 @@
+I've created a file named `INSTRUCCIONES.md` in the root of your project directory. Please read it for detailed steps on how to create a delivery order in the sales system and see it appear in the delivery driver's view. This should clarify how the two systems are connected.

@@ -13,6 +13,7 @@ import StartDayModal from "./pages/sistemasDeVentas/StartDayModal.jsx";
 import RepartidorDashboard from "./pages/sistemasDeVentas/Repartidor/RepartidorDashboard.jsx";
 
 // Gestión
+import { GestionProvider } from "./pages/Gestion/context/GestionContext.jsx";
 import GestionDashboard from "./pages/Gestion/GestionDashboard.jsx";
 import Resumen from "./pages/Gestion/Resumen.jsx";
 import Inventario from "./pages/Gestion/Inventario.jsx";
@@ -48,7 +49,14 @@ function App() {
 
 
       {/* Gestión */}
-      <Route path="/gestion" element={<GestionDashboard />}>
+      <Route
+        path="/gestion"
+        element={
+          <GestionProvider>
+            <GestionDashboard />
+          </GestionProvider>
+        }
+      >
         <Route index element={<Resumen />} />
         <Route path="inventario" element={<Inventario />} />
         <Route path="ingresos" element={<Ingresos />} />

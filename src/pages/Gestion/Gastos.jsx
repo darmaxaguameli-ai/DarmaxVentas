@@ -1,125 +1,139 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useGestion } from "./context/GestionContext";
 
-const AddExpenseModal = ({ isOpen, onClose, onAddExpense }) => {
-  const [description, setDescription] = useState('');
-  const [amount, setAmount] = useState('');
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+const ExpenseModal = ({ isOpen, onClose, expenseToEdit, onSave }) => {
+    const [expense, setExpense] = useState({ description: '', amount: '', date: new Date().toISOString().slice(0, 10), category: '' });
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    onAddExpense({
-      id: Date.now(),
-      description,
-      amount: parseFloat(amount),
-      date,
-    });
-    setDescription('');
-    setAmount('');
-    onClose();
-  };
+    useEffect(() => {
+        if (expenseToEdit) {
+            setExpense(expenseToEdit);
+        } else {
+            setExpense({ description: '', amount: '', date: new Date().toISOString().slice(0, 10), category: '' });
+        }
+    }, [expenseToEdit, isOpen]);
 
-  if (!isOpen) return null;
+    const handleChange = (e) => {
+        const { name, value } = e.target;
+        setExpense(prev => ({ ...prev, [name]: value }));
+    };
 
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center">
-      <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl w-full max-w-md">
-        <h2 className="text-2xl font-bold mb-4 text-[#111418] dark:text-white">Agregar Nuevo Gasto</h2>
-        <form onSubmit={handleSubmit}>
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Descripción</label>
-            <input
-              type="text"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              className="mt-1 block w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
-              required
-            />
-          </div>
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Monto</label>
-            <input
-              type="number"
-              step="0.01"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              className="mt-1 block w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
-              required
-            />
-          </div>
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Fecha</label>
-            <input
-              type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              className="mt-1 block w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
-              required
-            />
-          </div>
-          <div className="flex justify-end gap-4 mt-6">
-            <button type="button" onClick={onClose} className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-600 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700">
-              Cancelar
-            </button>
-            <button type="submit" className="px-4 py-2 text-sm font-medium text-white bg-primary rounded-lg hover:bg-primary/90">
-              Agregar
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        onSave({
+            ...expense,
+            amount: parseFloat(expense.amount),
+        });
+        onClose();
+    };
+
+    if (!isOpen) return null;
+
+    const isEditing = !!expenseToEdit;
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4">
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl w-full max-w-md">
+                <h2 className="text-2xl font-bold mb-4 text-[#111418] dark:text-white">
+                    {isEditing ? "Editar Gasto" : "Agregar Nuevo Gasto"}
+                </h2>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Descripción</label>
+                        <input name="description" type="text" value={expense.description} onChange={handleChange} required className="mt-1 block w-full input-style" />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Categoría</label>
+                        <input name="category" type="text" value={expense.category} onChange={handleChange} placeholder="Ej. Insumos, Marketing" required className="mt-1 block w-full input-style" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Monto</label>
+                            <input name="amount" type="number" step="0.01" value={expense.amount} onChange={handleChange} required className="mt-1 block w-full input-style" />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Fecha</label>
+                            <input name="date" type="date" value={expense.date} onChange={handleChange} required className="mt-1 block w-full input-style" />
+                        </div>
+                    </div>
+                    <div className="flex justify-end gap-4 pt-4">
+                        <button type="button" onClick={onClose} className="btn-secondary">Cancelar</button>
+                        <button type="submit" className="btn-primary">Guardar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
 };
 
-const initialExpenses = [
-  { id: 1, description: "Compra de filtros", amount: 150, date: "2025-11-24" },
-  { id: 2, description: "Gasolina de vehículo de reparto", amount: 80, date: "2025-11-24" },
-  { id: 3, description: "Publicidad en redes sociales", amount: 220, date: "2025-11-22" },
-];
 
 const Gastos = () => {
-    const [expenses, setExpenses] = useState(initialExpenses);
-    const [isModalOpen, setIsModalOpen] = useState(false);
+    const { state, addExpense, updateExpense, deleteExpense } = useGestion();
+    const { expenses } = state;
 
-    const handleAddExpense = (newExpense) => {
-        setExpenses([...expenses, newExpense]);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [expenseToEdit, setExpenseToEdit] = useState(null);
+
+    const handleOpenModal = (expense = null) => {
+        setExpenseToEdit(expense);
+        setIsModalOpen(true);
     };
+
+    const handleCloseModal = () => {
+        setExpenseToEdit(null);
+        setIsModalOpen(false);
+    };
+
+    const handleSaveExpense = (expense) => {
+        if (expense.id) {
+            updateExpense(expense);
+        } else {
+            addExpense(expense);
+        }
+    };
+    
+    const handleDelete = (id) => {
+        if(window.confirm('¿Estás seguro de que quieres eliminar este gasto?')) {
+            deleteExpense(id);
+        }
+    }
 
     return (
         <div>
-            <div className="flex justify-between items-center mb-4">
-                <h1 className="text-3xl font-bold text-[#111418] dark:text-white">Gastos</h1>
-                <button 
-                    onClick={() => setIsModalOpen(true)}
-                    className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90"
-                >
+            <div className="flex justify-between items-center mb-6">
+                <h1 className="text-3xl font-bold text-[#111418] dark:text-white">Control de Gastos</h1>
+                <button onClick={() => handleOpenModal()} className="btn-primary">
                     Agregar Gasto
                 </button>
             </div>
 
-            <AddExpenseModal 
+            <ExpenseModal 
               isOpen={isModalOpen}
-              onClose={() => setIsModalOpen(false)}
-              onAddExpense={handleAddExpense}
+              onClose={handleCloseModal}
+              onSave={handleSaveExpense}
+              expenseToEdit={expenseToEdit}
             />
-
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+            
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-x-auto">
                 <table className="min-w-full">
                     <thead className="bg-gray-50 dark:bg-gray-700">
                         <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Descripción</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Monto</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Fecha</th>
-                            <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Acciones</th>
+                            <th className="th-style">Descripción</th>
+                            <th className="th-style">Categoría</th>
+                            <th className="th-style">Monto</th>
+                            <th className="th-style">Fecha</th>
+                            <th className="th-style text-right">Acciones</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                         {expenses.map((item) => (
                             <tr key={item.id}>
-                                <td className="px-6 py-4 whitespace-nowrap text-[#111418] dark:text-white">{item.description}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-red-500">${item.amount.toFixed(2)}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-[#111418] dark:text-white">{item.date}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                    <a href="#" className="text-primary hover:text-primary/90">Editar</a>
+                                <td className="td-style font-medium">{item.description}</td>
+                                <td className="td-style">{item.category}</td>
+                                <td className="td-style text-red-500 text-right">${item.amount.toFixed(2)}</td>
+                                <td className="td-style">{item.date}</td>
+                                <td className="td-style text-right space-x-4">
+                                    <button onClick={() => handleOpenModal(item)} className="text-primary hover:text-primary/90 font-medium">Editar</button>
+                                    <button onClick={() => handleDelete(item.id)} className="text-red-500 hover:text-red-700 font-medium">Eliminar</button>
                                 </td>
                             </tr>
                         ))}
