@@ -112,15 +112,15 @@ const OrderSelection = () => {
               <Link
                 to="/pedidos/comprar"
                 className="group flex flex-col gap-4 rounded-2xl
-                           border border-light/60 dark:border-white/10 
-                           bg-white/95 dark:bg-dark/70 
-                           px-6 py-7 text-center shadow-md backdrop-blur-xl 
-                           transition-all hover:-translate-y-1 hover:shadow-lg"
+                          border border-light/60 dark:border-white/10 
+                          bg-white/95 dark:bg-dark/70 
+                          px-6 py-7 text-center shadow-md backdrop-blur-xl 
+                          transition-all hover:-translate-y-1 hover:shadow-lg"
               >
                 <div
                   className="mx-auto flex h-20 w-20 items-center justify-center rounded-full
-                             bg-primary/10 text-primary transition-all 
-                             group-hover:bg-primary group-hover:text-white"
+                            bg-primary/10 text-primary transition-all 
+                            group-hover:bg-primary group-hover:text-white"
                 >
                   <span className="material-symbols-outlined text-4xl sm:text-5xl">
                     water_drop
@@ -129,13 +129,14 @@ const OrderSelection = () => {
 
                 <div className="flex flex-col gap-2">
                   <p className="text-lg sm:text-xl font-bold">
-                    Comprar garrafón
+                    Comprar garrafones
                   </p>
                   <p className="text-sm sm:text-base text-text-secondary dark:text-white/70">
-                    Pide nuevos garrafones llenos a domicilio.
+                    Elige cuántos garrafones de 20L y 10L necesitas.
                   </p>
                 </div>
               </Link>
+
             </div>
 
           {/* Opción: Ya soy cliente */}
