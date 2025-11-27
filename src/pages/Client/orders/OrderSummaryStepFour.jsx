@@ -9,12 +9,23 @@ const OrderSummaryStepFour = () => {
   // Todo lo que venga de pasos anteriores
   const previousState = location.state || {};
 
-  const fromStepOne = previousState.fromStepOne || [];
-  const fromStepTwo = previousState.fromStepTwo || [];
+  // Permite distinguir entre flujos:
+  // - "refill"  -> rellenar garrafones (flujo actual)
+  // - "buy"     -> comprar garrafones (flujo futuro)
+  const mode = previousState.mode || "refill";
+
+  const fromStepOne = previousState.fromStepOne || []; // garrafones seleccionados (refill)
+  const fromStepTwo = previousState.fromStepTwo || []; // tipos de agua asignados (refill)
   const maxJugs = previousState.maxJugs ?? 0;
   const deliveryMethod = previousState.deliveryMethod || "delivery";
 
-  // Solo mostramos los que tengan cantidad > 0
+  // Para el flujo "buy" podemos enviar directamente un arreglo de items:
+  // previousState.orderItems = [{ id, name, quantity, imageUrl, description }]
+  const orderItemsFromState = Array.isArray(previousState.orderItems)
+    ? previousState.orderItems
+    : [];
+
+  // ---- LÓGICA PARA FLUJO REFILL (ACTUAL) ----
   const garrafonesSeleccionados = fromStepOne.filter(
     (item) => item.quantity && item.quantity > 0
   );
@@ -23,27 +34,57 @@ const OrderSummaryStepFour = () => {
     (item) => item.quantity && item.quantity > 0
   );
 
-  const totalGarrafones = garrafonesSeleccionados.reduce(
+  const totalGarrafonesRefill = garrafonesSeleccionados.reduce(
     (sum, item) => sum + item.quantity,
     0
   );
 
+  // ---- UNIFICACIÓN DE ITEMS QUE SE MOSTRARÁN ----
+  // Si viene orderItems (modo compra), usamos eso.
+  // Si no, usamos los garrafones del refill.
+  let mainItems = [];
+
+  if (orderItemsFromState.length > 0) {
+    // Flujo "buy"
+    mainItems = orderItemsFromState;
+  } else {
+    // Flujo "refill"
+    mainItems = garrafonesSeleccionados.map((item) => ({
+      ...item,
+      description: `Cantidad: ${item.quantity}`,
+    }));
+  }
+
+  // Total de unidades (garrafones/piezas)
+  const totalUnits =
+    mainItems.reduce((sum, item) => sum + (item.quantity || 0), 0) ||
+    totalGarrafonesRefill ||
+    maxJugs ||
+    0;
+
+  // Textos para método de entrega (usando las claves acordadas)
   const deliveryLabels = {
     delivery: "Entrega a domicilio",
+    home_collection: "Recolección a domicilio",
     pickup: "Recoger en sucursal",
-    collect: "Recolección y entrega de garrafones",
   };
 
   const deliveryDescription = {
     delivery:
       "Un repartidor llevará tus garrafones a la dirección que nos indiques.",
-    pickup: "Podrás pasar a la sucursal Darmax seleccionada para recoger tu pedido.",
-    collect:
-      "Recolectamos tus garrafones vacíos y luego te los entregamos ya rellenos.",
+    home_collection:
+      "Pasamos a tu domicilio por los garrafones vacíos y luego te los entregamos llenos.",
+    pickup:
+      "Podrás pasar a la sucursal Darmax seleccionada para recoger tu pedido.",
   };
 
   const handleBack = () => {
-    navigate("/pedidos/rellenar/entrega", {
+    // Puedes sobreescribir este backPath desde pasos anteriores si quieres reutilizar
+    // esta pantalla para otros flujos (ej: compra de garrafones)
+    const backPath =
+      previousState.backPath || "/pedidos/rellenar/entrega";
+
+    navigate(backPath, {
       state: previousState,
     });
   };
@@ -52,60 +93,76 @@ const OrderSummaryStepFour = () => {
     // Aquí luego conectarás con backend / pago / registro de pedido
     console.log("Confirmar pedido", {
       ...previousState,
-      garrafonesSeleccionados,
+      mode,
+      mainItems,
       tiposAguaAsignados,
-      totalGarrafones,
+      totalUnits,
       deliveryMethod,
     });
 
-    // Aquí podrías navegar a una pantalla de éxito, por ejemplo:
-    // navigate("/cliente/pedidos/confirmado");
+    // Ejemplo futuro:
+    // navigate("/cliente/pedidos/confirmado", { state: { orderId: "ABC123" } });
   };
+
+  const isRefill = mode === "refill";
 
   return (
     <OrderLayout
-      title="Revisa tu pedido"
-      subtitle="Confirma que los garrafones y el método de entrega sean correctos antes de finalizar."
+      title={
+        isRefill
+          ? "Revisa tu pedido de recarga"
+          : "Revisa tu compra de garrafones"
+      }
+      subtitle="Confirma que los productos y el método de entrega sean correctos antes de finalizar."
       step={4}
       totalSteps={4}
     >
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 mt-4">
         {/* Columna izquierda: detalle del pedido */}
         <div className="lg:col-span-3 flex flex-col gap-6">
-          {/* Card: Garrafones seleccionados */}
+          {/* Card: Productos / Garrafones seleccionados */}
           <div className="rounded-2xl border border-light/60 dark:border-white/10 bg-white/95 dark:bg-dark/60 shadow-md backdrop-blur-xl">
             <h2 className="px-6 pt-5 pb-3 text-[20px] sm:text-[22px] font-bold tracking-[-0.02em] text-dark dark:text-white border-b border-light/60 dark:border-white/10">
-              Tus garrafones
+              {isRefill ? "Tus garrafones" : "Tus productos"}
             </h2>
 
-            {garrafonesSeleccionados.length === 0 ? (
+            {mainItems.length === 0 ? (
               <p className="px-6 py-5 text-base text-text-secondary dark:text-white/70">
-                No se encontraron garrafones seleccionados. Vuelve al paso 1
-                para elegir tus garrafones.
+                No se encontraron productos seleccionados. Vuelve al paso
+                anterior para elegirlos.
               </p>
             ) : (
               <div className="flex flex-col divide-y divide-light/60 dark:divide-white/10">
-                {garrafonesSeleccionados.map((item) => (
+                {mainItems.map((item) => (
                   <div
                     key={item.id}
                     className="flex items-center justify-between gap-4 px-6 py-4"
                   >
                     <div className="flex items-center gap-4">
-                      <div
-                        className="size-16 rounded-xl bg-center bg-cover bg-no-repeat"
-                        style={{ backgroundImage: `url("${item.imageUrl}")` }}
-                        aria-label={item.name}
-                      />
+                      {item.imageUrl && (
+                        <div
+                          className="size-16 rounded-xl bg-center bg-cover bg-no-repeat"
+                          style={{ backgroundImage: `url("${item.imageUrl}")` }}
+                          aria-label={item.name}
+                        />
+                      )}
                       <div className="flex flex-col justify-center">
                         <p className="text-base sm:text-lg font-medium text-dark dark:text-white">
                           {item.name}
                         </p>
-                        <p className="text-sm sm:text-base text-text-secondary dark:text-white/70">
-                          Cantidad:{" "}
-                          <span className="font-semibold">
-                            {item.quantity}
-                          </span>
-                        </p>
+                        {item.description && (
+                          <p className="text-sm sm:text-base text-text-secondary dark:text-white/70">
+                            {item.description}
+                          </p>
+                        )}
+                        {item.quantity != null && !item.description && (
+                          <p className="text-sm sm:text-base text-text-secondary dark:text-white/70">
+                            Cantidad:{" "}
+                            <span className="font-semibold">
+                              {item.quantity}
+                            </span>
+                          </p>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -114,8 +171,8 @@ const OrderSummaryStepFour = () => {
             )}
           </div>
 
-          {/* Card: Tipos de agua asignados (Paso 2) */}
-          {tiposAguaAsignados.length > 0 && (
+          {/* Card: Tipos de agua asignados (solo aplica para refill y si hay datos) */}
+          {isRefill && tiposAguaAsignados.length > 0 && (
             <div className="rounded-2xl border border-light/60 dark:border-white/10 bg-white/95 dark:bg-dark/60 shadow-md backdrop-blur-xl">
               <h2 className="px-6 pt-5 pb-3 text-[20px] sm:text-[22px] font-bold tracking-[-0.02em] text-dark dark:text-white border-b border-light/60 dark:border-white/10">
                 Tipos de agua asignados
@@ -128,11 +185,13 @@ const OrderSummaryStepFour = () => {
                     className="flex items-center justify-between gap-4 px-6 py-4"
                   >
                     <div className="flex items-center gap-4">
-                      <div
-                        className="size-16 rounded-xl bg-center bg-cover bg-no-repeat"
-                        style={{ backgroundImage: `url("${item.imageUrl}")` }}
-                        aria-label={item.name}
-                      />
+                      {item.imageUrl && (
+                        <div
+                          className="size-16 rounded-xl bg-center bg-cover bg-no-repeat"
+                          style={{ backgroundImage: `url("${item.imageUrl}")` }}
+                          aria-label={item.name}
+                        />
+                      )}
                       <div className="flex flex-col justify-center">
                         <p className="text-base sm:text-lg font-medium text-dark dark:text-white">
                           {item.name}
@@ -159,19 +218,19 @@ const OrderSummaryStepFour = () => {
               Resumen del pedido
             </h3>
 
-            {/* Total de garrafones */}
+            {/* Total de unidades */}
             <div className="flex items-center justify-between">
               <p className="text-base sm:text-lg font-medium text-text-secondary dark:text-white/80">
-                Total de garrafones
+                {isRefill ? "Total de garrafones" : "Total de piezas"}
               </p>
               <p className="text-2xl sm:text-3xl font-extrabold text-primary">
-                {totalGarrafones || 0}
+                {totalUnits || 0}
               </p>
             </div>
 
             {/* Método de entrega */}
             <div className="mt-2 rounded-xl bg-light/60 dark:bg-dark/70 border border-light/60 dark:border-white/15 p-4 flex flex-col gap-2">
-              <p className="text-sm font-semibold text-text-secondary dark:text-white/70 uppercase tracking-[0.08em]">
+              <p className="text-xs sm:text-sm font-semibold text-text-secondary dark:text-white/70 uppercase tracking-[0.08em]">
                 Método de entrega
               </p>
               <p className="text-base sm:text-lg font-bold text-dark dark:text-white">
@@ -205,9 +264,9 @@ const OrderSummaryStepFour = () => {
               </button>
             </div>
 
-            {maxJugs > 0 && (
+            {maxJugs > 0 && isRefill && (
               <p className="mt-1 text-xs sm:text-sm text-text-secondary dark:text-white/60 text-center">
-                Has seleccionado un total de{" "}
+                Seleccionaste un total de{" "}
                 <span className="font-semibold">{maxJugs}</span> garrafones en
                 este pedido.
               </p>
