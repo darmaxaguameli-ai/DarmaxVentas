@@ -30,6 +30,7 @@ import PickupClientDataStep from "./pages/Client/orders/PickupClientDataStep.jsx
 import ClientDataConfirmation from "./pages/Client/orders/ClientDataConfirmation.jsx";
 import BuyJugsStepOne from "./pages/Client/orders/BuyJugsStepOne.jsx";
 import BuyJugsFillOptionStepTwo from "./pages/Client/orders/BuyJugsFillOptionStepTwo.jsx";
+import BuyJugsAssignWaterStepThree from "./pages/Client/orders/BuyJugsAssignWaterStepThree.jsx";
 
 function App() {
   return (
@@ -64,6 +65,7 @@ function App() {
       <Route path="/pedidos/rellenar/datos-confirmados" element={<ClientDataConfirmation />}/>
       <Route path="/pedidos/comprar" element={<BuyJugsStepOne />} />
       <Route path="/pedidos/comprar/opcion-llenado" element={<BuyJugsFillOptionStepTwo />} />
+      <Route path="/pedidos/comprar/asignar-agua" element={<BuyJugsAssignWaterStepThree />} />
     </Routes>
   );
 }
