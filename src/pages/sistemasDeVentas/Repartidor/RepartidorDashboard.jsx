@@ -89,10 +89,10 @@ const RepartidorDashboard = () => {
 
             {/* Main content */}
             <main className="flex-1 flex flex-col">
-                <div className="flex-grow h-2/3 p-4">
+                <div className="h-3/5 p-4">
                     <Mapa driverPosition={driverPosition} orders={orders} />
                 </div>
-                <div className="h-1/3 p-4">
+                <div className="h-2/5 p-4 overflow-y-auto">
                     <DetallePedido order={selectedOrder} onUpdateOrder={handleUpdateOrder} />
                 </div>
             </main>
