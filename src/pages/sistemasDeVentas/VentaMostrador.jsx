@@ -1,5 +1,7 @@
 import { useState, useMemo } from "react";
 import ProductGrid from "./ProductGrid";
+import PosRefillGrid from "./PosRefillGrid";
+import PosBuyGrid from "./PosBuyGrid";
 import OrderSummary from "./OrderSummary";
 import CustomerModal from "./CustomerModal";
 import PaymentModal from "./PaymentModal";
@@ -8,9 +10,8 @@ import PosHeader from "./PosHeader";
 import CashDrawerModal from "./CashDrawerModal";
 import CloseRegisterModal from "./CloseRegisterModal";
 import StartDayModal from "./StartDayModal";
-import PasswordModal from "./PasswordModal"; // Added import
-
-import apiClient from "../../api/apiClient";
+import PasswordModal from "./PasswordModal";
+import { useOrders } from "./hooks/useOrders";
 
 const VentaMostrador = () => {
     // Session state
@@ -24,7 +25,7 @@ const VentaMostrador = () => {
     const [deliveryInfo, setDeliveryInfo] = useState({
         method: 'mostrador',
         collectEmptyJugs: false,
-        deliveryDetails: null, // Changed from 'address'
+        deliveryDetails: null,
     });
     
     // UI state
@@ -34,7 +35,11 @@ const VentaMostrador = () => {
     const [isCashDrawerModalOpen, setIsCashDrawerModalOpen] = useState(false);
     const [cashDrawerActionType, setCashDrawerActionType] = useState('in');
     const [isCloseRegisterModalOpen, setIsCloseRegisterModalOpen] = useState(false);
-    const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false); // Added state
+    const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+    const [activeTab, setActiveTab] = useState('directSale'); // 'directSale', 'refill', 'buyNew'
+    
+    // Get addOrder from context
+    const { addOrder } = useOrders();
 
     // Memoized calculations
     const subtotal = useMemo(() => orderItems.reduce((sum, item) => sum + item.price * item.quantity, 0), [orderItems]);
@@ -94,28 +99,23 @@ const VentaMostrador = () => {
         setOrderItems(prevItems => prevItems.filter(item => item.id !== productId));
     };
 
-    const handleCustomerAdd = (customerData) => setCustomer(customerData);
-    const handleSaveDeliveryInfo = (newDeliveryInfo) => setDeliveryInfo(newDeliveryInfo);
+    const handleCustomerAdd = (customerData) => {
+        setCustomer(customerData);
+    };
 
-    const handlePaymentConfirm = async (paymentData) => {
+    const handleSaveDeliveryInfo = (newDeliveryInfo) => {
+        setDeliveryInfo(newDeliveryInfo);
+    };
+
+    const handlePaymentConfirm = (paymentData) => {
         if (deliveryInfo.method === 'domicilio') {
-            try {
-                const response = await apiClient.post('/orders', {
-                    orderItems,
-                    customer,
-                    deliveryInfo,
-                    total,
-                    shippingCost,
-                });
-
-                const newOrder = response.data;
-                console.log('Order created:', newOrder);
-
-            } catch (error) {
-                console.error('Failed to create order:', error);
-                // Here you might want to show an error to the user
-                return; // Prevent state from being cleared if API call fails
-            }
+            addOrder({
+                orderItems,
+                customer,
+                deliveryInfo,
+                total,
+                shippingCost,
+            });
         }
         
         // This part runs for both delivery and non-delivery orders
@@ -157,7 +157,6 @@ const VentaMostrador = () => {
         setIsCashDrawerModalOpen(true);
     };
 
-    // New handlers for password protection
     const handleRequestCloseRegister = () => {
         setIsPasswordModalOpen(true);
     };
@@ -171,6 +170,12 @@ const VentaMostrador = () => {
         return <StartDayModal onStartSession={handleStartSession} />;
     }
 
+    const deliveryModalData = {
+        method: deliveryInfo.method,
+        collectEmptyJugs: deliveryInfo.collectEmptyJugs,
+        deliveryDetails: customer || deliveryInfo.deliveryDetails
+    };
+
     return (
         <div className="bg-light dark:bg-dark h-screen flex flex-col font-display text-[#111418] dark:text-white">
             <PosHeader 
@@ -180,7 +185,31 @@ const VentaMostrador = () => {
             />
             <div className="flex flex-1 overflow-hidden p-6 pt-0">
                 <div className="flex-1 pr-6 overflow-y-auto">
-                    <ProductGrid onProductSelect={handleProductSelect} />
+                    {/* Tabs for order type */}
+                    <div className="flex border-b border-gray-200 dark:border-gray-700 mb-4">
+                        <button 
+                            onClick={() => setActiveTab('directSale')}
+                            className={`px-4 py-2 text-sm font-semibold ${activeTab === 'directSale' ? 'border-b-2 border-primary text-primary' : 'text-gray-500'}`}
+                        >
+                            Venta Directa
+                        </button>
+                        <button 
+                            onClick={() => setActiveTab('refill')}
+                            className={`px-4 py-2 text-sm font-semibold ${activeTab === 'refill' ? 'border-b-2 border-primary text-primary' : 'text-gray-500'}`}
+                        >
+                            Recarga de Garrafones
+                        </button>
+                        <button 
+                            onClick={() => setActiveTab('buyNew')}
+                            className={`px-4 py-2 text-sm font-semibold ${activeTab === 'buyNew' ? 'border-b-2 border-primary text-primary' : 'text-gray-500'}`}
+                        >
+                            Comprar Garrafones
+                        </button>
+                    </div>
+
+                    {activeTab === 'directSale' && <ProductGrid onProductSelect={handleProductSelect} />}
+                    {activeTab === 'refill' && <PosRefillGrid onProductSelect={handleProductSelect} />}
+                    {activeTab === 'buyNew' && <PosBuyGrid onProductSelect={handleProductSelect} />}
                 </div>
                 <div className="w-96">
                     <OrderSummary 
@@ -216,7 +245,7 @@ const VentaMostrador = () => {
                 isOpen={isDeliveryModalOpen}
                 onClose={() => setIsDeliveryModalOpen(false)}
                 onSave={handleSaveDeliveryInfo}
-                initialData={deliveryInfo}
+                initialData={deliveryModalData}
             />
             <CashDrawerModal 
                 isOpen={isCashDrawerModalOpen}
@@ -224,7 +253,6 @@ const VentaMostrador = () => {
                 onConfirm={handleCashDrawerAction}
                 defaultType={cashDrawerActionType}
             />
-            {/* Password Modal Added */}
             <PasswordModal
                 isOpen={isPasswordModalOpen}
                 onClose={() => setIsPasswordModalOpen(false)}

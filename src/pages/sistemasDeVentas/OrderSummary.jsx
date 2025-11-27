@@ -19,8 +19,8 @@ const OrderSummary = ({
           {customer ? (
               <div className="flex items-center justify-between">
                 <div>
-                    <p className="font-semibold">Cliente:</p>
-                    <p className="text-primary">{customer.phone}</p>
+                    <p className="font-semibold">{customer.name || 'Cliente'}</p>
+                    <p className="text-sm text-primary">{customer.phone}</p>
                 </div>
                 <button onClick={onRemoveCustomer} className="text-red-500 text-sm">Quitar</button>
               </div>
