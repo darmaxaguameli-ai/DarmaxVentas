@@ -21,20 +21,47 @@ const DeliveryMethodStepThree = () => {
     });
   };
 
+  // 👉 checamos si ya tenemos datos de cliente (para futuro: perfil guardado)
+  const hasClientData =
+    Boolean(previousState.clientData) || Boolean(previousState.userHasProfile);
+
+  // 👉 métodos que necesitan dirección/datos del cliente
+  const methodNeedsAddress =
+    deliveryMethod === "delivery" || deliveryMethod === "home_collection";
+
+  // 👉 definimos si este usuario debe ir primero a "Completa tus datos"
+  const mustFillClientData = methodNeedsAddress && !hasClientData;
+
   const handleContinue = () => {
     if (!deliveryMethod) return;
 
-    navigate("/pedidos/rellenar/resumen", {
-      state: {
-        ...previousState,
-        deliveryMethod,
-      },
-    });
+    if (mustFillClientData) {
+      // Primero completar datos del cliente
+      navigate("/pedidos/rellenar/datos-cliente", {
+        state: {
+          ...previousState,
+          deliveryMethod,
+        },
+      });
+    } else {
+      // Ya tenemos datos o es recoger en sucursal: vamos directo al resumen
+      navigate("/pedidos/rellenar/resumen", {
+        state: {
+          ...previousState,
+          deliveryMethod,
+        },
+      });
+    }
   };
 
   const isDelivery = deliveryMethod === "delivery";
   const isHomeCollection = deliveryMethod === "home_collection";
   const isPickup = deliveryMethod === "pickup";
+
+  // Texto dinámico del botón principal
+  const primaryButtonLabel = mustFillClientData
+    ? "Completa tus datos"
+    : "Ver resumen del pedido";
 
   return (
     <OrderLayout
@@ -149,10 +176,10 @@ const DeliveryMethodStepThree = () => {
           </div>
           <div className="flex flex-col gap-2">
             <h3 className="text-xl sm:text-2xl font-bold text-dark dark:text-white">
-              Recoger en sucursal
+              Recoger en mostrador
             </h3>
             <p className="text-sm sm:text-base text-text-secondary dark:text-white/70 max-w-xs mx-auto">
-              Lleva tus garrafones directamente a nuestra sucursal Darmax.
+              Entrega tus garrafones en el mostrador de nuestra sucursal Darmax.
             </p>
           </div>
         </button>
@@ -179,20 +206,28 @@ const DeliveryMethodStepThree = () => {
             Volver al paso 2
           </button>
 
-          {/* Botón Continuar */}
-          <button
-            type="button"
-            onClick={handleContinue}
-            disabled={!deliveryMethod}
-            className="flex h-12 sm:h-14 w-full sm:w-auto items-center justify-center rounded-xl
-                       bg-primary px-8 sm:px-10 text-base sm:text-lg font-semibold text-white
-                       shadow-sm hover:bg-primary/90
-                       focus-visible:outline focus-visible:outline-2 
-                       focus-visible:outline-offset-2 focus-visible:outline-primary
-                       transition-all disabled:opacity-60 disabled:cursor-not-allowed"
-          >
-            Continuar al resumen y pago
-          </button>
+          {/* Botón Continuar – texto dinámico */}
+          <div className="flex flex-col gap-1 w-full sm:w-auto">
+            <button
+              type="button"
+              onClick={handleContinue}
+              disabled={!deliveryMethod}
+              className="flex h-12 sm:h-14 w-full items-center justify-center rounded-xl
+                         bg-primary px-8 sm:px-10 text-base sm:text-lg font-semibold text-white
+                         shadow-sm hover:bg-primary/90
+                         focus-visible:outline focus-visible:outline-2 
+                         focus-visible:outline-offset-2 focus-visible:outline-primary
+                         transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {primaryButtonLabel}
+            </button>
+
+            {mustFillClientData && (
+              <p className="text-xs sm:text-sm text-text-secondary dark:text-white/70 text-center sm:text-right">
+                Necesitamos algunos datos de tu domicilio para continuar.
+              </p>
+            )}
+          </div>
         </div>
       </footer>
     </OrderLayout>

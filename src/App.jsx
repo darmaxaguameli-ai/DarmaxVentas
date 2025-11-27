@@ -26,6 +26,8 @@ import RefillAssignStepTwo from "./pages/Client/orders/RefillAssignStepTwo.jsx";
 import DeliveryMethodStepThree from "./pages/Client/orders/DeliveryMethodStepThree.jsx";
 import OrderSummaryStepFour from "./pages/Client/orders/OrderSummaryStepFour.jsx";
 import IdentifyClient from "./pages/Client/orders/IdentifyClient";
+import PickupClientDataStep from "./pages/Client/orders/PickupClientDataStep.jsx";
+import ClientDataConfirmation from "./pages/Client/orders/ClientDataConfirmation.jsx";
 
 function App() {
   return (
@@ -56,6 +58,8 @@ function App() {
       <Route path="/pedidos/rellenar/entrega" element={<DeliveryMethodStepThree />} />
       <Route path="/pedidos/rellenar/resumen" element={<OrderSummaryStepFour />} />
       <Route path="/pedidos/identificar" element={<IdentifyClient />} />
+      <Route path="/pedidos/rellenar/datos-cliente" element={<PickupClientDataStep />} />
+      <Route path="/pedidos/rellenar/datos-confirmados" element={<ClientDataConfirmation />}/>
     </Routes>
   );
 }
