@@ -28,6 +28,8 @@ import OrderSummaryStepFour from "./pages/Client/orders/OrderSummaryStepFour.jsx
 import IdentifyClient from "./pages/Client/orders/IdentifyClient";
 import PickupClientDataStep from "./pages/Client/orders/PickupClientDataStep.jsx";
 import ClientDataConfirmation from "./pages/Client/orders/ClientDataConfirmation.jsx";
+import BuyJugsStepOne from "./pages/Client/orders/BuyJugsStepOne.jsx";
+import BuyJugsFillOptionStepTwo from "./pages/Client/orders/BuyJugsFillOptionStepTwo.jsx";
 
 function App() {
   return (
@@ -60,6 +62,8 @@ function App() {
       <Route path="/pedidos/identificar" element={<IdentifyClient />} />
       <Route path="/pedidos/rellenar/datos-cliente" element={<PickupClientDataStep />} />
       <Route path="/pedidos/rellenar/datos-confirmados" element={<ClientDataConfirmation />}/>
+      <Route path="/pedidos/comprar" element={<BuyJugsStepOne />} />
+      <Route path="/pedidos/comprar/opcion-llenado" element={<BuyJugsFillOptionStepTwo />} />
     </Routes>
   );
 }
