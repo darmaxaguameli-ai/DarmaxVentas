@@ -3,7 +3,6 @@
 
 // Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client"
   output   = "../src/generated/prisma"
@@ -12,33 +11,55 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+/* ===========================
+   ENUMS NUEVOS (AGUA / ENTREGA)
+   =========================== */
 
-
-// --- MODELOS DE USUARIOS ---
-
-// Para clientes de la tienda
-model User {
-  id              Int      @id @default(autoincrement())
-  createdAt       DateTime @default(now())
-  email           String   @unique
-  name            String?
-  telefono        String?
-  passwordHash    String?  // Nullable para usuarios creados desde el admin o sin cuenta
-
-  // Campos de dirección del usuario
-  calle           String?
-  colonia         String?
-  codigoPostal    String?
-  ciudad          String?
-  estadoEnvio     String?
-  pais            String?
-
-  // Relación con Pedidos y Carrito
-  pedidos         Pedido[]
-  carritoItems    CarritoItem[] // Un usuario tiene muchos items en su carrito
+enum TipoPedido {           // NEW
+  RELLENO                  // Flujo de "Rellenar garrafón"
+  COMPRA_GARRAFON          // Flujo de "Comprar garrafón"
 }
 
-// Para administradores del panel
+enum MetodoEntrega {        // NEW
+  DOMICILIO                // Entrega a domicilio
+  RECOLECCION              // Recolección en casa + entrega
+  SUCURSAL                 // Recoger en sucursal / mostrador
+}
+
+enum TipoAgua {             // NEW
+  PURIFICADA
+  PREMIUM
+  ALCALINA
+  SALES
+}
+
+/* ===========================
+   MODELOS DE USUARIOS
+   =========================== */
+
+// Cliente final
+model User {
+  id           Int      @id @default(autoincrement())
+  createdAt    DateTime @default(now())
+  email        String   @unique
+  name         String?
+  telefono     String?
+  passwordHash String?  // Nullable para invitados / generados por admin
+
+  // Dirección principal (puedes luego mover a un modelo Address si quieres varias)
+  calle        String?
+  colonia      String?
+  codigoPostal String?
+  ciudad       String?
+  estadoEnvio  String?
+  pais         String?
+
+  // Relación con Pedidos y Carrito
+  pedidos      Pedido[]
+  carritoItems CarritoItem[]
+}
+
+// Admin del panel
 model AdminUser {
   id           Int      @id @default(autoincrement())
   createdAt    DateTime @default(now())
@@ -47,8 +68,9 @@ model AdminUser {
   passwordHash String
 }
 
-
-// --- MODELOS DE PRODUCTOS ---
+/* ===========================
+   MODELOS DE PRODUCTOS
+   =========================== */
 
 model Categoria {
   id        Int        @id @default(autoincrement())
@@ -66,7 +88,7 @@ model Producto {
   stock       Int      @default(0)
   imagen      String?
 
-  // Campos para envío
+  // Campos para envío (si se requieren)
   pesoKg      Float?
   largoCm     Float?
   anchoCm     Float?
@@ -77,12 +99,13 @@ model Producto {
   categoria   Categoria @relation(fields: [categoriaId], references: [id])
 
   // Relación con Pedidos y Carrito
-  pedidos     PedidosEnProductos[]
-  carritoItems CarritoItem[] // Un producto puede estar en muchos carritos
+  pedidos      PedidosEnProductos[]
+  carritoItems CarritoItem[]
 }
 
-
-// --- MODELOS DE PEDIDOS ---
+/* ===========================
+   MODELOS DE PEDIDOS
+   =========================== */
 
 enum EstadoPedido {
   PENDIENTE
@@ -93,60 +116,112 @@ enum EstadoPedido {
 }
 
 model Pedido {
-  id        Int      @id @default(autoincrement())
-  createdAt DateTime @default(now())
-  orden     String   @unique @default(cuid())
-  total     Float
-  estado    EstadoPedido @default(PENDIENTE)
+  id         Int          @id @default(autoincrement())
+  createdAt  DateTime     @default(now())
+  orden      String       @unique @default(cuid())
+  total      Float
+  estado     EstadoPedido @default(PENDIENTE)
 
-  // Datos del cliente (se guardan en el pedido para el histórico)
+  // NEW: tipo de flujo (relleno / compra de garrafón)
+  tipoPedido     TipoPedido
+
+  // NEW: método de entrega seleccionado en Paso 3
+  metodoEntrega  MetodoEntrega
+
+  // NEW: opcionalmente, fecha/hora programada de entrega o recolección
+  fechaProgramada DateTime?
+
+  // Datos del cliente (snapshot en el pedido)
   clienteNombre   String
   clienteEmail    String
   clienteTelefono String?
 
-  // Dirección de envío
-  direccion       String
-  ciudad          String
-  estadoEnvio     String
-  codigoPostal    String
+  // Dirección de envío (ahora opcionales porque en sucursal no aplica)
+  direccion       String?
+  ciudad          String?
+  estadoEnvio     String?
+  codigoPostal    String?
 
-  // Relación con User (opcional, para pedidos de invitados)
+  // Relación con User (opcional para invitados)
   userId    Int?
-  user      User? @relation(fields: [userId], references: [id])
+  user      User?        @relation(fields: [userId], references: [id])
 
-  // Relación con Productos
+  // Relación con Productos (líneas de productos)
   productos PedidosEnProductos[]
+
+  // NEW: Detalle específico de garrafones seleccionados
+  garrafones PedidoGarrafonDetalle[]
+
+  // NEW: Detalle de tipos de agua asignados
+  tiposAgua PedidoTipoAgua[]
 }
 
-// Tabla intermedia para la relación muchos-a-muchos Pedido <-> Producto
+/* Relación muchos-a-muchos Pedido <-> Producto (genérico) */
 model PedidosEnProductos {
   pedido     Pedido   @relation(fields: [pedidoId], references: [id])
   pedidoId   Int
   producto   Producto @relation(fields: [productoId], references: [id])
   productoId Int
   cantidad   Int
-  
-  // Guardar el precio al momento de la compra por si cambia en el futuro
+
+  // Guardar precio de la compra
   precioAlComprar Float
 
   @@id([pedidoId, productoId])
 }
 
-// Nuevo modelo para los items del carrito
+/* ===========================
+   NEW: DETALLE DE GARRAFONES POR PEDIDO
+   =========================== */
+
+model PedidoGarrafonDetalle {     // NEW
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+
+  pedidoId  Int
+  pedido    Pedido   @relation(fields: [pedidoId], references: [id])
+
+  // Ejemplo: "Garrafón Darmax 20L", "Garrafón 10L", etc.
+  // Puedes mapear estas opciones desde el front.
+  descripcion   String          // Nombre amigable que ves en el paso 1
+  capacidadLitros Int           // 20, 10, etc.
+  marca         String?         // "Darmax", "Ciel", "Epura", etc.
+
+  cantidad      Int
+}
+
+/* ===========================
+   NEW: DETALLE DE TIPOS DE AGUA POR PEDIDO
+   =========================== */
+
+model PedidoTipoAgua {             // NEW
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+
+  pedidoId  Int
+  pedido    Pedido   @relation(fields: [pedidoId], references: [id])
+
+  tipoAgua  TipoAgua       // PREMIUM, ALCALINA, etc.
+  cantidad  Int            // Cuántos garrafones de ese tipo
+}
+
+/* ===========================
+   MODELO CARRITO
+   =========================== */
+
 model CarritoItem {
   id         Int      @id @default(autoincrement())
   cantidad   Int
   createdAt  DateTime @default(now())
 
-  // A qué usuario pertenece este item
+  // Usuario dueño de este ítem
   userId     Int
   user       User     @relation(fields: [userId], references: [id])
 
-  // Qué producto es
+  // Producto
   productoId Int
   producto   Producto @relation(fields: [productoId], references: [id])
 
-  // Un usuario solo puede tener una línea por producto (ej: 3x "Producto A", no dos líneas de "Producto A")
+  // Un usuario solo puede tener un renglón por producto
   @@unique([userId, productoId])
 }
-

@@ -9,11 +9,18 @@ const DeliveryMethodStepThree = () => {
 
   const previousState = location.state || {};
 
+  // 🔹 Saber si venimos de refill (normal) o de compra de garrafones
+  const mode = previousState.mode || "refill"; // "refill" | "buy"
+  const buyFlow = previousState.buyFlow || null;
+
   // "delivery" | "home_collection" | "pickup"
   const [deliveryMethod, setDeliveryMethod] = useState("delivery");
 
   const handleBack = () => {
-    navigate("/pedidos/rellenar/asignar", {
+    // Si definiste un backPath en el state, úsalo, si no, regresamos al paso 2 de rellenar
+    const backPath = previousState.backPath || "/pedidos/rellenar/asignar";
+
+    navigate(backPath, {
       state: {
         ...previousState,
         deliveryMethod,
@@ -35,21 +42,50 @@ const DeliveryMethodStepThree = () => {
   const handleContinue = () => {
     if (!deliveryMethod) return;
 
+    // Estado base que mandaremos al siguiente paso
+    let nextState = {
+      ...previousState,
+      deliveryMethod,
+    };
+
+    // 🔹 FLUJO: COMPRA DE GARRAFONES (mode === "buy")
+    if (mode === "buy" && buyFlow) {
+      const { fromStepOneBuy = [], fillOption = "empty" } = buyFlow;
+
+      // Construimos los productos que se verán en el resumen
+      const orderItems = fromStepOneBuy
+        .filter((p) => p.quantity && p.quantity > 0)
+        .map((p) => ({
+          id: p.id,
+          name:
+            fillOption === "empty"
+              ? `${p.name} (solo envase)`
+              : `${p.name} (lleno)`,
+          quantity: p.quantity,
+          imageUrl: p.imageUrl,
+          description:
+            fillOption === "empty"
+              ? `Envase vacío. Cantidad: ${p.quantity}`
+              : `Garrafón lleno. Cantidad: ${p.quantity}`,
+        }));
+
+      nextState = {
+        ...nextState,
+        mode: "buy",
+        buyFlow,
+        orderItems,
+      };
+    }
+
+    // 🔹 Decidimos a dónde ir según si necesita datos de cliente o no
     if (mustFillClientData) {
-      // Primero completar datos del cliente
       navigate("/pedidos/rellenar/datos-cliente", {
-        state: {
-          ...previousState,
-          deliveryMethod,
-        },
+        state: nextState,
       });
     } else {
-      // Ya tenemos datos o es recoger en sucursal: vamos directo al resumen
+      
       navigate("/pedidos/rellenar/resumen", {
-        state: {
-          ...previousState,
-          deliveryMethod,
-        },
+        state: nextState,
       });
     }
   };

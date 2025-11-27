@@ -1,4 +1,4 @@
-// src/pages/cliente/orders/BuyJugsStepOne.jsx
+// src/pages/Client/orders/BuyJugsStepOne.jsx
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import OrderLayout from "../../../layouts/OrderLayout";
@@ -19,7 +19,6 @@ const BuyJugsStepOne = () => {
       id: "darmax10",
       name: "Garrafón Darmax 10L",
       quantity: 0,
-      featured: false,
       imageUrl:
         "https://i5.walmartimages.com/asr/477a4697-343e-4479-b790-3e20d7d2c4a8.85794c880e81af65b362fa88a710128c.jpeg?odnHeight=612&odnWidth=612&odnBg=FFFFFF",
     },
@@ -31,7 +30,7 @@ const BuyJugsStepOne = () => {
     setProducts((prev) =>
       prev.map((p) =>
         p.id === id
-          ? { ...p, quantity: Math.max(0, p.quantity + delta) }
+          ? { ...p, quantity: Math.max(0, (p.quantity || 0) + delta) }
           : p
       )
     );
@@ -39,27 +38,28 @@ const BuyJugsStepOne = () => {
 
   const handleContinue = () => {
     if (totalJugs === 0) {
-      console.log("Debes seleccionar al menos 1 garrafón");
+      console.log("Debes seleccionar al menos 1 garrafón para comprar.");
       return;
     }
 
     navigate("/pedidos/comprar/opcion-llenado", {
       state: {
-        totalJugs,
-        products,
+        mode: "buy",
+        fromStepOneBuy: products,
+        totalJugsBuy: totalJugs,
       },
     });
   };
 
   return (
     <OrderLayout
-      title="Elige tus garrafones Darmax"
-      subtitle="Selecciona cuántos garrafones de 20L y 10L quieres comprar."
+      title="Selecciona tus garrafones a comprar"
+      subtitle="Elige cuántos garrafones de 20L y 10L deseas comprar."
       step={1}
       totalSteps={4}
     >
       <div className="flex flex-col gap-6">
-        {/* Resumen superior para adultos mayores */}
+        {/* Resumen superior */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-sm sm:text-base text-text-secondary dark:text-white/80">
           <span>
             Garrafones seleccionados:{" "}
@@ -75,15 +75,15 @@ const BuyJugsStepOne = () => {
           </span>
         </div>
 
-        {/* Grid de productos – cómodo en horizontal (tablet 11") */}
+        {/* Grid de productos */}
         <div
           className="
             grid 
             grid-cols-1
             sm:grid-cols-2
-            lg:grid-cols-2
+            lg:grid-cols-3
             gap-4 md:gap-6 
-            max-w-3xl mx-auto
+            max-w-5xl mx-auto
           "
         >
           {products.map((product) => (
@@ -100,19 +100,19 @@ const BuyJugsStepOne = () => {
           ))}
         </div>
 
-        {/* Botón continuar grande y claro */}
+        {/* Botón continuar */}
         <div className="flex justify-end pt-4">
           <button
             type="button"
             onClick={handleContinue}
-            className="flex min-w-[220px] items-center justify-center rounded-xl
+            className="flex min-w-[200px] items-center justify-center rounded-xl
                        bg-primary px-10 h-14 text-lg font-semibold text-white
                        shadow-sm hover:bg-primary/90
                        focus-visible:outline focus-visible:outline-2 
                        focus-visible:outline-offset-2 focus-visible:outline-primary
                        transition-all active:scale-[0.98]"
           >
-            Elegir si los quiero llenos
+            Continuar al paso 2
           </button>
         </div>
       </div>

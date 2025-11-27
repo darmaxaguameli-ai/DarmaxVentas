@@ -1,131 +1,150 @@
+// src/pages/Client/orders/BuyJugsFillOptionStepTwo.jsx
+import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { useState } from "react"; // ← FALTABA ESTE
 import OrderLayout from "../../../layouts/OrderLayout";
-
 
 const BuyJugsFillOptionStepTwo = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const { totalJugs = 0, products = [] } = location.state || {};
+  const previousState = location.state || {};
+  const fromStepOneBuy = previousState.fromStepOneBuy || [];
+  const totalJugsBuy = previousState.totalJugsBuy || 0;
 
-  const [mode, setMode] = useState("filled"); // "filled" | "empty"
+  const [selectedOption, setSelectedOption] = useState("empty"); // "empty" | "full"
 
   const handleBack = () => {
     navigate("/pedidos/comprar", {
-      state: { totalJugs, products },
+      state: previousState,
     });
   };
 
   const handleContinue = () => {
-    if (!mode || totalJugs === 0) return;
+    if (!selectedOption) return;
 
-    if (mode === "empty") {
-      // Solo compra de garrafones vacíos → directo a método de entrega
-      navigate("/pedidos/comprar/entrega", {
+    // Guardamos info común del flujo de compra
+    const buyFlow = {
+      fromStepOneBuy,
+      totalJugsBuy,
+      fillOption: selectedOption,
+    };
+
+    if (selectedOption === "full") {
+      // 👉 GARAFÓN LLENO:
+      // primero ir a elegir el TIPO de agua (similar al paso 2 del flujo de rellenar)
+      navigate("/pedidos/comprar/asignar-agua", {
         state: {
-          totalJugs,
-          products,
-          buyMode: "empty",
+          ...previousState,
+          mode: "buy",
+          buyFlow,
+          backPath: "/pedidos/comprar/llenado",
         },
       });
     } else {
-      // Compra de garrafones llenos → reasignar agua (similar al Paso 2 de rellenar)
-      navigate("/pedidos/comprar/asignar-agua", {
+      // 👉 SOLO GARAFÓN:
+      // saltamos directo al método de entrega y luego al resumen
+      navigate("/pedidos/rellenar/entrega", {
         state: {
-          totalJugs,
-          products,
-          buyMode: "filled",
+          ...previousState,
+          mode: "buy",
+          buyFlow,
+          backPath: "/pedidos/comprar/llenado",
         },
       });
     }
   };
 
-  const isEmpty = mode === "empty";
-  const isFilled = mode === "filled";
+  const isEmpty = selectedOption === "empty";
+  const isFull = selectedOption === "full";
 
   return (
     <OrderLayout
-      title="¿Garrafones vacíos o llenos?"
-      subtitle="Elige si quieres solo el garrafón o ya con agua incluida."
+      title="¿Cómo quieres tus garrafones?"
+      subtitle="Elige si deseas solo el envase o los garrafones ya llenos de agua."
       step={2}
       totalSteps={4}
     >
       <div className="flex flex-col gap-6">
-        <p className="text-sm sm:text-base text-text-secondary dark:text-white/80">
-          Tienes seleccionados{" "}
-          <span className="font-bold text-primary">{totalJugs}</span>{" "}
-          garrafones Darmax. Ahora decide cómo los quieres.
+        <p className="mt-1 text-sm sm:text-base text-text-secondary dark:text-white/80">
+          Has seleccionado{" "}
+          <span className="font-semibold text-primary">
+            {totalJugsBuy}
+          </span>{" "}
+          garrafones en total.
         </p>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-3xl mx-auto">
-          {/* Solo garrafón vacío */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-4xl mx-auto">
+          {/* Solo garrafón */}
           <button
             type="button"
-            onClick={() => setMode("empty")}
+            onClick={() => setSelectedOption("empty")}
             className={`flex flex-col items-center justify-center gap-3 rounded-2xl px-6 py-8 text-center
                         shadow-md backdrop-blur-xl transition-all border
-              ${
-                isEmpty
-                  ? "border-primary bg-white/95 dark:bg-dark/70 dark:border-primary scale-[1.02]"
-                  : "border-light/60 dark:border-white/10 bg-white/90 dark:bg-dark/60 hover:border-primary/40"
-              }`}
+            ${
+              isEmpty
+                ? "border-primary bg-white/95 dark:bg-dark/70 dark:border-primary scale-[1.02]"
+                : "border-light/60 dark:border-white/10 bg-white/90 dark:bg-dark/60 hover:border-primary/40"
+            }`}
           >
             <div
-              className={`flex h-16 w-16 items-center justify-center rounded-full
-                ${
-                  isEmpty
-                    ? "bg-primary/10 text-primary"
-                    : "bg-light dark:bg-dark text-text-secondary dark:text-white/70"
-                }`}
+              className={`flex h-20 w-20 items-center justify-center rounded-full
+              ${
+                isEmpty
+                  ? "bg-primary/10 text-primary"
+                  : "bg-light dark:bg-dark text-text-secondary dark:text-white/70"
+              }`}
             >
-              <span className="material-symbols-outlined text-4xl">
+              <span className="material-symbols-outlined text-4xl sm:text-5xl">
                 inventory_2
               </span>
             </div>
-            <h3 className="text-xl font-bold text-dark dark:text-white">
-              Solo garrafón
-            </h3>
-            <p className="text-sm sm:text-base text-text-secondary dark:text-white/70 max-w-xs">
-              Compra los garrafones vacíos para usarlos más adelante.
-            </p>
+            <div className="flex flex-col gap-1">
+              <h3 className="text-xl sm:text-2xl font-bold text-dark dark:text-white">
+                Solo garrafón
+              </h3>
+              <p className="text-sm sm:text-base text-text-secondary dark:text-white/70 max-w-xs mx-auto">
+                Comprarás únicamente el envase vacío. Ideal si ya tienes agua.
+              </p>
+            </div>
           </button>
 
           {/* Garrafón lleno */}
           <button
             type="button"
-            onClick={() => setMode("filled")}
+            onClick={() => setSelectedOption("full")}
             className={`flex flex-col items-center justify-center gap-3 rounded-2xl px-6 py-8 text-center
                         shadow-md backdrop-blur-xl transition-all border
-              ${
-                isFilled
-                  ? "border-primary bg-white/95 dark:bg-dark/70 dark:border-primary scale-[1.02]"
-                  : "border-light/60 dark:border-white/10 bg-white/90 dark:bg-dark/60 hover:border-primary/40"
-              }`}
+            ${
+              isFull
+                ? "border-primary bg-white/95 dark:bg-dark/70 dark:border-primary scale-[1.02]"
+                : "border-light/60 dark:border-white/10 bg-white/90 dark:bg-dark/60 hover:border-primary/40"
+            }`}
           >
             <div
-              className={`flex h-16 w-16 items-center justify-center rounded-full
-                ${
-                  isFilled
-                    ? "bg-primary/10 text-primary"
-                    : "bg-light dark:bg-dark text-text-secondary dark:text-white/70"
-                }`}
+              className={`flex h-20 w-20 items-center justify-center rounded-full
+              ${
+                isFull
+                  ? "bg-primary/10 text-primary"
+                  : "bg-light dark:bg-dark text-text-secondary dark:text-white/70"
+              }`}
             >
-              <span className="material-symbols-outlined text-4xl">
-                water_drop
+              <span className="material-symbols-outlined text-4xl sm:text-5xl">
+                water_full
               </span>
             </div>
-            <h3 className="text-xl font-bold text-dark dark:text-white">
-              Garrafón lleno
-            </h3>
-            <p className="text-sm sm:text-base text-text-secondary dark:text-white/70 max-w-xs">
-              Te entregamos los garrafones ya llenos de agua Darmax.
-            </p>
+            <div className="flex flex-col gap-1">
+              <h3 className="text-xl sm:text-2xl font-bold text-dark dark:text-white">
+                Garrafón lleno
+              </h3>
+              <p className="text-sm sm:text-base text-text-secondary dark:text-white/70 max-w-xs mx-auto">
+                Recibe tus garrafones llenos, listos para usarse.
+              </p>
+            </div>
           </button>
         </div>
 
         {/* Footer botones */}
-        <div className="flex flex-col-reverse sm:flex-row gap-4 justify-between items-center mt-4">
+        <div className="mt-auto pt-2 flex flex-col-reverse sm:flex-row gap-4 justify-between items-center">
           <button
             type="button"
             onClick={handleBack}
@@ -138,13 +157,13 @@ const BuyJugsFillOptionStepTwo = () => {
                        hover:bg-slate-200 dark:hover:bg-slate-700
                        transition-all"
           >
-            Volver al paso anterior
+            Volver al paso 1
           </button>
 
           <button
             type="button"
+            disabled={!selectedOption}
             onClick={handleContinue}
-            disabled={!mode || totalJugs === 0}
             className="flex h-12 sm:h-14 w-full sm:w-auto items-center justify-center rounded-xl
                        bg-primary px-8 sm:px-10 text-base sm:text-lg font-semibold text-white
                        shadow-sm hover:bg-primary/90
@@ -152,7 +171,9 @@ const BuyJugsFillOptionStepTwo = () => {
                        focus-visible:outline-offset-2 focus-visible:outline-primary
                        transition-all disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            Continuar
+            {selectedOption === "full"
+              ? "Elegir tipo de agua"
+              : "Elegir método de entrega"}
           </button>
         </div>
       </div>
