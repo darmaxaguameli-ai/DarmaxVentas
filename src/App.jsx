@@ -39,11 +39,13 @@ function App() {
       <Route path="/login" element={<Login />} />
       <Route path="/registro" element={<Register />} />
 
+
       {/* Sistema de Ventas */}
       <Route path="/ventas/productos" element={<ProductGrid />} />
       <Route path="/ventas/mostrador" element={<VentaMostrador />} />
       <Route path="/ventas/inicio" element={<StartDayModal />} />
       <Route path="/repartidor" element={<RepartidorDashboard />} />
+
 
       {/* Gestión */}
       <Route path="/gestion" element={<GestionDashboard />}>
@@ -52,6 +54,7 @@ function App() {
         <Route path="ingresos" element={<Ingresos />} />
         <Route path="gastos" element={<Gastos />} />
       </Route>
+
 
       {/* Cliente – flujo de pedidos */}
       <Route path="/pedidos" element={<OrderSelection />} />
