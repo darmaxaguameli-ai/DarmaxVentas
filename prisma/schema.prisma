@@ -11,217 +11,166 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
-/* ===========================
-   ENUMS NUEVOS (AGUA / ENTREGA)
-   =========================== */
+// --------------------------------------------------
+// ENUMS - Para valores predefinidos
+// --------------------------------------------------
 
-enum TipoPedido {           // NEW
-  RELLENO                  // Flujo de "Rellenar garrafón"
-  COMPRA_GARRAFON          // Flujo de "Comprar garrafón"
+enum UserRole {
+  ADMIN
+  VENDEDOR
+  REPARTIDOR
+  CLIENTE
 }
 
-enum MetodoEntrega {        // NEW
-  DOMICILIO                // Entrega a domicilio
-  RECOLECCION              // Recolección en casa + entrega
-  SUCURSAL                 // Recoger en sucursal / mostrador
-}
-
-enum TipoAgua {             // NEW
-  PURIFICADA
-  PREMIUM
-  ALCALINA
-  SALES
-}
-
-/* ===========================
-   MODELOS DE USUARIOS
-   =========================== */
-
-// Cliente final
-model User {
-  id           Int      @id @default(autoincrement())
-  createdAt    DateTime @default(now())
-  email        String   @unique
-  name         String?
-  telefono     String?
-  passwordHash String?  // Nullable para invitados / generados por admin
-
-  // Dirección principal (puedes luego mover a un modelo Address si quieres varias)
-  calle        String?
-  colonia      String?
-  codigoPostal String?
-  ciudad       String?
-  estadoEnvio  String?
-  pais         String?
-
-  // Relación con Pedidos y Carrito
-  pedidos      Pedido[]
-  carritoItems CarritoItem[]
-}
-
-// Admin del panel
-model AdminUser {
-  id           Int      @id @default(autoincrement())
-  createdAt    DateTime @default(now())
-  email        String   @unique
-  name         String
-  passwordHash String
-}
-
-/* ===========================
-   MODELOS DE PRODUCTOS
-   =========================== */
-
-model Categoria {
-  id        Int        @id @default(autoincrement())
-  nombre    String     @unique
-  productos Producto[]
-}
-
-model Producto {
-  id          Int      @id @default(autoincrement())
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  nombre      String
-  precio      Float
-  descripcion String?
-  stock       Int      @default(0)
-  imagen      String?
-
-  // Campos para envío (si se requieren)
-  pesoKg      Float?
-  largoCm     Float?
-  anchoCm     Float?
-  altoCm      Float?
-
-  // Relación con Categoria
-  categoriaId Int
-  categoria   Categoria @relation(fields: [categoriaId], references: [id])
-
-  // Relación con Pedidos y Carrito
-  pedidos      PedidosEnProductos[]
-  carritoItems CarritoItem[]
-}
-
-/* ===========================
-   MODELOS DE PEDIDOS
-   =========================== */
-
-enum EstadoPedido {
+enum PedidoStatus {
   PENDIENTE
-  PAGADO
-  ENVIADO
+  EN_PROCESO
+  EN_RUTA
   ENTREGADO
   CANCELADO
 }
 
+enum PaymentStatus {
+  PAGADO
+  NO_PAGADO
+}
+
+
+// --------------------------------------------------
+// MODELOS PRINCIPALES
+// --------------------------------------------------
+
+model User {
+  id        String   @id @default(cuid())
+  customId  String   @unique // ID legible para humanos, ej: CL-0001
+  name      String
+  
+  // --- Campos para "Cuenta Completa" ---
+  email     String?  @unique // Opcional: solo para cuentas con login
+  password  String?           // Opcional: solo para cuentas con login
+  
+  // --- Campos de Contacto y Dirección ---
+  phone     String?  @unique // Opcional, pero útil para buscar clientes
+  street         String?
+  neighborhood   String?
+  city           String?
+  postalCode     String?
+  references     String?
+
+  role      UserRole @default(CLIENTE)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // --- Relaciones ---
+  pedidos     Pedido[]
+  sesionesCaja SesionCaja[]
+}
+
+model Producto {
+  id         String   @id @default(cuid())
+  name       String
+  price      Float
+  stock      Int      @default(0) // Para el módulo de Inventario
+  imageUrl   String?
+  category   String?
+
+  // --- Relaciones ---
+  itemsPedido PedidoItem[]
+}
+
+
 model Pedido {
-  id         Int          @id @default(autoincrement())
-  createdAt  DateTime     @default(now())
-  orden      String       @unique @default(cuid())
-  total      Float
-  estado     EstadoPedido @default(PENDIENTE)
+  id        String   @id @default(cuid())
+  customId  String   @unique // Ej: ORD-0001
+  total     Float
+  status    PedidoStatus @default(PENDIENTE)
+  deliveryMethod String // ej: "domicilio", "recoleccion", "sucursal"
+  paymentMethod String? // ej: "efectivo", "tarjeta"
+  paymentStatus PaymentStatus @default(NO_PAGADO)
 
-  // NEW: tipo de flujo (relleno / compra de garrafón)
-  tipoPedido     TipoPedido
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  // NEW: método de entrega seleccionado en Paso 3
-  metodoEntrega  MetodoEntrega
+  // --- Relaciones ---
+  cliente     User         @relation(fields: [clienteId], references: [id])
+  clienteId   String
 
-  // NEW: opcionalmente, fecha/hora programada de entrega o recolección
-  fechaProgramada DateTime?
+  items       PedidoItem[]
 
-  // Datos del cliente (snapshot en el pedido)
-  clienteNombre   String
-  clienteEmail    String
-  clienteTelefono String?
+  sesionCaja  SesionCaja?  @relation(fields: [sesionCajaId], references: [id])
+  sesionCajaId String?
 
-  // Dirección de envío (ahora opcionales porque en sucursal no aplica)
-  direccion       String?
-  ciudad          String?
-  estadoEnvio     String?
-  codigoPostal    String?
-
-  // Relación con User (opcional para invitados)
-  userId    Int?
-  user      User?        @relation(fields: [userId], references: [id])
-
-  // Relación con Productos (líneas de productos)
-  productos PedidosEnProductos[]
-
-  // NEW: Detalle específico de garrafones seleccionados
-  garrafones PedidoGarrafonDetalle[]
-
-  // NEW: Detalle de tipos de agua asignados
-  tiposAgua PedidoTipoAgua[]
+  ingreso     Ingreso?
 }
 
-/* Relación muchos-a-muchos Pedido <-> Producto (genérico) */
-model PedidosEnProductos {
+// Tabla intermedia para la relación muchos-a-muchos entre Pedido y Producto
+model PedidoItem {
+  id         String   @id @default(cuid())
+  quantity   Int
+  price      Float    // Precio del producto en el momento de la compra
+
+  // --- Relaciones ---
   pedido     Pedido   @relation(fields: [pedidoId], references: [id])
-  pedidoId   Int
+  pedidoId   String
+
   producto   Producto @relation(fields: [productoId], references: [id])
-  productoId Int
-  cantidad   Int
+  productoId String
 
-  // Guardar precio de la compra
-  precioAlComprar Float
-
-  @@id([pedidoId, productoId])
+  @@unique([pedidoId, productoId])
 }
 
-/* ===========================
-   NEW: DETALLE DE GARRAFONES POR PEDIDO
-   =========================== */
 
-model PedidoGarrafonDetalle {     // NEW
-  id        Int      @id @default(autoincrement())
-  createdAt DateTime @default(now())
+// --------------------------------------------------
+// MODELOS PARA EL DASHBOARD DE GESTIÓN
+// --------------------------------------------------
 
-  pedidoId  Int
-  pedido    Pedido   @relation(fields: [pedidoId], references: [id])
+model SesionCaja {
+  id              String   @id @default(cuid())
+  startedAt       DateTime @default(now())
+  endedAt         DateTime?
+  openingBalance  Float    // Saldo inicial
+  closingBalance  Float?   // Saldo al cerrar
+  expectedBalance Float?   // Calculado = inicial + ventas - retiros + ingresos
 
-  // Ejemplo: "Garrafón Darmax 20L", "Garrafón 10L", etc.
-  // Puedes mapear estas opciones desde el front.
-  descripcion   String          // Nombre amigable que ves en el paso 1
-  capacidadLitros Int           // 20, 10, etc.
-  marca         String?         // "Darmax", "Ciel", "Epura", etc.
+  // --- Relaciones ---
+  vendedor        User     @relation(fields: [vendedorId], references: [id])
+  vendedorId      String
 
-  cantidad      Int
+  transacciones   Transaccion[]
+  pedidos         Pedido[]
 }
 
-/* ===========================
-   NEW: DETALLE DE TIPOS DE AGUA POR PEDIDO
-   =========================== */
+model Transaccion {
+  id          String   @id @default(cuid())
+  type        String   // "INGRESO_CAJA", "RETIRO_CAJA", "VENTA"
+  amount      Float
+  description String?
+  
+  createdAt   DateTime @default(now())
 
-model PedidoTipoAgua {             // NEW
-  id        Int      @id @default(autoincrement())
-  createdAt DateTime @default(now())
-
-  pedidoId  Int
-  pedido    Pedido   @relation(fields: [pedidoId], references: [id])
-
-  tipoAgua  TipoAgua       // PREMIUM, ALCALINA, etc.
-  cantidad  Int            // Cuántos garrafones de ese tipo
+  // --- Relaciones ---
+  sesion      SesionCaja @relation(fields: [sesionId], references: [id])
+  sesionId    String
 }
 
-/* ===========================
-   MODELO CARRITO
-   =========================== */
 
-model CarritoItem {
-  id         Int      @id @default(autoincrement())
-  cantidad   Int
-  createdAt  DateTime @default(now())
+model Gasto {
+  id          String   @id @default(cuid())
+  description String
+  amount      Float
+  date        DateTime
+}
 
-  // Usuario dueño de este ítem
-  userId     Int
-  user       User     @relation(fields: [userId], references: [id])
 
-  // Producto
-  productoId Int
-  producto   Producto @relation(fields: [productoId], references: [id])
+model Ingreso {
+  id          String   @id @default(cuid())
+  description String
+  amount      Float
+  date        DateTime
 
-  // Un usuario solo puede tener un renglón por producto
-  @@unique([userId, productoId])
+  // --- Relaciones ---
+  // Un ingreso puede estar asociado a un pedido específico
+  pedido      Pedido?   @relation(fields: [pedidoId], references: [id])
+  pedidoId    String?   @unique
 }
