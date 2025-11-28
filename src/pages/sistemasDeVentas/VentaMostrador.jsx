@@ -36,7 +36,7 @@ const VentaMostrador = () => {
     const [cashDrawerActionType, setCashDrawerActionType] = useState('in');
     const [isCloseRegisterModalOpen, setIsCloseRegisterModalOpen] = useState(false);
     const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
-    const [activeTab, setActiveTab] = useState('directSale'); // 'directSale', 'refill', 'buyNew'
+    const [activeTab, setActiveTab] = useState('refill'); // Changed default to 'refill'
     
     // Get addOrder from context
     const { addOrder } = useOrders();
@@ -118,7 +118,6 @@ const VentaMostrador = () => {
             });
         }
         
-        // This part runs for both delivery and non-delivery orders
         const newTransaction = {
             type: 'sale',
             description: `Venta de ${orderItems.length} productos`,
@@ -176,42 +175,52 @@ const VentaMostrador = () => {
         deliveryDetails: customer || deliveryInfo.deliveryDetails
     };
 
-    return (
-        <div className="bg-light dark:bg-dark h-screen flex flex-col font-display text-[#111418] dark:text-white">
-            <PosHeader 
-                onPayIn={handleOpenPayIn}
-                onPayOut={handleOpenPayOut}
-                onCloseRegister={handleRequestCloseRegister} // Modified
-            />
-            <div className="flex flex-1 overflow-hidden p-6 pt-0">
-                <div className="flex-1 pr-6 overflow-y-auto">
-                    {/* Tabs for order type */}
-                    <div className="flex border-b border-gray-200 dark:border-gray-700 mb-4">
-                        <button 
-                            onClick={() => setActiveTab('directSale')}
-                            className={`px-4 py-2 text-sm font-semibold ${activeTab === 'directSale' ? 'border-b-2 border-primary text-primary' : 'text-gray-500'}`}
-                        >
-                            Venta Directa
-                        </button>
-                        <button 
-                            onClick={() => setActiveTab('refill')}
-                            className={`px-4 py-2 text-sm font-semibold ${activeTab === 'refill' ? 'border-b-2 border-primary text-primary' : 'text-gray-500'}`}
-                        >
-                            Recarga de Garrafones
-                        </button>
-                        <button 
-                            onClick={() => setActiveTab('buyNew')}
-                            className={`px-4 py-2 text-sm font-semibold ${activeTab === 'buyNew' ? 'border-b-2 border-primary text-primary' : 'text-gray-500'}`}
-                        >
-                            Comprar Garrafones
-                        </button>
-                    </div>
+    const getTabClassName = (tabName) => {
+        return `px-4 sm:px-6 py-3 font-semibold rounded-t-md transition-colors text-sm sm:text-base focus:outline-none ${
+            activeTab === tabName
+                ? 'bg-white dark:bg-gray-800 text-primary'
+                : 'bg-transparent text-gray-500 hover:text-primary dark:hover:text-gray-300'
+        }`;
+    };
 
-                    {activeTab === 'directSale' && <ProductGrid onProductSelect={handleProductSelect} />}
-                    {activeTab === 'refill' && <PosRefillGrid onProductSelect={handleProductSelect} />}
-                    {activeTab === 'buyNew' && <PosBuyGrid onProductSelect={handleProductSelect} />}
+    return (
+        <div className="bg-gray-100 dark:bg-gray-900 h-screen flex flex-col font-display text-gray-800 dark:text-gray-200">
+            <header className="p-4 pb-0 flex-shrink-0">
+                <PosHeader 
+                    onPayIn={handleOpenPayIn}
+                    onPayOut={handleOpenPayOut}
+                    onCloseRegister={handleRequestCloseRegister}
+                />
+            </header>
+            
+            <main className="flex-1 grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-3 gap-6 p-4 overflow-hidden">
+                {/* Main content - Product Grid */}
+                <div className="lg:col-span-2 xl:col-span-2 flex flex-col overflow-hidden">
+                    {/* Tabs */}
+                    <div className="flex-shrink-0 border-b border-gray-200 dark:border-gray-700">
+                        <nav className="-mb-px flex gap-2">
+                            <button onClick={() => setActiveTab('refill')} className={getTabClassName('refill')}>
+                                Recargas
+                            </button>
+                            <button onClick={() => setActiveTab('buyNew')} className={getTabClassName('buyNew')}>
+                                Garrafones Nuevos
+                            </button>
+                            <button onClick={() => setActiveTab('directSale')} className={getTabClassName('directSale')}>
+                                Otros Productos
+                            </button>
+                        </nav>
+                    </div>
+                    
+                    {/* Grid */}
+                    <div className="flex-1 py-4 overflow-y-auto">
+                        {activeTab === 'directSale' && <ProductGrid onProductSelect={handleProductSelect} />}
+                        {activeTab === 'refill' && <PosRefillGrid onProductSelect={handleProductSelect} />}
+                        {activeTab === 'buyNew' && <PosBuyGrid onProductSelect={handleProductSelect} />}
+                    </div>
                 </div>
-                <div className="w-96">
+
+                {/* Order Summary */}
+                <div className="lg:col-span-1 xl:col-span-1 h-full">
                     <OrderSummary 
                         orderItems={orderItems}
                         customer={customer}
@@ -227,37 +236,14 @@ const VentaMostrador = () => {
                         onRemoveCustomer={() => setCustomer(null)}
                     />
                 </div>
-            </div>
+            </main>
 
             {/* Modals */}
-            <CustomerModal 
-                isOpen={isCustomerModalOpen}
-                onClose={() => setIsCustomerModalOpen(false)}
-                onCustomerAdd={handleCustomerAdd}
-            />
-            <PaymentModal 
-                isOpen={isPaymentModalOpen}
-                onClose={() => setIsPaymentModalOpen(false)}
-                total={total}
-                onPaymentConfirm={handlePaymentConfirm}
-            />
-            <DeliveryModal
-                isOpen={isDeliveryModalOpen}
-                onClose={() => setIsDeliveryModalOpen(false)}
-                onSave={handleSaveDeliveryInfo}
-                initialData={deliveryModalData}
-            />
-            <CashDrawerModal 
-                isOpen={isCashDrawerModalOpen}
-                onClose={() => setIsCashDrawerModalOpen(false)}
-                onConfirm={handleCashDrawerAction}
-                defaultType={cashDrawerActionType}
-            />
-            <PasswordModal
-                isOpen={isPasswordModalOpen}
-                onClose={() => setIsPasswordModalOpen(false)}
-                onConfirm={handlePasswordConfirm}
-            />
+            <CustomerModal isOpen={isCustomerModalOpen} onClose={() => setIsCustomerModalOpen(false)} onCustomerAdd={handleCustomerAdd} />
+            <PaymentModal isOpen={isPaymentModalOpen} onClose={() => setIsPaymentModalOpen(false)} total={total} onPaymentConfirm={handlePaymentConfirm} />
+            <DeliveryModal isOpen={isDeliveryModalOpen} onClose={() => setIsDeliveryModalOpen(false)} onSave={handleSaveDeliveryInfo} initialData={deliveryModalData} />
+            <CashDrawerModal isOpen={isCashDrawerModalOpen} onClose={() => setIsCashDrawerModalOpen(false)} onConfirm={handleCashDrawerAction} defaultType={cashDrawerActionType} />
+            <PasswordModal isOpen={isPasswordModalOpen} onClose={() => setIsPasswordModalOpen(false)} onConfirm={handlePasswordConfirm} />
             <CloseRegisterModal 
                 isOpen={isCloseRegisterModalOpen}
                 onClose={() => setIsCloseRegisterModalOpen(false)}

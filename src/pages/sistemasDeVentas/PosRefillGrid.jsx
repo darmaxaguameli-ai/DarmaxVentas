@@ -1,4 +1,5 @@
 import React from 'react';
+import ProductCard from './components/ProductCard';
 
 const POS_REFILL_PRODUCTS = [
     {
@@ -28,28 +29,10 @@ const POS_REFILL_PRODUCTS = [
 ];
 
 const PosRefillGrid = ({ onProductSelect }) => {
-    // This component is simpler, it just calls the onProductSelect prop
-    // The main VentaMostrador will handle the state of the order
   return (
-    <div
-      className="
-        grid 
-        grid-cols-3
-        sm:grid-cols-4
-        md:grid-cols-5
-        gap-4
-      "
-    >
+    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-5 p-1">
       {POS_REFILL_PRODUCTS.map((product) => (
-        <button 
-          key={product.id}
-          onClick={() => onProductSelect(product)}
-          className="aspect-square flex flex-col items-center justify-center p-2 rounded-xl bg-white dark:bg-gray-800 shadow-md hover:shadow-lg hover:scale-105 transition-all focus:outline-none focus:ring-2 focus:ring-primary"
-        >
-          <img src={product.imageUrl} alt={product.name} className="h-16 w-16 object-contain mb-2"/>
-          <span className="text-center font-semibold text-sm sm:text-base text-[#111418] dark:text-white">{product.name}</span>
-          <span className="text-primary font-bold mt-1">${product.price.toFixed(2)}</span>
-        </button>
+        <ProductCard key={product.id} product={product} onProductSelect={onProductSelect} />
       ))}
     </div>
   );

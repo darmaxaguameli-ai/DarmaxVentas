@@ -9,13 +9,17 @@ const SignaturePad = ({ onSave }) => {
   };
 
   const save = () => {
+    if (sigCanvas.current.isEmpty()) {
+        alert("Por favor, proporciona una firma.");
+        return;
+    }
     onSave(sigCanvas.current.getTrimmedCanvas().toDataURL('image/png'));
     clear();
   };
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="bg-gray-200 rounded-lg">
+      <div className="bg-gray-100 dark:bg-gray-700 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-500">
         <SignatureCanvas
           ref={sigCanvas}
           penColor="black"
@@ -23,10 +27,10 @@ const SignaturePad = ({ onSave }) => {
         />
       </div>
       <div className="flex justify-center gap-4">
-        <button onClick={clear} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-lg">
+        <button onClick={clear} className="px-6 py-2 font-semibold text-gray-700 dark:text-gray-300 bg-gray-200 dark:bg-gray-600 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors">
           Limpiar
         </button>
-        <button onClick={save} className="px-4 py-2 text-sm font-medium text-white bg-primary rounded-lg">
+        <button onClick={save} className="px-6 py-2 font-semibold text-white bg-primary rounded-lg hover:bg-primary-dark transition-colors">
           Guardar Firma
         </button>
       </div>

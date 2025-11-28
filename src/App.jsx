@@ -45,7 +45,6 @@ function App() {
       {/* Sistema de Ventas */}
       <Route path="/ventas/productos" element={<ProductGrid />} />
       <Route path="/ventas/mostrador" element={<VentaMostrador />} />
-      <Route path="/ventas/inicio" element={<StartDayModal />} />
       <Route path="/repartidor" element={<RepartidorDashboard />} />
 
 

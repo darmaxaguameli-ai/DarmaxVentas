@@ -16,7 +16,12 @@ export const OrderProvider = ({ children }) => {
             status: 'pending',
             delivery: {
                 ...order.deliveryInfo.deliveryDetails,
-                driverId: 1
+                driverId: 1, // Mock driver ID
+                // --- MOCK GEODATA ---
+                // In a real app, you would get this from a geocoding API
+                // based on the address.
+                lat: 19.4326 + (Math.random() - 0.5) * 0.1, // Randomize around Mexico City
+                lng: -99.1332 + (Math.random() - 0.5) * 0.1,
             },
             items: order.orderItems,
             total: order.total
