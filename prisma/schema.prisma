@@ -101,7 +101,7 @@ model Pedido {
   sesionCaja  SesionCaja?  @relation(fields: [sesionCajaId], references: [id])
   sesionCajaId String?
 
-  ingreso     Ingreso?
+  ingreso     Ingreso? @relation("PedidoToIngreso") // Explicitly named relation
 }
 
 // Tabla intermedia para la relación muchos-a-muchos entre Pedido y Producto
@@ -164,13 +164,68 @@ model Gasto {
 
 
 model Ingreso {
-  id          String   @id @default(cuid())
-  description String
-  amount      Float
-  date        DateTime
+  id                      String    @id @default(cuid())
+  description             String
+  amount                  Float
+  date                    DateTime
+  // Relación con Pedido
+  pedido                  Pedido?   @relation("PedidoToIngreso", fields: [pedidoId], references: [id])
+  pedidoId                String?   @unique // Unique para asegurar 1 a 1 entre Ingreso y Pedido
 
-  // --- Relaciones ---
-  // Un ingreso puede estar asociado a un pedido específico
-  pedido      Pedido?   @relation(fields: [pedidoId], references: [id])
-  pedidoId    String?   @unique
+  // Relation to DailySalesRecord
+  dailySalesRecord        DailySalesRecord? @relation("DailySalesRecordToIngreso", fields: [dailySalesRecordId], references: [id])
+  dailySalesRecordId      String?   @unique
+}
+
+model DailySalesRecord {
+  id                      String    @id @default(cuid())
+  date                    DateTime  @unique // Unique per day
+  dayOfWeek               String    // e.g., "Lun", "Mar"
+
+  // MOSTRADOR
+  mostradorColor          Int       @default(0)
+  mostradorBon            Int       @default(0)
+  mostradorEpura          Int       @default(0)
+  mostradorCiel           Int       @default(0)
+  mostradorElectro        Int       @default(0)
+  mostrador10Lts          Int       @default(0)
+  mostradorVtaG           Int       @default(0) // Venta de garrafones
+  mostradorTotal          Float     @default(0) // Total amount for mostrador
+
+  // PEDIDOS
+  pedidosColor            Int       @default(0)
+  pedidosBon              Int       @default(0)
+  pedidosEpura            Int       @default(0)
+  pedidosCiel             Int       @default(0)
+  pedidosElectro          Int       @default(0)
+  pedidos10Lts            Int       @default(0)
+  pedidosVtaG             Int       @default(0)
+  pedidosTotal            Float     @default(0)
+
+  // NEGOCIOS
+  negociosColor           Int       @default(0)
+  negociosBon             Int       @default(0)
+  negociosEpura           Int       @default(0)
+  negociosCiel            Int       @default(0)
+  negociosElectro         Int       @default(0)
+  negocios10Lts           Int       @default(0)
+  negociosVtaG            Int       @default(0)
+  negociosTotal           Float     @default(0)
+
+  // TOTAL TIPO GARRAFON (aggregated totals for each type across all channels)
+  totalTipoGarrafonColor  Int       @default(0)
+  totalTipoGarrafonBon    Int       @default(0)
+  totalTipoGarrafonEpura  Int       @default(0)
+  totalTipoGarrafonCiel   Int       @default(0)
+  totalTipoGarrafonElectro Int      @default(0)
+  totalTipoGarrafon10Lts  Int       @default(0)
+  totalTipoGarrafonVtaG   Int       @default(0)
+
+  totalGarrafones         Int       @default(0) // From Col AH
+  totalImporte            Float     @default(0) // From Col AI
+
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+
+  ingreso                 Ingreso? @relation("DailySalesRecordToIngreso") // Back-relation
 }

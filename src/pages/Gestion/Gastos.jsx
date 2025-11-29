@@ -2,13 +2,13 @@ import { useState, useEffect } from "react";
 import { useGestion } from "./context/GestionContext";
 
 const ExpenseModal = ({ isOpen, onClose, expenseToEdit, onSave }) => {
-    const [expense, setExpense] = useState({ description: '', amount: '', date: new Date().toISOString().slice(0, 10), category: '' });
+    const [expense, setExpense] = useState({ description: '', amount: '', date: new Date().toISOString().slice(0, 10) });
 
     useEffect(() => {
         if (expenseToEdit) {
             setExpense(expenseToEdit);
         } else {
-            setExpense({ description: '', amount: '', date: new Date().toISOString().slice(0, 10), category: '' });
+            setExpense({ description: '', amount: '', date: new Date().toISOString().slice(0, 10) });
         }
     }, [expenseToEdit, isOpen]);
 
@@ -40,10 +40,6 @@ const ExpenseModal = ({ isOpen, onClose, expenseToEdit, onSave }) => {
                     <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Descripción</label>
                         <input name="description" type="text" value={expense.description} onChange={handleChange} required className="mt-1 block w-full input-style" />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Categoría</label>
-                        <input name="category" type="text" value={expense.category} onChange={handleChange} placeholder="Ej. Insumos, Marketing" required className="mt-1 block w-full input-style" />
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                         <div>
@@ -118,7 +114,6 @@ const Gastos = () => {
                     <thead className="bg-gray-50 dark:bg-gray-700">
                         <tr>
                             <th className="th-style">Descripción</th>
-                            <th className="th-style">Categoría</th>
                             <th className="th-style">Monto</th>
                             <th className="th-style">Fecha</th>
                             <th className="th-style text-right">Acciones</th>
@@ -128,7 +123,6 @@ const Gastos = () => {
                         {expenses.map((item) => (
                             <tr key={item.id}>
                                 <td className="td-style font-medium">{item.description}</td>
-                                <td className="td-style">{item.category}</td>
                                 <td className="td-style text-red-500 text-right">${item.amount.toFixed(2)}</td>
                                 <td className="td-style">{item.date}</td>
                                 <td className="td-style text-right space-x-4">

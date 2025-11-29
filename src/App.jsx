@@ -19,6 +19,8 @@ import Resumen from "./pages/Gestion/Resumen.jsx";
 import Inventario from "./pages/Gestion/Inventario.jsx";
 import Ingresos from "./pages/Gestion/Ingresos.jsx";
 import Gastos from "./pages/Gestion/Gastos.jsx";
+import Usuarios from "./pages/Gestion/Usuarios.jsx";
+import ControlVentasDiarias from "./pages/Gestion/ControlVentasDiarias.jsx";
 
 // Cliente – flujo de pedidos
 import OrderSelection from "./pages/Client/orders/OrderSelection.jsx";
@@ -61,6 +63,8 @@ function App() {
         <Route path="inventario" element={<Inventario />} />
         <Route path="ingresos" element={<Ingresos />} />
         <Route path="gastos" element={<Gastos />} />
+        <Route path="usuarios" element={<Usuarios />} />
+        <Route path="control-ventas-diarias" element={<ControlVentasDiarias />} />
       </Route>
 
 

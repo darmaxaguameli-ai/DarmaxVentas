@@ -2,14 +2,23 @@ import { useState, useEffect } from "react";
 import { useGestion } from "./context/GestionContext";
 
 const ProductModal = ({ isOpen, onClose, productToEdit, onSave }) => {
-    const [product, setProduct] = useState({ name: '', quantity: '', price: '', category: '' });
+    const [product, setProduct] = useState({ name: '', stock: '', price: '', category: '', imageUrl: '' });
+    const [uploadType, setUploadType] = useState('url');
 
     useEffect(() => {
         if (productToEdit) {
             setProduct(productToEdit);
+            setUploadType('url');
         } else {
-            setProduct({ name: '', quantity: '', price: '', category: '' });
+            setProduct({ name: '', stock: '', price: '', category: '', imageUrl: '' });
+            setUploadType('url');
         }
+
+        return () => {
+            if (product.imageUrl && product.imageUrl.startsWith('blob:')) {
+                URL.revokeObjectURL(product.imageUrl);
+            }
+        };
     }, [productToEdit, isOpen]);
 
     const handleChange = (e) => {
@@ -17,12 +26,23 @@ const ProductModal = ({ isOpen, onClose, productToEdit, onSave }) => {
         setProduct(prev => ({ ...prev, [name]: value }));
     };
 
+    const handleFileChange = (e) => {
+        if (e.target.files && e.target.files[0]) {
+            const file = e.target.files[0];
+            const newImageUrl = URL.createObjectURL(file);
+            if (product.imageUrl && product.imageUrl.startsWith('blob:')) {
+                URL.revokeObjectURL(product.imageUrl);
+            }
+            setProduct(prev => ({ ...prev, imageUrl: newImageUrl }));
+        }
+    };
+
     const handleSubmit = (e) => {
         e.preventDefault();
         onSave({
             ...product,
-            quantity: parseInt(product.quantity, 10),
-            price: parseFloat(product.price),
+            stock: parseInt(product.stock, 10) || 0,
+            price: parseFloat(product.price) || 0,
         });
         onClose();
     };
@@ -30,6 +50,10 @@ const ProductModal = ({ isOpen, onClose, productToEdit, onSave }) => {
     if (!isOpen) return null;
 
     const isEditing = !!productToEdit;
+
+    const tabStyle = "px-4 py-2 text-sm font-medium rounded-md transition-colors";
+    const activeTabStyle = "bg-primary text-white";
+    const inactiveTabStyle = "bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600";
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4">
@@ -46,10 +70,40 @@ const ProductModal = ({ isOpen, onClose, productToEdit, onSave }) => {
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Categoría</label>
                         <input name="category" type="text" value={product.category} onChange={handleChange} required className="mt-1 block w-full input-style" />
                     </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Imagen del Producto</label>
+                        <div className="flex gap-2 mb-3">
+                            <button type="button" onClick={() => setUploadType('url')} className={`${tabStyle} ${uploadType === 'url' ? activeTabStyle : inactiveTabStyle}`}>
+                                Usar URL
+                            </button>
+                            <button type="button" onClick={() => setUploadType('file')} className={`${tabStyle} ${uploadType === 'file' ? activeTabStyle : inactiveTabStyle}`}>
+                                Subir Archivo
+                            </button>
+                        </div>
+                        {uploadType === 'url' && (
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">URL de Imagen</label>
+                                <input name="imageUrl" type="text" value={product.imageUrl || ''} onChange={handleChange} placeholder="https://ejemplo.com/imagen.png" className="mt-1 block w-full input-style" />
+                            </div>
+                        )}
+                        {uploadType === 'file' && (
+                            <div>
+                                <input type="file" id="file-upload" className="hidden" accept="image/*" onChange={handleFileChange} />
+                                <label htmlFor="file-upload" className="cursor-pointer mt-1 block w-full text-center p-4 border-2 border-dashed rounded-md text-gray-500 dark:text-gray-400 hover:border-primary dark:hover:border-primary-dark transition-colors">
+                                    {product.imageUrl ? 'Cambiar imagen' : 'Seleccionar una imagen'}
+                                </label>
+                                {product.imageUrl && (
+                                    <div className="mt-4 flex justify-center">
+                                        <img src={product.imageUrl} alt="Previsualización" className="h-32 w-32 rounded-md object-cover"/>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Cantidad</label>
-                            <input name="quantity" type="number" value={product.quantity} onChange={handleChange} required className="mt-1 block w-full input-style" />
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Stock</label>
+                            <input name="stock" type="number" value={product.stock} onChange={handleChange} required className="mt-1 block w-full input-style" />
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Precio Unitario</label>
@@ -66,13 +120,16 @@ const ProductModal = ({ isOpen, onClose, productToEdit, onSave }) => {
     );
 };
 
-
 const Inventario = () => {
-    const { state, addProduct, updateProduct, deleteProduct } = useGestion();
-    const { inventory } = state;
+    const { state, fetchInventory, addProduct, updateProduct, deleteProduct } = useGestion();
+    const { inventory, loading, error } = state;
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [productToEdit, setProductToEdit] = useState(null);
+
+    useEffect(() => {
+        fetchInventory();
+    }, [fetchInventory]);
 
     const handleOpenModal = (product = null) => {
         setProductToEdit(product);
@@ -118,26 +175,50 @@ const Inventario = () => {
                 <table className="min-w-full">
                     <thead className="bg-gray-50 dark:bg-gray-700">
                         <tr>
+                            <th className="th-style">Imagen</th>
                             <th className="th-style">Producto</th>
                             <th className="th-style">Categoría</th>
-                            <th className="th-style">Cantidad</th>
+                            <th className="th-style">Stock</th>
                             <th className="th-style">Precio Unitario</th>
                             <th className="th-style text-right">Acciones</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                        {inventory.map((item) => (
-                            <tr key={item.id}>
-                                <td className="td-style font-medium">{item.name}</td>
-                                <td className="td-style">{item.category}</td>
-                                <td className="td-style">{item.quantity}</td>
-                                <td className="td-style text-right">${item.price.toFixed(2)}</td>
-                                <td className="td-style text-right space-x-4">
-                                    <button onClick={() => handleOpenModal(item)} className="text-primary hover:text-primary/90 font-medium">Editar</button>
-                                    <button onClick={() => handleDelete(item.id)} className="text-red-500 hover:text-red-700 font-medium">Eliminar</button>
+                        {loading ? (
+                            <tr>
+                                <td colSpan="6" className="p-6 text-center text-gray-500 dark:text-gray-400">
+                                    Cargando...
                                 </td>
                             </tr>
-                        ))}
+                        ) : error ? (
+                             <tr>
+                                <td colSpan="6" className="p-6 text-center text-red-500">
+                                    Error al cargar el inventario: {error}
+                                </td>
+                            </tr>
+                        ) : inventory.length === 0 ? (
+                             <tr>
+                                <td colSpan="6" className="p-6 text-center text-gray-500 dark:text-gray-400">
+                                    No hay productos en el inventario.
+                                </td>
+                            </tr>
+                        ) : (
+                            inventory.map((item) => (
+                                <tr key={item.id}>
+                                    <td className="td-style">
+                                        <img src={item.imageUrl || 'https://via.placeholder.com/150'} alt={item.name} className="h-10 w-10 rounded-md object-cover" />
+                                    </td>
+                                    <td className="td-style font-medium">{item.name}</td>
+                                    <td className="td-style">{item.category}</td>
+                                    <td className="td-style">{item.stock}</td>
+                                    <td className="td-style text-right">${(item.price || 0).toFixed(2)}</td>
+                                    <td className="td-style text-right space-x-4">
+                                        <button onClick={() => handleOpenModal(item)} className="text-primary hover:text-primary/90 font-medium">Editar</button>
+                                        <button onClick={() => handleDelete(item.id)} className="text-red-500 hover:text-red-700 font-medium">Eliminar</button>
+                                    </td>
+                                </tr>
+                            ))
+                        )}
                     </tbody>
                 </table>
             </div>

@@ -1,0 +1,217 @@
+import { useState, useEffect } from "react";
+import { useGestion } from "./context/GestionContext";
+
+const UserRole = {
+  ADMIN: 'ADMIN',
+  VENDEDOR: 'VENDEDOR',
+  REPARTIDOR: 'REPARTIDOR',
+  CLIENTE: 'CLIENTE',
+};
+
+const UserModal = ({ isOpen, onClose, userToEdit, onSave }) => {
+    const initialUserState = {
+        name: '',
+        email: '',
+        password: '',
+        phone: '',
+        street: '',
+        neighborhood: '',
+        city: '',
+        postalCode: '',
+        role: UserRole.CLIENTE,
+    };
+    const [user, setUser] = useState(initialUserState);
+
+    useEffect(() => {
+        if (userToEdit) {
+            setUser({ ...userToEdit, password: '' }); // No pre-llenar la contraseña
+        } else {
+            setUser(initialUserState);
+        }
+    }, [userToEdit, isOpen]);
+
+    const handleChange = (e) => {
+        const { name, value } = e.target;
+        setUser(prev => ({ ...prev, [name]: value }));
+    };
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        // No enviar el campo de contraseña si está vacío (al editar)
+        const userData = { ...user };
+        if (!userData.password) {
+            delete userData.password;
+        }
+        onSave(userData);
+        onClose();
+    };
+
+    if (!isOpen) return null;
+
+    const isEditing = !!userToEdit;
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4">
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl w-full max-w-lg">
+                <h2 className="text-2xl font-bold mb-6 text-[#111418] dark:text-white">
+                    {isEditing ? "Editar Usuario" : "Agregar Nuevo Usuario"}
+                </h2>
+                <form onSubmit={handleSubmit} className="space-y-4 max-h-[80vh] overflow-y-auto pr-2">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label className="label-style">Nombre Completo</label>
+                            <input name="name" type="text" value={user.name} onChange={handleChange} required className="input-style" />
+                        </div>
+                        <div>
+                            <label className="label-style">Rol</label>
+                            <select name="role" value={user.role} onChange={handleChange} className="input-style">
+                                {Object.values(UserRole).map(role => (
+                                    <option key={role} value={role}>{role}</option>
+                                ))}
+                            </select>
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label className="label-style">Email</label>
+                            <input name="email" type="email" value={user.email} onChange={handleChange} className="input-style" />
+                        </div>
+                        <div>
+                            <label className="label-style">Teléfono</label>
+                            <input name="phone" type="tel" value={user.phone} onChange={handleChange} className="input-style" />
+                        </div>
+                    </div>
+                    {!isEditing && (
+                         <div>
+                            <label className="label-style">Contraseña</label>
+                            <input name="password" type="password" value={user.password} onChange={handleChange} required className="input-style" />
+                        </div>
+                    )}
+                    <hr className="my-4 border-gray-200 dark:border-gray-700"/>
+                    <h3 className="text-lg font-medium text-gray-800 dark:text-gray-200">Dirección</h3>
+                     <div>
+                        <label className="label-style">Calle y Número</label>
+                        <input name="street" type="text" value={user.street} onChange={handleChange} className="input-style" />
+                    </div>
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label className="label-style">Colonia/Barrio</label>
+                            <input name="neighborhood" type="text" value={user.neighborhood} onChange={handleChange} className="input-style" />
+                        </div>
+                        <div>
+                            <label className="label-style">Ciudad</label>
+                            <input name="city" type="text" value={user.city} onChange={handleChange} className="input-style" />
+                        </div>
+                    </div>
+                    <div>
+                        <label className="label-style">Código Postal</label>
+                        <input name="postalCode" type="text" value={user.postalCode} onChange={handleChange} className="input-style" />
+                    </div>
+
+                    <div className="flex justify-end gap-4 pt-4">
+                        <button type="button" onClick={onClose} className="btn-secondary">Cancelar</button>
+                        <button type="submit" className="btn-primary">Guardar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+};
+
+const Usuarios = () => {
+    const { state, addUser, updateUser, deleteUser } = useGestion();
+    const { users } = state;
+
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [userToEdit, setUserToEdit] = useState(null);
+
+    const handleOpenModal = (user = null) => {
+        setUserToEdit(user);
+        setIsModalOpen(true);
+    };
+
+    const handleCloseModal = () => {
+        setUserToEdit(null);
+        setIsModalOpen(false);
+    };
+
+    const handleSaveUser = (user) => {
+        if (user.id) {
+            updateUser(user);
+        } else {
+            addUser(user);
+        }
+    };
+    
+    const handleDelete = (id) => {
+        if(window.confirm('¿Estás seguro de que quieres eliminar este usuario?')) {
+            deleteUser(id);
+        }
+    }
+
+    const RoleBadge = ({ role }) => {
+        const roleStyles = {
+            ADMIN: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300',
+            VENDEDOR: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
+            REPARTIDOR: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300',
+            CLIENTE: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
+        };
+        return (
+            <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${roleStyles[role] || ''}`}>
+                {role}
+            </span>
+        );
+    };
+
+    return (
+        <div>
+            <div className="flex justify-between items-center mb-6">
+                <h1 className="text-3xl font-bold text-[#111418] dark:text-white">Gestión de Usuarios</h1>
+                <button onClick={() => handleOpenModal()} className="btn-primary">
+                    Agregar Usuario
+                </button>
+            </div>
+
+            <UserModal 
+              isOpen={isModalOpen}
+              onClose={handleCloseModal}
+              onSave={handleSaveUser}
+              userToEdit={userToEdit}
+            />
+            
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-x-auto">
+                <table className="min-w-full">
+                    <thead className="bg-gray-50 dark:bg-gray-700">
+                        <tr>
+                            <th className="th-style">ID</th>
+                            <th className="th-style">Nombre</th>
+                            <th className="th-style">Email</th>
+                            <th className="th-style">Teléfono</th>
+                            <th className="th-style">Rol</th>
+                            <th className="th-style text-right">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                        {users.map((user) => (
+                            <tr key={user.id}>
+                                <td className="td-style font-mono text-xs">{user.customId}</td>
+                                <td className="td-style font-medium">{user.name}</td>
+                                <td className="td-style">{user.email || 'N/A'}</td>
+                                <td className="td-style">{user.phone || 'N/A'}</td>
+                                <td className="td-style">
+                                    <RoleBadge role={user.role} />
+                                </td>
+                                <td className="td-style text-right space-x-4">
+                                    <button onClick={() => handleOpenModal(user)} className="text-primary hover:text-primary/90 font-medium">Editar</button>
+                                    <button onClick={() => handleDelete(user.id)} className="text-red-500 hover:text-red-700 font-medium">Eliminar</button>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    );
+}
+
+export default Usuarios;

@@ -2,13 +2,13 @@ import { useState, useEffect } from "react";
 import { useGestion } from "./context/GestionContext";
 
 const IncomeModal = ({ isOpen, onClose, incomeToEdit, onSave }) => {
-    const [income, setIncome] = useState({ description: '', amount: '', date: new Date().toISOString().slice(0, 10), category: '' });
+    const [income, setIncome] = useState({ description: '', amount: '', date: new Date().toISOString().slice(0, 10), pedidoId: '' });
 
     useEffect(() => {
         if (incomeToEdit) {
-            setIncome(incomeToEdit);
+            setIncome({ ...incomeToEdit, pedidoId: incomeToEdit.pedidoId || '' });
         } else {
-            setIncome({ description: '', amount: '', date: new Date().toISOString().slice(0, 10), category: '' });
+            setIncome({ description: '', amount: '', date: new Date().toISOString().slice(0, 10), pedidoId: '' });
         }
     }, [incomeToEdit, isOpen]);
 
@@ -22,6 +22,8 @@ const IncomeModal = ({ isOpen, onClose, incomeToEdit, onSave }) => {
         onSave({
             ...income,
             amount: parseFloat(income.amount),
+            // Asegurarse de que el pedidoId se envíe como null si está vacío
+            pedidoId: income.pedidoId || null,
         });
         onClose();
     };
@@ -42,8 +44,8 @@ const IncomeModal = ({ isOpen, onClose, incomeToEdit, onSave }) => {
                         <input name="description" type="text" value={income.description} onChange={handleChange} required className="mt-1 block w-full input-style" />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Categoría</label>
-                        <input name="category" type="text" value={income.category} onChange={handleChange} placeholder="Ej. Ventas, Servicios" required className="mt-1 block w-full input-style" />
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">ID del Pedido (Opcional)</label>
+                        <input name="pedidoId" type="text" value={income.pedidoId} onChange={handleChange} placeholder="Ej. ORD-0001" className="mt-1 block w-full input-style" />
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                         <div>
@@ -118,7 +120,7 @@ const Ingresos = () => {
                     <thead className="bg-gray-50 dark:bg-gray-700">
                         <tr>
                             <th className="th-style">Descripción</th>
-                            <th className="th-style">Categoría</th>
+                            <th className="th-style">Pedido Asociado</th>
                             <th className="th-style">Monto</th>
                             <th className="th-style">Fecha</th>
                             <th className="th-style text-right">Acciones</th>
@@ -128,7 +130,7 @@ const Ingresos = () => {
                         {income.map((item) => (
                             <tr key={item.id}>
                                 <td className="td-style font-medium">{item.description}</td>
-                                <td className="td-style">{item.category}</td>
+                                <td className="td-style">{item.pedidoId || 'N/A'}</td>
                                 <td className="td-style text-green-500 text-right">${item.amount.toFixed(2)}</td>
                                 <td className="td-style">{item.date}</td>
                                 <td className="td-style text-right space-x-4">
