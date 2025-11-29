@@ -9,9 +9,13 @@ import {
   createProduct as apiCreateProduct,
   updateProduct as apiUpdateProduct,
   deleteProduct as apiDeleteProduct,
+  fetchUsers as apiFetchUsers,
+  createUser as apiCreateUser,
+  updateUser as apiUpdateUser,
+  deleteUser as apiDeleteUser,
 } from "../../../api/apiClient";
 
-const GestionContext = createContext(null); // 👈 mejor dejarlo explícito
+const GestionContext = createContext(null);
 
 export const useGestion = () => {
   const context = useContext(GestionContext);
@@ -27,6 +31,7 @@ const initialState = {
   loading: false,
   error: null,
 
+  // Por ahora income/expenses siguen mock, luego los conectamos
   income: [
     {
       id: 1,
@@ -57,21 +62,10 @@ const initialState = {
       date: "2025-11-24",
     },
   ],
-  users: [
-    {
-      id: "cl-001",
-      customId: "ADM-001",
-      name: "Ana Sofía Rodríguez",
-      email: "sofia.r@example.com",
-      phone: "55-1234-5678",
-      role: "ADMIN",
-      street: "Av. Siempre Viva 123",
-      neighborhood: "Centro",
-      city: "Ciudad Ejemplo",
-      postalCode: "12345",
-      createdAt: new Date().toISOString(),
-    },
-  ],
+
+  // 👇 YA NO simulados, estos vendrán de la BD
+  users: [],
+
   dailySalesRecords: [],
 };
 
@@ -149,19 +143,13 @@ const gestionReducer = (state, action) => {
         ),
       };
 
-    // Users
-    case "ADD_USER": {
-      const newUser = {
-        ...action.payload,
-        id: `cl-${crypto.randomUUID()}`,
-        customId: `${action.payload.role
-          .substring(0, 3)
-          .toUpperCase()}-${String(
-          Math.floor(Math.random() * 900) + 100
-        )}`,
-      };
-      return { ...state, users: [...state.users, newUser] };
-    }
+    // Users (conectados a API)
+    case "SET_USERS":
+      return { ...state, users: action.payload, loading: false };
+
+    case "ADD_USER":
+      return { ...state, users: [...state.users, action.payload] };
+
     case "UPDATE_USER":
       return {
         ...state,
@@ -169,6 +157,7 @@ const gestionReducer = (state, action) => {
           u.id === action.payload.id ? action.payload : u
         ),
       };
+
     case "DELETE_USER":
       return {
         ...state,
@@ -211,6 +200,9 @@ const gestionReducer = (state, action) => {
 export const GestionProvider = ({ children }) => {
   const [state, dispatch] = useReducer(gestionReducer, initialState);
 
+  // ===========================
+  // INVENTARIO (Productos)
+  // ===========================
   const fetchInventory = useCallback(async () => {
     dispatch({ type: "SET_LOADING", payload: true });
     try {
@@ -248,6 +240,9 @@ export const GestionProvider = ({ children }) => {
     }
   }, []);
 
+  // ===========================
+  // INCOME (mock por ahora)
+  // ===========================
   const addIncome = (income) =>
     dispatch({ type: "ADD_INCOME", payload: income });
   const updateIncome = (income) =>
@@ -255,6 +250,9 @@ export const GestionProvider = ({ children }) => {
   const deleteIncome = (id) =>
     dispatch({ type: "DELETE_INCOME", payload: { id } });
 
+  // ===========================
+  // EXPENSES (mock por ahora)
+  // ===========================
   const addExpense = (expense) =>
     dispatch({ type: "ADD_EXPENSE", payload: expense });
   const updateExpense = (expense) =>
@@ -262,13 +260,49 @@ export const GestionProvider = ({ children }) => {
   const deleteExpense = (id) =>
     dispatch({ type: "DELETE_EXPENSE", payload: { id } });
 
-  const addUser = (user) =>
-    dispatch({ type: "ADD_USER", payload: user });
-  const updateUser = (user) =>
-    dispatch({ type: "UPDATE_USER", payload: user });
-  const deleteUser = (id) =>
-    dispatch({ type: "DELETE_USER", payload: { id } });
+  // ===========================
+  // USERS (API REAL)
+  // ===========================
+  const fetchUsers = useCallback(async () => {
+    dispatch({ type: "SET_LOADING", payload: true });
+    try {
+      const users = await apiFetchUsers();
+      dispatch({ type: "SET_USERS", payload: users });
+    } catch (error) {
+      dispatch({ type: "SET_ERROR", payload: error.message });
+    }
+  }, []);
 
+  const addUser = useCallback(async (userData) => {
+    try {
+      const newUser = await apiCreateUser(userData);
+      dispatch({ type: "ADD_USER", payload: newUser });
+    } catch (error) {
+      dispatch({ type: "SET_ERROR", payload: error.message });
+    }
+  }, []);
+
+  const updateUser = useCallback(async (user) => {
+    try {
+      const updated = await apiUpdateUser(user.id, user);
+      dispatch({ type: "UPDATE_USER", payload: updated });
+    } catch (error) {
+      dispatch({ type: "SET_ERROR", payload: error.message });
+    }
+  }, []);
+
+  const deleteUser = useCallback(async (id) => {
+    try {
+      await apiDeleteUser(id);
+      dispatch({ type: "DELETE_USER", payload: { id } });
+    } catch (error) {
+      dispatch({ type: "SET_ERROR", payload: error.message });
+    }
+  }, []);
+
+  // ===========================
+  // DAILY SALES (mock)
+  // ===========================
   const addDailySalesRecord = (record) => {
     const newRecordWithId = {
       ...record,
@@ -293,19 +327,25 @@ export const GestionProvider = ({ children }) => {
 
   const value = {
     state,
+    // productos
     fetchInventory,
     addProduct,
     updateProduct: updateProductAction,
     deleteProduct: deleteProductAction,
+    // income
     addIncome,
     updateIncome,
     deleteIncome,
+    // expenses
     addExpense,
     updateExpense,
     deleteExpense,
+    // users (API)
+    fetchUsers,
     addUser,
     updateUser,
     deleteUser,
+    // daily sales
     addDailySalesRecord,
     updateDailySalesRecord,
     deleteDailySalesRecord,
