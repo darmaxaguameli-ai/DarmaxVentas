@@ -191,15 +191,11 @@ const UserModal = ({ onClose, userToEdit, onSave }) => {
 };
 
 const Usuarios = () => {
-  const { state, addUser, updateUser, deleteUser, fetchUsers } = useGestion();
+  const { state, addUser, updateUser, deleteUser } = useGestion();
   const { users, loading, error } = state;
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [userToEdit, setUserToEdit] = useState(null);
-
-  useEffect(() => {
-    fetchUsers();
-  }, [fetchUsers]);
 
   const handleOpenModal = (user = null) => {
     setUserToEdit(user);

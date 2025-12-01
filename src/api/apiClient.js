@@ -158,3 +158,21 @@ export const deleteUser = (id) =>
   request(`/users/${id}`, {
     method: 'DELETE',
   });
+
+// ====================================================================
+//  DAILY SALES RECORDS (model DailySalesRecord)
+// ====================================================================
+
+export const fetchDailySalesRecords = () => request('/daily-sales-records');
+
+export const createDailySalesRecord = (recordData) =>
+  request('/daily-sales-records', {
+    method: 'POST',
+    body: JSON.stringify(recordData),
+  });
+
+export const createDailySalesRecordsBulk = (recordsData) =>
+  request('/daily-sales-records/bulk', {
+    method: 'POST',
+    body: JSON.stringify(recordsData),
+  });

@@ -121,15 +121,11 @@ const ProductModal = ({ isOpen, onClose, productToEdit, onSave }) => {
 };
 
 const Inventario = () => {
-    const { state, fetchInventory, addProduct, updateProduct, deleteProduct } = useGestion();
+    const { state, addProduct, updateProduct, deleteProduct } = useGestion();
     const { inventory, loading, error } = state;
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [productToEdit, setProductToEdit] = useState(null);
-
-    useEffect(() => {
-        fetchInventory();
-    }, [fetchInventory]);
 
     const handleOpenModal = (product = null) => {
         setProductToEdit(product);

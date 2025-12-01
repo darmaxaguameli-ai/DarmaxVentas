@@ -12,7 +12,7 @@ const ControlVentasDiarias = () => {
     const [selectedFile, setSelectedFile] = useState(null);
     const [previewData, setPreviewData] = useState([]); // This will now store DailySalesRecord objects
     const [error, setError] = useState(null);
-    const { addIncome, addDailySalesRecord, state } = useGestion();
+    const { addDailySalesRecord, addDailySalesRecordsBulk, state } = useGestion();
     const [activeTab, setActiveTab] = useState('import'); // 'import' or 'manual'
     const [openMonth, setOpenMonth] = useState(null); // State for the accordion
     const [importYear, setImportYear] = useState(new Date().getFullYear()); // New state for import year
@@ -122,76 +122,67 @@ const ControlVentasDiarias = () => {
         }
     };
 
-    const handleManualSubmit = (e) => {
+    const handleManualSubmit = async (e) => {
         e.preventDefault();
 
-        const newDailySalesRecord = {
-            date: manualForm.date,
-            dayOfWeek: manualForm.dayOfWeek,
-
-            // MOSTRADOR
-            mostradorColor: parseFloat(manualForm.mostradorColor) || 0,
-            mostradorBon: parseFloat(manualForm.mostradorBon) || 0,
-            mostradorEpura: parseFloat(manualForm.mostradorEpura) || 0,
-            mostradorCiel: parseFloat(manualForm.mostradorCiel) || 0,
-            mostradorElectro: parseFloat(manualForm.mostradorElectro) || 0,
-            mostrador10Lts: parseFloat(manualForm.mostrador10Lts) || 0,
-            mostradorVtaG: parseFloat(manualForm.mostradorVtaG) || 0,
-            mostradorTotal: parseFloat(manualForm.mostradorTotal) || 0,
-
-            // PEDIDOS
-            pedidosColor: parseFloat(manualForm.pedidosColor) || 0,
-            pedidosBon: parseFloat(manualForm.pedidosBon) || 0,
-            pedidosEpura: parseFloat(manualForm.pedidosEpura) || 0,
-            pedidosCiel: parseFloat(manualForm.pedidosCiel) || 0,
-            pedidosElectro: parseFloat(manualForm.pedidosElectro) || 0,
-            pedidos10Lts: parseFloat(manualForm.pedidos10Lts) || 0,
-            pedidosVtaG: parseFloat(manualForm.pedidosVtaG) || 0,
-            pedidosTotal: parseFloat(manualForm.pedidosTotal) || 0,
-
-            // NEGOCIOS
-            negociosColor: parseFloat(manualForm.negociosColor) || 0,
-            negociosBon: parseFloat(manualForm.negociosBon) || 0,
-            negociosEpura: parseFloat(manualForm.negociosEpura) || 0,
-            negociosCiel: parseFloat(manualForm.negociosCiel) || 0,
-            negociosElectro: parseFloat(manualForm.negociosElectro) || 0,
-            negocios10Lts: parseFloat(manualForm.negocios10Lts) || 0,
-            negociosVtaG: parseFloat(manualForm.negociosVtaG) || 0,
-            negociosTotal: parseFloat(manualForm.negociosTotal) || 0,
-
-            // TOTAL TIPO GARRAFON (Now from calculated state)
-            totalTipoGarrafonColor: manualForm.totalTipoGarrafonColor,
-            totalTipoGarrafonBon: manualForm.totalTipoGarrafonBon,
-            totalTipoGarrafonEpura: manualForm.totalTipoGarrafonEpura,
-            totalTipoGarrafonCiel: manualForm.totalTipoGarrafonCiel,
-            totalTipoGarrafonElectro: manualForm.totalTipoGarrafonElectro,
-            totalTipoGarrafon10Lts: manualForm.totalTipoGarrafon10Lts,
-            totalTipoGarrafonVtaG: manualForm.totalTipoGarrafonVtaG,
-            
-            totalGarrafones: manualForm.totalGarrafones,
-            totalImporte: manualForm.totalImporte,
-        };
-
-        // Validate at least one amount or garrafon total is provided
         // Use the calculated totalGarrafones and totalImporte for validation
-        if (newDailySalesRecord.totalGarrafones === 0 && newDailySalesRecord.totalImporte === 0) {
+        if (manualForm.totalGarrafones === 0 && manualForm.totalImporte === 0) {
             alert("Debes introducir al menos un monto o total de garrafones.");
             return;
         }
 
-        // Add the detailed record
-        const addedDailySalesRecord = addDailySalesRecord(newDailySalesRecord);
-        
-        // Create a corresponding Income record
-        addIncome({
-            description: `Venta Diaria Detallada (${newDailySalesRecord.date})`,
-            amount: newDailySalesRecord.totalImporte,
-            date: newDailySalesRecord.date,
-            dailySalesRecordId: addedDailySalesRecord.id, // Link to the new detailed record
-        });
+        const newDailySalesRecord = {
+            date: manualForm.date,
+            dayOfWeek: manualForm.dayOfWeek,
+            
+            // --- CORRECT PARSING: parseInt for counts, parseFloat for totals ---
+            mostradorColor: parseInt(manualForm.mostradorColor, 10) || 0,
+            mostradorBon: parseInt(manualForm.mostradorBon, 10) || 0,
+            mostradorEpura: parseInt(manualForm.mostradorEpura, 10) || 0,
+            mostradorCiel: parseInt(manualForm.mostradorCiel, 10) || 0,
+            mostradorElectro: parseInt(manualForm.mostradorElectro, 10) || 0,
+            mostrador10Lts: parseInt(manualForm.mostrador10Lts, 10) || 0,
+            mostradorVtaG: parseInt(manualForm.mostradorVtaG, 10) || 0,
+            mostradorTotal: parseFloat(manualForm.mostradorTotal) || 0,
 
-        alert("Registro manual de ventas diarias añadido exitosamente.");
-        setManualForm(initialManualFormState); // Reset form
+            pedidosColor: parseInt(manualForm.pedidosColor, 10) || 0,
+            pedidosBon: parseInt(manualForm.pedidosBon, 10) || 0,
+            pedidosEpura: parseInt(manualForm.pedidosEpura, 10) || 0,
+            pedidosCiel: parseInt(manualForm.pedidosCiel, 10) || 0,
+            pedidosElectro: parseInt(manualForm.pedidosElectro, 10) || 0,
+            pedidos10Lts: parseInt(manualForm.pedidos10Lts, 10) || 0,
+            pedidosVtaG: parseInt(manualForm.pedidosVtaG, 10) || 0,
+            pedidosTotal: parseFloat(manualForm.pedidosTotal) || 0,
+
+            negociosColor: parseInt(manualForm.negociosColor, 10) || 0,
+            negociosBon: parseInt(manualForm.negociosBon, 10) || 0,
+            negociosEpura: parseInt(manualForm.negociosEpura, 10) || 0,
+            negociosCiel: parseInt(manualForm.negociosCiel, 10) || 0,
+            negociosElectro: parseInt(manualForm.negociosElectro, 10) || 0,
+            negocios10Lts: parseInt(manualForm.negocios10Lts, 10) || 0,
+            negociosVtaG: parseInt(manualForm.negociosVtaG, 10) || 0,
+            negociosTotal: parseFloat(manualForm.negociosTotal) || 0,
+
+            totalTipoGarrafonColor: parseInt(manualForm.totalTipoGarrafonColor, 10) || 0,
+            totalTipoGarrafonBon: parseInt(manualForm.totalTipoGarrafonBon, 10) || 0,
+            totalTipoGarrafonEpura: parseInt(manualForm.totalTipoGarrafonEpura, 10) || 0,
+            totalTipoGarrafonCiel: parseInt(manualForm.totalTipoGarrafonCiel, 10) || 0,
+            totalTipoGarrafonElectro: parseInt(manualForm.totalTipoGarrafonElectro, 10) || 0,
+            totalTipoGarrafon10Lts: parseInt(manualForm.totalTipoGarrafon10Lts, 10) || 0,
+            totalTipoGarrafonVtaG: parseInt(manualForm.totalTipoGarrafonVtaG, 10) || 0,
+            
+            totalGarrafones: parseInt(manualForm.totalGarrafones, 10) || 0,
+            totalImporte: parseFloat(manualForm.totalImporte) || 0,
+        };
+
+        try {
+            await addDailySalesRecord(newDailySalesRecord);
+            alert("Registro manual de ventas diarias añadido exitosamente.");
+            setManualForm(initialManualFormState); // Reset form
+        } catch (error) {
+            console.error("Error al guardar el registro:", error);
+            alert(`Error al guardar el registro: ${error.message}`);
+        }
     };
 
     const handleFileChange = (e) => {
@@ -226,46 +217,48 @@ const ControlVentasDiarias = () => {
 
                     const dateValue = row[0];
                     
+                    // --- CORRECT PARSING: parseInt for counts, parseFloat for totals ---
+
                     // MOSTRADOR
-                    const mostradorColor = parseFloat(row[2]) || 0;
-                    const mostradorBon = parseFloat(row[3]) || 0;
-                    const mostradorEpura = parseFloat(row[4]) || 0;
-                    const mostradorCiel = parseFloat(row[5]) || 0;
-                    const mostradorElectro = parseFloat(row[6]) || 0;
-                    const mostrador10Lts = parseFloat(row[7]) || 0;
-                    const mostradorVtaG = parseFloat(row[8]) || 0;
+                    const mostradorColor = parseInt(row[2], 10) || 0;
+                    const mostradorBon = parseInt(row[3], 10) || 0;
+                    const mostradorEpura = parseInt(row[4], 10) || 0;
+                    const mostradorCiel = parseInt(row[5], 10) || 0;
+                    const mostradorElectro = parseInt(row[6], 10) || 0;
+                    const mostrador10Lts = parseInt(row[7], 10) || 0;
+                    const mostradorVtaG = parseInt(row[8], 10) || 0;
                     const mostradorTotal = parseFloat(row[9]) || 0;
 
                     // PEDIDOS
-                    const pedidosColor = parseFloat(row[10]) || 0;
-                    const pedidosBon = parseFloat(row[11]) || 0;
-                    const pedidosEpura = parseFloat(row[12]) || 0;
-                    const pedidosCiel = parseFloat(row[13]) || 0;
-                    const pedidosElectro = parseFloat(row[14]) || 0;
-                    const pedidos10Lts = parseFloat(row[15]) || 0;
-                    const pedidosVtaG = parseFloat(row[16]) || 0;
+                    const pedidosColor = parseInt(row[10], 10) || 0;
+                    const pedidosBon = parseInt(row[11], 10) || 0;
+                    const pedidosEpura = parseInt(row[12], 10) || 0;
+                    const pedidosCiel = parseInt(row[13], 10) || 0;
+                    const pedidosElectro = parseInt(row[14], 10) || 0;
+                    const pedidos10Lts = parseInt(row[15], 10) || 0;
+                    const pedidosVtaG = parseInt(row[16], 10) || 0;
                     const pedidosTotal = parseFloat(row[17]) || 0;
 
                     // NEGOCIOS
-                    const negociosColor = parseFloat(row[18]) || 0;
-                    const negociosBon = parseFloat(row[19]) || 0;
-                    const negociosEpura = parseFloat(row[20]) || 0;
-                    const negociosCiel = parseFloat(row[21]) || 0;
-                    const negociosElectro = parseFloat(row[22]) || 0;
-                    const negocios10Lts = parseFloat(row[23]) || 0;
-                    const negociosVtaG = parseFloat(row[24]) || 0;
+                    const negociosColor = parseInt(row[18], 10) || 0;
+                    const negociosBon = parseInt(row[19], 10) || 0;
+                    const negociosEpura = parseInt(row[20], 10) || 0;
+                    const negociosCiel = parseInt(row[21], 10) || 0;
+                    const negociosElectro = parseInt(row[22], 10) || 0;
+                    const negocios10Lts = parseInt(row[23], 10) || 0;
+                    const negociosVtaG = parseInt(row[24], 10) || 0;
                     const negociosTotal = parseFloat(row[25]) || 0;
 
                     // TOTAL TIPO GARRAFON
-                    const totalTipoGarrafonColor = parseFloat(row[26]) || 0;
-                    const totalTipoGarrafonBon = parseFloat(row[27]) || 0;
-                    const totalTipoGarrafonEpura = parseFloat(row[28]) || 0;
-                    const totalTipoGarrafonCiel = parseFloat(row[29]) || 0;
-                    const totalTipoGarrafonElectro = parseFloat(row[30]) || 0;
-                    const totalTipoGarrafon10Lts = parseFloat(row[31]) || 0;
-                    const totalTipoGarrafonVtaG = parseFloat(row[32]) || 0;
+                    const totalTipoGarrafonColor = parseInt(row[26], 10) || 0;
+                    const totalTipoGarrafonBon = parseInt(row[27], 10) || 0;
+                    const totalTipoGarrafonEpura = parseInt(row[28], 10) || 0;
+                    const totalTipoGarrafonCiel = parseInt(row[29], 10) || 0;
+                    const totalTipoGarrafonElectro = parseInt(row[30], 10) || 0;
+                    const totalTipoGarrafon10Lts = parseInt(row[31], 10) || 0;
+                    const totalTipoGarrafonVtaG = parseInt(row[32], 10) || 0;
 
-                    const totalGarrafones = parseFloat(row[33]) || 0; // Columna AH
+                    const totalGarrafones = parseInt(row[33], 10) || 0; // Columna AH
                     const totalImporte = parseFloat(row[34]) || 0;    // Columna AI
 
                     // Validate that the row has relevant numeric data
@@ -276,20 +269,15 @@ const ControlVentasDiarias = () => {
                     let date;
                     if (typeof dateValue === 'number') {
                         // Correctly convert Excel serial number to JS Date.
-                        // Excel serials start from 1899-12-30. 25569 is the number of days from 1899-12-30 to 1970-01-01.
-                        // 86400 * 1000 is milliseconds in a day.
                         date = new Date((dateValue - 25569) * 86400 * 1000); 
                     } else if (typeof dateValue === 'string') {
                         // For string dates like "28-Nov" or "15/03", we attempt to parse and explicitly set the year.
-                        // Adding T12:00:00 to avoid timezone issues during parsing.
                         let potentialDate = new Date(`${dateValue} ${importYear}T12:00:00`);
                         
-                        // Fallback for formats like DD/MM or DD-MM if direct parsing fails
                         if (isNaN(potentialDate.getTime())) {
                             const parts = dateValue.match(/(\d{1,2})[\/\-](\d{1,2})/);
                             if (parts) {
-                                // parts[1] is day, parts[2] is month. Month is 0-indexed for Date constructor.
-                                potentialDate = new Date(importYear, parseInt(parts[2]) - 1, parseInt(parts[1]), 12, 0, 0); // 12:00:00 to avoid timezone issues
+                                potentialDate = new Date(importYear, parseInt(parts[2], 10) - 1, parseInt(parts[1], 10), 12, 0, 0);
                             }
                         }
                         
@@ -318,6 +306,23 @@ const ControlVentasDiarias = () => {
                     });
                 });
 
+                // --- VALIDACIÓN DE DUPLICADOS ---
+                const dateCounts = new Map();
+                processedDailyRecords.forEach(record => {
+                    dateCounts.set(record.date, (dateCounts.get(record.date) || 0) + 1);
+                });
+
+                const duplicates = Array.from(dateCounts.entries())
+                                      .filter(([date, count]) => count > 1)
+                                      .map(([date]) => date);
+
+                if (duplicates.length > 0) {
+                    setError(`Error: El archivo de Excel contiene fechas duplicadas. Por favor, corrige las siguientes fechas y vuelve a intentarlo: ${duplicates.join(', ')}`);
+                    setPreviewData([]); // Limpiar previsualización
+                    return; // Detener el proceso
+                }
+                // --- FIN DE VALIDACIÓN ---
+
                 if(processedDailyRecords.length === 0) {
                     setError("No se encontraron datos de ventas diarias válidos en el archivo. Verifica el formato.");
                     setPreviewData([]);
@@ -341,26 +346,23 @@ const ControlVentasDiarias = () => {
         reader.readAsArrayBuffer(selectedFile);
     };
 
-    const handleImportData = () => {
+    const handleImportData = async () => {
         if (previewData.length === 0) {
             setError("No hay datos para importar.");
             return;
         }
-        previewData.forEach(record => {
-            // Add the DailySalesRecord
-            const addedRecord = addDailySalesRecord(record);
 
-            // Create a corresponding Income record
-            addIncome({
-                description: `Venta Diaria Detallada (${record.date})`,
-                amount: record.totalImporte,
-                date: record.date,
-                dailySalesRecordId: addedRecord.id, // Link to the new detailed record
-            });
-        });
-        alert(`${previewData.length} registros de ventas diarias han sido importados exitosamente.`);
-        setPreviewData([]);
-        setSelectedFile(null);
+        try {
+            await addDailySalesRecordsBulk(previewData);
+            alert(`${previewData.length} registros han sido importados exitosamente.`);
+            setPreviewData([]);
+            setSelectedFile(null);
+            setError(null);
+        } catch (error) {
+            console.error("Error durante la importación masiva:", error);
+            alert(`Error durante la importación: ${error.message}`);
+            setError(`Error durante la importación: ${error.message}`);
+        }
     };
 
     const getTabClassName = (tabName) => {

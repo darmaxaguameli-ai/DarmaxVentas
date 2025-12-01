@@ -3,7 +3,8 @@ const prisma = require('./lib/prisma');
 const app = express();
 const port = 3001; // Or any port you prefer
 
-app.use(express.json()); // Middleware to parse JSON bodies
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // ------------------------------
 // HEALTHCHECK
@@ -200,6 +201,140 @@ app.delete('/api/expenses/:id', async (req, res) => {
     res.status(500).json({ error: 'Error deleting expense' });
   }
 });
+
+// =====================================================
+// DAILY SALES RECORD API
+// =====================================================
+
+// GET all daily sales records
+app.get('/api/daily-sales-records', async (req, res) => {
+    try {
+        const records = await prisma.dailySalesRecord.findMany({
+            include: {
+                ingreso: true, // Include the related income record
+            },
+            orderBy: {
+                date: 'desc', // Most recent first
+            },
+        });
+        res.json(records);
+    } catch (error) {
+        console.error('Error fetching daily sales records:', error);
+        res.status(500).json({ error: 'Error fetching daily sales records' });
+    }
+});
+
+// POST a new daily sales record and its corresponding income
+app.post('/api/daily-sales-records', async (req, res) => {
+    const { date, ...recordData } = req.body;
+
+    // Basic validation
+    if (!date) {
+        return res.status(400).json({ error: 'Date is required.' });
+    }
+
+    try {
+        const result = await prisma.$transaction(async (tx) => {
+            // Step 1: Create the DailySalesRecord
+            const newDailySalesRecord = await tx.dailySalesRecord.create({
+                data: {
+                    ...recordData,
+                    date: new Date(date), // Ensure date is a Date object
+                },
+            });
+
+            // Step 2: Create the corresponding Ingreso, linking it to the new record
+            const newIngreso = await tx.ingreso.create({
+                data: {
+                    description: `Venta Diaria Detallada (${new Date(date).toISOString().slice(0, 10)})`,
+                    amount: recordData.totalImporte,
+                    date: new Date(date),
+                    dailySalesRecordId: newDailySalesRecord.id, // Direct assignment
+                },
+            });
+
+            // Return the created record with its linked income
+            return { ...newDailySalesRecord, ingreso: newIngreso };
+        });
+
+        res.status(201).json(result);
+    } catch (error) {
+        console.error('Error creating daily sales record and income:', error);
+        if (error.code === 'P2002' && error.meta?.target?.includes('date')) {
+             return res.status(409).json({ error: 'A sales record for this date already exists.' });
+        }
+        res.status(500).json({ error: 'Error creating daily sales record' });
+    }
+});
+
+// POST to BULK create new daily sales records
+app.post('/api/daily-sales-records/bulk', async (req, res) => {
+    const records = req.body;
+
+    if (!Array.isArray(records) || records.length === 0) {
+        return res.status(400).json({ error: 'Request body must be a non-empty array of records.' });
+    }
+
+    // Import createId from the CUID2 library
+    const { createId } = await import('@paralleldrive/cuid2');
+
+    try {
+        // --- PREPARE DATA FOR EFFICIENT INSERTION ---
+        const salesRecordsToCreate = [];
+        const ingresosToCreate = [];
+
+        for (const recordData of records) {
+            const { date, ...restOfData } = recordData;
+            if (!date) {
+                // Immediately fail if any record is missing a date
+                return res.status(400).json({ error: `One or more records are missing a date.` });
+            }
+
+            const recordDate = new Date(date);
+            const generatedId = createId(); // Generate CUID beforehand
+
+            // Prepare DailySalesRecord data
+            salesRecordsToCreate.push({
+                id: generatedId,
+                ...restOfData,
+                date: recordDate,
+            });
+
+            // Prepare corresponding Ingreso data
+            ingresosToCreate.push({
+                description: `Venta Diaria Detallada (${recordDate.toISOString().slice(0, 10)})`,
+                amount: restOfData.totalImporte,
+                date: recordDate,
+                dailySalesRecordId: generatedId, // Use the pre-generated ID
+            });
+        }
+
+        // --- EXECUTE TWO `createMany` QUERIES WITHIN A TRANSACTION ---
+        const [salesResult, incomeResult] = await prisma.$transaction([
+            prisma.dailySalesRecord.createMany({
+                data: salesRecordsToCreate,
+                skipDuplicates: true, // Optional: useful if you want to ignore duplicates rather than fail
+            }),
+            prisma.ingreso.createMany({
+                data: ingresosToCreate,
+                skipDuplicates: true, 
+            }),
+        ]);
+
+        res.status(201).json({
+            message: `Import successful. Created ${salesResult.count} new sales records and ${incomeResult.count} new income entries.`,
+            salesCount: salesResult.count,
+            incomeCount: incomeResult.count,
+        });
+
+    } catch (error) {
+        console.error('Error during bulk daily sales record creation:', error);
+        // This will now primarily catch issues if the whole transaction fails,
+        // as createMany with skipDuplicates handles unique constraint violations gracefully.
+        res.status(500).json({ error: 'An error occurred during the bulk import process.' });
+    }
+});
+
 
 // =====================================================
 // USERS API
