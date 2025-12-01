@@ -1,10 +1,11 @@
+// api/lib/prisma.js
 require('dotenv').config();
 
-const { PrismaClient } = require('../../src/generated/prisma');
+const { PrismaClient } = require('@prisma/client');      // 👈 CAMBIO CLAVE
 const { PrismaPg } = require('@prisma/adapter-pg');
 const { Pool } = require('pg');
 
-console.log('DATABASE_URL =>', process.env.DATABASE_URL); // 👈 DEBUG TEMPORAL
+console.log('DATABASE_URL =>', process.env.DATABASE_URL); // 👈 DEBUG (puedes quitarlo luego)
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -12,7 +13,8 @@ const pool = new Pool({
 
 const adapter = new PrismaPg(pool);
 
-const globalForPrisma = global;
+// Usamos globalThis para evitar múltiples instancias en desarrollo
+const globalForPrisma = globalThis;
 
 const prisma =
   globalForPrisma.prisma ||
