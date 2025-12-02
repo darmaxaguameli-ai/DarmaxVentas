@@ -40,6 +40,29 @@ const UserModal = ({ onClose, userToEdit, onSave }) => {
       delete userData.password;
     }
 
+    // Convert empty phone string to null to avoid unique constraint violation
+    if (userData.phone === "") {
+      userData.phone = null;
+    }
+    // Convert empty email string to null
+    if (userData.email === "") {
+      userData.email = null;
+    }
+    // Convert empty address fields to null
+    if (userData.street === "") {
+      userData.street = null;
+    }
+    if (userData.neighborhood === "") {
+      userData.neighborhood = null;
+    }
+    if (userData.city === "") {
+      userData.city = null;
+    }
+    if (userData.postalCode === "") {
+      userData.postalCode = null;
+    }
+
+
     onSave(userData);
     onClose();
   };

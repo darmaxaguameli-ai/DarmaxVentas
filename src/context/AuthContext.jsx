@@ -16,27 +16,39 @@ export const AuthProvider = ({ children }) => {
     const [loading, setLoading] = useState(true); // Para saber si se está verificando la sesión
 
     useEffect(() => {
-        // Intentar cargar el usuario desde sessionStorage al iniciar
+        // Intentar cargar el usuario desde localStorage primero, luego sessionStorage
         try {
-            const storedUser = sessionStorage.getItem('user');
+            let storedUser = localStorage.getItem('user');
             if (storedUser) {
                 setUser(JSON.parse(storedUser));
+            } else {
+                storedUser = sessionStorage.getItem('user');
+                if (storedUser) {
+                    setUser(JSON.parse(storedUser));
+                }
             }
         } catch (error) {
             console.error("No se pudo cargar el usuario de la sesión:", error);
+            localStorage.removeItem('user');
             sessionStorage.removeItem('user');
         } finally {
             setLoading(false);
         }
     }, []);
 
-    const login = async (email, password) => {
+    const login = async (email, password, rememberMe) => { // Added rememberMe parameter
         try {
             const response = await axios.post('/api/login', { email, password });
             const loggedInUser = response.data;
             
             setUser(loggedInUser);
-            sessionStorage.setItem('user', JSON.stringify(loggedInUser));
+            if (rememberMe) {
+                localStorage.setItem('user', JSON.stringify(loggedInUser));
+                sessionStorage.removeItem('user'); // Ensure sessionStorage is clear if localStorage is used
+            } else {
+                sessionStorage.setItem('user', JSON.stringify(loggedInUser));
+                localStorage.removeItem('user'); // Ensure localStorage is clear if sessionStorage is used
+            }
             
             return loggedInUser;
         } catch (error) {
@@ -49,6 +61,7 @@ export const AuthProvider = ({ children }) => {
     const logout = () => {
         setUser(null);
         sessionStorage.removeItem('user');
+        localStorage.removeItem('user'); // Clear from localStorage as well
     };
 
     const value = {
