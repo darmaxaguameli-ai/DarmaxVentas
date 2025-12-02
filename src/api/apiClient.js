@@ -23,9 +23,13 @@ const request = async (endpoint, options = {}) => {
       const errorData = await response
         .json()
         .catch(() => ({ message: response.statusText }));
-      throw new Error(
-        errorData.error || errorData.message || 'Network response was not ok'
-      );
+      
+      // Combine error and message for a more informative error
+      const errorMessage = errorData.error && errorData.message
+        ? `${errorData.error}: ${errorData.message}`
+        : errorData.error || errorData.message || 'Network response was not ok';
+
+      throw new Error(errorMessage);
     }
 
     if (response.status === 204) {
