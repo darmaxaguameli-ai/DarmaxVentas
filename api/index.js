@@ -522,25 +522,37 @@ app.post('/api/users', async (req, res) => {
   try {
     const data = req.body;
 
+    // Explicitly convert empty strings to null for optional fields
+    const userData = {
+      name: data.name,
+      email: data.email === '' ? null : data.email,
+      phone: data.phone === '' ? null : data.phone,
+      street: data.street === '' ? null : data.street,
+      neighborhood: data.neighborhood === '' ? null : data.neighborhood,
+      city: data.city === '' ? null : data.city,
+      postalCode: data.postalCode === '' ? null : data.postalCode,
+      role: data.role || 'CLIENTE',
+    };
+
+    // Hash password if provided
+    if (data.password) {
+      const hashedPassword = await bcrypt.hash(data.password, 10); // 10 is the salt rounds
+      userData.password = hashedPassword;
+    } else {
+      userData.password = null;
+    }
+
     // ✅ GENERAR customId si no viene desde el front
     let customId = data.customId;
     if (!customId) {
-      const rolePrefix = (data.role || 'CLIENTE').substring(0, 3).toUpperCase();
+      const rolePrefix = (userData.role || 'CLIENTE').substring(0, 3).toUpperCase();
       const random = String(Math.floor(Math.random() * 900) + 100); // 100–999
       customId = `${rolePrefix}-${random}`; // ej: ADM-123, VEN-456
     }
 
     const newUser = await prisma.user.create({
       data: {
-        name: data.name,
-        email: data.email || null,
-        password: data.password || null,
-        phone: data.phone || null,
-        street: data.street || null,
-        neighborhood: data.neighborhood || null,
-        city: data.city || null,
-        postalCode: data.postalCode || null,
-        role: data.role || 'CLIENTE',
+        ...userData, // Use the cleaned userData
         customId, // 👈 aquí sí va una string real
       },
     });
@@ -585,6 +597,42 @@ app.delete('/api/users/:id', async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
     res.status(500).json({ error: 'Error deleting user' });
+  }
+});
+
+// GET user by customId or phone
+app.get('/api/users/check', async (req, res) => {
+  const { identifier, type } = req.query;
+
+  if (!identifier || !type) {
+    return res.status(400).json({ error: 'Identifier and type (customId or phone) are required.' });
+  }
+
+  try {
+    let user;
+    if (type === 'customId') {
+      user = await prisma.user.findUnique({
+        where: { customId: identifier },
+      });
+    } else if (type === 'phone') {
+      user = await prisma.user.findUnique({
+        where: { phone: identifier },
+      });
+    } else {
+      return res.status(400).json({ error: 'Invalid search type. Must be "customId" or "phone".' });
+    }
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found.' });
+    }
+
+    // Exclude password from the response, but include a flag if it exists
+    const { password, ...userWithoutPassword } = user;
+    res.json({ ...userWithoutPassword, hasPassword: !!password });
+
+  } catch (error) {
+    console.error('Error checking user:', error);
+    res.status(500).json({ error: 'Ocurrió un error en el servidor al verificar el usuario.' });
   }
 });
 

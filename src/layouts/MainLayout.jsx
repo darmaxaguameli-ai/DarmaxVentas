@@ -2,14 +2,14 @@ const MainLayout = ({ children }) => {
   return (
     <div
       className="min-h-screen w-full bg-light dark:bg-dark text-dark dark:text-white 
-                 flex flex-col items-center justify-center transition-colors"
+                 flex flex-col items-center transition-colors" // Removed justify-center
       style={{ fontFamily: 'Inter, "Noto Sans", sans-serif' }}
     >
-      <main className="flex w-full max-w-5xl px-6 py-10 justify-center items-center">
+      <main className="flex w-full max-w-5xl px-6 py-10 justify-center items-center flex-grow"> {/* Added flex-grow */}
         {children}
       </main>
 
-      <footer className="absolute bottom-4 text-xs text-text-secondary dark:text-white/50">
+      <footer className="py-4 text-xs text-text-secondary dark:text-white/50"> {/* Removed absolute bottom-4, added py-4 for spacing */}
         © {new Date().getFullYear()} Darmax — Todos los derechos reservados
       </footer>
     </div>

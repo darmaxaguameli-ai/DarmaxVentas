@@ -7,6 +7,7 @@ import { useAuth } from "../context/AuthContext";
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(false); // New state for "Recuérdame"
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -24,7 +25,7 @@ const Login = () => {
         throw new Error("El email y la contraseña son obligatorios.");
       }
 
-      const user = await login(email, password);
+      const user = await login(email, password, rememberMe); // Pass rememberMe to login function
       
       // Si el login es exitoso, redirigir a la pantalla de bienvenida
       navigate("/login-success", { state: { name: user.name } });
@@ -118,6 +119,8 @@ const Login = () => {
                 type="checkbox"
                 className="form-checkbox h-4 w-4 rounded border-light text-primary 
                            focus:ring-primary dark:border-white/20 dark:bg-dark"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
               />
               <span className="ml-2 text-sm text-text-secondary dark:text-white/70">
                 Recuérdame
