@@ -6,25 +6,43 @@ import React, {
   useEffect,
 } from "react";
 import {
+  // Product
   fetchProducts as apiFetchProducts,
   createProduct as apiCreateProduct,
   updateProduct as apiUpdateProduct,
   deleteProduct as apiDeleteProduct,
+  // User
   fetchUsers as apiFetchUsers,
   createUser as apiCreateUser,
   updateUser as apiUpdateUser,
   deleteUser as apiDeleteUser,
+  // Income
   fetchIncomes as apiFetchIncomes,
   createIncome as apiCreateIncome,
   updateIncome as apiUpdateIncome,
   deleteIncome as apiDeleteIncome,
+  // Expense
   fetchExpenses as apiFetchExpenses,
   createExpense as apiCreateExpense,
   updateExpense as apiUpdateExpense,
   deleteExpense as apiDeleteExpense,
+  // Daily Sales
   fetchDailySalesRecords as apiFetchDailySalesRecords,
   createDailySalesRecord as apiCreateDailySalesRecord,
   createDailySalesRecordsBulk as apiCreateDailySalesRecordsBulk,
+  // Business Config
+  fetchWaterTypes as apiFetchWaterTypes,
+  createWaterType as apiCreateWaterType,
+  updateWaterType as apiUpdateWaterType,
+  deleteWaterType as apiDeleteWaterType,
+  fetchServicePrices as apiFetchServicePrices,
+  createServicePrice as apiCreateServicePrice,
+  updateServicePrice as apiUpdateServicePrice,
+  deleteServicePrice as apiDeleteServicePrice,
+  fetchJugBrands as apiFetchJugBrands,
+  createJugBrand as apiCreateJugBrand,
+  updateJugBrand as apiUpdateJugBrand,
+  deleteJugBrand as apiDeleteJugBrand,
 } from "../../../api/apiClient";
 
 const GestionContext = createContext(null);
@@ -43,6 +61,9 @@ const initialState = {
   income: [],
   expenses: [],
   dailySalesRecords: [],
+  waterTypes: [],
+  servicePrices: [],
+  jugBrands: [],
   loading: true,
   error: null,
 };
@@ -56,85 +77,38 @@ const gestionReducer = (state, action) => {
     case "SET_INITIAL_DATA":
       return {
         ...state,
-        inventory: action.payload.inventory,
-        users: action.payload.users,
-        income: action.payload.income,
-        expenses: action.payload.expenses,
-        dailySalesRecords: action.payload.dailySalesRecords,
+        inventory: action.payload.inventory || state.inventory,
+        users: action.payload.users || state.users,
+        income: action.payload.income || state.income,
+        expenses: action.payload.expenses || state.expenses,
+        dailySalesRecords: action.payload.dailySalesRecords || state.dailySalesRecords,
+        waterTypes: action.payload.waterTypes || state.waterTypes,
+        servicePrices: action.payload.servicePrices || state.servicePrices,
+        jugBrands: action.payload.jugBrands || state.jugBrands,
         loading: false,
       };
 
-    // Inventory
+    // This single reducer can handle all ADD actions now if we refetch
+    // But for optimistic UI, we keep them separate.
     case "ADD_PRODUCT":
       return { ...state, inventory: [...state.inventory, action.payload] };
-    case "UPDATE_PRODUCT":
-      return {
-        ...state,
-        inventory: state.inventory.map((p) =>
-          p.id === action.payload.id ? action.payload : p
-        ),
-      };
-    case "DELETE_PRODUCT":
-      return {
-        ...state,
-        inventory: state.inventory.filter((p) => p.id !== action.payload.id),
-      };
-
-    // Income
-    case "ADD_INCOME":
-      return { ...state, income: [...state.income, action.payload] };
-    case "UPDATE_INCOME":
-      return {
-        ...state,
-        income: state.income.map((i) =>
-          i.id === action.payload.id ? action.payload : i
-        ),
-      };
-    case "DELETE_INCOME":
-      return {
-        ...state,
-        income: state.income.filter((i) => i.id !== action.payload.id),
-      };
-
-    // Expenses
-    case "ADD_EXPENSE":
-      return { ...state, expenses: [...state.expenses, action.payload] };
-    case "UPDATE_EXPENSE":
-      return {
-        ...state,
-        expenses: state.expenses.map((e) =>
-          e.id === action.payload.id ? action.payload : e
-        ),
-      };
-    case "DELETE_EXPENSE":
-      return {
-        ...state,
-        expenses: state.expenses.filter((e) => e.id !== action.payload.id),
-      };
-
-    // Users
     case "ADD_USER":
-      return { ...state, users: [...state.users, action.payload] };
-    case "UPDATE_USER":
-      return {
-        ...state,
-        users: state.users.map((u) =>
-          u.id === action.payload.id ? action.payload : u
-        ),
-      };
-    case "DELETE_USER":
-      return {
-        ...state,
-        users: state.users.filter((u) => u.id !== action.payload.id),
-      };
-
-    // Daily Sales
-    case "ADD_DAILY_SALES_RECORD":
-      return {
-        ...state,
-        dailySalesRecords: [...state.dailySalesRecords, action.payload],
-      };
+        return { ...state, users: [...state.users, action.payload] };
+    case "ADD_INCOME":
+        return { ...state, income: [...state.income, action.payload] };
+    case "ADD_EXPENSE":
+        return { ...state, expenses: [...state.expenses, action.payload] };
+    case "ADD_WATER_TYPE":
+      return { ...state, waterTypes: [...state.waterTypes, action.payload] };
+    case "ADD_SERVICE_PRICE":
+        return { ...state, servicePrices: [...state.servicePrices, action.payload] };
+    case "ADD_JUG_BRAND":
+        return { ...state, jugBrands: [...state.jugBrands, action.payload] };
     
+    // We don't need specific update/delete reducers anymore because
+    // the actions will re-fetch the entire dataset, which is handled
+    // by SET_INITIAL_DATA. This simplifies the reducer greatly.
+
     default:
       return state;
   }
@@ -146,14 +120,17 @@ export const GestionProvider = ({ children }) => {
   const fetchManagementData = useCallback(async () => {
     dispatch({ type: "SET_LOADING", payload: true });
     try {
-      const [inventory, users, income, expenses, dailySalesRecords] = await Promise.all([
-        apiFetchProducts(),
-        apiFetchUsers(),
-        apiFetchIncomes(),
-        apiFetchExpenses(),
-        apiFetchDailySalesRecords(),
+      const [
+        inventory, users, income, expenses, dailySalesRecords,
+        waterTypes, servicePrices, jugBrands,
+      ] = await Promise.all([
+        apiFetchProducts(), apiFetchUsers(), apiFetchIncomes(), apiFetchExpenses(), apiFetchDailySalesRecords(),
+        apiFetchWaterTypes(), apiFetchServicePrices(), apiFetchJugBrands(),
       ]);
-      dispatch({ type: "SET_INITIAL_DATA", payload: { inventory, users, income, expenses, dailySalesRecords } });
+      dispatch({
+        type: "SET_INITIAL_DATA",
+        payload: { inventory, users, income, expenses, dailySalesRecords, waterTypes, servicePrices, jugBrands },
+      });
     } catch (error) {
       dispatch({ type: "SET_ERROR", payload: error.message });
     }
@@ -163,149 +140,55 @@ export const GestionProvider = ({ children }) => {
     fetchManagementData();
   }, [fetchManagementData]);
 
-  // OTHER CRUD FUNCTIONS (addProduct, updateUser, etc. remain unchanged)
-  const addProduct = useCallback(async (productData) => {
-    try {
-      const newProduct = await apiCreateProduct(productData);
-      dispatch({ type: "ADD_PRODUCT", payload: newProduct });
-    } catch (error) {
-      dispatch({ type: "SET_ERROR", payload: error.message });
-    }
-  }, []);
-  const updateProduct = useCallback(async (product) => {
-    try {
-      const updated = await apiUpdateProduct(product.id, product);
-      dispatch({ type: "UPDATE_PRODUCT", payload: updated });
-    } catch (error) {
-      dispatch({ type: "SET_ERROR", payload: error.message });
-    }
-  }, []);
-  const deleteProduct = useCallback(async (id) => {
-    try {
-      await apiDeleteProduct(id);
-      dispatch({ type: "DELETE_PRODUCT", payload: { id } });
-    } catch (error) {
-      dispatch({ type: "SET_ERROR", payload: error.message });
-    }
-  }, []);
+  // Generic factory for CRUD actions
+  const createCrudActions = (modelName, api) => ({
+    [`add${modelName}`]: useCallback(async (data) => {
+      const newRecord = await api[`create${modelName}`](data);
+      // We can do an optimistic update or a re-fetch. Re-fetch is simpler.
+      dispatch({ type: `ADD_${modelName.toUpperCase()}`, payload: newRecord });
+      // Or await fetchManagementData();
+      return newRecord;
+    }, []),
+    [`update${modelName}`]: useCallback(async (id, data) => {
+      const updatedRecord = await api[`update${modelName}`](id, data);
+      await fetchManagementData(); // Re-fetch is safest for updates
+      return updatedRecord;
+    }, [fetchManagementData]),
+    [`delete${modelName}`]: useCallback(async (id) => {
+      await api[`delete${modelName}`](id);
+      await fetchManagementData(); // Re-fetch is safest for deletes
+    }, [fetchManagementData]),
+  });
 
-  const addIncome = useCallback(async (incomeData) => {
-    try {
-      const newIncome = await apiCreateIncome(incomeData);
-      dispatch({ type: "ADD_INCOME", payload: newIncome });
-    } catch (error) {
-      dispatch({ type: "SET_ERROR", payload: error.message });
-    }
-  }, []);
-    const updateIncome = useCallback(async (income) => {
-    try {
-      const updated = await apiUpdateIncome(income.id, income);
-      dispatch({ type: "UPDATE_INCOME", payload: updated });
-    } catch (error) {
-      dispatch({ type: "SET_ERROR", payload: error.message });
-    }
-  }, []);
-  const deleteIncome = useCallback(async (id) => {
-    try {
-      await apiDeleteIncome(id);
-      dispatch({ type: "DELETE_INCOME", payload: { id } });
-    } catch (error) {
-      dispatch({ type: "SET_ERROR", payload: error.message });
-    }
-  }, []);
+  const productActions = createCrudActions('Product', { createProduct: apiCreateProduct, updateProduct: apiUpdateProduct, deleteProduct: apiDeleteProduct });
+  const userActions = createCrudActions('User', { createUser: apiCreateUser, updateUser: apiUpdateUser, deleteUser: apiDeleteUser });
+  const waterTypeActions = createCrudActions('WaterType', { createWaterType: apiCreateWaterType, updateWaterType: apiUpdateWaterType, deleteWaterType: apiDeleteWaterType });
+  const servicePriceActions = createCrudActions('ServicePrice', { createServicePrice: apiCreateServicePrice, updateServicePrice: apiUpdateServicePrice, deleteServicePrice: apiDeleteServicePrice });
+  const jugBrandActions = createCrudActions('JugBrand', { createJugBrand: apiCreateJugBrand, updateJugBrand: apiUpdateJugBrand, deleteJugBrand: apiDeleteJugBrand });
+  const expenseActions = createCrudActions('Expense', { createExpense: apiCreateExpense, updateExpense: apiUpdateExpense, deleteExpense: apiDeleteExpense });
+  const incomeActions = createCrudActions('Income', { createIncome: apiCreateIncome, updateIncome: apiUpdateIncome, deleteIncome: apiDeleteIncome });
 
-  const addExpense = useCallback(async (expenseData) => {
-    try {
-      const newExpense = await apiCreateExpense(expenseData);
-      dispatch({ type: "ADD_EXPENSE", payload: newExpense });
-    } catch (error) {
-      dispatch({ type: "SET_ERROR", payload: error.message });
-    }
-  }, []);
-    const updateExpense = useCallback(async (expense) => {
-    try {
-      const updated = await apiUpdateExpense(expense.id, expense);
-      dispatch({ type: "UPDATE_EXPENSE", payload: updated });
-    } catch (error) {
-      dispatch({ type: "SET_ERROR", payload: error.message });
-    }
-  }, []);
-  const deleteExpense = useCallback(async (id) => {
-    try {
-      await apiDeleteExpense(id);
-      dispatch({ type: "DELETE_EXPENSE", payload: { id } });
-    } catch (error) {
-      dispatch({ type: "SET_ERROR", payload: error.message });
-    }
-  }, []);
-
-  const addUser = useCallback(async (userData) => {
-    try {
-      const newUser = await apiCreateUser(userData);
-      dispatch({ type: "ADD_USER", payload: newUser });
-    } catch (error) {
-      dispatch({ type: "SET_ERROR", payload: error.message });
-    }
-  }, []);
-    const updateUser = useCallback(async (user) => {
-    try {
-      const updated = await apiUpdateUser(user.id, user);
-      dispatch({ type: "UPDATE_USER", payload: updated });
-    } catch (error) {
-      dispatch({ type: "SET_ERROR", payload: error.message });
-    }
-  }, []);
-  const deleteUser = useCallback(async (id) => {
-    try {
-      await apiDeleteUser(id);
-      dispatch({ type: "DELETE_USER", payload: { id } });
-    } catch (error) {
-      dispatch({ type: "SET_ERROR", payload: error.message });
-    }
-  }, []);
-
-  // DAILY SALES
-  const addDailySalesRecord = useCallback(async (recordData) => {
-    try {
-      await apiCreateDailySalesRecord(recordData);
-      // Re-fetch data to reflect the new record
-      await fetchManagementData();
-    } catch (error) {
-      console.error("Failed to create daily sales record:", error);
-      dispatch({ type: "SET_ERROR", payload: error.message });
-      throw error;
-    }
-  }, [fetchManagementData]);
-
+  // Custom actions that don't fit the generic CRUD pattern
   const addDailySalesRecordsBulk = useCallback(async (recordsData) => {
     try {
       await apiCreateDailySalesRecordsBulk(recordsData);
-      // On successful bulk import, re-fetch all data to update the state
       await fetchManagementData(); 
     } catch (error) {
-      console.error("Failed to bulk create daily sales records:", error);
       dispatch({ type: "SET_ERROR", payload: error.message });
       throw error;
     }
   }, [fetchManagementData]);
 
-
   const value = {
     state,
-    fetchManagementData, // Expose the refresh function
-    addProduct,
-    updateProduct,
-    deleteProduct,
-    addIncome,
-    updateIncome,
-    deleteIncome,
-    addExpense,
-    updateExpense,
-    deleteExpense,
-    addUser,
-    updateUser,
-    deleteUser,
-    addDailySalesRecord,
+    fetchManagementData,
+    ...productActions,
+    ...userActions,
+    ...waterTypeActions,
+    ...servicePriceActions,
+    ...jugBrandActions,
+    ...expenseActions,
+    ...incomeActions,
     addDailySalesRecordsBulk,
   };
 

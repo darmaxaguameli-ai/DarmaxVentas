@@ -14,13 +14,13 @@ app.get('/api/health', (req, res) => {
 });
 
 // =====================================================
-// PRODUCTOS API
+// PRODUCTS API (Formerly PRODUCTOS)
 // =====================================================
 
 // GET all products
 app.get('/api/products', async (req, res) => {
   try {
-    const products = await prisma.producto.findMany();
+    const products = await prisma.product.findMany();
     res.json(products);
   } catch (error) {
     console.error('Error fetching products:', error);
@@ -35,7 +35,7 @@ app.get('/api/products', async (req, res) => {
 // POST a new product
 app.post('/api/products', async (req, res) => {
   try {
-    const newProduct = await prisma.producto.create({
+    const newProduct = await prisma.product.create({
       data: req.body,
     });
     res.status(201).json(newProduct);
@@ -49,8 +49,8 @@ app.post('/api/products', async (req, res) => {
 app.put('/api/products/:id', async (req, res) => {
   const { id } = req.params;
   try {
-    const updatedProduct = await prisma.producto.update({
-      where: { id }, // si tu id es String @id
+    const updatedProduct = await prisma.product.update({
+      where: { id },
       data: req.body,
     });
     res.json(updatedProduct);
@@ -67,7 +67,7 @@ app.put('/api/products/:id', async (req, res) => {
 app.delete('/api/products/:id', async (req, res) => {
   const { id } = req.params;
   try {
-    await prisma.producto.delete({
+    await prisma.product.delete({
       where: { id },
     });
     res.status(204).send(); // No content
@@ -77,6 +77,120 @@ app.delete('/api/products/:id', async (req, res) => {
       return res.status(404).json({ error: 'Product not found' });
     }
     res.status(500).json({ error: 'Error deleting product' });
+  }
+});
+
+// =====================================================
+// BUSINESS CONFIGURATION APIS
+// =====================================================
+
+// --- WATER TYPES API ---
+app.get('/api/water-types', async (req, res) => {
+  try {
+    const waterTypes = await prisma.waterType.findMany({ orderBy: { name: 'asc' } });
+    res.json(waterTypes);
+  } catch (error) {
+    res.status(500).json({ error: 'Error fetching water types' });
+  }
+});
+app.post('/api/water-types', async (req, res) => {
+  try {
+    const waterType = await prisma.waterType.create({ data: req.body });
+    res.status(201).json(waterType);
+  } catch (error) {
+    res.status(500).json({ error: 'Error creating water type' });
+  }
+});
+app.put('/api/water-types/:id', async (req, res) => {
+  try {
+    const waterType = await prisma.waterType.update({ where: { id: req.params.id }, data: req.body });
+    res.json(waterType);
+  } catch (error) {
+    res.status(500).json({ error: 'Error updating water type' });
+  }
+});
+app.delete('/api/water-types/:id', async (req, res) => {
+  try {
+    await prisma.waterType.delete({ where: { id: req.params.id } });
+    res.status(204).send();
+  } catch (error) {
+    res.status(500).json({ error: 'Error deleting water type' });
+  }
+});
+
+// --- SERVICE PRICES API ---
+app.get('/api/service-prices', async (req, res) => {
+  try {
+    const servicePrices = await prisma.servicePrice.findMany({ include: { waterType: true }, orderBy: { price: 'asc' } });
+    res.json(servicePrices);
+  } catch (error) {
+    res.status(500).json({ error: 'Error fetching service prices' });
+  }
+});
+app.post('/api/service-prices', async (req, res) => {
+  try {
+    const { waterTypeId, ...rest } = req.body;
+    const data = waterTypeId ? { ...rest, waterType: { connect: { id: waterTypeId } } } : rest;
+    const servicePrice = await prisma.servicePrice.create({ data });
+    res.status(201).json(servicePrice);
+  } catch (error) {
+    res.status(500).json({ error: 'Error creating service price' });
+  }
+});
+app.put('/api/service-prices/:id', async (req, res) => {
+  try {
+    const { waterTypeId, ...rest } = req.body;
+    const data = waterTypeId ? { ...rest, waterType: { connect: { id: waterTypeId } } } : { ...rest, waterTypeId: null };
+    const servicePrice = await prisma.servicePrice.update({ where: { id: req.params.id }, data });
+    res.json(servicePrice);
+  } catch (error) {
+    res.status(500).json({ error: 'Error updating service price' });
+  }
+});
+app.delete('/api/service-prices/:id', async (req, res) => {
+  try {
+    await prisma.servicePrice.delete({ where: { id: req.params.id } });
+    res.status(204).send();
+  } catch (error) {
+    res.status(500).json({ error: 'Error deleting service price' });
+  }
+});
+
+// --- JUG BRANDS API ---
+app.get('/api/jug-brands', async (req, res) => {
+  try {
+    const jugBrands = await prisma.jugBrand.findMany({ include: { compatibleCap: true }, orderBy: { name: 'asc' } });
+    res.json(jugBrands);
+  } catch (error) {
+    res.status(500).json({ error: 'Error fetching jug brands' });
+  }
+});
+app.post('/api/jug-brands', async (req, res) => {
+  try {
+    const { compatibleCapId, ...rest } = req.body;
+    const data = compatibleCapId ? { ...rest, compatibleCap: { connect: { id: compatibleCapId } } } : rest;
+    const jugBrand = await prisma.jugBrand.create({ data });
+    res.status(201).json(jugBrand);
+  } catch (error) {
+    res.status(500).json({ error: 'Error creating jug brand' });
+  }
+});
+app.put('/api/jug-brands/:id', async (req, res) => {
+  try {
+    const { compatibleCapId, ...rest } = req.body;
+    const data = compatibleCapId ? { ...rest, compatibleCap: { connect: { id: compatibleCapId } } } : { ...rest, compatibleCapId: null };
+    const jugBrand = await prisma.jugBrand.update({ where: { id: req.params.id }, data });
+    res.json(jugBrand);
+  } catch (error) {
+    res.status(500).json({ error: 'Error updating jug brand' });
+  }
+});
+app.delete('/api/jug-brands/:id', async (req, res) => {
+  try {
+    await prisma.jugBrand.delete({ where: { id: req.params.id } });
+    res.status(204).send();
+  } catch (error) {
+    res.status(500).json({ error: 'Error deleting jug brand' });
   }
 });
 
@@ -98,8 +212,12 @@ app.get('/api/incomes', async (req, res) => {
 // POST a new income
 app.post('/api/incomes', async (req, res) => {
   try {
+    const { date, ...rest } = req.body;
     const newIncome = await prisma.ingreso.create({
-      data: req.body,
+      data: {
+        ...rest,
+        date: new Date(date),
+      },
     });
     res.status(201).json(newIncome);
   } catch (error) {
@@ -112,9 +230,11 @@ app.post('/api/incomes', async (req, res) => {
 app.put('/api/incomes/:id', async (req, res) => {
   const { id } = req.params;
   try {
+    const { date, ...rest } = req.body;
+    const data = date ? { ...rest, date: new Date(date) } : rest;
     const updatedIncome = await prisma.ingreso.update({
       where: { id },
-      data: req.body,
+      data: data,
     });
     res.json(updatedIncome);
   } catch (error) {
@@ -159,8 +279,12 @@ app.get('/api/expenses', async (req, res) => {
 
 app.post('/api/expenses', async (req, res) => {
   try {
+    const { date, ...rest } = req.body;
     const newExpense = await prisma.gasto.create({
-      data: req.body,
+      data: {
+        ...rest,
+        date: new Date(date),
+      },
     });
     res.status(201).json(newExpense);
   } catch (error) {
@@ -172,9 +296,11 @@ app.post('/api/expenses', async (req, res) => {
 app.put('/api/expenses/:id', async (req, res) => {
   const { id } = req.params;
   try {
+    const { date, ...rest } = req.body;
+    const data = date ? { ...rest, date: new Date(date) } : rest;
     const updatedExpense = await prisma.gasto.update({
       where: { id },
-      data: req.body,
+      data: data,
     });
     res.json(updatedExpense);
   } catch (error) {

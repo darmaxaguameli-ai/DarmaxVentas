@@ -6,6 +6,7 @@ const links = [
   { name: "Ingresos", path: "ingresos", icon: "payments" },
   { name: "Gastos", path: "gastos", icon: "receipt_long" },
   { name: "Usuarios", path: "usuarios", icon: "group" },
+  { name: "Configuración", path: "configuracion", icon: "tune" },
   { name: "Control Diario de Ventas", path: "control-ventas-diarias", icon: "history" },
 ];
 

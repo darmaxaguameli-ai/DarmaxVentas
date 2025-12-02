@@ -176,3 +176,25 @@ export const createDailySalesRecordsBulk = (recordsData) =>
     method: 'POST',
     body: JSON.stringify(recordsData),
   });
+
+// ====================================================================
+//  BUSINESS CONFIGURATION
+// ====================================================================
+
+// --- Water Types ---
+export const fetchWaterTypes = () => request('/water-types');
+export const createWaterType = (data) => request('/water-types', { method: 'POST', body: JSON.stringify(data) });
+export const updateWaterType = (id, data) => request(`/water-types/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+export const deleteWaterType = (id) => request(`/water-types/${id}`, { method: 'DELETE' });
+
+// --- Service Prices ---
+export const fetchServicePrices = () => request('/service-prices');
+export const createServicePrice = (data) => request('/service-prices', { method: 'POST', body: JSON.stringify(data) });
+export const updateServicePrice = (id, data) => request(`/service-prices/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+export const deleteServicePrice = (id) => request(`/service-prices/${id}`, { method: 'DELETE' });
+
+// --- Jug Brands ---
+export const fetchJugBrands = () => request('/jug-brands');
+export const createJugBrand = (data) => request('/jug-brands', { method: 'POST', body: JSON.stringify(data) });
+export const updateJugBrand = (id, data) => request(`/jug-brands/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+export const deleteJugBrand = (id) => request(`/jug-brands/${id}`, { method: 'DELETE' });

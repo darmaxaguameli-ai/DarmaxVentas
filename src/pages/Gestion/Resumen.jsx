@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { useGestion } from "./context/GestionContext";
+import CashFlowChart from "./components/CashFlowChart";
 
 const StatCard = ({ title, value, subtext, type }) => {
     let valueColorClass = "text-[#111418] dark:text-white";
@@ -42,8 +43,36 @@ const Resumen = () => {
     }, [income, expenses]);
     
     const lowStockItems = useMemo(() => {
-        return inventory.filter(item => item.quantity < 50);
+        return inventory.filter(item => item.stock < 50);
     }, [inventory]);
+
+    const expenseSuggestions = useMemo(() => {
+        const descriptionMonths = new Map();
+        expenses.forEach(expense => {
+            const description = expense.description.toLowerCase().trim();
+            const month = expense.date.substring(0, 7); // YYYY-MM
+            if (!descriptionMonths.has(description)) {
+                descriptionMonths.set(description, new Set());
+            }
+            descriptionMonths.get(description).add(month);
+        });
+
+        const recurringDescriptions = new Set();
+        descriptionMonths.forEach((months, description) => {
+            if (months.size > 1) { // It's recurring if it appears in more than 1 month
+                recurringDescriptions.add(description);
+            }
+        });
+
+        const currentMonth = new Date().toISOString().substring(0, 7);
+        return expenses
+            .filter(expense => {
+                const description = expense.description.toLowerCase().trim();
+                const month = expense.date.substring(0, 7);
+                return month === currentMonth && recurringDescriptions.has(description);
+            })
+            .map(expense => `Considera optimizar los gastos recurrentes en "${expense.description}".`);
+    }, [expenses]);
 
     return (
         <div>
@@ -58,13 +87,10 @@ const Resumen = () => {
 
             {/* Charts and Lists */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-8">
-                <div className="lg:col-span-2">
-                    <ChartPlaceholder 
-                        title="Flujo de Caja (Últimos 30 días)" 
-                        description="Aquí iría un gráfico de líneas (ej. con Recharts) mostrando ingresos y gastos."
-                    />
+                <div className="lg:col-span-2 h-[450px]">
+                    <CashFlowChart income={income} expenses={expenses} />
                 </div>
-                <div>
+                <div className="space-y-6">
                      <div className="p-6 bg-white dark:bg-gray-800 rounded-2xl shadow-lg">
                         <h3 className="text-lg font-semibold text-[#111418] dark:text-white">Inventario Bajo</h3>
                         {lowStockItems.length > 0 ? (
@@ -72,12 +98,27 @@ const Resumen = () => {
                                 {lowStockItems.map(item => (
                                     <li key={item.id} className="flex justify-between items-center text-sm">
                                         <span className="font-medium text-gray-700 dark:text-gray-300">{item.name}</span>
-                                        <span className="font-bold text-red-500">{item.quantity} restantes</span>
+                                        <span className="font-bold text-red-500">{item.stock} restantes</span>
                                     </li>
                                 ))}
                             </ul>
                         ) : (
                             <p className="mt-4 text-sm text-gray-500 dark:text-gray-400">No hay productos con inventario bajo.</p>
+                        )}
+                    </div>
+                    <div className="p-6 bg-white dark:bg-gray-800 rounded-2xl shadow-lg">
+                        <h3 className="text-lg font-semibold text-[#111418] dark:text-white">Sugerencias de Ahorro</h3>
+                        {expenseSuggestions.length > 0 ? (
+                            <ul className="mt-4 space-y-3">
+                                {expenseSuggestions.map((suggestion, index) => (
+                                    <li key={index} className="flex items-start gap-3 text-sm">
+                                        <span className="material-symbols-outlined text-lg text-amber-500 mt-0.5">lightbulb</span>
+                                        <span className="text-gray-700 dark:text-gray-300">{suggestion}</span>
+                                    </li>
+                                ))}
+                            </ul>
+                        ) : (
+                            <p className="mt-4 text-sm text-gray-500 dark:text-gray-400">No hay sugerencias de ahorro por el momento.</p>
                         )}
                     </div>
                 </div>

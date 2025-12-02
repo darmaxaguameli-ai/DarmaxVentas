@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useGestion } from "./context/GestionContext";
 
 const ProductModal = ({ isOpen, onClose, productToEdit, onSave }) => {
@@ -126,6 +126,21 @@ const Inventario = () => {
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [productToEdit, setProductToEdit] = useState(null);
+    const [activeCategory, setActiveCategory] = useState('All');
+
+    // Get unique categories for filter buttons
+    const categories = useMemo(() => {
+        const allCategories = inventory.map(p => p.category).filter(Boolean);
+        return ['All', ...new Set(allCategories)];
+    }, [inventory]);
+
+    // Filter inventory based on active category
+    const filteredInventory = useMemo(() => {
+        if (activeCategory === 'All') {
+            return inventory;
+        }
+        return inventory.filter(p => p.category === activeCategory);
+    }, [inventory, activeCategory]);
 
     const handleOpenModal = (product = null) => {
         setProductToEdit(product);
@@ -139,9 +154,13 @@ const Inventario = () => {
 
     const handleSaveProduct = (product) => {
         if (product.id) {
-            updateProduct(product);
+            updateProduct(product.id, product);
         } else {
             addProduct(product);
+        }
+        // If a new category was added, we might want to switch to it
+        if (product.category && !categories.includes(product.category)) {
+            setActiveCategory(product.category);
         }
     };
     
@@ -149,6 +168,14 @@ const Inventario = () => {
         if(window.confirm('¿Estás seguro de que quieres eliminar este producto?')) {
             deleteProduct(id);
         }
+    }
+    
+    const getCategoryClassName = (category) => {
+        return `px-3 py-1 text-sm font-medium rounded-full transition-colors ${
+            activeCategory === category
+                ? 'bg-primary text-white'
+                : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-primary/80 hover:text-white'
+        }`;
     }
 
     return (
@@ -166,6 +193,19 @@ const Inventario = () => {
               onSave={handleSaveProduct}
               productToEdit={productToEdit}
             />
+
+            {/* Category Filter Buttons */}
+            <div className="flex items-center gap-2 mb-4 overflow-x-auto pb-2">
+                {categories.map(category => (
+                    <button 
+                        key={category} 
+                        onClick={() => setActiveCategory(category)}
+                        className={getCategoryClassName(category)}
+                    >
+                        {category}
+                    </button>
+                ))}
+            </div>
             
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-x-auto">
                 <table className="min-w-full">
@@ -182,24 +222,20 @@ const Inventario = () => {
                     <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                         {loading ? (
                             <tr>
-                                <td colSpan="6" className="p-6 text-center text-gray-500 dark:text-gray-400">
-                                    Cargando...
-                                </td>
+                                <td colSpan="6" className="p-6 text-center text-gray-500 dark:text-gray-400">Cargando...</td>
                             </tr>
                         ) : error ? (
                              <tr>
-                                <td colSpan="6" className="p-6 text-center text-red-500">
-                                    Error al cargar el inventario: {error}
-                                </td>
+                                <td colSpan="6" className="p-6 text-center text-red-500">Error al cargar el inventario: {error}</td>
                             </tr>
-                        ) : inventory.length === 0 ? (
+                        ) : filteredInventory.length === 0 ? (
                              <tr>
                                 <td colSpan="6" className="p-6 text-center text-gray-500 dark:text-gray-400">
-                                    No hay productos en el inventario.
+                                    {activeCategory === 'All' ? 'No hay productos en el inventario.' : `No hay productos en la categoría "${activeCategory}".`}
                                 </td>
                             </tr>
                         ) : (
-                            inventory.map((item) => (
+                            filteredInventory.map((item) => (
                                 <tr key={item.id}>
                                     <td className="td-style">
                                         <img src={item.imageUrl || 'https://via.placeholder.com/150'} alt={item.name} className="h-10 w-10 rounded-md object-cover" />
