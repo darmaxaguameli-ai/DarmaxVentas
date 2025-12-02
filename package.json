@@ -24,8 +24,10 @@
     "@prisma/client": "^7.0.1",
     "axios": "^1.13.2",
     "bcryptjs": "^3.0.3",
+    "date-fns": "^3.6.0",
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
+    "jsonwebtoken": "^9.0.2",
     "jspdf": "^3.0.4",
     "jspdf-autotable": "^5.0.2",
     "leaflet": "^1.9.4",
@@ -37,7 +39,6 @@
     "react-router-dom": "^7.9.6",
     "react-signature-canvas": "^1.1.0-alpha.2",
     "recharts": "^2.12.7",
-    "date-fns": "^3.6.0",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {

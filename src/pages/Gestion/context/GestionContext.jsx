@@ -169,6 +169,16 @@ export const GestionProvider = ({ children }) => {
   const incomeActions = createCrudActions('Income', { createIncome: apiCreateIncome, updateIncome: apiUpdateIncome, deleteIncome: apiDeleteIncome });
 
   // Custom actions that don't fit the generic CRUD pattern
+  const addDailySalesRecord = useCallback(async (recordData) => {
+    try {
+      await apiCreateDailySalesRecord(recordData);
+      await fetchManagementData();
+    } catch (error) {
+      dispatch({ type: "SET_ERROR", payload: error.message });
+      throw error;
+    }
+  }, [fetchManagementData]);
+
   const addDailySalesRecordsBulk = useCallback(async (recordsData) => {
     try {
       await apiCreateDailySalesRecordsBulk(recordsData);
@@ -189,6 +199,7 @@ export const GestionProvider = ({ children }) => {
     ...jugBrandActions,
     ...expenseActions,
     ...incomeActions,
+    addDailySalesRecord,
     addDailySalesRecordsBulk,
   };
 
