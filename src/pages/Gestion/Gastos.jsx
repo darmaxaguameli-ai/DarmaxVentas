@@ -41,7 +41,7 @@ const ExpenseModal = ({ isOpen, onClose, expenseToEdit, onSave }) => {
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Descripción</label>
                         <input name="description" type="text" value={expense.description} onChange={handleChange} required className="mt-1 block w-full input-style" />
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Monto</label>
                             <input name="amount" type="number" step="0.01" value={expense.amount} onChange={handleChange} required className="mt-1 block w-full input-style" />

@@ -5,12 +5,15 @@ import { Routes, Route } from "react-router-dom";
 import HomePage from "./pages/HomePage.jsx";
 import Register from "./pages/Register";
 import Login from "./pages/Login";
+import LoginSuccess from "./pages/LoginSuccess.jsx";
+import LogoutSuccess from "./pages/LogoutSuccess.jsx";
 
 // Sistema de Ventas
 import ProductGrid from "./pages/sistemasDeVentas/ProductGrid.jsx";
 import VentaMostrador from "./pages/sistemasDeVentas/VentaMostrador.jsx";
 import StartDayModal from "./pages/sistemasDeVentas/StartDayModal.jsx";
 import RepartidorDashboard from "./pages/sistemasDeVentas/Repartidor/RepartidorDashboard.jsx";
+import ProtectedRoute from "./components/ProtectedRoute.jsx";
 
 // Gestión
 import { GestionProvider } from "./pages/Gestion/context/GestionContext.jsx";
@@ -42,6 +45,8 @@ function App() {
       {/* Público / Auth */}
       <Route path="/" element={<HomePage />} />
       <Route path="/login" element={<Login />} />
+      <Route path="/login-success" element={<ProtectedRoute><LoginSuccess /></ProtectedRoute>} />
+      <Route path="/logout-success" element={<LogoutSuccess />} />
       <Route path="/registro" element={<Register />} />
 
 
@@ -55,9 +60,11 @@ function App() {
       <Route
         path="/gestion"
         element={
-          <GestionProvider>
-            <GestionDashboard />
-          </GestionProvider>
+          <ProtectedRoute>
+            <GestionProvider>
+              <GestionDashboard />
+            </GestionProvider>
+          </ProtectedRoute>
         }
       >
         <Route index element={<Resumen />} />

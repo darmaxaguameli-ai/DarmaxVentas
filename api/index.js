@@ -1,5 +1,6 @@
 const express = require('express');
 const prisma = require('./lib/prisma');
+const bcrypt = require('bcryptjs');
 const app = express();
 const port = 3001; // Or any port you prefer
 
@@ -12,6 +13,47 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.get('/api/health', (req, res) => {
   res.send('Server is running!');
 });
+
+// =====================================================
+// AUTH API
+// =====================================================
+app.post('/api/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email y contraseña son requeridos.' });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (!user) {
+      return res.status(401).json({ error: 'Credenciales inválidas.' });
+    }
+
+    if (!user.password) {
+      return res.status(401).json({ error: 'Este usuario no tiene una contraseña configurada.' });
+    }
+
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+
+    if (!isPasswordValid) {
+      return res.status(401).json({ error: 'Credenciales inválidas.' });
+    }
+
+    // No devolver el hash de la contraseña
+    const { password: _, ...userWithoutPassword } = user;
+    
+    res.json(userWithoutPassword);
+
+  } catch (error) {
+    console.error('Error en el login:', error);
+    res.status(500).json({ error: 'Ocurrió un error en el servidor.' });
+  }
+});
+
 
 // =====================================================
 // PRODUCTS API (Formerly PRODUCTOS)

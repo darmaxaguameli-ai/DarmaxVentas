@@ -2,35 +2,38 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import MainLayout from "../layouts/MainLayout";
+import { useAuth } from "../context/AuthContext";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    setIsSubmitting(true);
 
     try {
       if (!email || !password) {
-        throw new Error("Campos vacíos");
+        throw new Error("El email y la contraseña son obligatorios.");
       }
 
-      // 🔐 Aquí luego irá tu login real (API + Prisma)
-      if (email === "admin@darmax.com") {
-        navigate("/gestion");
-      } else if (email === "driver@darmax.com") {
-        navigate("/repartidor");
-      } else {
-        navigate("/");
-      }
+      const user = await login(email, password);
+      
+      // Si el login es exitoso, redirigir a la pantalla de bienvenida
+      navigate("/login-success", { state: { name: user.name } });
+
     } catch (err) {
       console.error(err);
-      setError("No se pudo iniciar sesión. Verifica tus credenciales.");
+      setError(err.message || "No se pudo iniciar sesión. Verifica tus credenciales.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -104,7 +107,7 @@ const Login = () => {
 
             {/* Error */}
             {error && (
-              <div className="text-error text-sm text-center">
+              <div className="text-red-500 text-sm text-center p-2 bg-red-500/10 rounded-md">
                 {error}
               </div>
             )}
@@ -124,12 +127,13 @@ const Login = () => {
             {/* Botón de login */}
             <button
               type="submit"
+              disabled={isSubmitting}
               className="flex h-12 w-full items-center justify-center rounded-lg bg-primary px-6 
                          text-base font-semibold text-white shadow-sm hover:bg-primary/90 
                          focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary
                          disabled:cursor-not-allowed disabled:opacity-50"
             >
-              Iniciar sesión
+              {isSubmitting ? 'Iniciando sesión...' : 'Iniciar sesión'}
             </button>
           </form>
         </div>

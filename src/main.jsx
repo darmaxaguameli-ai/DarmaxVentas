@@ -5,16 +5,19 @@ import App from "./App.jsx";
 import "./index.css";
 import { AuthProvider } from "./pages/sistemasDeVentas/context/AuthContext.jsx";
 import { OrderProvider } from "./pages/sistemasDeVentas/context/OrderContext.jsx";
+import { AuthProvider as GlobalAuthProvider } from "./context/AuthContext.jsx";
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(
   <React.StrictMode>
     <BrowserRouter>
-      <AuthProvider>
-        <OrderProvider>
-          <App />
-        </OrderProvider>
-      </AuthProvider>
+      <GlobalAuthProvider>
+        <AuthProvider>
+          <OrderProvider>
+            <App />
+          </OrderProvider>
+        </AuthProvider>
+      </GlobalAuthProvider>
     </BrowserRouter>
   </React.StrictMode>
 );

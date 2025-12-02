@@ -47,7 +47,7 @@ const IncomeModal = ({ isOpen, onClose, incomeToEdit, onSave }) => {
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">ID del Pedido (Opcional)</label>
                         <input name="pedidoId" type="text" value={income.pedidoId} onChange={handleChange} placeholder="Ej. ORD-0001" className="mt-1 block w-full input-style" />
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Monto</label>
                             <input name="amount" type="number" step="0.01" value={income.amount} onChange={handleChange} required className="mt-1 block w-full input-style" />

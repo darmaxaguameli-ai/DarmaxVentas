@@ -1,12 +1,15 @@
 import { useMemo } from "react";
 import { useGestion } from "./context/GestionContext";
-import CashFlowChart from "./components/CashFlowChart";
+import CashFlowChart from "./components/CashFlowChart"; // Added this line
+import ExpensePieChart from './components/ExpensePieChart';
+import SalesByChannelChart from './components/SalesByChannelChart';
+import TopSellingProducts from './components/TopSellingProducts';
 
 const StatCard = ({ title, value, subtext, type }) => {
     let valueColorClass = "text-[#111418] dark:text-white";
     if (type === "income") valueColorClass = "text-green-600 dark:text-green-400";
     if (type === "expense") valueColorClass = "text-red-600 dark:text-red-400";
-    if (type === "netProfit") valueColorClass = value < 0 ? "text-red-600 dark:text-red-400" : "text-primary";
+    if (type === "netProfit") valueColorClass = value < 0 ? "text-red-600 dark:red-400" : "text-primary";
 
     const formattedValue = new Intl.NumberFormat('en-US', {
         style: 'currency',
@@ -22,18 +25,9 @@ const StatCard = ({ title, value, subtext, type }) => {
     );
 };
 
-const ChartPlaceholder = ({ title, description }) => (
-    <div className="p-6 bg-white dark:bg-gray-800 rounded-2xl shadow-lg">
-        <h3 className="text-lg font-semibold text-[#111418] dark:text-white">{title}</h3>
-        <div className="mt-4 flex items-center justify-center h-64 bg-gray-100 dark:bg-gray-700 rounded-md">
-            <p className="text-sm text-gray-500 dark:text-gray-400 text-center px-4">{description}</p>
-        </div>
-    </div>
-);
-
 const Resumen = () => {
     const { state } = useGestion();
-    const { income, expenses, inventory } = state;
+    const { income, expenses, inventory, dailySalesRecords } = state;
 
     const { totalIncome, totalExpenses, netProfit } = useMemo(() => {
         const totalIncome = income.reduce((sum, item) => sum + item.amount, 0);
@@ -86,8 +80,8 @@ const Resumen = () => {
             </div>
 
             {/* Charts and Lists */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-8">
-                <div className="lg:col-span-2 h-[450px]">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
+                <div className="md:col-span-2 lg:col-span-2 h-80 md:h-[450px]">
                     <CashFlowChart income={income} expenses={expenses} />
                 </div>
                 <div className="space-y-6">
@@ -122,12 +116,19 @@ const Resumen = () => {
                         )}
                     </div>
                 </div>
-                 <div className="lg:col-span-3">
-                     <ChartPlaceholder 
-                        title="Distribución de Gastos por Categoría" 
-                        description="Aquí iría un gráfico de pastel (ej. con Recharts) mostrando el porcentaje de cada categoría de gasto."
-                    />
+                 <div className="md:col-span-2 lg:col-span-3">
+                    <ExpensePieChart expenses={expenses} />
                  </div>
+            </div>
+
+            {/* New Section for Sales Analysis */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
+                <div className="md:col-span-2 lg:col-span-2">
+                    <SalesByChannelChart dailySalesRecords={dailySalesRecords} />
+                </div>
+                <div className="md:col-span-1 lg:col-span-1">
+                    <TopSellingProducts dailySalesRecords={dailySalesRecords} />
+                </div>
             </div>
         </div>
     );

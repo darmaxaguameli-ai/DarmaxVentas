@@ -591,7 +591,7 @@ const ControlVentasDiarias = () => {
 
                             {/* MOSTRADOR */}
                             <h3 className="text-lg font-medium text-gray-800 dark:text-gray-200 mt-6">MOSTRADOR</h3>
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div><label className="label-style">Color</label><input type="number" name="mostradorColor" value={manualForm.mostradorColor} onChange={handleManualChange} className="input-style" /></div>
                                 <div><label className="label-style">Bonafon</label><input type="number" name="mostradorBon" value={manualForm.mostradorBon} onChange={handleManualChange} className="input-style" /></div>
                                 <div><label className="label-style">Epura</label><input type="number" name="mostradorEpura" value={manualForm.mostradorEpura} onChange={handleManualChange} className="input-style" /></div>
@@ -604,7 +604,7 @@ const ControlVentasDiarias = () => {
 
                             {/* PEDIDOS */}
                             <h3 className="text-lg font-medium text-gray-800 dark:text-gray-200 mt-6">PEDIDOS</h3>
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div><label className="label-style">Color</label><input type="number" name="pedidosColor" value={manualForm.pedidosColor} onChange={handleManualChange} className="input-style" /></div>
                                 <div><label className="label-style">Bonafon</label><input type="number" name="pedidosBon" value={manualForm.pedidosBon} onChange={handleManualChange} className="input-style" /></div>
                                 <div><label className="label-style">Epura</label><input type="number" name="pedidosEpura" value={manualForm.pedidosEpura} onChange={handleManualChange} className="input-style" /></div>
@@ -617,7 +617,7 @@ const ControlVentasDiarias = () => {
 
                             {/* NEGOCIOS */}
                             <h3 className="text-lg font-medium text-gray-800 dark:text-gray-200 mt-6">NEGOCIOS</h3>
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div><label className="label-style">Color</label><input type="number" name="negociosColor" value={manualForm.negociosColor} onChange={handleManualChange} className="input-style" /></div>
                                 <div><label className="label-style">Bonafon</label><input type="number" name="negociosBon" value={manualForm.negociosBon} onChange={handleManualChange} className="input-style" /></div>
                                 <div><label className="label-style">Epura</label><input type="number" name="negociosEpura" value={manualForm.negociosEpura} onChange={handleManualChange} className="input-style" /></div>
@@ -630,7 +630,7 @@ const ControlVentasDiarias = () => {
 
                             {/* TOTAL POR TIPO DE GARRAFÓN */}
                             <h3 className="text-lg font-medium text-gray-800 dark:text-gray-200 mt-6">TOTAL POR TIPO DE GARRAFÓN</h3>
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div><label className="label-style">Color</label><input type="number" name="totalTipoGarrafonColor" value={manualForm.totalTipoGarrafonColor} readOnly className="input-style bg-gray-100 dark:bg-gray-700" /></div>
                                 <div><label className="label-style">Bonafon</label><input type="number" name="totalTipoGarrafonBon" value={manualForm.totalTipoGarrafonBon} readOnly className="input-style bg-gray-100 dark:bg-gray-700" /></div>
                                 <div><label className="label-style">Epura</label><input type="number" name="totalTipoGarrafonEpura" value={manualForm.totalTipoGarrafonEpura} readOnly className="input-style bg-gray-100 dark:bg-gray-700" /></div>
@@ -642,7 +642,7 @@ const ControlVentasDiarias = () => {
 
                             {/* TOTALES FINALES */}
                             <h3 className="text-lg font-medium text-gray-800 dark:text-gray-200 mt-6">TOTALES GENERALES</h3>
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div><label className="label-style">Total Garrafones</label><input type="number" name="totalGarrafones" value={manualForm.totalGarrafones} readOnly className="input-style bg-gray-100 dark:bg-gray-700" /></div>
                                 <div><label className="label-style">Total Importe ($)</label><input type="number" name="totalImporte" step="0.01" value={manualForm.totalImporte} readOnly className="input-style bg-gray-100 dark:bg-gray-700" /></div>
                             </div>
