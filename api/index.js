@@ -431,7 +431,7 @@ app.post('/api/daily-sales-records', async (req, res) => {
         if (error.code === 'P2002' && error.meta?.target?.includes('date')) {
              return res.status(409).json({ error: 'A sales record for this date already exists.' });
         }
-        res.status(500).json({ error: 'Error creating daily sales record' });
+        res.status(500).json({ error: 'Error creating daily sales record', message: error.message });
     }
 });
 
