@@ -64,12 +64,23 @@ export const AuthProvider = ({ children }) => {
         localStorage.removeItem('user'); // Clear from localStorage as well
     };
 
+    const updateUser = (newUserData) => {
+        setUser(newUserData);
+        // Update stored user data based on where it was originally saved
+        if (localStorage.getItem('user')) {
+            localStorage.setItem('user', JSON.stringify(newUserData));
+        } else if (sessionStorage.getItem('user')) {
+            sessionStorage.setItem('user', JSON.stringify(newUserData));
+        }
+    };
+
     const value = {
         user,
         isAuthenticated: !!user,
         loading,
         login,
         logout,
+        updateUser, // Add updateUser here
     };
 
     return (

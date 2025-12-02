@@ -38,6 +38,7 @@ import ClientDataConfirmation from "./pages/Client/orders/ClientDataConfirmation
 import BuyJugsStepOne from "./pages/Client/orders/BuyJugsStepOne.jsx";
 import BuyJugsFillOptionStepTwo from "./pages/Client/orders/BuyJugsFillOptionStepTwo.jsx";
 import BuyJugsAssignWaterStepThree from "./pages/Client/orders/BuyJugsAssignWaterStepThree.jsx";
+import ClientProfile from "./pages/Client/ClientProfile"; // New import
 
 function App() {
   return (
@@ -48,6 +49,9 @@ function App() {
       <Route path="/login-success" element={<ProtectedRoute><LoginSuccess /></ProtectedRoute>} />
       <Route path="/logout-success" element={<LogoutSuccess />} />
       <Route path="/registro" element={<Register />} />
+
+      {/* Cliente Profile */}
+      <Route path="/client/profile" element={<ProtectedRoute><ClientProfile /></ProtectedRoute>} /> {/* New route */}
 
 
       {/* Sistema de Ventas */}

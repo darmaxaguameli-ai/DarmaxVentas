@@ -567,12 +567,54 @@ app.post('/api/users', async (req, res) => {
   }
 });
 
+app.get('/api/users/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id },
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found.' });
+    }
+
+    // Exclude password from the response
+    const { password, ...userWithoutPassword } = user;
+    res.json(userWithoutPassword);
+
+  } catch (error) {
+    console.error(`Error fetching user ${id}:`, error);
+    res.status(500).json({ error: 'Ocurrió un error en el servidor al obtener el usuario.' });
+  }
+});
+
 app.put('/api/users/:id', async (req, res) => {
   const { id } = req.params;
   try {
+    const data = req.body;
+
+    // Explicitly convert empty strings to null for optional fields
+    const updateData = {
+      name: data.name, // Name might be updated
+      email: data.email === '' ? null : data.email,
+      phone: data.phone === '' ? null : data.phone,
+      street: data.street === '' ? null : data.street,
+      neighborhood: data.neighborhood === '' ? null : data.neighborhood,
+      city: data.city === '' ? null : data.city,
+      postalCode: data.postalCode === '' ? null : data.postalCode,
+      references: data.references === '' ? null : data.references, // New field to handle
+      role: data.role, // Role might be updated, but usually not by client
+    };
+
+    // Remove undefined values to avoid updating fields not present in the request body
+    Object.keys(updateData).forEach(key => updateData[key] === undefined && delete updateData[key]);
+
+    // Prevent password from being updated via this general endpoint
+    delete updateData.password;
+
     const updatedUser = await prisma.user.update({
       where: { id },
-      data: req.body,
+      data: updateData,
     });
     res.json(updatedUser);
   } catch (error) {

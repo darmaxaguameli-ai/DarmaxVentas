@@ -25,10 +25,11 @@ const Login = () => {
         throw new Error("El email y la contraseña son obligatorios.");
       }
 
-      const user = await login(email, password, rememberMe); // Pass rememberMe to login function
+      const user = await login(email, password, rememberMe);
       
       // Si el login es exitoso, redirigir a la pantalla de bienvenida
-      navigate("/login-success", { state: { name: user.name } });
+      // LoginSuccess se encargará de la redirección basada en el rol
+      navigate("/login-success", { state: { name: user.name, role: user.role } });
 
     } catch (err) {
       console.error(err);

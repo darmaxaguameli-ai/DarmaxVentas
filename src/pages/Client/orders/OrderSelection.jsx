@@ -1,63 +1,19 @@
 // src/pages/OrderSelection.jsx
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../../../context/AuthContext";
+import ClientOrderHeader from "../../../components/ClientOrderHeader"; // Import the new header component
 
 const OrderSelection = () => {
+  const navigate = useNavigate();
+  const { logout, user } = useAuth();
+
   return (
     <div className="font-display relative flex min-h-screen w-full flex-col bg-light dark:bg-dark text-dark dark:text-white overflow-x-hidden">
       {/* Contenedor principal */}
       <div className="flex flex-1 justify-center px-4 sm:px-6 lg:px-12 py-8">
         <div className="flex w-full max-w-4xl flex-col items-center gap-10">
           {/* Header */}
-          <header
-            className="flex w-full items-center justify-between 
-                       rounded-2xl border border-light/60 dark:border-white/10
-                       bg-white/90 dark:bg-dark/60 shadow-md backdrop-blur-xl 
-                       px-6 py-4"
-          >
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                <svg
-                  fill="none"
-                  viewBox="0 0 48 48"
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-6 w-6"
-                >
-                  <path
-                    d="M4 4H17.3334V17.3334H30.6666V30.6666H44V44H4V4Z"
-                    fill="currentColor"
-                  />
-                </svg>
-              </div>
-
-              <div className="flex flex-col">
-                <span className="text-xs font-semibold text-text-secondary dark:text-white/60">
-                  Sistema de pedidos
-                </span>
-                <h2 className="text-lg sm:text-xl font-bold tracking-[-0.02em]">
-                  Darmax – Agua Pura
-                </h2>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-4">
-              <Link
-                to="/mis-pedidos"
-                className="hidden sm:block text-sm sm:text-base font-medium text-text-secondary dark:text-white/70 hover:text-primary dark:hover:text-primary transition-colors"
-              >
-                Mis pedidos
-              </Link>
-
-              <button
-                className="flex h-10 w-10 items-center justify-center rounded-full
-                           bg-light dark:bg-primary/20 text-text-secondary dark:text-white"
-                aria-label="Perfil"
-              >
-                <span className="material-symbols-outlined text-2xl">
-                  person
-                </span>
-              </button>
-            </div>
-          </header>
+          <ClientOrderHeader />
 
           {/* Main content */}
           <main className="w-full flex flex-col items-center text-center mt-4">
@@ -187,7 +143,7 @@ const OrderSelection = () => {
               </a>
             </div>
             <p className="text-xs sm:text-sm">
-              © 2024 Darmax. Todos los derechos reservados.
+              © {new Date().getFullYear()} Darmax. Todos los derechos reservados.
             </p>
           </footer>
         </div>
