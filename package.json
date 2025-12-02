@@ -8,6 +8,7 @@
     "dev:frontend": "vite",
     "dev:backend": "nodemon api/index.js",
     "build": "vite build",
+    "postinstall": "prisma generate",
     "preview": "vite preview",
     "seed": "node ./prisma/seed.js",
     "migrate": "npx prisma migrate dev --name init",
