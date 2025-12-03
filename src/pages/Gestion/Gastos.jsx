@@ -2,28 +2,83 @@ import { useState, useEffect } from "react";
 import { useGestion } from "./context/GestionContext";
 
 const ExpenseModal = ({ isOpen, onClose, expenseToEdit, onSave }) => {
-    const [expense, setExpense] = useState({ description: '', amount: '', date: new Date().toISOString().slice(0, 10) });
+    const [selectedDate, setSelectedDate] = useState(new Date().toISOString().slice(0, 10));
+    const [currentDescription, setCurrentDescription] = useState('');
+    const [currentAmount, setCurrentAmount] = useState('');
+    const [tempExpenses, setTempExpenses] = useState([]); // { description, amount }
+    const [error, setError] = useState(null);
 
+    // Si estamos editando un gasto, inicializar los campos del modal con ese gasto
     useEffect(() => {
         if (expenseToEdit) {
-            setExpense(expenseToEdit);
+            setSelectedDate(expenseToEdit.date.slice(0, 10)); // Asegurarse de que sea solo la fecha
+            setTempExpenses([{ description: expenseToEdit.description, amount: expenseToEdit.amount, id: expenseToEdit.id }]);
+            setCurrentDescription(expenseToEdit.description); // precargar para editar
+            setCurrentAmount(expenseToEdit.amount); // precargar para editar
         } else {
-            setExpense({ description: '', amount: '', date: new Date().toISOString().slice(0, 10) });
+            // Si no estamos editando, resetear todo excepto la fecha, que puede ser la actual
+            setSelectedDate(new Date().toISOString().slice(0, 10));
+            setTempExpenses([]);
+            setCurrentDescription('');
+            setCurrentAmount('');
         }
+        setError(null); // Limpiar errores al abrir/cambiar edición
     }, [expenseToEdit, isOpen]);
 
-    const handleChange = (e) => {
-        const { name, value } = e.target;
-        setExpense(prev => ({ ...prev, [name]: value }));
+    const handleAddTempExpense = () => {
+        if (!currentDescription.trim() || !currentAmount || isNaN(parseFloat(currentAmount))) {
+            setError("Por favor, introduce una descripción y un monto válido.");
+            return;
+        }
+        setError(null);
+
+        // Si estamos editando y ya hay un gasto temporal, reemplazarlo
+        if (expenseToEdit && tempExpenses.length > 0) {
+            setTempExpenses([{ description: currentDescription, amount: parseFloat(currentAmount), id: expenseToEdit.id }]);
+        } else {
+            setTempExpenses(prev => [...prev, { description: currentDescription.trim(), amount: parseFloat(currentAmount) }]);
+        }
+        
+        setCurrentDescription('');
+        setCurrentAmount('');
     };
 
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        onSave({
-            ...expense,
-            amount: parseFloat(expense.amount),
-        });
-        onClose();
+    const handleRemoveTempExpense = (index) => {
+        setTempExpenses(prev => prev.filter((_, i) => i !== index));
+    };
+
+    const handleSaveAllExpenses = async () => {
+        if (!selectedDate) {
+            setError("Por favor, selecciona una fecha para los gastos.");
+            return;
+        }
+        if (tempExpenses.length === 0) {
+            setError("Por favor, añade al menos un gasto antes de guardar.");
+            return;
+        }
+        setError(null);
+
+        if (expenseToEdit) {
+            // Si estamos editando, solo hay un gasto en tempExpenses
+            const updatedExpense = {
+                id: tempExpenses[0].id,
+                description: tempExpenses[0].description,
+                amount: tempExpenses[0].amount,
+                date: selectedDate,
+            };
+            await onSave(updatedExpense, true); // Guardar el único gasto editado y cerrar
+        } else {
+            // Si estamos añadiendo nuevos gastos
+            // Llamar a onSave para cada gasto temporal
+            for (const tempExp of tempExpenses) {
+                await onSave({
+                    description: tempExp.description,
+                    amount: tempExp.amount,
+                    date: selectedDate,
+                }, false); // No cerrar inmediatamente, cerrar al final
+            }
+            onClose(); // Cerrar el modal después de guardar todos los nuevos gastos
+        }
     };
 
     if (!isOpen) return null;
@@ -32,30 +87,101 @@ const ExpenseModal = ({ isOpen, onClose, expenseToEdit, onSave }) => {
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4">
-            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl w-full max-w-md">
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl w-full max-w-lg">
                 <h2 className="text-2xl font-bold mb-4 text-[#111418] dark:text-white">
-                    {isEditing ? "Editar Gasto" : "Agregar Nuevo Gasto"}
+                    {isEditing ? "Editar Gasto" : "Agregar Nuevos Gastos"}
                 </h2>
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Descripción</label>
-                        <input name="description" type="text" value={expense.description} onChange={handleChange} required className="mt-1 block w-full input-style" />
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                
+                {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
+
+                <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Fecha</label>
+                    <input 
+                        type="date" 
+                        value={selectedDate} 
+                        onChange={(e) => setSelectedDate(e.target.value)} 
+                        required 
+                        className="mt-1 block w-full input-style" 
+                        disabled={isEditing} // No permitir cambiar la fecha si se está editando
+                    />
+                </div>
+
+                {!isEditing && ( // Solo mostrar la sección de añadir múltiples si no estamos editando
+                    <>
+                        <hr className="my-4 dark:border-gray-700" />
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+                            <div className="col-span-2">
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Descripción</label>
+                                <input 
+                                    type="text" 
+                                    value={currentDescription} 
+                                    onChange={(e) => setCurrentDescription(e.target.value)} 
+                                    className="mt-1 block w-full input-style"
+                                    placeholder="Ej: Gasolina, Suministros"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Monto</label>
+                                <input 
+                                    type="number" 
+                                    step="0.01" 
+                                    value={currentAmount} 
+                                    onChange={(e) => setCurrentAmount(e.target.value)} 
+                                    className="mt-1 block w-full input-style"
+                                    placeholder="0.00"
+                                />
+                            </div>
+                        </div>
+                        <div className="flex justify-end mb-4">
+                            <button 
+                                type="button" 
+                                onClick={handleAddTempExpense} 
+                                className="btn-secondary"
+                            >
+                                Añadir Gasto a la Lista
+                            </button>
+                        </div>
+
+                        {tempExpenses.length > 0 && (
+                            <div className="mb-4 max-h-48 overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-lg">
+                                <ul className="divide-y divide-gray-200 dark:divide-gray-700">
+                                    {tempExpenses.map((exp, index) => (
+                                        <li key={index} className="flex justify-between items-center p-3 hover:bg-gray-50 dark:hover:bg-gray-700">
+                                            <span>{exp.description} - ${exp.amount.toFixed(2)}</span>
+                                            <button 
+                                                type="button" 
+                                                onClick={() => handleRemoveTempExpense(index)} 
+                                                className="text-red-500 hover:text-red-700 text-sm"
+                                            >
+                                                Eliminar
+                                            </button>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        )}
+                    </>
+                )}
+                 {isEditing && tempExpenses.length > 0 && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Descripción</label>
+                            <input name="description" type="text" value={currentDescription} onChange={(e) => setCurrentDescription(e.target.value)} required className="mt-1 block w-full input-style" />
+                        </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Monto</label>
-                            <input name="amount" type="number" step="0.01" value={expense.amount} onChange={handleChange} required className="mt-1 block w-full input-style" />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Fecha</label>
-                            <input name="date" type="date" value={expense.date} onChange={handleChange} required className="mt-1 block w-full input-style" />
+                            <input name="amount" type="number" step="0.01" value={currentAmount} onChange={(e) => setCurrentAmount(e.target.value)} required className="mt-1 block w-full input-style" />
                         </div>
                     </div>
-                    <div className="flex justify-end gap-4 pt-4">
-                        <button type="button" onClick={onClose} className="btn-secondary">Cancelar</button>
-                        <button type="submit" className="btn-primary">Guardar</button>
-                    </div>
-                </form>
+                )}
+
+
+                <div className="flex justify-end gap-4 pt-4">
+                    <button type="button" onClick={onClose} className="btn-secondary">Cancelar</button>
+                    <button type="button" onClick={handleSaveAllExpenses} className="btn-primary">
+                        {isEditing ? "Guardar Cambios" : "Guardar Gastos"}
+                    </button>
+                </div>
             </div>
         </div>
     );
@@ -79,11 +205,22 @@ const Gastos = () => {
         setIsModalOpen(false);
     };
 
-    const handleSaveExpense = (expense) => {
-        if (expense.id) {
-            updateExpense(expense);
-        } else {
-            addExpense(expense);
+    // onSave ahora espera un solo objeto de gasto y un indicador para cerrar el modal
+    const handleSaveExpense = async (expenseData, closeAfterSave) => {
+        try {
+            if (expenseData.id) {
+                // Si el gasto tiene un ID, se está editando
+                await updateExpense(expenseData.id, expenseData);
+            } else {
+                // Si no tiene ID, es un nuevo gasto
+                await addExpense(expenseData);
+            }
+            if (closeAfterSave) {
+                handleCloseModal();
+            }
+        } catch (error) {
+            console.error("Error al guardar el gasto:", error);
+            // Podrías añadir un estado de error aquí para mostrar en la UI
         }
     };
     
@@ -92,6 +229,15 @@ const Gastos = () => {
             deleteExpense(id);
         }
     }
+
+    // Función auxiliar para formatear la fecha sin la hora, adaptada para la visualización en la tabla
+    const formatDisplayDate = (dateString) => {
+        if (!dateString) return '';
+        const date = new Date(dateString);
+        // Usar 'es-MX' para formato de fecha en español de México (DD/MM/YYYY)
+        return date.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    };
+
 
     return (
         <div>
@@ -124,7 +270,7 @@ const Gastos = () => {
                             <tr key={item.id}>
                                 <td className="td-style font-medium">{item.description}</td>
                                 <td className="td-style text-red-500 text-right">${item.amount.toFixed(2)}</td>
-                                <td className="td-style">{item.date}</td>
+                                <td className="td-style">{formatDisplayDate(item.date)}</td>
                                 <td className="td-style text-right space-x-4">
                                     <button onClick={() => handleOpenModal(item)} className="text-primary hover:text-primary/90 font-medium">Editar</button>
                                     <button onClick={() => handleDelete(item.id)} className="text-red-500 hover:text-red-700 font-medium">Eliminar</button>
