@@ -2,9 +2,11 @@ import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
-const ClientOrderHeader = () => {
+const ClientOrderHeader = ({ primaryLink, showOrderSelectionButton }) => {
   const navigate = useNavigate();
-  const { logout, user } = useAuth();
+  const { logout, user, isAuthenticated } = useAuth(); // Destructure isAuthenticated
+
+  const linkToShow = primaryLink || { to: '/mis-pedidos', label: 'Mis pedidos' };
 
   return (
     <header
@@ -13,19 +15,9 @@ const ClientOrderHeader = () => {
                  bg-white/90 dark:bg-dark/60 shadow-md backdrop-blur-xl 
                  px-6 py-4"
     >
-      <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
-          <svg
-            fill="none"
-            viewBox="0 0 48 48"
-            xmlns="http://www.w3.org/2000/svg"
-            className="h-6 w-6"
-          >
-            <path
-              d="M4 4H17.3334V17.3334H30.6666V30.6666H44V44H4V4Z"
-              fill="currentColor"
-            />
-          </svg>
+      <Link to="/pedidos" className="flex items-center gap-3">
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl text-primary bg-transparent">
+          <img src="/img/logos/darmax-logo.png" alt="Darmax Logo" className="h-full w-auto object-contain" />
         </div>
 
         <div className="flex flex-col">
@@ -33,43 +25,56 @@ const ClientOrderHeader = () => {
             Sistema de pedidos
           </span>
           <h2 className="text-lg sm:text-xl font-bold tracking-[-0.02em]">
-            Darmax – Agua Pura
+            Darmax Agua
           </h2>
         </div>
-      </div>
+      </Link>
 
-      <div className="flex items-center gap-4">
-        <Link
-          to="/mis-pedidos"
-          className="hidden sm:block text-sm sm:text-base font-medium text-text-secondary dark:text-white/70 hover:text-primary dark:hover:text-primary transition-colors"
-        >
-          Mis pedidos
-        </Link>
+      <div className="flex items-center gap-2 sm:gap-4"> {/* Adjusted gap for better mobile spacing */}
+        {isAuthenticated ? (
+          <>
+            <Link
+              to={linkToShow.to}
+              className="hidden sm:block text-sm sm:text-base font-medium text-text-secondary dark:text-white/70 hover:text-primary dark:hover:text-primary transition-colors"
+            >
+              {linkToShow.label}
+            </Link>
 
-        <button
-          onClick={() => navigate('/client/profile')}
-          className="flex h-10 w-10 items-center justify-center rounded-full
-                     bg-light dark:bg-primary/20 text-text-secondary dark:text-white"
-          aria-label="Perfil"
-        >
-          <span className="material-symbols-outlined text-2xl">
-            person
-          </span>
-        </button>
+            <button
+              onClick={() => navigate('/profile')}
+              className="flex h-10 w-10 items-center justify-center rounded-full
+                         bg-light dark:bg-primary/20 text-text-secondary dark:text-white"
+              aria-label="Perfil"
+            >
+              <span className="material-symbols-outlined text-2xl">
+                person
+              </span>
+            </button>
 
-        <button
-          onClick={() => {
-            logout();
-            navigate('/logout-success', { state: { name: user?.name } });
-          }}
-          className="flex h-10 w-10 items-center justify-center rounded-full
-                     bg-light dark:bg-primary/20 text-text-secondary dark:text-white"
-          aria-label="Cerrar Sesión"
-        >
-          <span className="material-symbols-outlined text-2xl">
-            logout
-          </span>
-        </button>
+            <button
+              onClick={() => {
+                logout();
+                navigate('/logout-success', { state: { name: user?.name } });
+              }}
+              className="flex h-10 w-10 items-center justify-center rounded-full
+                         bg-light dark:bg-primary/20 text-text-secondary dark:text-white"
+              aria-label="Cerrar Sesión"
+            >
+              <span className="material-symbols-outlined text-2xl">
+                logout
+              </span>
+            </button>
+          </>
+        ) : (
+          showOrderSelectionButton && (
+            <Link
+              to="/pedidos"
+              className="flex h-10 items-center justify-center rounded-lg bg-primary px-4 text-sm font-semibold text-white shadow-sm hover:bg-primary/90 transition-colors"
+            >
+              Inicio
+            </Link>
+          )
+        )}
       </div>
     </header>
   );

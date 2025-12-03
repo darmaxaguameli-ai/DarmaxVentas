@@ -1,47 +1,54 @@
 // src/pages/cliente/orders/RefillJugStepOne.jsx
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
 import OrderLayout from "../../../layouts/OrderLayout";
 import QuantityCard from "../../../components/order/QuantityCard";
 
+// Helper to map brand names to images, as the DB doesn't store them
+const brandImageMap = {
+  'ciel': '/img/garrafones/ciel.png',
+  'epura': '/img/garrafones/epura.png',
+  'bonafon': 'https://http2.mlstatic.com/D_NQ_NP_2X_641991-MLA96179176023_102025-T.webp',
+  'darmax': '/img/garrafones/turquesa.png',
+  'garrafón 10l': 'https://i5.walmartimages.com/asr/477a4697-343e-4479-b790-3e20d7d2c4a8.85794c880e81af65b362fa88a710128c.jpeg?odnHeight=612&odnWidth=612&odnBg=FFFFFF',
+};
+
+const getImageUrlForBrand = (name) => {
+  const defaultImage = '/img/garrafones/turquesa.png'; // A sensible default
+  return brandImageMap[name.toLowerCase()] || defaultImage;
+};
+
 const RefillJugStepOne = () => {
   const navigate = useNavigate();
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const [products, setProducts] = useState([
-    {
-      id: "ciel",
-      name: "Garrafón Ciel",
-      quantity: 0,
-      featured: true,
-      imageUrl: "/img/garrafones/ciel.png",
-    },
-    {
-      id: "epura",
-      name: "Garrafón Epura",
-      quantity: 0,
-      imageUrl: "/img/garrafones/epura.png",
-    },
-    {
-      id: "bonafon",
-      name: "Garrafón Bonafon",
-      quantity: 0,
-      imageUrl:
-        "https://http2.mlstatic.com/D_NQ_NP_2X_641991-MLA96179176023_102025-T.webp",
-    },
-    {
-      id: "darmax",
-      name: "Garrafón Darmax",
-      quantity: 0,
-      imageUrl: "/img/garrafones/turquesa.png",
-    },
-    {
-      id: "10Litros",
-      name: "Garrafón 10L",
-      quantity: 0,
-      imageUrl:
-        "https://i5.walmartimages.com/asr/477a4697-343e-4479-b790-3e20d7d2c4a8.85794c880e81af65b362fa88a710128c.jpeg?odnHeight=612&odnWidth=612&odnBg=FFFFFF",
-    },
-  ]);
+  useEffect(() => {
+    const fetchJugBrands = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await axios.get('/api/jug-brands');
+        const formattedProducts = response.data.map((brand, index) => ({
+          id: brand.id,
+          name: `Garrafón ${brand.name}`,
+          quantity: 0,
+          featured: index === 0, // Make the first item featured as an example
+          imageUrl: getImageUrlForBrand(brand.name),
+        }));
+        setProducts(formattedProducts);
+      } catch (err) {
+        console.error("Error fetching jug brands:", err);
+        setError("No se pudieron cargar las marcas de garrafón. Por favor, intenta de nuevo más tarde.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchJugBrands();
+  }, []);
 
   const totalJugs = products.reduce((sum, p) => sum + p.quantity, 0);
 
@@ -57,26 +64,34 @@ const RefillJugStepOne = () => {
 
   const handleContinue = () => {
     if (totalJugs === 0) {
-      console.log("Debes seleccionar al menos 1 garrafón");
+      // Consider showing a user-friendly alert/modal here instead of console.log
+      alert("Debes seleccionar al menos 1 garrafón.");
       return;
     }
 
     navigate("/pedidos/rellenar/asignar", {
       state: {
         maxJugs: totalJugs,
-        fromStepOne: products,
+        fromStepOne: products.filter(p => p.quantity > 0), // Send only selected products
       },
     });
   };
 
-  return (
-    <OrderLayout
-      title="Selecciona tus garrafones a rellenar"
-      subtitle="Indica cuántos garrafones de cada tipo deseas que recojamos para recarga."
-      step={1}
-      totalSteps={4}
-    >
-      <div className="flex flex-col gap-6">
+  const handleGoToStart = () => {
+    navigate('/pedidos');
+  };
+
+  const renderContent = () => {
+    if (loading) {
+      return <div className="text-center py-10">Cargando marcas de garrafón...</div>;
+    }
+
+    if (error) {
+      return <div className="text-center py-10 text-red-500">{error}</div>;
+    }
+
+    return (
+      <>
         {/* Resumen superior, texto más grande y claro */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-sm sm:text-base text-text-secondary dark:text-white/80">
           <span>
@@ -118,8 +133,15 @@ const RefillJugStepOne = () => {
           ))}
         </div>
 
-        {/* Botón continuar – un poco más grande también */}
-        <div className="flex justify-end pt-4">
+        {/* Botones de navegación */}
+        <div className="flex justify-between items-center pt-4">
+          <button
+            type="button"
+            onClick={handleGoToStart}
+            className="text-sm font-medium text-text-secondary dark:text-white/70 hover:text-primary dark:hover:text-primary transition-colors"
+          >
+            &larr; Volver al inicio
+          </button>
           <button
             type="button"
             onClick={handleContinue}
@@ -129,10 +151,24 @@ const RefillJugStepOne = () => {
                        focus-visible:outline focus-visible:outline-2 
                        focus-visible:outline-offset-2 focus-visible:outline-primary
                        transition-all active:scale-[0.98]"
+            disabled={totalJugs === 0}
           >
             Continuar al paso 2
           </button>
         </div>
+      </>
+    );
+  };
+
+  return (
+    <OrderLayout
+      title="Selecciona tus garrafones a rellenar"
+      subtitle="Indica cuántos garrafones de cada tipo deseas que recojamos para recarga."
+      step={1}
+      totalSteps={4}
+    >
+      <div className="flex flex-col gap-6">
+        {renderContent()}
       </div>
     </OrderLayout>
   );

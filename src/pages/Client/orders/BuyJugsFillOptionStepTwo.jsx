@@ -1,6 +1,7 @@
 // src/pages/Client/orders/BuyJugsFillOptionStepTwo.jsx
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import axios from "axios";
 import OrderLayout from "../../../layouts/OrderLayout";
 
 const BuyJugsFillOptionStepTwo = () => {
@@ -12,6 +13,26 @@ const BuyJugsFillOptionStepTwo = () => {
   const totalJugsBuy = previousState.totalJugsBuy || 0;
 
   const [selectedOption, setSelectedOption] = useState("empty"); // "empty" | "full"
+  const [waterTypes, setWaterTypes] = useState([]);
+  const [loadingWaterTypes, setLoadingWaterTypes] = useState(true);
+  const [errorWaterTypes, setErrorWaterTypes] = useState(null);
+
+  useEffect(() => {
+    const fetchWaterTypes = async () => {
+      try {
+        setLoadingWaterTypes(true);
+        setErrorWaterTypes(null);
+        const response = await axios.get('/api/water-types');
+        setWaterTypes(response.data);
+      } catch (err) {
+        console.error("Error fetching water types:", err);
+        setErrorWaterTypes("No se pudieron cargar los tipos de agua.");
+      } finally {
+        setLoadingWaterTypes(false);
+      }
+    };
+    fetchWaterTypes();
+  }, []);
 
   const handleBack = () => {
     navigate("/pedidos/comprar", {
@@ -22,16 +43,14 @@ const BuyJugsFillOptionStepTwo = () => {
   const handleContinue = () => {
     if (!selectedOption) return;
 
-    // Guardamos info común del flujo de compra
     const buyFlow = {
       fromStepOneBuy,
       totalJugsBuy,
       fillOption: selectedOption,
+      availableWaterTypes: waterTypes, // Pass fetched water types
     };
 
     if (selectedOption === "full") {
-      // 👉 GARAFÓN LLENO:
-      // primero ir a elegir el TIPO de agua (similar al paso 2 del flujo de rellenar)
       navigate("/pedidos/comprar/asignar-agua", {
         state: {
           ...previousState,
@@ -41,9 +60,7 @@ const BuyJugsFillOptionStepTwo = () => {
         },
       });
     } else {
-      // 👉 SOLO GARAFÓN:
-      // saltamos directo al método de entrega y luego al resumen
-      navigate("/pedidos/rellenar/entrega", {
+      navigate("/pedidos/rellenar/entrega", { // This might be a mistake, should probably be /pedidos/comprar/entrega or similar
         state: {
           ...previousState,
           mode: "buy",
@@ -57,14 +74,15 @@ const BuyJugsFillOptionStepTwo = () => {
   const isEmpty = selectedOption === "empty";
   const isFull = selectedOption === "full";
 
-  return (
-    <OrderLayout
-      title="¿Cómo quieres tus garrafones?"
-      subtitle="Elige si deseas solo el envase o los garrafones ya llenos de agua."
-      step={2}
-      totalSteps={4}
-    >
-      <div className="flex flex-col gap-6">
+  const renderContent = () => {
+    if (loadingWaterTypes) {
+      return <div className="text-center py-10">Cargando tipos de agua...</div>;
+    }
+    if (errorWaterTypes) {
+      return <div className="text-center py-10 text-red-500">{errorWaterTypes}</div>;
+    }
+    return (
+      <>
         <p className="mt-1 text-sm sm:text-base text-text-secondary dark:text-white/80">
           Has seleccionado{" "}
           <span className="font-semibold text-primary">
@@ -162,7 +180,7 @@ const BuyJugsFillOptionStepTwo = () => {
 
           <button
             type="button"
-            disabled={!selectedOption}
+            disabled={!selectedOption || loadingWaterTypes} // Disable if loading water types
             onClick={handleContinue}
             className="flex h-12 sm:h-14 w-full sm:w-auto items-center justify-center rounded-xl
                        bg-primary px-8 sm:px-10 text-base sm:text-lg font-semibold text-white
@@ -176,6 +194,19 @@ const BuyJugsFillOptionStepTwo = () => {
               : "Elegir método de entrega"}
           </button>
         </div>
+      </>
+    );
+  };
+
+  return (
+    <OrderLayout
+      title="¿Cómo quieres tus garrafones?"
+      subtitle="Elige si deseas solo el envase o los garrafones ya llenos de agua."
+      step={2}
+      totalSteps={4}
+    >
+      <div className="flex flex-col gap-6">
+        {renderContent()}
       </div>
     </OrderLayout>
   );

@@ -51,7 +51,7 @@ function App() {
       <Route path="/registro" element={<Register />} />
 
       {/* Cliente Profile */}
-      <Route path="/client/profile" element={<ProtectedRoute><ClientProfile /></ProtectedRoute>} /> {/* New route */}
+      <Route path="/profile" element={<ProtectedRoute><ClientProfile /></ProtectedRoute>} /> {/* New route */}
 
 
       {/* Sistema de Ventas */}

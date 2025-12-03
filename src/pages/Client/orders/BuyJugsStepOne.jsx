@@ -51,6 +51,10 @@ const BuyJugsStepOne = () => {
     });
   };
 
+  const handleGoToStart = () => {
+    navigate('/pedidos');
+  };
+
   return (
     <OrderLayout
       title="Selecciona tus garrafones a comprar"
@@ -100,8 +104,15 @@ const BuyJugsStepOne = () => {
           ))}
         </div>
 
-        {/* Botón continuar */}
-        <div className="flex justify-end pt-4">
+        {/* Botones de navegación */}
+        <div className="flex justify-between items-center pt-4">
+          <button
+            type="button"
+            onClick={handleGoToStart}
+            className="text-sm font-medium text-text-secondary dark:text-white/70 hover:text-primary dark:hover:text-primary transition-colors"
+          >
+            &larr; Volver al inicio
+          </button>
           <button
             type="button"
             onClick={handleContinue}

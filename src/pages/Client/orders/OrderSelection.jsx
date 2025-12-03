@@ -13,7 +13,7 @@ const OrderSelection = () => {
       <div className="flex flex-1 justify-center px-4 sm:px-6 lg:px-12 py-8">
         <div className="flex w-full max-w-4xl flex-col items-center gap-10">
           {/* Header */}
-          <ClientOrderHeader />
+          <ClientOrderHeader showOrderSelectionButton={true} />
 
           {/* Main content */}
           <main className="w-full flex flex-col items-center text-center mt-4">
