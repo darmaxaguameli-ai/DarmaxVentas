@@ -12,11 +12,11 @@ const links = [
   { name: "Control Diario de Ventas", path: "control-ventas-diarias", icon: "history" },
 ];
 
-const GestionSidebar = ({ isOpen, onClose }) => {
+const GestionSidebar = ({ isOpen, onClose, isCollapsed, toggleCollapsed }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme(); // Use theme context
-  const baseLinkClasses = "flex items-center gap-3 rounded-lg px-3 py-2 transition-all";
+  const baseLinkClasses = "flex items-center rounded-lg px-3 py-2 transition-all"; // Quitar gap-3 por ahora
   const activeLinkClasses = "bg-primary text-white shadow-md";
   const inactiveLinkClasses = "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-primary dark:hover:text-white";
 
@@ -28,10 +28,11 @@ const GestionSidebar = ({ isOpen, onClose }) => {
 
   return (
     <aside
-      className={`inset-y-0 left-0 z-40 w-64 border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 flex flex-col justify-between
-        transform transition-transform duration-300 ease-in-out flex-shrink-0
-        ${isOpen ? 'translate-x-0' : '-translate-x-full'}
-        md:relative md:translate-x-0 md:shadow-none`}
+      className={`inset-y-0 left-0 z-40 border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 flex flex-col justify-between
+        transform transition-all duration-300 ease-in-out flex-shrink-0
+        ${isOpen ? 'translate-x-0 w-64 p-4' : '-translate-x-full w-0 p-0'} /* Mobile */
+        md:relative md:translate-x-0 md:shadow-none ${isCollapsed ? 'md:w-20 md:px-2' : 'md:w-64 md:p-4'} /* Desktop */
+      `}
     >
       <div className="flex flex-col">
         {/* Close button for mobile */}
@@ -41,18 +42,20 @@ const GestionSidebar = ({ isOpen, onClose }) => {
           </button>
         </div>
 
-        <div className="flex items-center gap-2 p-2 mb-6">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-2xl font-bold text-white shadow-sm">
+        <div className={`flex items-center p-2 mb-6 ${isCollapsed ? 'justify-center' : 'gap-2'}`}>
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-2xl font-bold text-white shadow-sm flex-shrink-0">
             D
           </div>
-          <div className="flex flex-col leading-tight">
-            <span className="text-base font-semibold tracking-wide text-dark dark:text-white">
-              Darmax Gestión
-            </span>
-            <span className="text-xs text-gray-500 dark:text-gray-400">
-              Panel Administrativo
-            </span>
-          </div>
+          {!isCollapsed && (
+            <div className="flex flex-col leading-tight">
+              <span className="text-base font-semibold tracking-wide text-dark dark:text-white">
+                Darmax Gestión
+              </span>
+              <span className="text-xs text-gray-500 dark:text-gray-400">
+                Panel Administrativo
+              </span>
+            </div>
+          )}
         </div>
         <nav className="flex flex-col gap-2">
           {links.map((link) => (
@@ -61,12 +64,12 @@ const GestionSidebar = ({ isOpen, onClose }) => {
               to={link.path}
               end={link.path === "/gestion"}
               className={({ isActive }) =>
-                `${baseLinkClasses} ${isActive ? activeLinkClasses : inactiveLinkClasses}`
+                `${baseLinkClasses} ${isActive ? activeLinkClasses : inactiveLinkClasses} ${isCollapsed ? 'justify-center' : 'gap-3'}`
               }
               onClick={onClose} // Close sidebar on navigation for mobile
             >
               <span className="material-symbols-outlined text-lg">{link.icon}</span>
-              <span className="text-sm font-medium">{link.name}</span>
+              {!isCollapsed && <span className="text-sm font-medium">{link.name}</span>}
             </NavLink>
           ))}
         </nav>
@@ -75,31 +78,41 @@ const GestionSidebar = ({ isOpen, onClose }) => {
         {/* Theme Toggle Button */}
         <button
             onClick={toggleTheme}
-            className={`${baseLinkClasses} ${inactiveLinkClasses} w-full`}
+            className={`${baseLinkClasses} ${inactiveLinkClasses} w-full ${isCollapsed ? 'justify-center' : 'gap-3'}`}
           >
             <span className="material-symbols-outlined text-lg">
               {theme === 'dark' ? 'light_mode' : 'dark_mode'}
             </span>
-            <span className="text-sm font-medium">
+            {!isCollapsed && <span className="text-sm font-medium">
               {theme === 'dark' ? 'Modo Claro' : 'Modo Oscuro'}
-            </span>
+            </span>}
         </button>
 
         <NavLink
             to="/"
-            className={`${baseLinkClasses} ${inactiveLinkClasses}`}
+            className={`${baseLinkClasses} ${inactiveLinkClasses} w-full ${isCollapsed ? 'justify-center' : 'gap-3'}`}
             onClick={onClose} // Close sidebar on navigation for mobile
           >
             <span className="material-symbols-outlined text-lg">home</span>
-            <span className="text-sm font-medium">Volver a Inicio</span>
+            {!isCollapsed && <span className="text-sm font-medium">Volver a Inicio</span>}
         </NavLink>
         {/* Botón de Cerrar Sesión */}
         <button
             onClick={() => { handleLogout(); onClose(); }} // Close sidebar on logout
-            className={`${baseLinkClasses} ${inactiveLinkClasses} w-full`}
+            className={`${baseLinkClasses} ${inactiveLinkClasses} w-full ${isCollapsed ? 'justify-center' : 'gap-3'}`}
           >
             <span className="material-symbols-outlined text-lg">logout</span>
-            <span className="text-sm font-medium">Cerrar Sesión</span>
+            {!isCollapsed && <span className="text-sm font-medium">Cerrar Sesión</span>}
+        </button>
+
+        {/* Toggle collapse button for desktop (moved here from Dashboard) */}
+        <button
+            className="hidden md:flex p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 w-full justify-center"
+            onClick={toggleCollapsed}
+        >
+            <span className="material-symbols-outlined text-gray-700 dark:text-gray-200">
+                {isCollapsed ? 'menu_open' : 'menu'}
+            </span>
         </button>
       </div>
     </aside>

@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useGestion } from "./context/GestionContext";
+import Swal from 'sweetalert2'; // Importar SweetAlert2
 
 const ProductModal = ({ isOpen, onClose, productToEdit, onSave }) => {
     const [product, setProduct] = useState({ name: '', stock: '', price: '', category: '', imageUrl: '' });
@@ -164,8 +165,19 @@ const Inventario = () => {
         }
     };
     
-    const handleDelete = (id) => {
-        if(window.confirm('¿Estás seguro de que quieres eliminar este producto?')) {
+    const handleDelete = async (id) => {
+        const result = await Swal.fire({
+            title: '¿Estás seguro?',
+            text: '¡No podrás revertir esto!',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Sí, eliminar',
+            cancelButtonText: 'Cancelar'
+        });
+
+        if (result.isConfirmed) {
             deleteProduct(id);
         }
     }
@@ -180,7 +192,7 @@ const Inventario = () => {
 
     return (
         <div>
-            <div className="flex justify-between items-center mb-6">
+            <div className="flex flex-wrap justify-between items-center mb-6 gap-4">
                 <h1 className="text-3xl font-bold text-[#111418] dark:text-white">Inventario</h1>
                 <button onClick={() => handleOpenModal()} className="btn-primary">
                     Agregar Producto

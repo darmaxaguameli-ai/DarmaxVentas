@@ -1,14 +1,26 @@
 import { useState, useEffect } from "react";
 import { useGestion } from "./context/GestionContext";
+import Swal from 'sweetalert2'; // Importar SweetAlert2
+import DatePicker from 'react-datepicker'; // Importar DatePicker
+import 'react-datepicker/dist/react-datepicker.css'; // Importar estilos de DatePicker
+import { registerLocale } from 'react-datepicker';
+import es from 'date-fns/locale/es'; // Importar el locale español
+import { format, parseISO } from 'date-fns'; // Importar format y parseISO de date-fns para manejo de fechas
+
+registerLocale('es', es); // Registrar el locale español
 
 const IncomeModal = ({ isOpen, onClose, incomeToEdit, onSave }) => {
-    const [income, setIncome] = useState({ description: '', amount: '', date: new Date().toISOString().slice(0, 10), pedidoId: '' });
+    const [income, setIncome] = useState({ description: '', amount: '', date: new Date(), pedidoId: '' }); // date es ahora un Date object
 
     useEffect(() => {
         if (incomeToEdit) {
-            setIncome({ ...incomeToEdit, pedidoId: incomeToEdit.pedidoId || '' });
+            setIncome({ 
+                ...incomeToEdit, 
+                date: parseISO(incomeToEdit.date), // Convertir string ISO a Date object
+                pedidoId: incomeToEdit.pedidoId || '' 
+            });
         } else {
-            setIncome({ description: '', amount: '', date: new Date().toISOString().slice(0, 10), pedidoId: '' });
+            setIncome({ description: '', amount: '', date: new Date(), pedidoId: '' }); // date es ahora un Date object
         }
     }, [incomeToEdit, isOpen]);
 
@@ -22,8 +34,8 @@ const IncomeModal = ({ isOpen, onClose, incomeToEdit, onSave }) => {
         onSave({
             ...income,
             amount: parseFloat(income.amount),
-            // Asegurarse de que el pedidoId se envíe como null si está vacío
             pedidoId: income.pedidoId || null,
+            date: format(income.date, 'yyyy-MM-dd') // Formatear Date object a string YYYY-MM-DD para el backend
         });
         onClose();
     };
@@ -54,7 +66,14 @@ const IncomeModal = ({ isOpen, onClose, incomeToEdit, onSave }) => {
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Fecha</label>
-                            <input name="date" type="date" value={income.date} onChange={handleChange} required className="mt-1 block w-full input-style" />
+                            <DatePicker
+                                selected={income.date}
+                                onChange={(date) => setIncome(prev => ({ ...prev, date }))}
+                                dateFormat="dd/MM/yyyy"
+                                locale="es"
+                                className="mt-1 block w-full input-style"
+                                required
+                            />
                         </div>
                     </div>
                     <div className="flex justify-end gap-4 pt-4">
@@ -85,23 +104,57 @@ const Ingresos = () => {
         setIsModalOpen(false);
     };
 
-    const handleSaveIncome = (income) => {
-        if (income.id) {
-            updateIncome(income);
-        } else {
-            addIncome(income);
+    const handleSaveIncome = async (incomeData) => {
+        try {
+            if (incomeData.id) {
+                await updateIncome(incomeData.id, incomeData);
+                Swal.fire('Éxito', 'Ingreso actualizado exitosamente.', 'success');
+            } else {
+                await addIncome(incomeData);
+                Swal.fire('Éxito', 'Ingreso añadido exitosamente.', 'success');
+            }
+            handleCloseModal(); // Siempre cerrar después de guardar
+        } catch (error) {
+            console.error("Error al guardar el ingreso:", error);
+            // El mensaje de error ya se maneja en el contexto
         }
     };
     
-    const handleDelete = (id) => {
-        if(window.confirm('¿Estás seguro de que quieres eliminar este ingreso?')) {
-            deleteIncome(id);
+    const handleDelete = async (id) => {
+        const result = await Swal.fire({
+            title: '¿Estás seguro?',
+            text: '¡No podrás revertir esto!',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Sí, eliminar',
+            cancelButtonText: 'Cancelar'
+        });
+
+        if (result.isConfirmed) {
+            try {
+                await deleteIncome(id);
+                Swal.fire('Eliminado!', 'El ingreso ha sido eliminado.', 'success');
+            } catch (error) {
+                console.error("Error al eliminar el ingreso:", error);
+                // El mensaje de error ya se maneja en el contexto
+            }
         }
     }
 
+    // Función auxiliar para formatear la fecha sin la hora, adaptada para la visualización en la tabla
+    const formatDisplayDate = (dateString) => {
+        if (!dateString) return '';
+        const date = new Date(dateString);
+        // Usar 'es-MX' para formato de fecha en español de México (DD/MM/YYYY)
+        return date.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    };
+
+
     return (
         <div>
-            <div className="flex justify-between items-center mb-6">
+            <div className="flex flex-wrap justify-between items-center mb-6 gap-4">
                 <h1 className="text-3xl font-bold text-[#111418] dark:text-white">Control de Ingresos</h1>
                 <button onClick={() => handleOpenModal()} className="btn-primary">
                     Agregar Ingreso
@@ -132,7 +185,7 @@ const Ingresos = () => {
                                 <td className="td-style font-medium">{item.description}</td>
                                 <td className="td-style">{item.pedidoId || 'N/A'}</td>
                                 <td className="td-style text-green-500 text-right">${item.amount.toFixed(2)}</td>
-                                <td className="td-style">{item.date}</td>
+                                <td className="td-style">{formatDisplayDate(item.date)}</td>
                                 <td className="td-style text-right space-x-4">
                                     <button onClick={() => handleOpenModal(item)} className="text-primary hover:text-primary/90 font-medium">Editar</button>
                                     <button onClick={() => handleDelete(item.id)} className="text-red-500 hover:text-red-700 font-medium">Eliminar</button>

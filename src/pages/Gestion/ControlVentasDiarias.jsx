@@ -76,7 +76,7 @@ const DailySalesRecordEditModal = ({ isOpen, onClose, recordToEdit, onSave }) =>
 
                     {/* MOSTRADOR */}
                     <h3 className="text-lg font-medium text-gray-800 dark:text-gray-200 mt-6">MOSTRADOR</h3>
-                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
                         <div><label className="label-style">Color</label><input type="number" name="mostradorColor" value={formData.mostradorColor || ''} onChange={handleChange} className="input-style" /></div>
                         <div><label className="label-style">Bonafon</label><input type="number" name="mostradorBon" value={formData.mostradorBon || ''} onChange={handleChange} className="input-style" /></div>
                         <div><label className="label-style">Epura</label><input type="number" name="mostradorEpura" value={formData.mostradorEpura || ''} onChange={handleChange} className="input-style" /></div>
@@ -89,7 +89,7 @@ const DailySalesRecordEditModal = ({ isOpen, onClose, recordToEdit, onSave }) =>
 
                     {/* PEDIDOS */}
                     <h3 className="text-lg font-medium text-gray-800 dark:text-gray-200 mt-6">PEDIDOS</h3>
-                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
                         <div><label className="label-style">Color</label><input type="number" name="pedidosColor" value={formData.pedidosColor || ''} onChange={handleChange} className="input-style" /></div>
                         <div><label className="label-style">Bonafon</label><input type="number" name="pedidosBon" value={formData.pedidosBon || ''} onChange={handleChange} className="input-style" /></div>
                         <div><label className="label-style">Epura</label><input type="number" name="pedidosEpura" value={formData.pedidosEpura || ''} onChange={handleChange} className="input-style" /></div>
@@ -102,7 +102,7 @@ const DailySalesRecordEditModal = ({ isOpen, onClose, recordToEdit, onSave }) =>
 
                     {/* NEGOCIOS */}
                     <h3 className="text-lg font-medium text-gray-800 dark:text-gray-200 mt-6">NEGOCIOS</h3>
-                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
                         <div><label className="label-style">Color</label><input type="number" name="negociosColor" value={formData.negociosColor || ''} onChange={handleChange} className="input-style" /></div>
                         <div><label className="label-style">Bonafon</label><input type="number" name="negociosBon" value={formData.negociosBon || ''} onChange={handleChange} className="input-style" /></div>
                         <div><label className="label-style">Epura</label><input type="number" name="negociosEpura" value={formData.negociosEpura || ''} onChange={handleChange} className="input-style" /></div>
@@ -115,7 +115,7 @@ const DailySalesRecordEditModal = ({ isOpen, onClose, recordToEdit, onSave }) =>
 
                     {/* TOTAL POR TIPO DE GARRAFÓN */}
                     <h3 className="text-lg font-medium text-gray-800 dark:text-gray-200 mt-6">TOTAL POR TIPO DE GARRAFÓN</h3>
-                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
                         <div><label className="label-style">Color</label><input type="number" name="totalTipoGarrafonColor" value={formData.totalTipoGarrafonColor || ''} readOnly className="input-style bg-gray-100 dark:bg-gray-700" /></div>
                         <div><label className="label-style">Bonafon</label><input type="number" name="totalTipoGarrafonBon" value={formData.totalTipoGarrafonBon || ''} readOnly className="input-style bg-gray-100 dark:bg-gray-700" /></div>
                         <div><label className="label-style">Epura</label><input type="number" name="totalTipoGarrafonEpura" value={formData.totalTipoGarrafonEpura || ''} readOnly className="input-style bg-gray-100 dark:bg-gray-700" /></div>
@@ -197,23 +197,33 @@ const ControlVentasDiarias = () => {
     const handleUpdateRecord = async (updatedRecord) => {
         try {
             await updateDailySalesRecord(updatedRecord.id, updatedRecord);
-            alert("Registro de ventas diarias actualizado exitosamente.");
+            // El mensaje de éxito ya se maneja en el contexto
             handleCloseEditModal();
         } catch (err) {
+            // El mensaje de error ya se maneja en el contexto
             console.error("Error al actualizar el registro:", err);
-            alert(`Error al actualizar el registro: ${err.message}`);
         }
     };
 
     const handleDeleteRecord = async (recordId) => {
-        if (window.confirm('¿Estás seguro de que quieres eliminar este registro de ventas diarias? También se eliminará el ingreso asociado.')) {
+        const result = await Swal.fire({
+            title: '¿Estás seguro?',
+            text: '¡No podrás revertir esto! También se eliminará el ingreso asociado.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Sí, eliminar',
+            cancelButtonText: 'Cancelar'
+        });
+
+        if (result.isConfirmed) {
             try {
                 await deleteDailySalesRecord(recordId);
-                alert("Registro de ventas diarias eliminado exitosamente.");
-                // fetchManagementData(); // Ya se llama desde el contexto después de delete
+                // El mensaje de éxito ya se maneja en el contexto
             } catch (err) {
+                // El mensaje de error ya se maneja en el contexto
                 console.error("Error al eliminar el registro:", err);
-                alert(`Error al eliminar el registro: ${err.message}`);
             }
         }
     };
@@ -301,7 +311,7 @@ const ControlVentasDiarias = () => {
 
         // Use the calculated totalGarrafones and totalImporte for validation
         if (manualForm.totalGarrafones === 0 && manualForm.totalImporte === 0) {
-            alert("Debes introducir al menos un monto o total de garrafones.");
+            Swal.fire('Atención', 'Debes introducir al menos un monto o total de garrafones.', 'warning');
             return;
         }
 
@@ -351,11 +361,10 @@ const ControlVentasDiarias = () => {
 
         try {
             await addDailySalesRecord(newDailySalesRecord);
-            alert("Registro manual de ventas diarias añadido exitosamente.");
+            // Mensaje de éxito ya se maneja en el contexto
             setManualForm(initialManualFormState); // Reset form
         } catch (error) {
-            console.error("Error al guardar el registro:", error);
-            alert(`Error al guardar el registro: ${error.message}`);
+            // Mensaje de error ya se maneja en el contexto
         }
     };
 
@@ -367,14 +376,14 @@ const ControlVentasDiarias = () => {
         }
     };
 
-    const handleProcessFile = () => {
+    const handleProcessFile = async () => {
         if (!selectedFile) {
-            setError("Por favor, selecciona un archivo de Excel primero.");
+            Swal.fire('Atención', 'Por favor, selecciona un archivo de Excel primero.', 'warning');
             return;
         }
 
         const reader = new FileReader();
-        reader.onload = (e) => {
+        reader.onload = async (e) => { // Async porque Swal.fire es async
             try {
                 const data = e.target.result;
                 const workbook = XLSX.read(data, { type: 'array' });
@@ -491,14 +500,14 @@ const ControlVentasDiarias = () => {
                                       .map(([date]) => date);
 
                 if (duplicates.length > 0) {
-                    setError(`Error: El archivo de Excel contiene fechas duplicadas. Por favor, corrige las siguientes fechas y vuelve a intentarlo: ${duplicates.join(', ')}`);
+                    Swal.fire('Error', `El archivo de Excel contiene fechas duplicadas. Por favor, corrige las siguientes fechas y vuelve a intentarlo: ${duplicates.join(', ')}`, 'error');
                     setPreviewData([]); // Limpiar previsualización
                     return; // Detener el proceso
                 }
                 // --- FIN DE VALIDACIÓN ---
 
                 if(processedDailyRecords.length === 0) {
-                    setError("No se encontraron datos de ventas diarias válidos en el archivo. Verifica el formato.");
+                    Swal.fire('Atención', "No se encontraron datos de ventas diarias válidos en el archivo. Verifica el formato.", 'warning');
                     setPreviewData([]);
                 } else {
                     setPreviewData(processedDailyRecords);
@@ -507,14 +516,14 @@ const ControlVentasDiarias = () => {
 
             } catch (err) {
                 console.error("Error al procesar el archivo:", err);
-                setError("Ocurrió un error al leer o procesar el archivo de Excel. Asegúrate de que el formato sea correcto.");
+                Swal.fire('Error', "Ocurrió un error al leer o procesar el archivo de Excel. Asegúrate de que el formato sea correcto.", 'error');
                 setPreviewData([]);
             }
         };
 
         reader.onerror = (err) => {
             console.error("Error del lector de archivos:", err);
-            setError("No se pudo leer el archivo.");
+            Swal.fire('Error', "No se pudo leer el archivo.", 'error');
         };
 
         reader.readAsArrayBuffer(selectedFile);
@@ -522,20 +531,18 @@ const ControlVentasDiarias = () => {
 
     const handleImportData = async () => {
         if (previewData.length === 0) {
-            setError("No hay datos para importar.");
+            Swal.fire('Atención', "No hay datos para importar.", 'warning');
             return;
         }
 
         try {
             await addDailySalesRecordsBulk(previewData);
-            alert(`${previewData.length} registros han sido importados exitosamente.`);
+            // Mensaje de éxito ya se maneja en el contexto
             setPreviewData([]);
             setSelectedFile(null);
             setError(null);
         } catch (error) {
-            console.error("Error durante la importación masiva:", error);
-            alert(`Error durante la importación: ${error.message}`);
-            setError(`Error durante la importación: ${error.message}`);
+            // Mensaje de error ya se maneja en el contexto
         }
     };
 
@@ -581,7 +588,7 @@ const ControlVentasDiarias = () => {
             <h1 className="text-3xl font-bold text-[#111418] dark:text-white mb-6">Control de Ventas Diarias</h1>
             
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-                <div className="flex border-b border-gray-200 dark:border-gray-700 mb-6">
+                <div className="flex flex-wrap border-b border-gray-200 dark:border-gray-700 mb-6"> {/* Añadido flex-wrap */}
                     <button onClick={() => setActiveTab('import')} className={getTabClassName('import')}>
                         Importar desde Excel
                     </button>

@@ -417,7 +417,7 @@ app.post('/api/expenses', verifyToken, async (req, res) => {
     const newExpense = await prisma.gasto.create({
       data: {
         ...rest,
-        date: new Date(date),
+        date: new Date(date + 'T12:00:00Z'), // Interpretar la fecha como mediodía UTC
       },
     });
     res.status(201).json(newExpense);
@@ -431,7 +431,7 @@ app.put('/api/expenses/:id', verifyToken, async (req, res) => {
   const { id } = req.params;
   try {
     const { date, ...rest } = req.body;
-    const data = date ? { ...rest, date: new Date(date) } : rest;
+    const data = date ? { ...rest, date: new Date(date + 'T12:00:00Z') } : rest; // Interpretar la fecha como mediodía UTC
     const updatedExpense = await prisma.gasto.update({
       where: { id },
       data: data,

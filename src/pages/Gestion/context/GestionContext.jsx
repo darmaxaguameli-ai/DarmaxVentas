@@ -6,6 +6,7 @@ import React, {
   useEffect,
 } from "react";
 import { useAuth } from "../../../context/AuthContext";
+import Swal from 'sweetalert2'; // Importar SweetAlert2
 import {
   // Product
   fetchProducts as apiFetchProducts,
@@ -104,6 +105,16 @@ const gestionReducer = (state, action) => {
         return { ...state, servicePrices: [...state.servicePrices, action.payload] };
     case "ADD_JUG_BRAND":
         return { ...state, jugBrands: [...state.jugBrands, action.payload] };
+    case "UPDATE_PRODUCT_IN_STATE": // Nuevo caso para actualizar un producto en el estado local
+        return {
+            ...state,
+            inventory: state.inventory.map(prod => prod.id === action.payload.id ? action.payload : prod)
+        };
+    case "DELETE_PRODUCT_FROM_STATE": // Nuevo caso para eliminar un producto del estado local
+        return {
+            ...state,
+            inventory: state.inventory.filter(prod => prod.id !== action.payload)
+        };
     default:
       return state;
   }
@@ -133,6 +144,7 @@ export const GestionProvider = ({ children }) => {
       });
     } catch (error) {
       dispatch({ type: "SET_ERROR", payload: error.message });
+      Swal.fire('Error', error.message, 'error');
     }
   }, [isAuthenticated]); // Depender de isAuthenticated
 
@@ -146,18 +158,36 @@ export const GestionProvider = ({ children }) => {
   // ... (resto del provider se mantiene igual)
   const createCrudActions = (modelName, api) => ({
     [`add${modelName}`]: useCallback(async (data) => {
-      const newRecord = await api[`create${modelName}`](data);
-      dispatch({ type: `ADD_${modelName.toUpperCase()}`, payload: newRecord });
-      return newRecord;
+      try {
+        const newRecord = await api[`create${modelName}`](data);
+        dispatch({ type: `ADD_${modelName.toUpperCase()}`, payload: newRecord });
+        Swal.fire('Éxito', `${modelName} añadido exitosamente.`, 'success');
+        return newRecord;
+      } catch (error) {
+        Swal.fire('Error', `Error al añadir ${modelName.toLowerCase()}: ${error.message}`, 'error');
+        throw error;
+      }
     }, []),
     [`update${modelName}`]: useCallback(async (id, data) => {
-      const updatedRecord = await api[`update${modelName}`](id, data);
-      await fetchManagementData();
-      return updatedRecord;
+      try {
+        const updatedRecord = await api[`update${modelName}`](id, data);
+        await fetchManagementData(); // Refrescar todos los datos para asegurar consistencia
+        Swal.fire('Éxito', `${modelName} actualizado exitosamente.`, 'success');
+        return updatedRecord;
+      } catch (error) {
+        Swal.fire('Error', `Error al actualizar ${modelName.toLowerCase()}: ${error.message}`, 'error');
+        throw error;
+      }
     }, [fetchManagementData]),
     [`delete${modelName}`]: useCallback(async (id) => {
-      await api[`delete${modelName}`](id);
-      await fetchManagementData();
+      try {
+        await api[`delete${modelName}`](id);
+        await fetchManagementData(); // Refrescar todos los datos
+        Swal.fire('Éxito', `${modelName} eliminado exitosamente.`, 'success');
+      } catch (error) {
+        Swal.fire('Error', `Error al eliminar ${modelName.toLowerCase()}: ${error.message}`, 'error');
+        throw error;
+      }
     }, [fetchManagementData]),
   });
 
@@ -174,18 +204,20 @@ export const GestionProvider = ({ children }) => {
     try {
       await apiCreateDailySalesRecord(recordData);
       await fetchManagementData();
+      Swal.fire('Éxito', 'Registro de ventas diarias añadido exitosamente.', 'success');
     } catch (error) {
-      dispatch({ type: "SET_ERROR", payload: error.message });
+      Swal.fire('Error', `Error al añadir registro de ventas diarias: ${error.message}`, 'error');
       throw error;
     }
   }, [fetchManagementData]);
 
   const addDailySalesRecordsBulk = useCallback(async (recordsData) => {
     try {
-      await apiCreateDailySalesRecordsBulk(recordsData);
+      const response = await apiCreateDailySalesRecordsBulk(recordsData);
       await fetchManagementData(); 
+      Swal.fire('Éxito', response.message || 'Registros de ventas diarias importados exitosamente.', 'success');
     } catch (error) {
-      dispatch({ type: "SET_ERROR", payload: error.message });
+      Swal.fire('Error', `Error al importar registros de ventas diarias: ${error.message}`, 'error');
       throw error;
     }
   }, [fetchManagementData]);
@@ -194,8 +226,9 @@ export const GestionProvider = ({ children }) => {
     try {
       await apiUpdateDailySalesRecord(id, recordData);
       await fetchManagementData();
+      Swal.fire('Éxito', 'Registro de ventas diarias actualizado exitosamente.', 'success');
     } catch (error) {
-      dispatch({ type: "SET_ERROR", payload: error.message });
+      Swal.fire('Error', `Error al actualizar registro de ventas diarias: ${error.message}`, 'error');
       throw error;
     }
   }, [fetchManagementData]);
@@ -204,8 +237,9 @@ export const GestionProvider = ({ children }) => {
     try {
       await apiDeleteDailySalesRecord(id);
       await fetchManagementData();
+      Swal.fire('Éxito', 'Registro de ventas diarias eliminado exitosamente.', 'success');
     } catch (error) {
-      dispatch({ type: "SET_ERROR", payload: error.message });
+      Swal.fire('Error', `Error al eliminar registro de ventas diarias: ${error.message}`, 'error');
       throw error;
     }
   }, [fetchManagementData]);

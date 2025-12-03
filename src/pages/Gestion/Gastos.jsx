@@ -1,8 +1,16 @@
 import { useState, useEffect } from "react";
 import { useGestion } from "./context/GestionContext";
+import Swal from 'sweetalert2'; // Importar SweetAlert2
+import DatePicker from 'react-datepicker'; // Importar DatePicker
+import 'react-datepicker/dist/react-datepicker.css'; // Importar estilos de DatePicker
+import { registerLocale } from 'react-datepicker';
+import es from 'date-fns/locale/es'; // Importar el locale español
+import { format, parseISO } from 'date-fns'; // Importar format y parseISO de date-fns para manejo de fechas
+
+registerLocale('es', es); // Registrar el locale español
 
 const ExpenseModal = ({ isOpen, onClose, expenseToEdit, onSave }) => {
-    const [selectedDate, setSelectedDate] = useState(new Date().toISOString().slice(0, 10));
+    const [selectedDate, setSelectedDate] = useState(new Date()); // Ahora es un objeto Date
     const [currentDescription, setCurrentDescription] = useState('');
     const [currentAmount, setCurrentAmount] = useState('');
     const [tempExpenses, setTempExpenses] = useState([]); // { description, amount }
@@ -11,13 +19,13 @@ const ExpenseModal = ({ isOpen, onClose, expenseToEdit, onSave }) => {
     // Si estamos editando un gasto, inicializar los campos del modal con ese gasto
     useEffect(() => {
         if (expenseToEdit) {
-            setSelectedDate(expenseToEdit.date.slice(0, 10)); // Asegurarse de que sea solo la fecha
+            setSelectedDate(parseISO(expenseToEdit.date)); // Convertir string ISO a objeto Date
             setTempExpenses([{ description: expenseToEdit.description, amount: expenseToEdit.amount, id: expenseToEdit.id }]);
             setCurrentDescription(expenseToEdit.description); // precargar para editar
             setCurrentAmount(expenseToEdit.amount); // precargar para editar
         } else {
             // Si no estamos editando, resetear todo excepto la fecha, que puede ser la actual
-            setSelectedDate(new Date().toISOString().slice(0, 10));
+            setSelectedDate(new Date());
             setTempExpenses([]);
             setCurrentDescription('');
             setCurrentAmount('');
@@ -58,13 +66,16 @@ const ExpenseModal = ({ isOpen, onClose, expenseToEdit, onSave }) => {
         }
         setError(null);
 
+        // Convertir la fecha seleccionada del DatePicker a string YYYY-MM-DD
+        const formattedDateString = format(selectedDate, 'yyyy-MM-dd');
+
         if (expenseToEdit) {
             // Si estamos editando, solo hay un gasto en tempExpenses
             const updatedExpense = {
                 id: tempExpenses[0].id,
                 description: tempExpenses[0].description,
                 amount: tempExpenses[0].amount,
-                date: selectedDate,
+                date: formattedDateString, // Usar la fecha formateada
             };
             await onSave(updatedExpense, true); // Guardar el único gasto editado y cerrar
         } else {
@@ -74,7 +85,7 @@ const ExpenseModal = ({ isOpen, onClose, expenseToEdit, onSave }) => {
                 await onSave({
                     description: tempExp.description,
                     amount: tempExp.amount,
-                    date: selectedDate,
+                    date: formattedDateString, // Usar la fecha formateada
                 }, false); // No cerrar inmediatamente, cerrar al final
             }
             onClose(); // Cerrar el modal después de guardar todos los nuevos gastos
@@ -96,13 +107,14 @@ const ExpenseModal = ({ isOpen, onClose, expenseToEdit, onSave }) => {
 
                 <div className="mb-4">
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Fecha</label>
-                    <input 
-                        type="date" 
-                        value={selectedDate} 
-                        onChange={(e) => setSelectedDate(e.target.value)} 
-                        required 
-                        className="mt-1 block w-full input-style" 
-                        disabled={isEditing} // No permitir cambiar la fecha si se está editando
+                    <DatePicker
+                        selected={selectedDate}
+                        onChange={(date) => setSelectedDate(date)}
+                        dateFormat="dd/MM/yyyy"
+                        locale="es"
+                        className="mt-1 block w-full input-style"
+                        disabled={isEditing}
+                        required
                     />
                 </div>
 
@@ -211,22 +223,41 @@ const Gastos = () => {
             if (expenseData.id) {
                 // Si el gasto tiene un ID, se está editando
                 await updateExpense(expenseData.id, expenseData);
+                Swal.fire('Éxito', 'Gasto actualizado exitosamente.', 'success'); // Mensaje de éxito
             } else {
                 // Si no tiene ID, es un nuevo gasto
                 await addExpense(expenseData);
+                Swal.fire('Éxito', 'Gasto añadido exitosamente.', 'success'); // Mensaje de éxito
             }
             if (closeAfterSave) {
                 handleCloseModal();
             }
         } catch (error) {
-            console.error("Error al guardar el gasto:", error);
-            // Podrías añadir un estado de error aquí para mostrar en la UI
+            console.error("Error al guardar el gasto:", error); // Mantener console.error para depuración
+            // El mensaje de error ya se maneja en el contexto
         }
     };
     
-    const handleDelete = (id) => {
-        if(window.confirm('¿Estás seguro de que quieres eliminar este gasto?')) {
-            deleteExpense(id);
+    const handleDelete = async (id) => {
+        const result = await Swal.fire({
+            title: '¿Estás seguro?',
+            text: '¡No podrás revertir esto!',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Sí, eliminar',
+            cancelButtonText: 'Cancelar'
+        });
+
+        if (result.isConfirmed) {
+            try {
+                await deleteExpense(id);
+                Swal.fire('Eliminado!', 'El gasto ha sido eliminado.', 'success'); // Mensaje de éxito
+            } catch (error) {
+                console.error("Error al eliminar el gasto:", error); // Mantener console.error para depuración
+                // El mensaje de error ya se maneja en el contexto
+            }
         }
     }
 
@@ -241,7 +272,7 @@ const Gastos = () => {
 
     return (
         <div>
-            <div className="flex justify-between items-center mb-6">
+            <div className="flex flex-wrap justify-between items-center mb-6 gap-4">
                 <h1 className="text-3xl font-bold text-[#111418] dark:text-white">Control de Gastos</h1>
                 <button onClick={() => handleOpenModal()} className="btn-primary">
                     Agregar Gasto

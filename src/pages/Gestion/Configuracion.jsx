@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useGestion } from './context/GestionContext';
+import Swal from 'sweetalert2'; // Importar SweetAlert2
 
 // ====================================================================
 // Main Configuration Component
@@ -20,7 +21,7 @@ const Configuracion = () => {
             <h1 className="text-3xl font-bold text-[#111418] dark:text-white mb-6">Configuración del Negocio</h1>
             
             <div className="border-b border-gray-200 dark:border-gray-700 mb-6">
-                <nav className="flex space-x-2">
+                <nav className="flex flex-wrap space-x-2 sm:space-x-4"> {/* Añadido flex-wrap y ajustado space-x */}
                     <button onClick={() => setActiveTab('waterTypes')} className={getTabClassName('waterTypes')}>
                         Tipos de Agua
                     </button>
@@ -61,8 +62,19 @@ const ManageWaterTypes = () => {
         setItemToEdit(null);
     };
 
-    const handleDelete = (id) => {
-        if (window.confirm('¿Seguro que quieres eliminar este tipo de agua?')) {
+    const handleDelete = async (id) => {
+        const result = await Swal.fire({
+            title: '¿Estás seguro?',
+            text: '¡No podrás revertir esto!',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Sí, eliminar',
+            cancelButtonText: 'Cancelar'
+        });
+
+        if (result.isConfirmed) {
             deleteWaterType(id);
         }
     };
@@ -139,8 +151,19 @@ const ManageServicePrices = () => {
         setItemToEdit(null);
     };
 
-    const handleDelete = (id) => {
-        if (window.confirm('¿Seguro que quieres eliminar este precio de servicio?')) {
+    const handleDelete = async (id) => {
+        const result = await Swal.fire({
+            title: '¿Estás seguro?',
+            text: '¡No podrás revertir esto!',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Sí, eliminar',
+            cancelButtonText: 'Cancelar'
+        });
+
+        if (result.isConfirmed) {
             deleteServicePrice(id);
         }
     };
@@ -208,7 +231,7 @@ const ServicePriceModal = ({ itemToEdit, waterTypes, onSave, onClose }) => {
             <div className="bg-white dark:bg-gray-800 p-6 rounded-lg w-full max-w-lg">
                 <h3 className="text-lg font-bold mb-4">{itemToEdit ? 'Editar' : 'Agregar'} Precio de Servicio</h3>
                 <form onSubmit={handleSubmit} className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4"> {/* Responsivo */}
                         <div>
                             <label className="label-style">Nombre del Servicio</label>
                             <input name="name" type="text" value={data.name} onChange={handleChange} className="input-style w-full" required />
@@ -222,7 +245,7 @@ const ServicePriceModal = ({ itemToEdit, waterTypes, onSave, onClose }) => {
                             </select>
                         </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4"> {/* Responsivo */}
                          <div>
                             <label className="label-style">Tipo de Agua (opcional)</label>
                             <select name="waterTypeId" value={data.waterTypeId} onChange={handleChange} className="input-style w-full">
@@ -267,8 +290,19 @@ const ManageJugBrands = () => {
         setItemToEdit(null);
     };
 
-    const handleDelete = (id) => {
-        if (window.confirm('¿Seguro que quieres eliminar esta marca de garrafón?')) {
+    const handleDelete = async (id) => {
+        const result = await Swal.fire({
+            title: '¿Estás seguro?',
+            text: '¡No podrás revertir esto!',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Sí, eliminar',
+            cancelButtonText: 'Cancelar'
+        });
+
+        if (result.isConfirmed) {
             deleteJugBrand(id);
         }
     };
