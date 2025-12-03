@@ -519,11 +519,11 @@ app.post('/api/daily-sales-records', verifyToken, async (req, res) => {
 
         res.status(201).json(result);
     } catch (error) {
-        console.error('Error creating daily sales record and income:', error);
+        console.error('Error creating daily sales record and income:', error.message, error.stack);
         if (error.code === 'P2002' && error.meta?.target?.includes('date')) {
-             return res.status(409).json({ error: 'A sales record for this date already exists.' });
+             return res.status(409).json({ error: 'Ya existe un registro de ventas para esta fecha.' });
         }
-        res.status(500).json({ error: 'Error creating daily sales record', message: error.message });
+        res.status(500).json({ error: 'Error al crear el registro de ventas diarias', details: error.message });
     }
 });
 
@@ -588,10 +588,10 @@ app.post('/api/daily-sales-records/bulk', verifyToken, async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Error during bulk daily sales record creation:', error);
+        console.error('Error during bulk daily sales record creation:', error.message, error.stack);
         // This will now primarily catch issues if the whole transaction fails,
         // as createMany with skipDuplicates handles unique constraint violations gracefully.
-        res.status(500).json({ error: 'An error occurred during the bulk import process.' });
+        res.status(500).json({ error: 'Ocurrió un error durante el proceso de importación masiva.', details: error.message });
     }
 });
 
