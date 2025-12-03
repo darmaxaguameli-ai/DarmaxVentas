@@ -740,39 +740,41 @@ const ControlVentasDiarias = () => {
                 )}
 
                 {activeTab === 'manual' && (
-                    <div className="animate-fade-in max-w-xl mx-auto">
+                    <div className="animate-fade-in max-w-full mx-auto"> {/* Cambiado a max-w-full para más espacio */}
                         <h2 className="text-xl font-semibold mb-4">Agregar Registro Manual de Ventas Diarias</h2>
                         <p className="text-gray-600 dark:text-gray-400 mb-4">
                             Introduce todos los detalles del registro de ventas diarias.
                         </p>
-                        <form onSubmit={handleManualSubmit} className="space-y-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Fecha</label>
-                                <input 
-                                    type="date" 
-                                    name="date" 
-                                    value={manualForm.date} 
-                                    onChange={handleManualChange} 
-                                    required 
-                                    className="input-style" 
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Día de la Semana</label>
-                                <input 
-                                    type="text" 
-                                    name="dayOfWeek" 
-                                    value={manualForm.dayOfWeek} 
-                                    onChange={handleManualChange} 
-                                    placeholder="Ej. Lun, Mar" 
-                                    readOnly // Se añadió readOnly aquí
-                                    className="input-style" 
-                                />
+                        <form onSubmit={handleManualSubmit} className="space-y-6"> {/* Aumentado el espacio vertical */}
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4"> {/* Fecha y Día en una sola fila para MD+ */}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Fecha</label>
+                                    <input 
+                                        type="date" 
+                                        name="date" 
+                                        value={manualForm.date} 
+                                        onChange={handleManualChange} 
+                                        required 
+                                        className="input-style" 
+                                    />
+                                </div>
+                                <div className="col-span-2"> {/* Día de la Semana ocupa más espacio en MD+ */}
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Día de la Semana</label>
+                                    <input 
+                                        type="text" 
+                                        name="dayOfWeek" 
+                                        value={manualForm.dayOfWeek} 
+                                        onChange={handleManualChange} 
+                                        placeholder="Ej. Lun, Mar" 
+                                        readOnly 
+                                        className="input-style bg-gray-100 dark:bg-gray-700" 
+                                    />
+                                </div>
                             </div>
 
                             {/* MOSTRADOR */}
-                            <h3 className="text-lg font-medium text-gray-800 dark:text-gray-200 mt-6">MOSTRADOR</h3>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <h3 className="text-lg font-medium text-gray-800 dark:text-gray-200 mt-6 border-b pb-2">MOSTRADOR</h3>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-8 gap-x-4 gap-y-3">
                                 <div><label className="label-style">Color</label><input type="number" name="mostradorColor" value={manualForm.mostradorColor} onChange={handleManualChange} className="input-style" /></div>
                                 <div><label className="label-style">Bonafon</label><input type="number" name="mostradorBon" value={manualForm.mostradorBon} onChange={handleManualChange} className="input-style" /></div>
                                 <div><label className="label-style">Epura</label><input type="number" name="mostradorEpura" value={manualForm.mostradorEpura} onChange={handleManualChange} className="input-style" /></div>
@@ -780,12 +782,12 @@ const ControlVentasDiarias = () => {
                                 <div><label className="label-style">Electro</label><input type="number" name="mostradorElectro" value={manualForm.mostradorElectro} onChange={handleManualChange} className="input-style" /></div>
                                 <div><label className="label-style">10Lts</label><input type="number" name="mostrador10Lts" value={manualForm.mostrador10Lts} onChange={handleManualChange} className="input-style" /></div>
                                 <div><label className="label-style">Vta. G.</label><input type="number" name="mostradorVtaG" value={manualForm.mostradorVtaG} onChange={handleManualChange} className="input-style" /></div>
-                                <div><label className="label-style">Total ($)</label><input type="number" name="mostradorTotal" step="0.01" value={manualForm.mostradorTotal} onChange={handleManualChange} className="input-style" /></div>
+                                <div><label className="label-style font-bold">Total ($)</label><input type="number" name="mostradorTotal" step="0.01" value={manualForm.mostradorTotal} onChange={handleManualChange} className="input-style" /></div>
                             </div>
 
                             {/* PEDIDOS */}
-                            <h3 className="text-lg font-medium text-gray-800 dark:text-gray-200 mt-6">PEDIDOS</h3>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <h3 className="text-lg font-medium text-gray-800 dark:text-gray-200 mt-6 border-b pb-2">PEDIDOS</h3>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-8 gap-x-4 gap-y-3">
                                 <div><label className="label-style">Color</label><input type="number" name="pedidosColor" value={manualForm.pedidosColor} onChange={handleManualChange} className="input-style" /></div>
                                 <div><label className="label-style">Bonafon</label><input type="number" name="pedidosBon" value={manualForm.pedidosBon} onChange={handleManualChange} className="input-style" /></div>
                                 <div><label className="label-style">Epura</label><input type="number" name="pedidosEpura" value={manualForm.pedidosEpura} onChange={handleManualChange} className="input-style" /></div>
@@ -793,12 +795,12 @@ const ControlVentasDiarias = () => {
                                 <div><label className="label-style">Electro</label><input type="number" name="pedidosElectro" value={manualForm.pedidosElectro} onChange={handleManualChange} className="input-style" /></div>
                                 <div><label className="label-style">10Lts</label><input type="number" name="pedidos10Lts" value={manualForm.pedidos10Lts} onChange={handleManualChange} className="input-style" /></div>
                                 <div><label className="label-style">Vta. G.</label><input type="number" name="pedidosVtaG" value={manualForm.pedidosVtaG} onChange={handleManualChange} className="input-style" /></div>
-                                <div><label className="label-style">Total ($)</label><input type="number" name="pedidosTotal" step="0.01" value={manualForm.pedidosTotal} onChange={handleManualChange} className="input-style" /></div>
+                                <div><label className="label-style font-bold">Total ($)</label><input type="number" name="pedidosTotal" step="0.01" value={manualForm.pedidosTotal} onChange={handleManualChange} className="input-style" /></div>
                             </div>
 
                             {/* NEGOCIOS */}
-                            <h3 className="text-lg font-medium text-gray-800 dark:text-gray-200 mt-6">NEGOCIOS</h3>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <h3 className="text-lg font-medium text-gray-800 dark:text-gray-200 mt-6 border-b pb-2">NEGOCIOS</h3>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-8 gap-x-4 gap-y-3">
                                 <div><label className="label-style">Color</label><input type="number" name="negociosColor" value={manualForm.negociosColor} onChange={handleManualChange} className="input-style" /></div>
                                 <div><label className="label-style">Bonafon</label><input type="number" name="negociosBon" value={manualForm.negociosBon} onChange={handleManualChange} className="input-style" /></div>
                                 <div><label className="label-style">Epura</label><input type="number" name="negociosEpura" value={manualForm.negociosEpura} onChange={handleManualChange} className="input-style" /></div>
@@ -806,12 +808,12 @@ const ControlVentasDiarias = () => {
                                 <div><label className="label-style">Electro</label><input type="number" name="negociosElectro" value={manualForm.negociosElectro} onChange={handleManualChange} className="input-style" /></div>
                                 <div><label className="label-style">10Lts</label><input type="number" name="negocios10Lts" value={manualForm.negocios10Lts} onChange={handleManualChange} className="input-style" /></div>
                                 <div><label className="label-style">Vta. G.</label><input type="number" name="negociosVtaG" value={manualForm.negociosVtaG} onChange={handleManualChange} className="input-style" /></div>
-                                <div><label className="label-style">Total ($)</label><input type="number" name="negociosTotal" step="0.01" value={manualForm.negociosTotal} onChange={handleManualChange} className="input-style" /></div>
+                                <div><label className="label-style font-bold">Total ($)</label><input type="number" name="negociosTotal" step="0.01" value={manualForm.negociosTotal} onChange={handleManualChange} className="input-style" /></div>
                             </div>
 
                             {/* TOTAL POR TIPO DE GARRAFÓN */}
-                            <h3 className="text-lg font-medium text-gray-800 dark:text-gray-200 mt-6">TOTAL POR TIPO DE GARRAFÓN</h3>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <h3 className="text-lg font-medium text-gray-800 dark:text-gray-200 mt-6 border-b pb-2">TOTAL POR TIPO DE GARRAFÓN (Cantidad de Garrafones)</h3>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-x-4 gap-y-3">
                                 <div><label className="label-style">Color</label><input type="number" name="totalTipoGarrafonColor" value={manualForm.totalTipoGarrafonColor} readOnly className="input-style bg-gray-100 dark:bg-gray-700" /></div>
                                 <div><label className="label-style">Bonafon</label><input type="number" name="totalTipoGarrafonBon" value={manualForm.totalTipoGarrafonBon} readOnly className="input-style bg-gray-100 dark:bg-gray-700" /></div>
                                 <div><label className="label-style">Epura</label><input type="number" name="totalTipoGarrafonEpura" value={manualForm.totalTipoGarrafonEpura} readOnly className="input-style bg-gray-100 dark:bg-gray-700" /></div>
@@ -822,8 +824,8 @@ const ControlVentasDiarias = () => {
                             </div>
 
                             {/* TOTALES FINALES */}
-                            <h3 className="text-lg font-medium text-gray-800 dark:text-gray-200 mt-6">TOTALES GENERALES</h3>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <h3 className="text-lg font-medium text-gray-800 dark:text-gray-200 mt-6 border-b pb-2">TOTALES GENERALES</h3>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3">
                                 <div><label className="label-style">Total Garrafones</label><input type="number" name="totalGarrafones" value={manualForm.totalGarrafones} readOnly className="input-style bg-gray-100 dark:bg-gray-700" /></div>
                                 <div><label className="label-style">Total Importe ($)</label><input type="number" name="totalImporte" step="0.01" value={manualForm.totalImporte} readOnly className="input-style bg-gray-100 dark:bg-gray-700" /></div>
                             </div>
