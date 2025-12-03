@@ -499,7 +499,7 @@ app.post('/api/daily-sales-records', verifyToken, async (req, res) => {
             const newDailySalesRecord = await tx.dailySalesRecord.create({
                 data: {
                     ...recordData,
-                    date: new Date(date), // Ensure date is a Date object
+                    date: new Date(date + 'T12:00:00Z'), // Asegurar que la fecha es un objeto Date y se interpreta como mediodía UTC
                 },
             });
 
@@ -539,7 +539,7 @@ app.put('/api/daily-sales-records/:id', verifyToken, async (req, res) => {
                 where: { id },
                 data: {
                     ...recordData,
-                    date: new Date(date), // Asegurar que la fecha es un objeto Date
+                    date: new Date(date + 'T12:00:00Z'), // Asegurar que la fecha es un objeto Date y se interpreta como mediodía UTC
                 },
             });
 
@@ -556,7 +556,7 @@ app.put('/api/daily-sales-records/:id', verifyToken, async (req, res) => {
                     data: {
                         description: `Venta Diaria Detallada (${new Date(date).toISOString().slice(0, 10)})`,
                         amount: recordData.totalImporte,
-                        date: new Date(date),
+                        date: new Date(date + 'T12:00:00Z'),
                     },
                 });
             } else {
@@ -565,7 +565,7 @@ app.put('/api/daily-sales-records/:id', verifyToken, async (req, res) => {
                     data: {
                         description: `Venta Diaria Detallada (${new Date(date).toISOString().slice(0, 10)})`,
                         amount: recordData.totalImporte,
-                        date: new Date(date),
+                        date: new Date(date + 'T12:00:00Z'),
                         dailySalesRecordId: updatedDailySalesRecord.id,
                     },
                 });
@@ -638,7 +638,7 @@ app.post('/api/daily-sales-records/bulk', verifyToken, async (req, res) => {
                 return res.status(400).json({ error: `One or more records are missing a date.` });
             }
 
-            const recordDate = new Date(date);
+            const recordDate = new Date(date + 'T12:00:00Z'); // Interpretar la fecha como mediodía UTC
             const generatedId = createId(); // Generate CUID beforehand
 
             // Prepare DailySalesRecord data
@@ -650,7 +650,7 @@ app.post('/api/daily-sales-records/bulk', verifyToken, async (req, res) => {
 
             // Prepare corresponding Ingreso data
             ingresosToCreate.push({
-                description: `Venta Diaria Detallada (${recordDate.toISOString().slice(0, 10)})`,
+                description: `Venta Diaria Detallada (${new Date(date).toISOString().slice(0, 10)})`,
                 amount: restOfData.totalImporte,
                 date: recordDate,
                 dailySalesRecordId: generatedId, // Use the pre-generated ID
