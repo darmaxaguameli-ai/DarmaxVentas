@@ -1,14 +1,15 @@
 // src/pages/OrderSelection.jsx
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../../context/AuthContext";
-import ClientOrderHeader from "../../../components/ClientOrderHeader"; // Import the new header component
+import ClientOrderHeader from "../../../components/ClientOrderHeader";
+import PriceTable from "../../../components/PriceTable"; // Importar PriceTable
 
 const OrderSelection = () => {
   const navigate = useNavigate();
-  const { logout, user } = useAuth();
+  const { logout, user, isAuthenticated } = useAuth();
 
   return (
-    <div className="font-display relative flex min-h-screen w-full flex-col bg-light dark:bg-dark text-dark dark:text-white overflow-x-hidden">
+    <div className="font-display relative flex min-h-screen w-full flex-col bg-light dark:bg-dark text-dark dark:text-white overflow-x-hidden select-none">
       {/* Contenedor principal */}
       <div className="flex flex-1 justify-center px-4 sm:px-6 lg:px-12 py-8">
         <div className="flex w-full max-w-4xl flex-col items-center gap-10">
@@ -95,35 +96,41 @@ const OrderSelection = () => {
 
             </div>
 
-          {/* Opción: Ya soy cliente */}
-          <div className="mt-8 w-full max-w-3xl">
-            <div className="rounded-2xl border border-primary/40 bg-primary/5 dark:bg-primary/15 px-6 py-5 flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div className="flex items-center gap-3 text-left">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-white">
-                  <span className="material-symbols-outlined text-2xl">
-                    verified_user
-                  </span>
-                </div>
-                <div>
-                  <p className="text-base sm:text-lg font-semibold">
-                    ¿Ya eres cliente Darmax?
-                  </p>
-                  <p className="text-sm sm:text-base text-text-secondary dark:text-white/70">
-                    Identifícate rápidamente escribiendo tu nombre registrado.
-                  </p>
+            {/* Opción: Ya soy cliente */}
+            {!isAuthenticated && (
+              <div className="mt-8 w-full max-w-3xl">
+                <div className="rounded-2xl border border-primary/40 bg-primary/5 dark:bg-primary/15 px-6 py-5 flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <div className="flex items-center gap-3 text-left">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-white">
+                      <span className="material-symbols-outlined text-2xl">
+                        verified_user
+                      </span>
+                    </div>
+                    <div>
+                      <p className="text-base sm:text-lg font-semibold">
+                        ¿Ya eres cliente Darmax?
+                      </p>
+                      <p className="text-sm sm:text-base text-text-secondary dark:text-white/70">
+                        Identifícate rápidamente escribiendo tu nombre registrado.
+                      </p>
+                    </div>
+                  </div>
+
+                  <Link
+                    to="/pedidos/identificar"
+                    className="flex h-11 px-6 items-center justify-center rounded-lg
+                              bg-primary text-white text-sm sm:text-base font-semibold
+                              shadow-sm hover:bg-primary/90 transition-colors"
+                  >
+                    Continuar
+                  </Link>
                 </div>
               </div>
+            )}
 
-              <Link
-                to="/pedidos/identificar"
-                className="flex h-11 px-6 items-center justify-center rounded-lg
-                          bg-primary text-white text-sm sm:text-base font-semibold
-                          shadow-sm hover:bg-primary/90 transition-colors"
-              >
-                Continuar
-              </Link>
-            </div>
-          </div>
+            {/* Componente de tabla de precios */}
+            <PriceTable />
+
           </main>
 
           {/* Footer */}
@@ -153,3 +160,4 @@ const OrderSelection = () => {
 };
 
 export default OrderSelection;
+

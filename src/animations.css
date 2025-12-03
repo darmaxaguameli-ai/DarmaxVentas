@@ -1,39 +1,118 @@
 /* src/animations.css */
-.wave-container {
+
+/* Keyframes para la animación del garrafón en escritorio */
+@keyframes drag-image-animation {
+  0% { left: 25%; top: 45%; opacity: 0; transform: translate(-50%, -50%) scale(0.9); }
+  15% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  30% { transform: translate(-50%, -50%) scale(1.1); } /* Efecto de "agarrar" */
+  85% { left: 75%; top: 50%; opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
+  100% { left: 75%; top: 50%; opacity: 0; transform: translate(-50%, -50%) scale(0.9); }
+}
+
+/* Contenedor de la animación de escritorio */
+.instruction-animation-container {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 150;
+  display: none; /* Oculto en móvil por defecto */
+}
+
+/* Muestra la animación de escritorio solo en pantallas md (768px) o más grandes */
+@media (min-width: 768px) {
+  .instruction-animation-container {
+    display: block;
+  }
+}
+
+/* Estilo para el garrafón animado en escritorio */
+.instruction-jug {
+  position: absolute;
+  width: 70px;
+  height: 70px;
+  opacity: 0;
+  animation: drag-image-animation 5s ease-in-out infinite;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
+}
+
+/* Keyframes para la animación del garrafón en móvil */
+@keyframes drag-image-animation-mobile {
+  0% { top: 25%; opacity: 0; transform: translate(-50%, -50%) scale(0.9); }
+  15% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  30% { transform: translate(-50%, -50%) scale(1.1); } /* Efecto de "agarrar" */
+  85% { top: 65%; opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
+  100% { top: 65%; opacity: 0; transform: translate(-50%, -50%) scale(0.9); }
+}
+
+/* Contenedor de la animación de móvil */
+.instruction-animation-container-mobile {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 150;
+  display: none; /* Oculto en escritorio por defecto */
+}
+
+/* Muestra la animación de móvil solo en pantallas pequeñas (hasta 767px) */
+@media (max-width: 767px) {
+  .instruction-animation-container-mobile {
+    display: block;
+  }
+}
+
+/* Estilo para el garrafón animado en móvil */
+.instruction-jug-mobile {
+  position: absolute;
+  width: 60px;
+  height: 60px;
+  left: 50%; /* Centrado horizontalmente */
+  opacity: 0;
+  animation: drag-image-animation-mobile 5s ease-in-out infinite;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
+}
+
+/* Clase para resaltar las columnas durante el tutorial */
+.highlight-tutorial {
     position: relative;
-    height: 100px; /* You can adjust this height */
-    overflow: hidden;
-    border-radius: 1rem 1rem 0 0; /* Match card's top rounding */
-    background-color: #caeaff; /* A light sky blue background */
+    z-index: 140; /* Por encima del overlay, debajo de la animación */
+    box-shadow: 0 0 15px 5px rgba(59, 130, 246, 0.4);
+    border-radius: 0.75rem;
+    transition: box-shadow 0.5s ease-in-out;
+}
+
+/* ===== Animación de Olas de Agua ===== */
+@keyframes wave {
+  0% { transform: translateX(0); }
+  50% { transform: translateX(-25%); }
+  100% { transform: translateX(-50%); }
+}
+
+.wave-container {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 60%; /* Altura de la ola */
+  overflow: hidden;
+  border-radius: 0 0 0.75rem 0.75rem; /* Coincide con el redondeo de la tarjeta */
 }
 
 .wave {
-    position: absolute;
-    width: 200%;
-    height: 100%;
-    background-color: #60a5fa; /* A nice blue, e.g., blue-400 */
-    border-radius: 45%;
-    opacity: 0.5;
-    animation: wave-motion 8s infinite linear;
-    bottom: 15%;
-    left: -50%;
+  background: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 88.7'%3e%3cpath d='M800 56.9c-155.5 0-204.9-50-405.5-49.9-200 0-250 49.9-394.5 49.9v31.8h800v-.2-31.6z' fill='%233b82f6'/%3e%3c/svg%3e");
+  position: absolute;
+  left: 0;
+  width: 200%;
+  height: 100%;
+  background-repeat: repeat no-repeat;
+  background-position: 0 bottom;
+  transform-origin: center bottom;
+  animation: wave 10s linear infinite;
+  opacity: 0.3;
 }
 
 .wave.two {
-    border-radius: 40%;
-    opacity: 0.3;
-    animation: wave-motion 12s infinite linear;
-    bottom: 10%;
-}
-
-@keyframes wave-motion {
-    0% {
-        transform: translateX(0);
-    }
-    50% {
-        transform: translateX(25%);
-    }
-    100% {
-        transform: translateX(0);
-    }
+  width: 200%;
+  animation-duration: 15s;
+  animation-direction: reverse;
+  opacity: 0.2;
 }

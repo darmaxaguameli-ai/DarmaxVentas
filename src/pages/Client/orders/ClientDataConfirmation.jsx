@@ -76,7 +76,7 @@ const ClientDataConfirmation = () => {
                 "
               >
                 <span className="text-2xl sm:text-3xl font-black text-primary">
-                  {clientData.id}
+                  {clientData.customId}
                 </span>
                 <span className="material-symbols-outlined text-primary text-2xl sm:text-3xl">
                   badge

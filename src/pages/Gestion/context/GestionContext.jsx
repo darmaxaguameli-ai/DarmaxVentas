@@ -5,6 +5,7 @@ import React, {
   useCallback,
   useEffect,
 } from "react";
+import { useAuth } from "../../../context/AuthContext";
 import {
   // Product
   fetchProducts as apiFetchProducts,
@@ -46,7 +47,7 @@ import {
 } from "../../../api/apiClient";
 
 const GestionContext = createContext(null);
-
+// ... (useGestion y el reducer se mantienen igual)
 export const useGestion = () => {
   const context = useContext(GestionContext);
   if (!context) {
@@ -87,9 +88,6 @@ const gestionReducer = (state, action) => {
         jugBrands: action.payload.jugBrands || state.jugBrands,
         loading: false,
       };
-
-    // This single reducer can handle all ADD actions now if we refetch
-    // But for optimistic UI, we keep them separate.
     case "ADD_PRODUCT":
       return { ...state, inventory: [...state.inventory, action.payload] };
     case "ADD_USER":
@@ -104,20 +102,20 @@ const gestionReducer = (state, action) => {
         return { ...state, servicePrices: [...state.servicePrices, action.payload] };
     case "ADD_JUG_BRAND":
         return { ...state, jugBrands: [...state.jugBrands, action.payload] };
-    
-    // We don't need specific update/delete reducers anymore because
-    // the actions will re-fetch the entire dataset, which is handled
-    // by SET_INITIAL_DATA. This simplifies the reducer greatly.
-
     default:
       return state;
   }
 };
 
+
 export const GestionProvider = ({ children }) => {
   const [state, dispatch] = useReducer(gestionReducer, initialState);
+  const { isAuthenticated, loading: authLoading } = useAuth(); // Usar AuthContext
 
   const fetchManagementData = useCallback(async () => {
+    // No hacer nada si no está autenticado
+    if (!isAuthenticated) return;
+
     dispatch({ type: "SET_LOADING", payload: true });
     try {
       const [
@@ -134,29 +132,30 @@ export const GestionProvider = ({ children }) => {
     } catch (error) {
       dispatch({ type: "SET_ERROR", payload: error.message });
     }
-  }, []);
+  }, [isAuthenticated]); // Depender de isAuthenticated
 
   useEffect(() => {
-    fetchManagementData();
-  }, [fetchManagementData]);
+    // Solo cargar datos si la autenticación no está cargando y el usuario está autenticado
+    if (!authLoading && isAuthenticated) {
+      fetchManagementData();
+    }
+  }, [authLoading, isAuthenticated, fetchManagementData]);
 
-  // Generic factory for CRUD actions
+  // ... (resto del provider se mantiene igual)
   const createCrudActions = (modelName, api) => ({
     [`add${modelName}`]: useCallback(async (data) => {
       const newRecord = await api[`create${modelName}`](data);
-      // We can do an optimistic update or a re-fetch. Re-fetch is simpler.
       dispatch({ type: `ADD_${modelName.toUpperCase()}`, payload: newRecord });
-      // Or await fetchManagementData();
       return newRecord;
     }, []),
     [`update${modelName}`]: useCallback(async (id, data) => {
       const updatedRecord = await api[`update${modelName}`](id, data);
-      await fetchManagementData(); // Re-fetch is safest for updates
+      await fetchManagementData();
       return updatedRecord;
     }, [fetchManagementData]),
     [`delete${modelName}`]: useCallback(async (id) => {
       await api[`delete${modelName}`](id);
-      await fetchManagementData(); // Re-fetch is safest for deletes
+      await fetchManagementData();
     }, [fetchManagementData]),
   });
 

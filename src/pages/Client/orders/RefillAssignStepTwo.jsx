@@ -1,222 +1,252 @@
 // src/pages/cliente/orders/RefillAssignStepTwo.jsx
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import axios from "axios";
+import { DndContext, useDraggable, useDroppable } from "@dnd-kit/core";
 import OrderLayout from "../../../layouts/OrderLayout";
-import '../../../animations.css'; // Import the new animations
+import { useConfig } from "../../../context/ConfigContext";
+import '../../../animations.css';
 
+// ====================================================================
+// Componente Draggable (Garrafón a la izquierda)
+// ====================================================================
+const DraggableJug = ({ id, name, imageUrl, children }) => {
+  const { attributes, listeners, setNodeRef, transform } = useDraggable({
+    id: id,
+    data: { id, name, type: 'jug' },
+  });
+
+  const style = transform ? {
+    transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+    zIndex: 9999, // Asegura que esté por encima de todo al arrastrar
+  } : undefined;
+
+  return (
+    <div ref={setNodeRef} style={style} {...listeners} {...attributes}>
+      {children}
+    </div>
+  );
+};
+
+// ====================================================================
+// Componente Droppable (Tipo de Agua a la derecha)
+// ====================================================================
+const DroppableWaterType = ({ id, name, children }) => {
+  const { isOver, setNodeRef } = useDroppable({
+    id: id,
+    data: { id, name, type: 'water' },
+  });
+
+  const style = {
+    transition: 'border-color 0.2s, box-shadow 0.2s',
+    borderColor: isOver ? '#3b82f6' : 'transparent',
+    boxShadow: isOver ? '0 0 0 3px rgba(59, 130, 246, 0.4)' : 'none',
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} className="border-2 border-dashed rounded-2xl">
+      {children}
+    </div>
+  );
+};
+
+// ====================================================================
+// Componente Principal
+// ====================================================================
 const RefillAssignStepTwo = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const maxJugs = location.state?.maxJugs ?? 0;
+  const sourceJugsFromState = location.state?.fromStepOne || [];
+  
+  const [sourceJugs, setSourceJugs] = useState([]);
+  const [targetWater, setTargetWater] = useState([]);
 
-  const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const { waterTypes: fetchedWaterTypes, loading: configLoading, error: configError } = useConfig();
+  const loading = configLoading;
+  const error = configError;
+
+  const [showAnimation, setShowAnimation] = useState(true);
 
   useEffect(() => {
-    const fetchWaterTypes = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const response = await axios.get('/api/water-types');
-        const formattedProducts = response.data.map((wt, index) => ({
+    if (sourceJugsFromState.length === 0) {
+      navigate("/pedidos/rellenar");
+      return;
+    }
+    setSourceJugs(sourceJugsFromState.map(jug => ({...jug, initialQuantity: jug.quantity})));
+
+    if (!configLoading && !configError && fetchedWaterTypes.length > 0) {
+      const initialWaterTypes = fetchedWaterTypes.map(wt => {
+        return {
           id: wt.id,
           name: `Agua ${wt.name}`,
           quantity: 0,
-          featured: wt.name === 'Premium', // Make Premium featured
-        }));
-        setProducts(formattedProducts);
-      } catch (err) {
-        console.error("Error fetching water types:", err);
-        setError("No se pudieron cargar los tipos de agua. Por favor, intenta de nuevo.");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchWaterTypes();
-  }, []);
-
-  const totalAssigned = products.reduce((sum, p) => sum + p.quantity, 0);
-  const remaining = Math.max(0, maxJugs - totalAssigned);
-
-  const changeQuantity = (id, delta) => {
-    setProducts((prev) => {
-      const totalBefore = prev.reduce((s, p) => s + p.quantity, 0);
-
-      return prev.map((p) => {
-        if (p.id !== id) return p;
-
-        const newQty = p.quantity + delta;
-        if (newQty < 0) return p;
-
-        const newTotal = totalBefore + delta;
-        if (newTotal < 0 || newTotal > maxJugs) return p;
-
-        return { ...p, quantity: newQty };
+          price: 0, // El precio ya no se muestra aquí, se deja en 0
+        };
       });
-    });
-  };
+      setTargetWater(initialWaterTypes);
+    }
+  }, [sourceJugsFromState, fetchedWaterTypes, configLoading, configError, navigate]);
 
-  const handleBack = () => {
-    navigate("/pedidos/rellenar"); // Paso 1
+  useEffect(() => {
+    if (!configError && !configLoading) {
+      const timer = setTimeout(() => setShowAnimation(false), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [configError, configLoading]);
+
+  const totalJugsAvailable = sourceJugs.reduce((sum, p) => sum + p.quantity, 0);
+  const totalJugsAssigned = targetWater.reduce((sum, p) => sum + p.quantity, 0);
+
+  const handleDragEnd = ({ active, over }) => {
+    if (!over || active.data.current?.type !== 'jug' || over.data.current?.type !== 'water') return;
+
+    const sourceJugId = active.data.current?.id;
+    const targetWaterId = over.data.current?.id;
+
+    const sourceJug = sourceJugs.find(j => j.id === sourceJugId);
+    if (!sourceJug || sourceJug.quantity === 0) return; // No hay de este garrafón para asignar
+    
+    setSourceJugs(prev => prev.map(jug =>
+      jug.id === sourceJugId ? { ...jug, quantity: jug.quantity - 1 } : jug
+    ));
+    setTargetWater(prev => prev.map(water =>
+      water.id === targetWaterId ? { ...water, quantity: water.quantity + 1 } : water
+    ));
   };
   
-  const handleContinue = () => {
-    navigate("/pedidos/rellenar/entrega", {
-      state: {
-        ...location.state, // Pass previous state along
-        fromStepTwo: products.filter(p => p.quantity > 0),
-        maxJugs,
-      },
+  const handleManualAdd = (waterTypeId) => {
+    const firstAvailableJug = sourceJugs.find(jug => jug.quantity > 0);
+    if (!firstAvailableJug) return;
+    handleDragEnd({
+      active: { data: { current: { id: firstAvailableJug.id, type: 'jug' }}},
+      over: { data: { current: { id: waterTypeId, type: 'water' }}}
     });
   };
 
-  const renderContent = () => {
-    if (loading) {
-      return <div className="text-center py-10">Cargando tipos de agua...</div>;
-    }
+  const handleManualRemove = (waterTypeId) => {
+    const assignedWater = targetWater.find(w => w.id === waterTypeId);
+    if (!assignedWater || assignedWater.quantity === 0) return;
 
-    if (error) {
-      return <div className="text-center py-10 text-red-500">{error}</div>;
-    }
+    // Lógica para devolver el garrafón (simplificada)
+    // Asume que podemos devolver a cualquier tipo de garrafón que no esté lleno
+    const jugToReturnTo = sourceJugs.find(j => j.quantity < j.initialQuantity);
+    if (!jugToReturnTo) return; // No hay a dónde devolver
+
+    setSourceJugs(prev => prev.map(jug => 
+        jug.id === jugToReturnTo.id ? { ...jug, quantity: jug.quantity + 1 } : jug
+    ));
+        setTargetWater(prev => prev.map(water =>
+            water.id === waterTypeId ? { ...water, quantity: water.quantity - 1 } : water
+        ));
+      };
     
-    return (
-      <>
-        {/* Bloque de resumen total */}
-        <div className="flex flex-wrap justify-between items-start gap-4 mb-6">
-          <div className="flex min-w-[240px] flex-col gap-2">
-            <p className="text-base sm:text-lg text-text-secondary dark:text-white/80">
-              Ajusta cuántos garrafones quieres de cada tipo de agua.
-            </p>
-            {maxJugs > 0 && (
-              <p className="text-sm sm:text-base text-text-secondary dark:text-white/70">
-                Tienes{" "}
-                <span className="font-bold text-primary">{maxJugs}</span>{" "}
-                garrafones en total.
-                {remaining > 0 && (
+      const handleGoToStart = () => {
+        navigate('/pedidos');
+      };
+    
+      const handleBack = () => navigate("/pedidos/rellenar");
+        const handleContinue = () => {
+          navigate("/pedidos/rellenar/entrega", {
+            state: {
+              ...location.state,
+              fromStepTwo: targetWater.filter(p => p.quantity > 0),
+              maxJugs: sourceJugsFromState.reduce((sum, j) => sum + j.quantity, 0),
+            },
+          });
+        };
+      
+        const maxJugs = sourceJugsFromState.reduce((sum, j) => sum + j.quantity, 0);
+      
+        const renderContent = () => {
+          if (loading) return <div className="text-center py-10">Cargando...</div>;
+          if (error) return <div className="text-center py-10 text-red-500">{error}</div>;
+          
+          return (
+            <>
+              {showAnimation && <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-30 transition-opacity duration-500"></div>}
+              <DndContext onDragEnd={handleDragEnd}>
+                {showAnimation && (
                   <>
-                    {" "}
-                    Te faltan{" "}
-                    <span className="font-bold text-primary">
-                      {remaining}
-                    </span>{" "}
-                    por asignar.
+                      {/* Animación de Escritorio */}
+                      <div className="instruction-animation-container">
+                          <div className="instruction-jug">
+                              <img src="/img/garrafones/turquesa.png" alt="Animación de arrastre" className="h-full w-full object-contain" />
+                          </div>
+                      </div>
+                      {/* Animación Móvil */}
+                      <div className="instruction-animation-container-mobile">
+                          <div className="instruction-jug-mobile">
+                              <img src="/img/garrafones/turquesa.png" alt="Animación de arrastre" className="h-full w-full object-contain" />
+                          </div>
+                      </div>
                   </>
                 )}
-              </p>
-            )}
-          </div>
-
-          <div className="flex flex-col items-start sm:items-end gap-1">
-            <p className="text-sm sm:text-base font-medium text-text-secondary dark:text-white/80">
-              Total asignado
-            </p>
-            <p className="text-3xl sm:text-4xl font-black">
-              <span className="text-primary">{totalAssigned}</span>
-              <span className="text-text-secondary dark:text-white/60 text-xl sm:text-2xl">
-                {" "}
-                / {maxJugs}
-              </span>
-            </p>
-          </div>
-        </div>
-
-        {/* Nota de ayuda para adultos mayores */}
-        <p className="mb-4 text-sm sm:text-base text-text-secondary dark:text-white/75">
-          <span className="font-semibold text-dark dark:text-white">
-            Tip:
-          </span>{" "}
-          toca la tarjeta del tipo de agua o usa los botones{" "}
-          <strong>+</strong> y <strong>–</strong> para aumentar o disminuir.
-        </p>
-
-        {/* Grid de tipos de agua – optimizado y clickeable */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 mb-6 max-w-3xl mx-auto">
-          {products.map((product) => {
-            const handleCardClick = () => changeQuantity(product.id, 1);
-
-            const handleMinus = (e) => {
-              e.stopPropagation();
-              changeQuantity(product.id, -1);
-            };
-
-            const handlePlus = (e) => {
-              e.stopPropagation();
-              changeQuantity(product.id, 1);
-            };
-
-            return (
-              <div
-                key={product.id}
-                onClick={handleCardClick}
-                className={`flex flex-col rounded-2xl cursor-pointer select-none
-                            border bg-white/95 dark:bg-dark/60 
-                            shadow-md backdrop-blur-xl transition-all
-                ${
-                  product.featured
-                    ? "border-primary/80 dark:border-primary shadow-lg"
-                    : "border-light/60 dark:border-white/10 hover:border-primary/50"
-                }`}
-              >
-                <div className="wave-container">
-                  <div className="wave"></div>
-                  <div className="wave two"></div>
-                </div>
-
-                <div className="px-4 pb-4 pt-4 flex flex-col gap-4 justify-center items-center">
-                  <p className="text-xl sm:text-2xl font-bold text-dark dark:text-white text-center">
-                    {product.name}
-                  </p>
-                  <div className="flex items-center justify-between gap-4 w-full max-w-[150px]">
-                    <button
-                      type="button"
-                      onClick={handleMinus}
-                      className="flex h-11 w-11 items-center justify-center rounded-full
-                                 bg-light dark:bg-dark text-text-secondary dark:text-white/80
-                                 hover:bg-light/80 dark:hover:bg-dark/80 transition-colors"
-                    >
-                      <span className="material-symbols-outlined text-2xl">
-                        remove
-                      </span>
-                    </button>
-                    <span className="text-2xl font-black text-dark dark:text-white">
-                      {product.quantity}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={handlePlus}
-                      className="flex h-11 w-11 items-center justify-center rounded-full
-                                 bg-light dark:bg-dark text-text-secondary dark:text-white/80
-                                 hover:bg-light/80 dark:hover:bg-dark/80 transition-colors"
-                    >
-                      <span className="material-symbols-outlined text-2xl">
-                        add
-                      </span>
-                    </button>
+                                    <div className="flex flex-wrap justify-between items-start gap-4 mb-6 relative z-40">
+                                      {/* Texto para escritorio */}
+                                      <p className={`hidden md:block transition-all duration-300 ${showAnimation ? 'text-white font-bold' : 'text-text-secondary dark:text-white/80'}`}>
+                                        Arrastra tus garrafones de la izquierda hacia el tipo de agua que deseas a la derecha.
+                                      </p>
+                                      {/* Texto para móvil */}
+                                      <p className={`block md:hidden transition-all duration-300 ${showAnimation ? 'text-white font-bold' : 'text-text-secondary dark:text-white/80'}`}>
+                                        Arrastra tus garrafones de arriba hacia el tipo de agua que deseas abajo.
+                                      </p>
+                                      <div className="flex flex-col items-end gap-1">
+                                        <p className="text-sm font-medium">Total Asignado</p>
+                                        <p className="text-3xl font-black">
+                                          <span className="text-primary">{totalJugsAssigned}</span>
+                                          <span className="text-text-secondary dark:text-white/60 text-xl"> / {maxJugs}</span>
+                                        </p>
+                                      </div>
+                                    </div>                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 min-h-[300px]">
+                  <div className={`space-y-4 p-4 rounded-xl bg-white/50 dark:bg-gray-900/50 ${showAnimation ? 'highlight-tutorial' : ''}`}>
+                    <h2 className="text-xl font-bold text-center">Mis Garrafones</h2>
+                    {sourceJugs.map(jug => (
+                      <DraggableJug key={jug.id} {...jug}>
+                        <div className={`p-4 rounded-lg shadow flex items-center justify-between bg-white dark:bg-gray-800 transition-opacity ${jug.quantity === 0 ? 'opacity-40' : 'cursor-grab'}`}>
+                          <div className="flex items-center gap-3">
+                            <img src={jug.imageUrl} alt={jug.name} className="h-12 w-12 object-contain" />
+                            <span className="font-medium">{jug.name}</span>
+                          </div>
+                          <span className="text-2xl font-bold">{jug.quantity}</span>
+                        </div>
+                      </DraggableJug>
+                    ))}
                   </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </>
-    );
-  };
-
+                  <div className={`space-y-4 p-4 rounded-xl bg-white/50 dark:bg-gray-900/50 ${showAnimation ? 'highlight-tutorial' : ''}`}>
+                    <h2 className="text-xl font-bold text-center">Tipos de Agua</h2>
+                                        {targetWater.map(water => (
+                                          <DroppableWaterType key={water.id} {...water}>
+                                                                    <div className="p-4 rounded-lg shadow bg-white dark:bg-gray-800 flex flex-col items-center justify-center gap-2 min-h-[100px] relative overflow-hidden">
+                                                                      <div className="wave-container">
+                                                                        <div className="wave"></div>
+                                                                        <div className="wave two"></div>
+                                                                      </div>
+                                                                      <div className="relative flex flex-col items-center justify-center gap-2">
+                                                                        <p className="text-lg font-bold text-center">{water.name}</p>
+                                                                        <div className="flex items-center gap-4">
+                                                                           <button onClick={() => handleManualRemove(water.id)} className="btn-secondary p-2 h-8 w-8 flex items-center justify-center rounded-full">-</button>
+                                                                           <span className="text-3xl font-black text-primary tabular-nums">{water.quantity}</span>
+                                                                           <button onClick={() => handleManualAdd(water.id)} className="btn-secondary p-2 h-8 w-8 flex items-center justify-center rounded-full">+</button>
+                                                                        </div>
+                                                                      </div>
+                                                                    </div>                                          </DroppableWaterType>
+                                        ))}
+                                    </div>
+                                </div>              </DndContext>
+            </>
+          );
+        };
   return (
     <OrderLayout
       title="Asigna tus garrafones"
-      subtitle="Distribuye tu total de garrafones entre los tipos de agua disponibles."
+      subtitle="Arrastra cada garrafón al tipo de agua que prefieras."
       step={2}
       totalSteps={4}
     >
       <div className="flex flex-col gap-6">
         {renderContent()}
       </div>
-      {/* Footer dentro del layout */}
-      <footer className="mt-auto pt-2">
+      <footer className="mt-auto pt-8">
         <div className="flex flex-col-reverse sm:flex-row gap-4 justify-between items-center">
           <button
             type="button"
@@ -234,17 +264,16 @@ const RefillAssignStepTwo = () => {
           >
             Volver al paso 1
           </button>
-
           <button
             type="button"
             onClick={handleContinue}
-            className="flex h-12 sm:h-14 w-full sm:w-auto items-center justify-center rounded-xl
-                       bg-primary px-8 sm:px-10 text-base sm:text-lg font-semibold text-white
+            className="flex h-12 w-full sm:w-auto items-center justify-center rounded-lg
+                       bg-primary px-8 text-base font-semibold text-white
                        shadow-sm hover:bg-primary/90
                        focus-visible:outline focus-visible:outline-2 
                        focus-visible:outline-offset-2 focus-visible:outline-primary
                        transition-all disabled:opacity-60 disabled:cursor-not-allowed"
-            disabled={totalAssigned !== maxJugs || maxJugs === 0}
+            disabled={totalJugsAssigned !== maxJugs}
           >
             Continuar al paso 3
           </button>

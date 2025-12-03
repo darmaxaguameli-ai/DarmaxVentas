@@ -33,6 +33,8 @@ const ClientOrderHeader = ({ primaryLink, showOrderSelectionButton }) => {
       <div className="flex items-center gap-2 sm:gap-4"> {/* Adjusted gap for better mobile spacing */}
         {isAuthenticated ? (
           <>
+            {/* --- Link Dinámico --- */}
+            {/* 1. Versión de texto para pantallas grandes (sm y más) */}
             <Link
               to={linkToShow.to}
               className="hidden sm:block text-sm sm:text-base font-medium text-text-secondary dark:text-white/70 hover:text-primary dark:hover:text-primary transition-colors"
@@ -40,6 +42,18 @@ const ClientOrderHeader = ({ primaryLink, showOrderSelectionButton }) => {
               {linkToShow.label}
             </Link>
 
+            {/* 2. Versión de icono para pantallas pequeñas */}
+            <Link
+              to={linkToShow.to}
+              className="flex sm:hidden h-10 w-10 items-center justify-center rounded-full bg-light dark:bg-primary/20 text-text-secondary dark:text-white"
+              aria-label={linkToShow.label}
+            >
+              <span className="material-symbols-outlined text-2xl">
+                {linkToShow.to === '/mis-pedidos' ? 'receipt_long' : 'add_shopping_cart'}
+              </span>
+            </Link>
+
+            {/* --- Botones de Perfil y Logout --- */}
             <button
               onClick={() => navigate('/profile')}
               className="flex h-10 w-10 items-center justify-center rounded-full

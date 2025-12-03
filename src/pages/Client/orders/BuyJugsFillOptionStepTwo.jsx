@@ -1,8 +1,8 @@
 // src/pages/Client/orders/BuyJugsFillOptionStepTwo.jsx
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import axios from "axios";
 import OrderLayout from "../../../layouts/OrderLayout";
+import { useConfig } from "../../../context/ConfigContext"; // Importar useConfig
 
 const BuyJugsFillOptionStepTwo = () => {
   const navigate = useNavigate();
@@ -13,26 +13,8 @@ const BuyJugsFillOptionStepTwo = () => {
   const totalJugsBuy = previousState.totalJugsBuy || 0;
 
   const [selectedOption, setSelectedOption] = useState("empty"); // "empty" | "full"
-  const [waterTypes, setWaterTypes] = useState([]);
-  const [loadingWaterTypes, setLoadingWaterTypes] = useState(true);
-  const [errorWaterTypes, setErrorWaterTypes] = useState(null);
+  const { waterTypes, loading: configLoading, error: configError } = useConfig();
 
-  useEffect(() => {
-    const fetchWaterTypes = async () => {
-      try {
-        setLoadingWaterTypes(true);
-        setErrorWaterTypes(null);
-        const response = await axios.get('/api/water-types');
-        setWaterTypes(response.data);
-      } catch (err) {
-        console.error("Error fetching water types:", err);
-        setErrorWaterTypes("No se pudieron cargar los tipos de agua.");
-      } finally {
-        setLoadingWaterTypes(false);
-      }
-    };
-    fetchWaterTypes();
-  }, []);
 
   const handleBack = () => {
     navigate("/pedidos/comprar", {
@@ -75,11 +57,11 @@ const BuyJugsFillOptionStepTwo = () => {
   const isFull = selectedOption === "full";
 
   const renderContent = () => {
-    if (loadingWaterTypes) {
+    if (configLoading) {
       return <div className="text-center py-10">Cargando tipos de agua...</div>;
     }
-    if (errorWaterTypes) {
-      return <div className="text-center py-10 text-red-500">{errorWaterTypes}</div>;
+    if (configError) {
+      return <div className="text-center py-10 text-red-500">{configError}</div>;
     }
     return (
       <>
@@ -180,7 +162,7 @@ const BuyJugsFillOptionStepTwo = () => {
 
           <button
             type="button"
-            disabled={!selectedOption || loadingWaterTypes} // Disable if loading water types
+            disabled={!selectedOption || configLoading} // Disable if config loading
             onClick={handleContinue}
             className="flex h-12 sm:h-14 w-full sm:w-auto items-center justify-center rounded-xl
                        bg-primary px-8 sm:px-10 text-base sm:text-lg font-semibold text-white

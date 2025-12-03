@@ -1,5 +1,5 @@
 // src/pages/Login.jsx
-import { useState } from "react";
+import { useState, useEffect } from "react"; // Importar useEffect
 import { Link, useNavigate } from "react-router-dom";
 import MainLayout from "../layouts/MainLayout";
 import { useAuth } from "../context/AuthContext";
@@ -7,7 +7,7 @@ import { useAuth } from "../context/AuthContext";
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [rememberMe, setRememberMe] = useState(false); // New state for "Recuérdame"
+  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -38,7 +38,7 @@ const Login = () => {
       setIsSubmitting(false);
     }
   };
-
+    // ... (el resto del componente se mantiene igual)
   return (
     <MainLayout>
       <div className="w-full max-w-md mx-auto">
@@ -163,5 +163,4 @@ const Login = () => {
     </MainLayout>
   );
 };
-
 export default Login;

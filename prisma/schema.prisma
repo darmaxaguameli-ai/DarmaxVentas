@@ -123,6 +123,8 @@ model Pedido {
   deliveryMethod String        // ej: "domicilio", "recoleccion", "sucursal"
   paymentMethod  String?       // ej: "efectivo", "tarjeta"
   paymentStatus  PaymentStatus @default(NO_PAGADO)
+  deliveryDate   DateTime?     // Fecha de entrega preferida
+  deliveryTimeSlot String?     // Franja horaria de entrega preferida (ej: "9am-12pm")
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 

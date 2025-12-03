@@ -1,13 +1,14 @@
 import { useState } from "react";
 import { Outlet } from "react-router-dom";
 import GestionSidebar from "./GestionSidebar";
-import { ThemeProvider } from "../../context/ThemeContext"; // Import ThemeProvider
+import { ThemeProvider } from "../../context/ThemeContext";
+import { GestionProvider } from "./context/GestionContext"; // Importar
 
 const GestionDashboard = () => {
   const [isSidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <ThemeProvider> {/* Wrap with ThemeProvider */}
+    <ThemeProvider>
       <div className="flex h-screen bg-light dark:bg-dark text-text-light dark:text-text-dark font-display">
         {/* Sidebar */}
         <GestionSidebar isOpen={isSidebarOpen} onClose={() => setSidebarOpen(false)} />
@@ -29,7 +30,9 @@ const GestionDashboard = () => {
           >
             <span className="material-symbols-outlined">menu</span>
           </button>
-          <Outlet />
+          <GestionProvider> {/* Envolver el Outlet */}
+            <Outlet />
+          </GestionProvider>
         </main>
       </div>
     </ThemeProvider>

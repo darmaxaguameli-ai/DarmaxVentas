@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import OrderLayout from "../../../layouts/OrderLayout";
+import apiClient from "../../../api/apiClient"; // Importar apiClient
 
 const PickupClientDataStep = () => {
   const navigate = useNavigate();
@@ -10,9 +11,8 @@ const PickupClientDataStep = () => {
   const previousState = location.state || {};
   const deliveryMethod = previousState.deliveryMethod || "collect";
 
-  // Estado local con valores iniciales (por si luego reutilizas datos)
   const [form, setForm] = useState({
-    fullName: previousState.clientData?.fullName || "",
+    name: previousState.clientData?.name || "",
     phone: previousState.clientData?.phone || "",
     street: previousState.clientData?.street || "",
     neighborhood: previousState.clientData?.neighborhood || "",
@@ -20,6 +20,8 @@ const PickupClientDataStep = () => {
     postalCode: previousState.clientData?.postalCode || "",
     references: previousState.clientData?.references || "",
   });
+  const [error, setError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -30,7 +32,6 @@ const PickupClientDataStep = () => {
   };
 
   const handleBack = () => {
-    // Volvemos al paso de método de entrega
     navigate("/pedidos/rellenar/entrega", {
       state: {
         ...previousState,
@@ -39,42 +40,56 @@ const PickupClientDataStep = () => {
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setError('');
+    setIsSubmitting(true);
 
-    // Validación sencilla (ejemplo)
-    if (!form.fullName || !form.phone || !form.street) {
-      // Aquí luego puedes poner un toast bonito
-      console.log("Faltan campos obligatorios");
+    if (!form.name || !form.phone || !form.street) {
+      setError("Nombre, teléfono y calle son obligatorios.");
+      setIsSubmitting(false);
       return;
     }
 
-    // 🔹 Ejemplo de respuesta simulada:
-    const response = {
-        id: "CL-1023",
-        name: form.fullName,
-    };
+    try {
+      const payload = {
+        name: form.name,
+        phone: form.phone,
+        street: form.street,
+        neighborhood: form.neighborhood,
+        city: form.city,
+        postalCode: form.postalCode,
+        references: form.references
+      };
+      
+      const response = await apiClient.post('/register-client', payload);
+      const newUser = response.data;
 
-    navigate("/pedidos/rellenar/datos-confirmados", {
-        state: {
-        ...location.state, // viene de los pasos anteriores
-        clientData: {
-            id: response.id,
-            name: response.name,
-        },
-      },
-    });
+      navigate("/pedidos/rellenar/datos-confirmados", {
+          state: {
+            ...location.state,
+            clientData: newUser, // Pasar el objeto de usuario completo
+          },
+      });
+
+    } catch(err) {
+        console.error("Error creating new client:", err);
+        setError(err.message || 'Ocurrió un error al registrar tus datos.');
+    } finally {
+        setIsSubmitting(false);
+    }
   };
 
   return (
     <OrderLayout
       title="Datos para recolección a domicilio"
       subtitle="Escribe tus datos para que el repartidor encuentre tu domicilio sin problemas."
-      step={3}          // seguimos tratándolo como 'Paso 3'
-      totalSteps={4}    // tu flujo sigue teniendo 4 pasos visibles
+      step={3}
+      totalSteps={4}
     >
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Aviso del método elegido */}
+        {error && <div className="text-red-500 bg-red-100 p-3 rounded-lg">{error}</div>}
+        {/* ... (resto del formulario sin cambios) ... */}
         <div className="rounded-xl bg-light/70 dark:bg-dark/70 border border-light/60 dark:border-white/15 p-4">
           <p className="text-sm font-semibold text-text-secondary dark:text-white/70 uppercase tracking-[0.08em] mb-1">
             Método seleccionado
@@ -87,7 +102,6 @@ const PickupClientDataStep = () => {
           </p>
         </div>
 
-        {/* Nombre completo */}
         <div className="flex flex-col gap-2">
           <label
             htmlFor="fullName"
@@ -97,16 +111,15 @@ const PickupClientDataStep = () => {
           </label>
           <input
             id="fullName"
-            name="fullName"
+            name="name"
             type="text"
-            value={form.fullName}
+            value={form.name}
             onChange={handleChange}
             placeholder="Ejemplo: Juan Pérez Hernández"
             className="h-12 rounded-lg border border-light/70 dark:border-white/20 bg-white dark:bg-dark px-3 text-base sm:text-lg text-dark dark:text-white placeholder:text-text-secondary dark:placeholder:text-white/50 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
           />
         </div>
-
-        {/* Teléfono */}
+        
         <div className="flex flex-col gap-2">
           <label
             htmlFor="phone"
@@ -125,7 +138,6 @@ const PickupClientDataStep = () => {
           />
         </div>
 
-        {/* Dirección: Calle y número */}
         <div className="flex flex-col gap-2">
           <label
             htmlFor="street"
@@ -144,7 +156,6 @@ const PickupClientDataStep = () => {
           />
         </div>
 
-        {/* Colonia y Ciudad */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="flex flex-col gap-2">
             <label
@@ -183,7 +194,6 @@ const PickupClientDataStep = () => {
           </div>
         </div>
 
-        {/* Código postal */}
         <div className="flex flex-col gap-2">
           <label
             htmlFor="postalCode"
@@ -202,7 +212,6 @@ const PickupClientDataStep = () => {
           />
         </div>
 
-        {/* Referencias */}
         <div className="flex flex-col gap-2">
           <label
             htmlFor="references"
@@ -221,32 +230,21 @@ const PickupClientDataStep = () => {
           />
         </div>
 
-        {/* Botones grandes para adultos mayores */}
         <div className="mt-4 flex flex-col-reverse sm:flex-row gap-4 justify-between">
           <button
             type="button"
             onClick={handleBack}
-            className="w-full sm:w-auto h-12 sm:h-14 rounded-lg 
-                       bg-light text-dark 
-                       dark:bg-dark dark:text-white
-                       text-base sm:text-lg font-semibold
-                       px-6 sm:px-8
-                       hover:bg-light/80 dark:hover:bg-dark/80
-                       transition-all"
+            className="w-full sm:w-auto h-12 sm:h-14 rounded-lg bg-light text-dark dark:bg-dark dark:text-white text-base sm:text-lg font-semibold px-6 sm:px-8 hover:bg-light/80 dark:hover:bg-dark/80 transition-all"
           >
-            Volver al paso anterior
+            Volver
           </button>
 
           <button
             type="submit"
-            className="w-full sm:w-auto h-12 sm:h-14 rounded-lg 
-                       bg-primary px-8 text-base sm:text-lg font-semibold text-white
-                       shadow-sm hover:bg-primary/90
-                       focus-visible:outline focus-visible:outline-2 
-                       focus-visible:outline-offset-2 focus-visible:outline-primary
-                       transition-all active:scale-[0.98]"
+            disabled={isSubmitting}
+            className="w-full sm:w-auto h-12 sm:h-14 rounded-lg bg-primary px-8 text-base sm:text-lg font-semibold text-white shadow-sm hover:bg-primary/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary transition-all active:scale-[0.98] disabled:opacity-50"
           >
-            Continuar al resumen
+            {isSubmitting ? 'Guardando...' : 'Continuar al resumen'}
           </button>
         </div>
       </form>

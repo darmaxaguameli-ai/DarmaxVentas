@@ -1,9 +1,9 @@
 // src/pages/cliente/orders/RefillJugStepOne.jsx
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
 import OrderLayout from "../../../layouts/OrderLayout";
 import QuantityCard from "../../../components/order/QuantityCard";
+import { useConfig } from "../../../context/ConfigContext"; // Importar useConfig
 
 // Helper to map brand names to images, as the DB doesn't store them
 const brandImageMap = {
@@ -21,39 +21,29 @@ const getImageUrlForBrand = (name) => {
 
 const RefillJugStepOne = () => {
   const navigate = useNavigate();
-  const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const { jugBrands: fetchedJugBrands, loading: configLoading, error: configError } = useConfig();
+  
+  // Estado local para los productos seleccionados, inicializado desde fetchedJugBrands
+  const [selectedJugs, setSelectedJugs] = useState([]);
 
   useEffect(() => {
-    const fetchJugBrands = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const response = await axios.get('/api/jug-brands');
-        const formattedProducts = response.data.map((brand, index) => ({
-          id: brand.id,
-          name: `Garrafón ${brand.name}`,
-          quantity: 0,
-          featured: index === 0, // Make the first item featured as an example
-          imageUrl: getImageUrlForBrand(brand.name),
-        }));
-        setProducts(formattedProducts);
-      } catch (err) {
-        console.error("Error fetching jug brands:", err);
-        setError("No se pudieron cargar las marcas de garrafón. Por favor, intenta de nuevo más tarde.");
-      } finally {
-        setLoading(false);
-      }
-    };
+    if (!configLoading && !configError && fetchedJugBrands.length > 0) {
+      const initialProducts = fetchedJugBrands.map((brand, index) => ({
+        id: brand.id,
+        name: `Garrafón ${brand.name}`,
+        quantity: 0,
+        featured: index === 0, // Make the first item featured as an example
+        imageUrl: getImageUrlForBrand(brand.name),
+      }));
+      setSelectedJugs(initialProducts);
+    }
+  }, [fetchedJugBrands, configLoading, configError]);
 
-    fetchJugBrands();
-  }, []);
 
-  const totalJugs = products.reduce((sum, p) => sum + p.quantity, 0);
+  const totalJugs = selectedJugs.reduce((sum, p) => sum + p.quantity, 0);
 
   const handleChangeQuantity = (id, delta) => {
-    setProducts((prev) =>
+    setSelectedJugs((prev) =>
       prev.map((p) =>
         p.id === id
           ? { ...p, quantity: Math.max(0, p.quantity + delta) }
@@ -64,7 +54,6 @@ const RefillJugStepOne = () => {
 
   const handleContinue = () => {
     if (totalJugs === 0) {
-      // Consider showing a user-friendly alert/modal here instead of console.log
       alert("Debes seleccionar al menos 1 garrafón.");
       return;
     }
@@ -72,7 +61,7 @@ const RefillJugStepOne = () => {
     navigate("/pedidos/rellenar/asignar", {
       state: {
         maxJugs: totalJugs,
-        fromStepOne: products.filter(p => p.quantity > 0), // Send only selected products
+        fromStepOne: selectedJugs.filter(p => p.quantity > 0), // Send only selected products
       },
     });
   };
@@ -82,12 +71,17 @@ const RefillJugStepOne = () => {
   };
 
   const renderContent = () => {
-    if (loading) {
+    if (configLoading) {
       return <div className="text-center py-10">Cargando marcas de garrafón...</div>;
     }
 
-    if (error) {
-      return <div className="text-center py-10 text-red-500">{error}</div>;
+    if (configError) {
+      return <div className="text-center py-10 text-red-500">{configError}</div>;
+    }
+    
+    // Si no hay marcas de garrafón disponibles
+    if (selectedJugs.length === 0 && !configLoading) {
+        return <div className="text-center py-10">No hay marcas de garrafón disponibles.</div>;
     }
 
     return (
@@ -119,7 +113,7 @@ const RefillJugStepOne = () => {
             max-w-5xl mx-auto
           "
         >
-          {products.map((product) => (
+          {selectedJugs.map((product) => (
             <QuantityCard
               key={product.id}
               name={product.name}

@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import ClientOrderHeader from '../../components/ClientOrderHeader'; // Import the unified header
+import { useNavigate, useLocation } from 'react-router-dom'; // Importar useLocation
+import ClientOrderHeader from '../../components/ClientOrderHeader';
 import { useAuth } from '../../context/AuthContext';
-import axios from 'axios';
+import apiClient from '../../api/apiClient';
 
 const ClientProfile = () => {
   const { user, isAuthenticated, loading: authLoading, updateUser: updateAuthUser, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation(); // Usar useLocation para acceder al estado
 
   const [formData, setFormData] = useState({
     name: '',
@@ -24,6 +25,7 @@ const ClientProfile = () => {
   const [postalCodeApiLoading, setPostalCodeApiLoading] = useState(false);
   const [postalCodeApiError, setPostalCodeApiError] = useState('');
 
+
   useEffect(() => {
     if (!authLoading && (!isAuthenticated || user.role !== 'CLIENTE')) {
       navigate('/login');
@@ -33,7 +35,7 @@ const ClientProfile = () => {
     if (user && user.id) {
       const fetchUserProfile = async () => {
         try {
-          const response = await axios.get(`/api/users/${user.id}`);
+          const response = await apiClient.get(`/users/${user.id}`);
           const userData = response.data;
           setFormData({
             name: userData.name || '',
@@ -55,8 +57,8 @@ const ClientProfile = () => {
       fetchUserProfile();
     }
   }, [user, isAuthenticated, authLoading, navigate]);
-
-  useEffect(() => {
+  // ... (resto del useEffect y funciones se mantienen, solo cambiando axios por apiClient)
+    useEffect(() => {
     if (formData.postalCode && formData.postalCode.length === 5) {
       setPostalCodeApiLoading(true);
       setPostalCodeApiError('');
@@ -84,6 +86,7 @@ const ClientProfile = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -96,10 +99,18 @@ const ClientProfile = () => {
         if (dataToUpdate[key] === '') dataToUpdate[key] = null;
       });
 
-      const response = await axios.put(`/api/users/${user.id}`, dataToUpdate);
+      const response = await apiClient.put(`/users/${user.id}`, dataToUpdate);
       setSuccessMessage('¡Perfil actualizado con éxito!');
       updateAuthUser(response.data);
-      navigate('/pedidos');
+
+      // Lógica de redirección condicional
+      if (location.state?.fromOrderFlow) {
+        // Si venimos del flujo de pedidos, redirigir al resumen
+        navigate('/pedidos/rellenar/resumen', { state: location.state.orderState });
+      } else {
+        // Comportamiento normal: redirigir a la página principal de pedidos
+        navigate('/pedidos');
+      }
     } catch (err) {
       console.error('Error updating user profile:', err);
       setError(err.response?.data?.error || 'Error al actualizar el perfil.');
@@ -107,8 +118,7 @@ const ClientProfile = () => {
       setLoading(false);
     }
   };
-
-  const renderContent = () => {
+   const renderContent = () => {
     if (authLoading || loading) {
       return <div className="text-center py-10 text-dark dark:text-white">Cargando perfil...</div>;
     }
@@ -142,9 +152,8 @@ const ClientProfile = () => {
       </main>
     );
   };
-
-  return (
-    <div className="font-display relative flex min-h-screen w-full flex-col bg-light dark:bg-dark text-dark dark:text-white overflow-x-hidden">
+    return (
+    <div className="font-display relative flex min-h-screen w-full flex-col bg-light dark:bg-dark text-dark dark:text-white overflow-x-hidden select-none">
       <div className="flex flex-1 justify-center px-4 sm:px-6 lg:px-12 py-8">
         <div className="flex w-full max-w-4xl flex-col items-center gap-10">
           <ClientOrderHeader primaryLink={{ to: '/pedidos', label: 'Hacer Pedido' }} />

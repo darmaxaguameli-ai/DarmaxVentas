@@ -13,7 +13,7 @@ const OrderLayout = ({
   return (
     <div
       className="font-display relative flex min-h-screen w-full flex-col 
-                 bg-light dark:bg-dark text-dark dark:text-white overflow-x-hidden"
+                 bg-light dark:bg-dark text-dark dark:text-white overflow-x-hidden select-none"
     >
       <div className="flex h-full grow flex-col">
         <div className="flex flex-1 justify-center p-4 sm:p-6 md:p-8">

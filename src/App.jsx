@@ -14,6 +14,7 @@ import VentaMostrador from "./pages/sistemasDeVentas/VentaMostrador.jsx";
 import StartDayModal from "./pages/sistemasDeVentas/StartDayModal.jsx";
 import RepartidorDashboard from "./pages/sistemasDeVentas/Repartidor/RepartidorDashboard.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
+import AdminProtectedRoute from "./components/AdminProtectedRoute.jsx";
 
 // Gestión
 import { GestionProvider } from "./pages/Gestion/context/GestionContext.jsx";
@@ -38,7 +39,8 @@ import ClientDataConfirmation from "./pages/Client/orders/ClientDataConfirmation
 import BuyJugsStepOne from "./pages/Client/orders/BuyJugsStepOne.jsx";
 import BuyJugsFillOptionStepTwo from "./pages/Client/orders/BuyJugsFillOptionStepTwo.jsx";
 import BuyJugsAssignWaterStepThree from "./pages/Client/orders/BuyJugsAssignWaterStepThree.jsx";
-import ClientProfile from "./pages/Client/ClientProfile"; // New import
+import ClientProfile from "./pages/Client/ClientProfile";
+import MisPedidos from "./pages/Client/MisPedidos.jsx";
 
 function App() {
   return (
@@ -50,25 +52,24 @@ function App() {
       <Route path="/logout-success" element={<LogoutSuccess />} />
       <Route path="/registro" element={<Register />} />
 
-      {/* Cliente Profile */}
-      <Route path="/profile" element={<ProtectedRoute><ClientProfile /></ProtectedRoute>} /> {/* New route */}
-
+      {/* Cliente Profile & Pedidos */}
+      <Route path="/profile" element={<ProtectedRoute><ClientProfile /></ProtectedRoute>} />
+      <Route path="/mis-pedidos" element={<ProtectedRoute><MisPedidos /></ProtectedRoute>} />
 
       {/* Sistema de Ventas */}
       <Route path="/ventas/productos" element={<ProductGrid />} />
       <Route path="/ventas/mostrador" element={<VentaMostrador />} />
       <Route path="/repartidor" element={<RepartidorDashboard />} />
 
-
       {/* Gestión */}
       <Route
         path="/gestion"
         element={
-          <ProtectedRoute>
-            <GestionProvider>
+          <GestionProvider>
+            <AdminProtectedRoute>
               <GestionDashboard />
-            </GestionProvider>
-          </ProtectedRoute>
+            </AdminProtectedRoute>
+          </GestionProvider>
         }
       >
         <Route index element={<Resumen />} />
@@ -79,7 +80,6 @@ function App() {
         <Route path="configuracion" element={<Configuracion />} />
         <Route path="control-ventas-diarias" element={<ControlVentasDiarias />} />
       </Route>
-
 
       {/* Cliente – flujo de pedidos */}
       <Route path="/pedidos" element={<OrderSelection />} />

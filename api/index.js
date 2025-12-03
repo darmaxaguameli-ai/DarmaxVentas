@@ -1,6 +1,9 @@
 const express = require('express');
 const prisma = require('./lib/prisma');
 const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken'); // <-- Importar JWT
+require('dotenv').config(); // <-- Cargar variables de entorno
+
 const app = express();
 const port = 3001; // Or any port you prefer
 
@@ -43,16 +46,105 @@ app.post('/api/login', async (req, res) => {
       return res.status(401).json({ error: 'Credenciales inválidas.' });
     }
 
+    // --- Generar JWT ---
+    const token = jwt.sign(
+      { id: user.id, name: user.name, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: '8h' } // El token expira en 8 horas
+    );
+
     // No devolver el hash de la contraseña
     const { password: _, ...userWithoutPassword } = user;
     
-    res.json(userWithoutPassword);
+    // Devolver token y datos del usuario
+    res.json({ user: userWithoutPassword, token });
 
   } catch (error) {
     console.error('Error en el login:', error);
     res.status(500).json({ error: 'Ocurrió un error en el servidor.' });
   }
 });
+
+// Endpoint público para registrar un cliente durante el flujo de pedido
+app.post('/api/register-client', async (req, res) => {
+  try {
+    const data = req.body;
+
+    if (!data.name || !data.phone) {
+      return res.status(400).json({ error: 'Nombre y teléfono son requeridos.' });
+    }
+
+    // Comprobar si el teléfono ya existe
+    const existingPhone = await prisma.user.findUnique({
+        where: { phone: data.phone },
+    });
+    if (existingPhone) {
+        return res.status(409).json({ error: 'Este número de teléfono ya está registrado. Por favor, inicia sesión o usa otro número.' });
+    }
+
+    const userData = {
+      name: data.name,
+      phone: data.phone,
+      street: data.street || null,
+      neighborhood: data.neighborhood || null,
+      city: data.city || null,
+      postalCode: data.postalCode || null,
+      references: data.references || null,
+      role: 'CLIENTE',
+    };
+
+    // Generar un customId único
+    let customId;
+    let isIdUnique = false;
+    while (!isIdUnique) {
+      const rolePrefix = 'CLI';
+      const random = String(Math.floor(Math.random() * 9000) + 1000);
+      customId = `${rolePrefix}-${random}`;
+      const existingUser = await prisma.user.findUnique({ where: { customId } });
+      if (!existingUser) {
+        isIdUnique = true;
+      }
+    }
+    
+    const newUser = await prisma.user.create({
+      data: {
+        ...userData,
+        customId,
+      },
+    });
+
+    const { password, ...userWithoutPassword } = newUser;
+    res.status(201).json(userWithoutPassword);
+  } catch (error) {
+    console.error('Error creating client user:', error);
+    res.status(500).json({
+      error: 'Error al registrar el cliente.',
+      message: error.message,
+    });
+  }
+});
+
+
+// =====================================================
+// AUTHENTICATION MIDDLEWARE
+// =====================================================
+const verifyToken = (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1]; // Formato: "Bearer TOKEN"
+
+  if (!token) {
+    return res.status(401).json({ error: 'Acceso denegado. No se proporcionó token.' });
+  }
+
+  jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+    if (err) {
+      console.error('Error al verificar el token:', err);
+      return res.status(403).json({ error: 'Token inválido o expirado.' });
+    }
+    req.user = decoded; // Añade el payload del token (id, name, role) a la request
+    next();
+  });
+};
 
 
 // =====================================================
@@ -75,7 +167,7 @@ app.get('/api/products', async (req, res) => {
 });
 
 // POST a new product
-app.post('/api/products', async (req, res) => {
+app.post('/api/products', verifyToken, async (req, res) => {
   try {
     const newProduct = await prisma.product.create({
       data: req.body,
@@ -88,7 +180,7 @@ app.post('/api/products', async (req, res) => {
 });
 
 // PUT to update a product
-app.put('/api/products/:id', async (req, res) => {
+app.put('/api/products/:id', verifyToken, async (req, res) => {
   const { id } = req.params;
   try {
     const updatedProduct = await prisma.product.update({
@@ -106,7 +198,7 @@ app.put('/api/products/:id', async (req, res) => {
 });
 
 // DELETE a product
-app.delete('/api/products/:id', async (req, res) => {
+app.delete('/api/products/:id', verifyToken, async (req, res) => {
   const { id } = req.params;
   try {
     await prisma.product.delete({
@@ -135,7 +227,7 @@ app.get('/api/water-types', async (req, res) => {
     res.status(500).json({ error: 'Error fetching water types' });
   }
 });
-app.post('/api/water-types', async (req, res) => {
+app.post('/api/water-types', verifyToken, async (req, res) => {
   try {
     const waterType = await prisma.waterType.create({ data: req.body });
     res.status(201).json(waterType);
@@ -143,7 +235,7 @@ app.post('/api/water-types', async (req, res) => {
     res.status(500).json({ error: 'Error creating water type' });
   }
 });
-app.put('/api/water-types/:id', async (req, res) => {
+app.put('/api/water-types/:id', verifyToken, async (req, res) => {
   try {
     const waterType = await prisma.waterType.update({ where: { id: req.params.id }, data: req.body });
     res.json(waterType);
@@ -151,7 +243,7 @@ app.put('/api/water-types/:id', async (req, res) => {
     res.status(500).json({ error: 'Error updating water type' });
   }
 });
-app.delete('/api/water-types/:id', async (req, res) => {
+app.delete('/api/water-types/:id', verifyToken, async (req, res) => {
   try {
     await prisma.waterType.delete({ where: { id: req.params.id } });
     res.status(204).send();
@@ -169,7 +261,7 @@ app.get('/api/service-prices', async (req, res) => {
     res.status(500).json({ error: 'Error fetching service prices' });
   }
 });
-app.post('/api/service-prices', async (req, res) => {
+app.post('/api/service-prices', verifyToken, async (req, res) => {
   try {
     const { waterTypeId, ...rest } = req.body;
     const data = waterTypeId ? { ...rest, waterType: { connect: { id: waterTypeId } } } : rest;
@@ -179,7 +271,7 @@ app.post('/api/service-prices', async (req, res) => {
     res.status(500).json({ error: 'Error creating service price' });
   }
 });
-app.put('/api/service-prices/:id', async (req, res) => {
+app.put('/api/service-prices/:id', verifyToken, async (req, res) => {
   try {
     const { waterTypeId, ...rest } = req.body;
     const data = waterTypeId ? { ...rest, waterType: { connect: { id: waterTypeId } } } : { ...rest, waterTypeId: null };
@@ -189,7 +281,7 @@ app.put('/api/service-prices/:id', async (req, res) => {
     res.status(500).json({ error: 'Error updating service price' });
   }
 });
-app.delete('/api/service-prices/:id', async (req, res) => {
+app.delete('/api/service-prices/:id', verifyToken, async (req, res) => {
   try {
     await prisma.servicePrice.delete({ where: { id: req.params.id } });
     res.status(204).send();
@@ -207,7 +299,7 @@ app.get('/api/jug-brands', async (req, res) => {
     res.status(500).json({ error: 'Error fetching jug brands' });
   }
 });
-app.post('/api/jug-brands', async (req, res) => {
+app.post('/api/jug-brands', verifyToken, async (req, res) => {
   try {
     const { compatibleCapId, ...rest } = req.body;
     const data = compatibleCapId ? { ...rest, compatibleCap: { connect: { id: compatibleCapId } } } : rest;
@@ -217,7 +309,7 @@ app.post('/api/jug-brands', async (req, res) => {
     res.status(500).json({ error: 'Error creating jug brand' });
   }
 });
-app.put('/api/jug-brands/:id', async (req, res) => {
+app.put('/api/jug-brands/:id', verifyToken, async (req, res) => {
   try {
     const { compatibleCapId, ...rest } = req.body;
     const data = compatibleCapId ? { ...rest, compatibleCap: { connect: { id: compatibleCapId } } } : { ...rest, compatibleCapId: null };
@@ -227,7 +319,7 @@ app.put('/api/jug-brands/:id', async (req, res) => {
     res.status(500).json({ error: 'Error updating jug brand' });
   }
 });
-app.delete('/api/jug-brands/:id', async (req, res) => {
+app.delete('/api/jug-brands/:id', verifyToken, async (req, res) => {
   try {
     await prisma.jugBrand.delete({ where: { id: req.params.id } });
     res.status(204).send();
@@ -241,7 +333,7 @@ app.delete('/api/jug-brands/:id', async (req, res) => {
 // =====================================================
 
 // GET all incomes
-app.get('/api/incomes', async (req, res) => {
+app.get('/api/incomes', verifyToken, async (req, res) => {
   try {
     const incomes = await prisma.ingreso.findMany();
     res.json(incomes);
@@ -252,7 +344,7 @@ app.get('/api/incomes', async (req, res) => {
 });
 
 // POST a new income
-app.post('/api/incomes', async (req, res) => {
+app.post('/api/incomes', verifyToken, async (req, res) => {
   try {
     const { date, ...rest } = req.body;
     const newIncome = await prisma.ingreso.create({
@@ -269,7 +361,7 @@ app.post('/api/incomes', async (req, res) => {
 });
 
 // PUT to update income
-app.put('/api/incomes/:id', async (req, res) => {
+app.put('/api/incomes/:id', verifyToken, async (req, res) => {
   const { id } = req.params;
   try {
     const { date, ...rest } = req.body;
@@ -289,7 +381,7 @@ app.put('/api/incomes/:id', async (req, res) => {
 });
 
 // DELETE income
-app.delete('/api/incomes/:id', async (req, res) => {
+app.delete('/api/incomes/:id', verifyToken, async (req, res) => {
   const { id } = req.params;
   try {
     await prisma.ingreso.delete({
@@ -309,7 +401,7 @@ app.delete('/api/incomes/:id', async (req, res) => {
 // GASTOS API (expenses)
 // =====================================================
 
-app.get('/api/expenses', async (req, res) => {
+app.get('/api/expenses', verifyToken, async (req, res) => {
   try {
     const expenses = await prisma.gasto.findMany();
     res.json(expenses);
@@ -319,7 +411,7 @@ app.get('/api/expenses', async (req, res) => {
   }
 });
 
-app.post('/api/expenses', async (req, res) => {
+app.post('/api/expenses', verifyToken, async (req, res) => {
   try {
     const { date, ...rest } = req.body;
     const newExpense = await prisma.gasto.create({
@@ -335,7 +427,7 @@ app.post('/api/expenses', async (req, res) => {
   }
 });
 
-app.put('/api/expenses/:id', async (req, res) => {
+app.put('/api/expenses/:id', verifyToken, async (req, res) => {
   const { id } = req.params;
   try {
     const { date, ...rest } = req.body;
@@ -354,7 +446,7 @@ app.put('/api/expenses/:id', async (req, res) => {
   }
 });
 
-app.delete('/api/expenses/:id', async (req, res) => {
+app.delete('/api/expenses/:id', verifyToken, async (req, res) => {
   const { id } = req.params;
   try {
     await prisma.gasto.delete({
@@ -375,7 +467,7 @@ app.delete('/api/expenses/:id', async (req, res) => {
 // =====================================================
 
 // GET all daily sales records
-app.get('/api/daily-sales-records', async (req, res) => {
+app.get('/api/daily-sales-records', verifyToken, async (req, res) => {
     try {
         const records = await prisma.dailySalesRecord.findMany({
             include: {
@@ -393,7 +485,7 @@ app.get('/api/daily-sales-records', async (req, res) => {
 });
 
 // POST a new daily sales record and its corresponding income
-app.post('/api/daily-sales-records', async (req, res) => {
+app.post('/api/daily-sales-records', verifyToken, async (req, res) => {
     const { date, ...recordData } = req.body;
 
     // Basic validation
@@ -436,7 +528,7 @@ app.post('/api/daily-sales-records', async (req, res) => {
 });
 
 // POST to BULK create new daily sales records
-app.post('/api/daily-sales-records/bulk', async (req, res) => {
+app.post('/api/daily-sales-records/bulk', verifyToken, async (req, res) => {
     const records = req.body;
 
     if (!Array.isArray(records) || records.length === 0) {
@@ -508,7 +600,7 @@ app.post('/api/daily-sales-records/bulk', async (req, res) => {
 // USERS API
 // =====================================================
 
-app.get('/api/users', async (req, res) => {
+app.get('/api/users', verifyToken, async (req, res) => {
   try {
     const users = await prisma.user.findMany();
     res.json(users);
@@ -518,7 +610,7 @@ app.get('/api/users', async (req, res) => {
   }
 });
 
-app.post('/api/users', async (req, res) => {
+app.post('/api/users', verifyToken, async (req, res) => {
   try {
     const data = req.body;
 
@@ -567,7 +659,7 @@ app.post('/api/users', async (req, res) => {
   }
 });
 
-app.get('/api/users/:id', async (req, res) => {
+app.get('/api/users/:id', verifyToken, async (req, res) => {
   const { id } = req.params;
   try {
     const user = await prisma.user.findUnique({
@@ -588,7 +680,7 @@ app.get('/api/users/:id', async (req, res) => {
   }
 });
 
-app.put('/api/users/:id', async (req, res) => {
+app.put('/api/users/:id', verifyToken, async (req, res) => {
   const { id } = req.params;
   try {
     const data = req.body;
@@ -597,7 +689,7 @@ app.put('/api/users/:id', async (req, res) => {
     const updateData = {
       name: data.name, // Name might be updated
       email: data.email === '' ? null : data.email,
-      phone: data.phone === '' ? null : data.phone,
+            phone: data.phone === '' ? null : data.phone,
       street: data.street === '' ? null : data.street,
       neighborhood: data.neighborhood === '' ? null : data.neighborhood,
       city: data.city === '' ? null : data.city,
@@ -626,7 +718,7 @@ app.put('/api/users/:id', async (req, res) => {
   }
 });
 
-app.delete('/api/users/:id', async (req, res) => {
+app.delete('/api/users/:id', verifyToken, async (req, res) => {
   const { id } = req.params;
   try {
     await prisma.user.delete({
@@ -643,7 +735,7 @@ app.delete('/api/users/:id', async (req, res) => {
 });
 
 // GET user by customId or phone
-app.get('/api/users/check', async (req, res) => {
+app.get('/api/users/check', verifyToken, async (req, res) => {
   const { identifier, type } = req.query;
 
   if (!identifier || !type) {
@@ -675,6 +767,39 @@ app.get('/api/users/check', async (req, res) => {
   } catch (error) {
     console.error('Error checking user:', error);
     res.status(500).json({ error: 'Ocurrió un error en el servidor al verificar el usuario.' });
+  }
+});
+
+// =====================================================
+// ORDERS API (for clients)
+// =====================================================
+app.get('/api/my-orders', verifyToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const orders = await prisma.pedido.findMany({
+      where: {
+        clienteId: userId,
+      },
+      include: {
+        items: {
+          include: {
+            product: true,
+            servicePrice: {
+              include: {
+                waterType: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+    res.json(orders);
+  } catch (error) {
+    console.error('Error fetching user orders:', error);
+    res.status(500).json({ error: 'Ocurrió un error al obtener los pedidos.' });
   }
 });
 
