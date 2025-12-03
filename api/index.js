@@ -527,6 +527,94 @@ app.post('/api/daily-sales-records', verifyToken, async (req, res) => {
     }
 });
 
+// PUT to update a daily sales record and its corresponding income
+app.put('/api/daily-sales-records/:id', verifyToken, async (req, res) => {
+    const { id } = req.params;
+    const { date, ...recordData } = req.body;
+
+    try {
+        const result = await prisma.$transaction(async (tx) => {
+            // Paso 1: Actualizar el DailySalesRecord
+            const updatedDailySalesRecord = await tx.dailySalesRecord.update({
+                where: { id },
+                data: {
+                    ...recordData,
+                    date: new Date(date), // Asegurar que la fecha es un objeto Date
+                },
+            });
+
+            // Paso 2: Actualizar el Ingreso correspondiente
+            // Primero, encontrar el ingreso asociado a este registro de ventas diarias
+            const existingIngreso = await tx.ingreso.findUnique({
+                where: { dailySalesRecordId: id },
+            });
+
+            let updatedIngreso;
+            if (existingIngreso) {
+                updatedIngreso = await tx.ingreso.update({
+                    where: { id: existingIngreso.id },
+                    data: {
+                        description: `Venta Diaria Detallada (${new Date(date).toISOString().slice(0, 10)})`,
+                        amount: recordData.totalImporte,
+                        date: new Date(date),
+                    },
+                });
+            } else {
+                // Si por alguna razón no existe un ingreso, se crea uno nuevo
+                updatedIngreso = await tx.ingreso.create({
+                    data: {
+                        description: `Venta Diaria Detallada (${new Date(date).toISOString().slice(0, 10)})`,
+                        amount: recordData.totalImporte,
+                        date: new Date(date),
+                        dailySalesRecordId: updatedDailySalesRecord.id,
+                    },
+                });
+            }
+
+            return { ...updatedDailySalesRecord, ingreso: updatedIngreso };
+        });
+
+        res.json(result);
+    } catch (error) {
+        console.error(`Error updating daily sales record ${id} and income:`, error.message, error.stack);
+        if (error.code === 'P2025') {
+            return res.status(404).json({ error: 'Registro de ventas diarias no encontrado.' });
+        }
+        if (error.code === 'P2002' && error.meta?.target?.includes('date')) {
+            return res.status(409).json({ error: 'Ya existe un registro de ventas para esta fecha.' });
+        }
+        res.status(500).json({ error: 'Error al actualizar el registro de ventas diarias', details: error.message });
+    }
+});
+
+// DELETE a daily sales record and its corresponding income
+app.delete('/api/daily-sales-records/:id', verifyToken, async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        await prisma.$transaction(async (tx) => {
+            // Paso 1: Eliminar el Ingreso asociado (si existe)
+            // Ya que dailySalesRecordId es @unique en Ingreso, debería haber solo uno o ninguno.
+            await tx.ingreso.deleteMany({
+                where: { dailySalesRecordId: id },
+            });
+
+            // Paso 2: Eliminar el DailySalesRecord
+            await tx.dailySalesRecord.delete({
+                where: { id },
+            });
+        });
+
+        res.status(204).send(); // No content
+    } catch (error) {
+        console.error(`Error deleting daily sales record ${id} and income:`, error.message, error.stack);
+        if (error.code === 'P2025') {
+            return res.status(404).json({ error: 'Registro de ventas diarias no encontrado.' });
+        }
+        res.status(500).json({ error: 'Error al eliminar el registro de ventas diarias', details: error.message });
+    }
+});
+
 // POST to BULK create new daily sales records
 app.post('/api/daily-sales-records/bulk', verifyToken, async (req, res) => {
     const records = req.body;

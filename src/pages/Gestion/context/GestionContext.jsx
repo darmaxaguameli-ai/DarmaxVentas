@@ -31,6 +31,8 @@ import {
   fetchDailySalesRecords as apiFetchDailySalesRecords,
   createDailySalesRecord as apiCreateDailySalesRecord,
   createDailySalesRecordsBulk as apiCreateDailySalesRecordsBulk,
+  updateDailySalesRecord as apiUpdateDailySalesRecord,
+  deleteDailySalesRecord as apiDeleteDailySalesRecord,
   // Business Config
   fetchWaterTypes as apiFetchWaterTypes,
   createWaterType as apiCreateWaterType,
@@ -188,6 +190,26 @@ export const GestionProvider = ({ children }) => {
     }
   }, [fetchManagementData]);
 
+  const updateDailySalesRecord = useCallback(async (id, recordData) => {
+    try {
+      await apiUpdateDailySalesRecord(id, recordData);
+      await fetchManagementData();
+    } catch (error) {
+      dispatch({ type: "SET_ERROR", payload: error.message });
+      throw error;
+    }
+  }, [fetchManagementData]);
+
+  const deleteDailySalesRecord = useCallback(async (id) => {
+    try {
+      await apiDeleteDailySalesRecord(id);
+      await fetchManagementData();
+    } catch (error) {
+      dispatch({ type: "SET_ERROR", payload: error.message });
+      throw error;
+    }
+  }, [fetchManagementData]);
+
   const value = {
     state,
     fetchManagementData,
@@ -200,6 +222,8 @@ export const GestionProvider = ({ children }) => {
     ...incomeActions,
     addDailySalesRecord,
     addDailySalesRecordsBulk,
+    updateDailySalesRecord,
+    deleteDailySalesRecord,
   };
 
   return (

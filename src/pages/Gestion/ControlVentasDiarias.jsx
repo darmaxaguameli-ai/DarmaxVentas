@@ -8,14 +8,153 @@ const getDayName = (dateString) => {
     return date.toLocaleDateString('es-MX', { weekday: 'long' });
 };
 
+// Componente para el modal de edición de registros de ventas diarias
+const DailySalesRecordEditModal = ({ isOpen, onClose, recordToEdit, onSave }) => {
+    const [formData, setFormData] = useState({});
+
+    useEffect(() => {
+        if (recordToEdit) {
+            // Inicializar el formulario con los datos del registro a editar
+            // Asegurarse de que la fecha esté en formato 'YYYY-MM-DD'
+            setFormData({
+                ...recordToEdit,
+                date: recordToEdit.date.slice(0, 10), 
+            });
+        }
+    }, [recordToEdit]);
+
+    const handleChange = (e) => {
+        const { name, value } = e.target;
+        // Convertir a número si el campo es numérico, de lo contrario, mantener como string
+        const isNumeric = [
+            'mostradorColor', 'mostradorBon', 'mostradorEpura', 'mostradorCiel', 'mostradorElectro', 'mostrador10Lts', 'mostradorVtaG', 'mostradorTotal',
+            'pedidosColor', 'pedidosBon', 'pedidosEpura', 'pedidosCiel', 'pedidosElectro', 'pedidos10Lts', 'pedidosVtaG', 'pedidosTotal',
+            'negociosColor', 'negociosBon', 'negociosEpura', 'negociosCiel', 'negociosElectro', 'negocios10Lts', 'negociosVtaG', 'negociosTotal',
+            'totalTipoGarrafonColor', 'totalTipoGarrafonBon', 'totalTipoGarrafonEpura', 'totalTipoGarrafonCiel', 'totalTipoGarrafonElectro', 'totalTipoGarrafon10Lts', 'totalTipoGarrafonVtaG',
+            'totalGarrafones', 'totalImporte'
+        ].includes(name);
+
+        setFormData(prev => ({
+            ...prev,
+            [name]: isNumeric ? parseFloat(value) || 0 : value, // Usar parseFloat para montos y 0 como default
+        }));
+    };
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        onSave(formData); // Llama a la función onSave del componente padre con los datos actualizados
+    };
+
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4">
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+                <h2 className="text-2xl font-bold mb-4 text-[#111418] dark:text-white">Editar Registro de Ventas Diarias</h2>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Fecha</label>
+                        <input 
+                            type="date" 
+                            name="date" 
+                            value={formData.date || ''} 
+                            onChange={handleChange} 
+                            required 
+                            className="input-style" 
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Día de la Semana</label>
+                        <input 
+                            type="text" 
+                            name="dayOfWeek" 
+                            value={formData.dayOfWeek || ''} 
+                            readOnly 
+                            className="input-style bg-gray-100 dark:bg-gray-700" 
+                        />
+                    </div>
+
+                    {/* MOSTRADOR */}
+                    <h3 className="text-lg font-medium text-gray-800 dark:text-gray-200 mt-6">MOSTRADOR</h3>
+                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
+                        <div><label className="label-style">Color</label><input type="number" name="mostradorColor" value={formData.mostradorColor || ''} onChange={handleChange} className="input-style" /></div>
+                        <div><label className="label-style">Bonafon</label><input type="number" name="mostradorBon" value={formData.mostradorBon || ''} onChange={handleChange} className="input-style" /></div>
+                        <div><label className="label-style">Epura</label><input type="number" name="mostradorEpura" value={formData.mostradorEpura || ''} onChange={handleChange} className="input-style" /></div>
+                        <div><label className="label-style">Ciel</label><input type="number" name="mostradorCiel" value={formData.mostradorCiel || ''} onChange={handleChange} className="input-style" /></div>
+                        <div><label className="label-style">Electro</label><input type="number" name="mostradorElectro" value={formData.mostradorElectro || ''} onChange={handleChange} className="input-style" /></div>
+                        <div><label className="label-style">10Lts</label><input type="number" name="mostrador10Lts" value={formData.mostrador10Lts || ''} onChange={handleChange} className="input-style" /></div>
+                        <div><label className="label-style">Vta. G.</label><input type="number" name="mostradorVtaG" value={formData.mostradorVtaG || ''} onChange={handleChange} className="input-style" /></div>
+                        <div><label className="label-style">Total ($)</label><input type="number" name="mostradorTotal" step="0.01" value={formData.mostradorTotal || ''} onChange={handleChange} className="input-style" /></div>
+                    </div>
+
+                    {/* PEDIDOS */}
+                    <h3 className="text-lg font-medium text-gray-800 dark:text-gray-200 mt-6">PEDIDOS</h3>
+                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
+                        <div><label className="label-style">Color</label><input type="number" name="pedidosColor" value={formData.pedidosColor || ''} onChange={handleChange} className="input-style" /></div>
+                        <div><label className="label-style">Bonafon</label><input type="number" name="pedidosBon" value={formData.pedidosBon || ''} onChange={handleChange} className="input-style" /></div>
+                        <div><label className="label-style">Epura</label><input type="number" name="pedidosEpura" value={formData.pedidosEpura || ''} onChange={handleChange} className="input-style" /></div>
+                        <div><label className="label-style">Ciel</label><input type="number" name="pedidosCiel" value={formData.pedidosCiel || ''} onChange={handleChange} className="input-style" /></div>
+                        <div><label className="label-style">Electro</label><input type="number" name="pedidosElectro" value={formData.pedidosElectro || ''} onChange={handleChange} className="input-style" /></div>
+                        <div><label className="label-style">10Lts</label><input type="number" name="pedidos10Lts" value={formData.pedidos10Lts || ''} onChange={handleChange} className="input-style" /></div>
+                        <div><label className="label-style">Vta. G.</label><input type="number" name="pedidosVtaG" value={formData.pedidosVtaG || ''} onChange={handleChange} className="input-style" /></div>
+                        <div><label className="label-style">Total ($)</label><input type="number" name="pedidosTotal" step="0.01" value={formData.pedidosTotal || ''} onChange={handleChange} className="input-style" /></div>
+                    </div>
+
+                    {/* NEGOCIOS */}
+                    <h3 className="text-lg font-medium text-gray-800 dark:text-gray-200 mt-6">NEGOCIOS</h3>
+                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
+                        <div><label className="label-style">Color</label><input type="number" name="negociosColor" value={formData.negociosColor || ''} onChange={handleChange} className="input-style" /></div>
+                        <div><label className="label-style">Bonafon</label><input type="number" name="negociosBon" value={formData.negociosBon || ''} onChange={handleChange} className="input-style" /></div>
+                        <div><label className="label-style">Epura</label><input type="number" name="negociosEpura" value={formData.negociosEpura || ''} onChange={handleChange} className="input-style" /></div>
+                        <div><label className="label-style">Ciel</label><input type="number" name="negociosCiel" value={formData.negociosCiel || ''} onChange={handleChange} className="input-style" /></div>
+                        <div><label className="label-style">Electro</label><input type="number" name="negociosElectro" value={formData.negociosElectro || ''} onChange={handleChange} className="input-style" /></div>
+                        <div><label className="label-style">10Lts</label><input type="number" name="negocios10Lts" value={formData.negocios10Lts || ''} onChange={handleChange} className="input-style" /></div>
+                        <div><label className="label-style">Vta. G.</label><input type="number" name="negociosVtaG" value={formData.negociosVtaG || ''} onChange={handleChange} className="input-style" /></div>
+                        <div><label className="label-style">Total ($)</label><input type="number" name="negociosTotal" step="0.01" value={formData.negociosTotal || ''} onChange={handleChange} className="input-style" /></div>
+                    </div>
+
+                    {/* TOTAL POR TIPO DE GARRAFÓN */}
+                    <h3 className="text-lg font-medium text-gray-800 dark:text-gray-200 mt-6">TOTAL POR TIPO DE GARRAFÓN</h3>
+                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
+                        <div><label className="label-style">Color</label><input type="number" name="totalTipoGarrafonColor" value={formData.totalTipoGarrafonColor || ''} readOnly className="input-style bg-gray-100 dark:bg-gray-700" /></div>
+                        <div><label className="label-style">Bonafon</label><input type="number" name="totalTipoGarrafonBon" value={formData.totalTipoGarrafonBon || ''} readOnly className="input-style bg-gray-100 dark:bg-gray-700" /></div>
+                        <div><label className="label-style">Epura</label><input type="number" name="totalTipoGarrafonEpura" value={formData.totalTipoGarrafonEpura || ''} readOnly className="input-style bg-gray-100 dark:bg-gray-700" /></div>
+                        <div><label className="label-style">Ciel</label><input type="number" name="totalTipoGarrafonCiel" value={formData.totalTipoGarrafonCiel || ''} readOnly className="input-style bg-gray-100 dark:bg-gray-700" /></div>
+                        <div><label className="label-style">Electro</label><input type="number" name="totalTipoGarrafonElectro" value={formData.totalTipoGarrafonElectro || ''} readOnly className="input-style bg-gray-100 dark:bg-gray-700" /></div>
+                        <div><label className="label-style">10Lts</label><input type="number" name="totalTipoGarrafon10Lts" value={formData.totalTipoGarrafon10Lts || ''} readOnly className="input-style bg-gray-100 dark:bg-gray-700" /></div>
+                        <div><label className="label-style">Vta. G.</label><input type="number" name="totalTipoGarrafonVtaG" value={formData.totalTipoGarrafonVtaG || ''} readOnly className="input-style bg-gray-100 dark:bg-gray-700" /></div>
+                    </div>
+
+                    {/* TOTALES FINALES */}
+                    <h3 className="text-lg font-medium text-gray-800 dark:text-gray-200 mt-6">TOTALES GENERALES</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div><label className="label-style">Total Garrafones</label><input type="number" name="totalGarrafones" value={formData.totalGarrafones || ''} readOnly className="input-style bg-gray-100 dark:bg-gray-700" /></div>
+                        <div><label className="label-style">Total Importe ($)</label><input type="number" name="totalImporte" step="0.01" value={formData.totalImporte || ''} readOnly className="input-style bg-gray-100 dark:bg-gray-700" /></div>
+                    </div>
+
+                    <div className="flex justify-end gap-4 pt-4">
+                        <button type="button" onClick={onClose} className="btn-secondary">Cancelar</button>
+                        <button type="submit" className="btn-primary">Guardar Cambios</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+};
+
+
 const ControlVentasDiarias = () => {
     const [selectedFile, setSelectedFile] = useState(null);
     const [previewData, setPreviewData] = useState([]); // This will now store DailySalesRecord objects
     const [error, setError] = useState(null);
-    const { addDailySalesRecord, addDailySalesRecordsBulk, state } = useGestion();
+    const { addDailySalesRecord, addDailySalesRecordsBulk, updateDailySalesRecord, deleteDailySalesRecord, state, fetchManagementData } = useGestion();
     const [activeTab, setActiveTab] = useState('import'); // 'import' or 'manual'
     const [openMonth, setOpenMonth] = useState(null); // State for the accordion
     const [importYear, setImportYear] = useState(new Date().getFullYear()); // New state for import year
+    
+    // Estados para la edición
+    const [dailySalesRecordToEdit, setDailySalesRecordToEdit] = useState(null);
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
     // Filter and sort for display
     const dailySalesRecords = useMemo(() => {
@@ -43,6 +182,41 @@ const ControlVentasDiarias = () => {
         totalImporte: 0,    // From Col AI
     };
     const [manualForm, setManualForm] = useState(initialManualFormState);
+
+    // Funciones para el modal de edición
+    const handleOpenEditModal = (record) => {
+        setDailySalesRecordToEdit(record);
+        setIsEditModalOpen(true);
+    };
+
+    const handleCloseEditModal = () => {
+        setDailySalesRecordToEdit(null);
+        setIsEditModalOpen(false);
+    };
+
+    const handleUpdateRecord = async (updatedRecord) => {
+        try {
+            await updateDailySalesRecord(updatedRecord.id, updatedRecord);
+            alert("Registro de ventas diarias actualizado exitosamente.");
+            handleCloseEditModal();
+        } catch (err) {
+            console.error("Error al actualizar el registro:", err);
+            alert(`Error al actualizar el registro: ${err.message}`);
+        }
+    };
+
+    const handleDeleteRecord = async (recordId) => {
+        if (window.confirm('¿Estás seguro de que quieres eliminar este registro de ventas diarias? También se eliminará el ingreso asociado.')) {
+            try {
+                await deleteDailySalesRecord(recordId);
+                alert("Registro de ventas diarias eliminado exitosamente.");
+                // fetchManagementData(); // Ya se llama desde el contexto después de delete
+            } catch (err) {
+                console.error("Error al eliminar el registro:", err);
+                alert(`Error al eliminar el registro: ${err.message}`);
+            }
+        }
+    };
 
     // Effect for automatic calculations
     useEffect(() => {
@@ -394,6 +568,14 @@ const ControlVentasDiarias = () => {
         setOpenMonth(prevOpenMonth => (prevOpenMonth === month ? null : month));
     };
 
+    // Función auxiliar para formatear la fecha sin la hora, adaptada para la visualización en la tabla
+    const formatDisplayDate = (dateString) => {
+        if (!dateString) return '';
+        const date = new Date(dateString);
+        // Usar 'es-MX' para formato de fecha en español de México (DD/MM/YYYY)
+        return date.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    };
+
     return (
         <div>
             <h1 className="text-3xl font-bold text-[#111418] dark:text-white mb-6">Control de Ventas Diarias</h1>
@@ -501,47 +683,46 @@ const ControlVentasDiarias = () => {
                                                 <th className="th-style"></th>
                                             </tr>
                                         </thead>
-                                        <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                                            {previewData.map((item, idx) => (
-                                                <tr key={idx}>
-                                                    <td className="td-style">{item.date}</td>
-                                                    <td className="td-style">{getDayName(item.date)}</td>
-                                                    <td className="td-style">{item.mostradorColor}</td>
-                                                    <td className="td-style">{item.mostradorBon}</td>
-                                                    <td className="td-style">{item.mostradorEpura}</td>
-                                                    <td className="td-style">{item.mostradorCiel}</td>
-                                                    <td className="td-style">{item.mostradorElectro}</td>
-                                                    <td className="td-style">{item.mostrador10Lts}</td>
-                                                    <td className="td-style">{item.mostradorVtaG}</td>
-                                                    <td className="td-style font-bold">${item.mostradorTotal.toFixed(2)}</td>
-                                                    <td className="td-style">{item.pedidosColor}</td>
-                                                    <td className="td-style">{item.pedidosBon}</td>
-                                                    <td className="td-style">{item.pedidosEpura}</td>
-                                                    <td className="td-style">{item.pedidosCiel}</td>
-                                                    <td className="td-style">{item.pedidosElectro}</td>
-                                                    <td className="td-style">{item.pedidos10Lts}</td>
-                                                    <td className="td-style">{item.pedidosVtaG}</td>
-                                                    <td className="td-style font-bold">${item.pedidosTotal.toFixed(2)}</td>
-                                                    <td className="td-style">{item.negociosColor}</td>
-                                                    <td className="td-style">{item.negociosBon}</td>
-                                                    <td className="td-style">{item.negociosEpura}</td>
-                                                    <td className="td-style">{item.negociosCiel}</td>
-                                                    <td className="td-style">{item.negociosElectro}</td>
-                                                    <td className="td-style">{item.negocios10Lts}</td>
-                                                    <td className="td-style">{item.negociosVtaG}</td>
-                                                    <td className="td-style font-bold">${item.negociosTotal.toFixed(2)}</td>
-                                                    <td className="td-style">{item.totalTipoGarrafonColor}</td>
-                                                    <td className="td-style">{item.totalTipoGarrafonBon}</td>
-                                                    <td className="td-style">{item.totalTipoGarrafonEpura}</td>
-                                                    <td className="td-style">{item.totalTipoGarrafonCiel}</td>
-                                                    <td className="td-style">{item.totalTipoGarrafonElectro}</td>
-                                                    <td className="td-style">{item.totalTipoGarrafon10Lts}</td>
-                                                    <td className="td-style">{item.totalTipoGarrafonVtaG}</td>
-                                                    <td className="td-style font-bold">{item.totalGarrafones}</td>
-                                                    <td className="td-style font-bold">${item.totalImporte.toFixed(2)}</td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
+                                                                                 <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                                                                                    {previewData.map((item, idx) => (
+                                                                                        <tr key={idx}>
+                                                                                            <td className="td-style">{formatDisplayDate(item.date)}</td>
+                                                                                            <td className="td-style">{item.dayOfWeek}</td>
+                                                                                            <td className="td-style">{item.mostradorColor}</td>
+                                                                                            <td className="td-style">{item.mostradorBon}</td>
+                                                                                            <td className="td-style">{item.mostradorEpura}</td>
+                                                                                            <td className="td-style">{item.mostradorCiel}</td>
+                                                                                            <td className="td-style">{item.mostradorElectro}</td>
+                                                                                            <td className="td-style">{item.mostrador10Lts}</td>
+                                                                                            <td className="td-style">{item.mostradorVtaG}</td>
+                                                                                            <td className="td-style font-bold">${item.mostradorTotal.toFixed(2)}</td>
+                                                                                            <td className="td-style">{item.pedidosColor}</td>
+                                                                                            <td className="td-style">{item.pedidosBon}</td>
+                                                                                            <td className="td-style">{item.pedidosEpura}</td>
+                                                                                            <td className="td-style">{item.pedidosCiel}</td>
+                                                                                            <td className="td-style">{item.pedidosElectro}</td>
+                                                                                            <td className="td-style">{item.pedidos10Lts}</td>
+                                                                                            <td className="td-style">{item.pedidosVtaG}</td>
+                                                                                            <td className="td-style font-bold">${item.pedidosTotal.toFixed(2)}</td>
+                                                                                            <td className="td-style">{item.negociosColor}</td>
+                                                                                            <td className="td-style">{item.negociosBon}</td>
+                                                                                            <td className="td-style">{item.negociosEpura}</td>
+                                                                                            <td className="td-style">{item.negociosCiel}</td>
+                                                                                            <td className="td-style">{item.negociosElectro}</td>
+                                                                                            <td className="td-style">{item.negocios10Lts}</td>
+                                                                                            <td className="td-style">{item.negociosVtaG}</td>
+                                                                                            <td className="td-style font-bold">${item.negociosTotal.toFixed(2)}</td>
+                                                                                            <td className="td-style">{item.totalTipoGarrafonColor}</td>
+                                                                                            <td className="td-style">{item.totalTipoGarrafonBon}</td>
+                                                                                            <td className="td-style">{item.totalTipoGarrafonEpura}</td>
+                                                                                            <td className="td-style">{item.totalTipoGarrafonCiel}</td>
+                                                                                            <td className="td-style">{item.totalTipoGarrafonElectro}</td>
+                                                                                            <td className="td-style">{item.totalTipoGarrafon10Lts}</td>
+                                                                                            <td className="td-style">{item.totalTipoGarrafonVtaG}</td>
+                                                                                            <td className="td-style font-bold">{item.totalGarrafones}</td>
+                                                                                            <td className="td-style font-bold">${item.totalImporte.toFixed(2)}</td>
+                                                                                        </tr>
+                                                                                    ))}                                        </tbody>
                                     </table>
                                 </div>
 
@@ -716,10 +897,10 @@ const ControlVentasDiarias = () => {
                                             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                                                 {records.map((item) => ( // Use records from the grouped data
                                                     <tr key={item.id}>
-                                                        <td className="td-style">{item.date}</td>
-                                                        <td className="td-style">{getDayName(item.date)}</td>
+                                                        <td className="td-style">{formatDisplayDate(item.date)}</td>
+                                                        <td className="td-style">{item.dayOfWeek}</td>
                                                         <td className="td-style">{item.mostradorColor}</td>
-                                                        <td className="td-style">{item.mostradorBon}</td>
+                                                        <td className="td="td-style>{item.mostradorBon}</td>
                                                         <td className="td-style">{item.mostradorEpura}</td>
                                                         <td className="td-style">{item.mostradorCiel}</td>
                                                         <td className="td-style">{item.mostradorElectro}</td>
@@ -751,6 +932,20 @@ const ControlVentasDiarias = () => {
                                                         <td className="td-style">{item.totalTipoGarrafonVtaG}</td>
                                                         <td className="td-style font-bold">{item.totalGarrafones}</td>
                                                         <td className="td-style font-bold">${item.totalImporte.toFixed(2)}</td>
+                                                        <td className="td-style text-right space-x-2">
+                                                            <button 
+                                                                onClick={() => handleOpenEditModal(item)} 
+                                                                className="text-primary hover:text-primary/90 font-medium"
+                                                            >
+                                                                Editar
+                                                            </button>
+                                                            <button 
+                                                                onClick={() => handleDeleteRecord(item.id)} 
+                                                                className="text-red-500 hover:text-red-700 font-medium"
+                                                            >
+                                                                Eliminar
+                                                            </button>
+                                                        </td>
                                                     </tr>
                                                 ))}
                                             </tbody>
@@ -762,6 +957,13 @@ const ControlVentasDiarias = () => {
                     )}
                 </div>
             </div>
+            
+            <DailySalesRecordEditModal 
+                isOpen={isEditModalOpen}
+                onClose={handleCloseEditModal}
+                recordToEdit={dailySalesRecordToEdit}
+                onSave={handleUpdateRecord}
+            />
         </div>
     );
 };

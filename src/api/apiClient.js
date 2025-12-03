@@ -61,12 +61,12 @@ export const createUser = (userData) => apiClient.post('/users', userData).then(
 export const updateUser = (id, userData) => apiClient.put(`/users/${id}`, userData).then(res => res.data);
 export const deleteUser = (id) => apiClient.delete(`/users/${id}`).then(res => res.data);
 
-// ====================================================================
-//  DAILY SALES RECORDS
-// ====================================================================
+// DAILY SALES RECORDS
 export const fetchDailySalesRecords = () => apiClient.get('/daily-sales-records').then(res => res.data);
 export const createDailySalesRecord = (recordData) => apiClient.post('/daily-sales-records', recordData).then(res => res.data);
 export const createDailySalesRecordsBulk = (recordsData) => apiClient.post('/daily-sales-records/bulk', recordsData).then(res => res.data);
+export const updateDailySalesRecord = (id, recordData) => apiClient.put(`/daily-sales-records/${id}`, recordData).then(res => res.data);
+export const deleteDailySalesRecord = (id) => apiClient.delete(`/daily-sales-records/${id}`).then(res => res.data);
 
 // ====================================================================
 //  BUSINESS CONFIGURATION
