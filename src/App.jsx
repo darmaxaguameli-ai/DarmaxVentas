@@ -24,6 +24,9 @@ import Inventario from "./pages/Gestion/Inventario.jsx";
 import Ingresos from "./pages/Gestion/Ingresos.jsx";
 import Gastos from "./pages/Gestion/Gastos.jsx";
 import Usuarios from "./pages/Gestion/Usuarios.jsx";
+import Empleados from "./pages/Gestion/Empleados.jsx";
+import RecursosHumanos from "./pages/Gestion/RecursosHumanos.jsx";
+import EmpleadoDetalle from "./pages/Gestion/EmpleadoDetalle.jsx";
 import Configuracion from "./pages/Gestion/Configuracion.jsx";
 import ControlVentasDiarias from "./pages/Gestion/ControlVentasDiarias.jsx";
 
@@ -77,6 +80,9 @@ function App() {
         <Route path="ingresos" element={<Ingresos />} />
         <Route path="gastos" element={<Gastos />} />
         <Route path="usuarios" element={<Usuarios />} />
+        <Route path="empleados" element={<Empleados />} />
+        <Route path="recursos-humanos" element={<RecursosHumanos />} />
+        <Route path="recursos-humanos/:id" element={<EmpleadoDetalle />} />
         <Route path="configuracion" element={<Configuracion />} />
         <Route path="control-ventas-diarias" element={<ControlVentasDiarias />} />
       </Route>

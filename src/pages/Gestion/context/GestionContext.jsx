@@ -47,6 +47,11 @@ import {
   createJugBrand as apiCreateJugBrand,
   updateJugBrand as apiUpdateJugBrand,
   deleteJugBrand as apiDeleteJugBrand,
+  // Empleados
+  fetchEmpleados as apiFetchEmpleados,
+  createEmpleado as apiCreateEmpleado,
+  updateEmpleado as apiUpdateEmpleado,
+  deleteEmpleado as apiDeleteEmpleado,
 } from "../../../api/apiClient";
 
 const GestionContext = createContext(null);
@@ -68,6 +73,7 @@ const initialState = {
   waterTypes: [],
   servicePrices: [],
   jugBrands: [],
+  empleados: [],
   loading: true,
   error: null,
 };
@@ -89,6 +95,7 @@ const gestionReducer = (state, action) => {
         waterTypes: action.payload.waterTypes || state.waterTypes,
         servicePrices: action.payload.servicePrices || state.servicePrices,
         jugBrands: action.payload.jugBrands || state.jugBrands,
+        empleados: action.payload.empleados || state.empleados,
         loading: false,
       };
     case "ADD_PRODUCT":
@@ -105,6 +112,8 @@ const gestionReducer = (state, action) => {
         return { ...state, servicePrices: [...state.servicePrices, action.payload] };
     case "ADD_JUG_BRAND":
         return { ...state, jugBrands: [...state.jugBrands, action.payload] };
+    case "ADD_EMPLEADO":
+        return { ...state, empleados: [...state.empleados, action.payload] };
     case "UPDATE_PRODUCT_IN_STATE": // Nuevo caso para actualizar un producto en el estado local
         return {
             ...state,
@@ -133,14 +142,14 @@ export const GestionProvider = ({ children }) => {
     try {
       const [
         inventory, users, income, expenses, dailySalesRecords,
-        waterTypes, servicePrices, jugBrands,
+        waterTypes, servicePrices, jugBrands, empleados,
       ] = await Promise.all([
         apiFetchProducts(), apiFetchUsers(), apiFetchIncomes(), apiFetchExpenses(), apiFetchDailySalesRecords(),
-        apiFetchWaterTypes(), apiFetchServicePrices(), apiFetchJugBrands(),
+        apiFetchWaterTypes(), apiFetchServicePrices(), apiFetchJugBrands(), apiFetchEmpleados(),
       ]);
       dispatch({
         type: "SET_INITIAL_DATA",
-        payload: { inventory, users, income, expenses, dailySalesRecords, waterTypes, servicePrices, jugBrands },
+        payload: { inventory, users, income, expenses, dailySalesRecords, waterTypes, servicePrices, jugBrands, empleados },
       });
     } catch (error) {
       dispatch({ type: "SET_ERROR", payload: error.message });
@@ -198,6 +207,7 @@ export const GestionProvider = ({ children }) => {
   const jugBrandActions = createCrudActions('JugBrand', { createJugBrand: apiCreateJugBrand, updateJugBrand: apiUpdateJugBrand, deleteJugBrand: apiDeleteJugBrand });
   const expenseActions = createCrudActions('Expense', { createExpense: apiCreateExpense, updateExpense: apiUpdateExpense, deleteExpense: apiDeleteExpense });
   const incomeActions = createCrudActions('Income', { createIncome: apiCreateIncome, updateIncome: apiUpdateIncome, deleteIncome: apiDeleteIncome });
+  const empleadoActions = createCrudActions('Empleado', { createEmpleado: apiCreateEmpleado, updateEmpleado: apiUpdateEmpleado, deleteEmpleado: apiDeleteEmpleado });
 
   // Custom actions that don't fit the generic CRUD pattern
   const addDailySalesRecord = useCallback(async (recordData) => {
@@ -254,6 +264,7 @@ export const GestionProvider = ({ children }) => {
     ...jugBrandActions,
     ...expenseActions,
     ...incomeActions,
+    ...empleadoActions,
     addDailySalesRecord,
     addDailySalesRecordsBulk,
     updateDailySalesRecord,

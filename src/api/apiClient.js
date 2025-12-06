@@ -88,3 +88,12 @@ export const fetchJugBrands = () => apiClient.get('/jug-brands').then(res => res
 export const createJugBrand = (data) => apiClient.post('/jug-brands', data).then(res => res.data);
 export const updateJugBrand = (id, data) => apiClient.put(`/jug-brands/${id}`, data).then(res => res.data);
 export const deleteJugBrand = (id) => apiClient.delete(`/jug-brands/${id}`).then(res => res.data);
+
+// ====================================================================
+//  EMPLEADOS (HR)
+// ====================================================================
+export const fetchEmpleados = () => apiClient.get('/empleados').then(res => res.data);
+export const createEmpleado = (empleadoData) => apiClient.post('/empleados', empleadoData).then(res => res.data);
+export const updateEmpleado = (id, empleadoData) => apiClient.put(`/empleados/${id}`, empleadoData).then(res => res.data);
+export const deleteEmpleado = (id) => apiClient.delete(`/empleados/${id}`).then(res => res.data);
+export const fetchEmpleadoById = (id) => apiClient.get(`/empleados/${id}`).then(res => res.data);

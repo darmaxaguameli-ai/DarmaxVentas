@@ -859,6 +859,144 @@ app.get('/api/users/check', verifyToken, async (req, res) => {
 });
 
 // =====================================================
+// EMPLEADOS API (HR Module)
+// =====================================================
+
+// GET all employees
+app.get('/api/empleados', verifyToken, async (req, res) => {
+  try {
+    const empleados = await prisma.empleado.findMany({
+      include: {
+        user: true, // Include related user account info
+        documentos: true, // Include employee documents
+        manager: true, // Include manager info
+      },
+      orderBy: {
+        nombreCompleto: 'asc'
+      }
+    });
+    res.json(empleados);
+  } catch (error) {
+    console.error('Error fetching empleados:', error);
+    res.status(500).json({ error: 'Error al obtener los empleados.' });
+  }
+});
+
+// GET a single employee by ID
+app.get('/api/empleados/:id', verifyToken, async (req, res) => {
+  const { id } = req.params;
+  try {
+    const empleado = await prisma.empleado.findUnique({
+      where: { id },
+      include: {
+        user: true,
+        documentos: true,
+        manager: true,
+        subordinados: true,
+        historialSueldos: {
+          orderBy: {
+            fechaInicio: 'desc'
+          }
+        }
+      },
+    });
+
+    if (!empleado) {
+      return res.status(404).json({ error: 'Empleado no encontrado.' });
+    }
+    res.json(empleado);
+  } catch (error) {
+    console.error(`Error fetching empleado ${id}:`, error);
+    res.status(500).json({ error: 'Error al obtener el empleado.' });
+  }
+});
+
+// POST a new employee
+app.post('/api/empleados', verifyToken, async (req, res) => {
+  const { userId, fechaContratacion, managerId, ...data } = req.body;
+  try {
+    const empleadoData = {
+      ...data,
+      fechaContratacion: new Date(fechaContratacion),
+    };
+
+    if (userId) empleadoData.user = { connect: { id: userId } };
+    if (managerId) empleadoData.manager = { connect: { id: managerId } };
+
+    const newEmpleado = await prisma.empleado.create({
+      data: empleadoData,
+      include: { manager: true },
+    });
+    res.status(201).json(newEmpleado);
+  } catch (error) {
+    console.error('Error creating empleado:', error);
+    if (error.code === 'P2002') {
+      return res.status(409).json({ error: 'Ya existe un empleado con este email personal o cuenta de usuario asociada.' });
+    }
+    res.status(500).json({ error: 'Error al crear el empleado.' });
+  }
+});
+
+// PUT to update an employee
+app.put('/api/empleados/:id', verifyToken, async (req, res) => {
+  const { id } = req.params;
+  const { userId, fechaContratacion, fechaTerminacion, managerId, ...data } = req.body;
+  try {
+    const empleadoData = { ...data };
+
+    if (fechaContratacion) empleadoData.fechaContratacion = new Date(fechaContratacion);
+    if (fechaTerminacion) empleadoData.fechaTerminacion = new Date(fechaTerminacion);
+    else if (req.body.hasOwnProperty('fechaTerminacion')) empleadoData.fechaTerminacion = null;
+
+    if (req.body.hasOwnProperty('userId')) {
+      empleadoData.user = userId ? { connect: { id: userId } } : { disconnect: true };
+    }
+
+    if (req.body.hasOwnProperty('managerId')) {
+        empleadoData.manager = managerId ? { connect: { id: managerId } } : { disconnect: true };
+    }
+
+    const updatedEmpleado = await prisma.empleado.update({
+      where: { id },
+      data: empleadoData,
+      include: { manager: true },
+    });
+    res.json(updatedEmpleado);
+  } catch (error) {
+    console.error(`Error updating empleado ${id}:`, error);
+    if (error.code === 'P2025') {
+      return res.status(404).json({ error: 'Empleado no encontrado.' });
+    }
+    res.status(500).json({ error: 'Error al actualizar el empleado.' });
+  }
+});
+
+// DELETE an employee
+app.delete('/api/empleados/:id', verifyToken, async (req, res) => {
+  const { id } = req.params;
+  try {
+    // Before deleting the employee, we might need to delete related documents if there's a cascade rule,
+    // but Prisma handles this. We must manually delete documents if they are stored in a separate service (e.g., S3).
+    // For now, we only delete the DB records.
+    await prisma.documento.deleteMany({
+        where: { empleadoId: id }
+    });
+
+    await prisma.empleado.delete({
+      where: { id },
+    });
+    res.status(204).send();
+  } catch (error) {
+    console.error(`Error deleting empleado ${id}:`, error);
+    if (error.code === 'P2025') {
+      return res.status(404).json({ error: 'Empleado no encontrado.' });
+    }
+    res.status(500).json({ error: 'Error al eliminar el empleado.' });
+  }
+});
+
+
+// =====================================================
 // ORDERS API (for clients)
 // =====================================================
 app.get('/api/my-orders', verifyToken, async (req, res) => {

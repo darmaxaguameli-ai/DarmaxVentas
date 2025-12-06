@@ -7,7 +7,9 @@ const links = [
   { name: "Inventario", path: "inventario", icon: "inventory_2" },
   { name: "Ingresos", path: "ingresos", icon: "payments" },
   { name: "Gastos", path: "gastos", icon: "receipt_long" },
-  { name: "Usuarios", path: "usuarios", icon: "group" },
+  { name: "Clientes", path: "usuarios", icon: "group" },
+  { name: "Empleados", path: "empleados", icon: "badge" },
+  { name: "Recursos Humanos", path: "recursos-humanos", icon: "folder_managed" },
   { name: "Configuración", path: "configuracion", icon: "tune" },
   { name: "Control Diario de Ventas", path: "control-ventas-diarias", icon: "history" },
 ];

@@ -96,6 +96,7 @@ model User {
   updatedAt    DateTime     @updatedAt
   pedidos      Pedido[]
   sesionesCaja SesionCaja[]
+  empleado     Empleado?
 }
 
 // Renombrado de "Producto" a "Product" para seguir convenciones.
@@ -241,4 +242,88 @@ model DailySalesRecord {
   createdAt                DateTime  @default(now())
   updatedAt                DateTime  @updatedAt
   ingreso                  Ingreso?  @relation("DailySalesRecordToIngreso")
+}
+
+// =====================================================================
+// MODELOS PARA EL MÓDULO DE RECURSOS HUMANOS (RRHH)
+// =====================================================================
+
+enum EstatusEmpleado {
+  ACTIVO
+  INACTIVO
+}
+
+enum TipoTerminacion {
+  RENUNCIA
+  DESPIDO
+  LIQUIDACION
+}
+
+enum TipoDocumento {
+  INE
+  CONTRATO
+  COMPROBANTE_DOMICILIO
+  OTRO
+}
+
+model Empleado {
+  id                  String           @id @default(cuid())
+  nombreCompleto      String
+  puesto              String
+  sueldo              Float // Sueldo actual
+  
+  // Información de contacto y dirección
+  telefono            String?
+  emailPersonal       String?          @unique
+  street              String?
+  neighborhood        String?
+  city                String?
+  postalCode          String?
+
+  // Fechas y estatus de RRHH
+  fechaContratacion   DateTime
+  fechaTerminacion    DateTime?
+  tipoTerminacion     TipoTerminacion?
+  estatus             EstatusEmpleado  @default(ACTIVO)
+
+  // Relación con la tabla de autenticación (User)
+  // Un registro de empleado puede estar asociado con una cuenta de usuario
+  user                User?            @relation(fields: [userId], references: [id])
+  userId              String?          @unique
+
+  // Relación para el organigrama (auto-referencial)
+  manager             Empleado?        @relation("DirectReports", fields: [managerId], references: [id])
+  managerId           String?
+  subordinados        Empleado[]       @relation("DirectReports")
+
+  // Relación con sus documentos y historial de sueldos
+  documentos          Documento[]
+  historialSueldos    HistorialSueldo[]
+  
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+}
+
+model Documento {
+  id          String         @id @default(cuid())
+  nombre      String         // Ej: "Contrato Laboral", "INE Frente"
+  url         String         // URL del archivo almacenado (ej: en S3, Cloudinary, etc.)
+  tipo        TipoDocumento  // Usar el enum
+  createdAt   DateTime       @default(now())
+  
+  // Relación con el empleado
+  empleado    Empleado       @relation(fields: [empleadoId], references: [id])
+  empleadoId  String
+}
+
+model HistorialSueldo {
+  id            String   @id @default(cuid())
+  empleado      Empleado @relation(fields: [empleadoId], references: [id])
+  empleadoId    String
+  sueldo        Float
+  fechaInicio   DateTime
+  fechaFin      DateTime? // Opcional, si hay una fecha de finalización para este sueldo
+  motivo        String?   // Ej: "Aumento por desempeño", "Ajuste anual"
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }

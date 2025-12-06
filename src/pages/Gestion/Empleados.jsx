@@ -19,7 +19,7 @@ const UserModal = ({ onClose, userToEdit, onSave }) => {
     neighborhood: "",
     city: "",
     postalCode: "",
-    role: UserRole.CLIENTE, // Rol siempre será CLIENTE
+    role: UserRole.VENDEDOR, // Rol por defecto para nuevos empleados
   };
 
   const [user, setUser] = useState(() =>
@@ -33,56 +33,96 @@ const UserModal = ({ onClose, userToEdit, onSave }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    const userData = { ...user, role: UserRole.CLIENTE }; // Asegurarse de que el rol es CLIENTE
+    const userData = { ...user };
 
-    if (isEditing && !userData.password) {
+    if (!userData.password) {
       delete userData.password;
     }
-    
-    if (userData.phone === "") userData.phone = null;
-    if (userData.email === "") userData.email = null;
-    if (userData.street === "") userData.street = null;
-    if (userData.neighborhood === "") userData.neighborhood = null;
-    if (userData.city === "") userData.city = null;
-    if (userData.postalCode === "") userData.postalCode = null;
+
+    if (userData.phone === "") {
+      userData.phone = null;
+    }
+    if (userData.email === "") {
+      userData.email = null;
+    }
+    if (userData.street === "") {
+      userData.street = null;
+    }
+    if (userData.neighborhood === "") {
+      userData.neighborhood = null;
+    }
+    if (userData.city === "") {
+      userData.city = null;
+    }
+    if (userData.postalCode === "") {
+      userData.postalCode = null;
+    }
 
     onSave(userData);
     onClose();
   };
 
   const isEditing = !!userToEdit;
+  const employeeRoles = Object.values(UserRole).filter(role => role !== UserRole.CLIENTE);
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4">
       <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl w-full max-w-lg">
         <h2 className="text-2xl font-bold mb-6 text-[#111418] dark:text-white">
-          {isEditing ? "Editar Cliente" : "Agregar Nuevo Cliente"}
+          {isEditing ? "Editar Empleado" : "Agregar Nuevo Empleado"}
         </h2>
         <form
           onSubmit={handleSubmit}
           className="space-y-4 max-h-[80vh] overflow-y-auto pr-2"
         >
-          <div>
-            <label className="label-style">Nombre Completo</label>
-            <input
-              name="name" type="text" value={user.name || ""}
-              onChange={handleChange} required className="input-style"
-            />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="label-style">Nombre Completo</label>
+              <input
+                name="name"
+                type="text"
+                value={user.name || ""}
+                onChange={handleChange}
+                required
+                className="input-style"
+              />
+            </div>
+            <div>
+              <label className="label-style">Rol</label>
+              <select
+                name="role"
+                value={user.role || UserRole.VENDEDOR}
+                onChange={handleChange}
+                className="input-style"
+              >
+                {employeeRoles.map((role) => (
+                  <option key={role} value={role}>
+                    {role}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="label-style">Email</label>
               <input
-                name="email" type="email" value={user.email || ""}
-                onChange={handleChange} className="input-style"
+                name="email"
+                type="email"
+                value={user.email || ""}
+                onChange={handleChange}
+                className="input-style"
               />
             </div>
             <div>
               <label className="label-style">Teléfono</label>
               <input
-                name="phone" type="tel" value={user.phone || ""}
-                onChange={handleChange} className="input-style"
+                name="phone"
+                type="tel"
+                value={user.phone || ""}
+                onChange={handleChange}
+                className="input-style"
               />
             </div>
           </div>
@@ -91,8 +131,12 @@ const UserModal = ({ onClose, userToEdit, onSave }) => {
             <div>
               <label className="label-style">Contraseña</label>
               <input
-                name="password" type="password" value={user.password}
-                onChange={handleChange} required className="input-style"
+                name="password"
+                type="password"
+                value={user.password}
+                onChange={handleChange}
+                required
+                className="input-style"
               />
             </div>
           )}
@@ -105,8 +149,11 @@ const UserModal = ({ onClose, userToEdit, onSave }) => {
           <div>
             <label className="label-style">Calle y Número</label>
             <input
-              name="street" type="text" value={user.street || ""}
-              onChange={handleChange} className="input-style"
+              name="street"
+              type="text"
+              value={user.street || ""}
+              onChange={handleChange}
+              className="input-style"
             />
           </div>
 
@@ -114,15 +161,21 @@ const UserModal = ({ onClose, userToEdit, onSave }) => {
             <div>
               <label className="label-style">Colonia/Barrio</label>
               <input
-                name="neighborhood" type="text" value={user.neighborhood || ""}
-                onChange={handleChange} className="input-style"
+                name="neighborhood"
+                type="text"
+                value={user.neighborhood || ""}
+                onChange={handleChange}
+                className="input-style"
               />
             </div>
             <div>
               <label className="label-style">Ciudad</label>
               <input
-                name="city" type="text" value={user.city || ""}
-                onChange={handleChange} className="input-style"
+                name="city"
+                type="text"
+                value={user.city || ""}
+                onChange={handleChange}
+                className="input-style"
               />
             </div>
           </div>
@@ -130,13 +183,20 @@ const UserModal = ({ onClose, userToEdit, onSave }) => {
           <div>
             <label className="label-style">Código Postal</label>
             <input
-              name="postalCode" type="text" value={user.postalCode || ""}
-              onChange={handleChange} className="input-style"
+              name="postalCode"
+              type="text"
+              value={user.postalCode || ""}
+              onChange={handleChange}
+              className="input-style"
             />
           </div>
 
           <div className="flex justify-end gap-4 pt-4">
-            <button type="button" onClick={onClose} className="btn-secondary">
+            <button
+              type="button"
+              onClick={onClose}
+              className="btn-secondary"
+            >
               Cancelar
             </button>
             <button type="submit" className="btn-primary">
@@ -149,15 +209,15 @@ const UserModal = ({ onClose, userToEdit, onSave }) => {
   );
 };
 
-const Usuarios = () => {
+const Empleados = () => {
   const { state, addUser, updateUser, deleteUser } = useGestion();
   const { users, loading, error } = state;
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [userToEdit, setUserToEdit] = useState(null);
 
-  // Filtrar solo clientes
-  const clientUsers = users.filter(user => user.role === UserRole.CLIENTE);
+  // Filtrar solo empleados
+  const employeeUsers = users.filter(user => user.role !== UserRole.CLIENTE);
 
   const handleOpenModal = (user = null) => {
     setUserToEdit(user);
@@ -171,9 +231,9 @@ const Usuarios = () => {
 
   const handleSaveUser = (user) => {
     if (user.id) {
-      updateUser(user);
+      updateUser(user); // edición
     } else {
-      addUser(user);
+      addUser(user); // creación
     }
   };
 
@@ -196,7 +256,14 @@ const Usuarios = () => {
 
   const RoleBadge = ({ role }) => {
     const roleStyles = {
-      CLIENTE: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300",
+      ADMIN:
+        "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300",
+      VENDEDOR:
+        "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300",
+      REPARTIDOR:
+        "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300",
+      CLIENTE:
+        "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300",
     };
     return (
       <span
@@ -213,10 +280,10 @@ const Usuarios = () => {
     <div>
       <div className="flex flex-wrap justify-between items-center mb-6 gap-4">
         <h1 className="text-3xl font-bold text-[#111418] dark:text-white">
-          Gestión de Clientes
+          Gestión de Empleados
         </h1>
         <button onClick={() => handleOpenModal()} className="btn-primary">
-          Agregar Cliente
+          Agregar Empleado
         </button>
       </div>
 
@@ -243,24 +310,30 @@ const Usuarios = () => {
           <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
             {loading ? (
               <tr>
-                <td colSpan="6" className="p-6 text-center text-gray-500 dark:text-gray-400">
-                  Cargando clientes...
+                <td
+                  colSpan="6"
+                  className="p-6 text-center text-gray-500 dark:text-gray-400"
+                >
+                  Cargando empleados...
                 </td>
               </tr>
             ) : error ? (
               <tr>
                 <td colSpan="6" className="p-6 text-center text-red-500">
-                  Error al cargar clientes: {error}
+                  Error al cargar empleados: {error}
                 </td>
               </tr>
-            ) : clientUsers.length === 0 ? (
+            ) : employeeUsers.length === 0 ? (
               <tr>
-                <td colSpan="6" className="p-6 text-center text-gray-500 dark:text-gray-400">
-                  No hay clientes registrados.
+                <td
+                  colSpan="6"
+                  className="p-6 text-center text-gray-500 dark:text-gray-400"
+                >
+                  No hay empleados registrados.
                 </td>
               </tr>
             ) : (
-              clientUsers.map((user) => (
+              employeeUsers.map((user) => (
                 <tr key={user.id}>
                   <td className="td-style font-mono text-xs">
                     {user.customId}
@@ -295,4 +368,4 @@ const Usuarios = () => {
   );
 };
 
-export default Usuarios;
+export default Empleados;
