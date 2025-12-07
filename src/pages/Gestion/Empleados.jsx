@@ -67,6 +67,7 @@ const Empleados = () => {
           onClose={handleCloseModal}
           onSave={handleSaveEmpleado}
           empleadoToEdit={empleadoToEdit}
+          empleados={empleados}
         />
       )}
 

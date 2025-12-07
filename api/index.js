@@ -1078,9 +1078,89 @@ app.get('/api/my-orders', verifyToken, async (req, res) => {
   }
 });
 
-// =====================================================
-// START SERVER
-// =====================================================
+// ====================================================================
+//  PEDIDOS API (New Order Creation)
+// ====================================================================
+app.post('/api/pedidos', verifyToken, async (req, res) => {
+  const {
+    clienteId,
+    items,
+    total,
+    deliveryMethod,
+    paymentMethod,
+    paymentStatus
+  } = req.body;
+
+  if (!clienteId || !items || !total || !deliveryMethod) {
+    return res.status(400).json({ error: 'Faltan datos requeridos para crear el pedido.' });
+  }
+
+  try {
+    const result = await prisma.$transaction(async (tx) => {
+      // 1. Generar un customId único para el pedido
+      let customId;
+      let isIdUnique = false;
+      while (!isIdUnique) {
+        const random = String(Math.floor(Math.random() * 90000) + 10000); // 5-digit random number
+        customId = `ORD-${random}`;
+        const existingPedido = await tx.pedido.findUnique({ where: { customId } });
+        if (!existingPedido) {
+          isIdUnique = true;
+        }
+      }
+
+      // 2. Crear el Pedido principal
+      const newPedido = await tx.pedido.create({
+        data: {
+          customId,
+          total,
+          deliveryMethod,
+          paymentMethod: paymentMethod || 'Efectivo',
+          paymentStatus: paymentStatus || 'NO_PAGADO',
+          cliente: { connect: { id: clienteId } },
+        },
+      });
+
+      // 3. Crear los PedidoItems
+      const pedidoItemsData = items.map(item => ({
+        pedidoId: newPedido.id,
+        quantity: item.quantity,
+        price: item.price,
+        servicePriceId: item.servicePriceId, // Asumiendo que solo se venden servicios por ahora
+      }));
+
+      await tx.pedidoItem.createMany({
+        data: pedidoItemsData,
+      });
+
+      // 4. Crear el registro de Ingreso asociado
+      await tx.ingreso.create({
+        data: {
+          description: `Ingreso por Pedido ${customId}`,
+          amount: total,
+          date: new Date(),
+          pedido: { connect: { id: newPedido.id } },
+        },
+      });
+
+      return newPedido;
+    });
+
+    res.status(201).json(result);
+
+  } catch (error) {
+    console.error('Error al crear el pedido y el ingreso:', error);
+    res.status(500).json({
+      error: 'Ocurrió un error en el servidor al procesar el pedido.',
+      details: error.message,
+    });
+  }
+});
+
+
+// ====================================================================
+//  START SERVER
+// ====================================================================
 app.listen(port, () => {
   console.log(`Server listening at http://localhost:${port}`);
 });

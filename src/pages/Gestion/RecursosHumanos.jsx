@@ -1,7 +1,8 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useGestion } from './context/GestionContext';
-import { FaUsers, FaUserCheck, FaUserTimes, FaFileAlt, FaMoneyBillWave, FaPlus } from 'react-icons/fa';
+import { FaUsers, FaUserCheck, FaUserTimes, FaPlus } from 'react-icons/fa';
+import Organigrama from './components/Organigrama';
 
 // A reusable stat card component
 const StatCard = ({ icon, title, value, bgColorClass }) => (
@@ -86,12 +87,13 @@ const RecursosHumanos = () => {
                     title="Lista de Empleados"
                     description="Ver, agregar, editar y eliminar empleados."
                 />
-                                                                <QuickLinkCard
-                                                                    to="/gestion/empleados" // Points to the same page to add a new one
-                                                                    icon={<FaPlus />}
-                                                                    title="Agregar Nuevo Empleado"
-                                                                    description="Ir directamente a la gestión para añadir un nuevo miembro."
-                                                                />            </div>
+                <QuickLinkCard 
+                    to="/gestion/empleados" // Points to the same page to add a new one
+                    icon={<FaPlus />}
+                    title="Agregar Nuevo Empleado"
+                    description="Ir directamente a la gestión para añadir un nuevo miembro."
+                />
+            </div>
 
             {/* Recent Hires Section */}
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
@@ -106,7 +108,7 @@ const RecursosHumanos = () => {
                                         <p className="text-sm text-gray-500 dark:text-gray-400">{empleado.puesto}</p>
                                     </div>
                                     <span className="text-sm text-gray-600 dark:text-gray-300">
-                                        {new Date(empleado.fechaContratacion).toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric' })}
+                                        {new Date(empleado.fechaContratacion).toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' })}
                                     </span>
                                 </li>
                             </Link>
@@ -116,6 +118,9 @@ const RecursosHumanos = () => {
                     <p className="text-gray-500 dark:text-gray-400">No hay contrataciones recientes.</p>
                 )}
             </div>
+            
+            {/* New Organigrama Section */}
+            <Organigrama empleados={empleados} />
         </div>
     );
 };

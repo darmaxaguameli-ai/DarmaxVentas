@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { fetchEmpleadoById, uploadDocumento } from '../../api/apiClient'; // Import uploadDocumento
+import { fetchEmpleadoById, uploadDocumento } from '@/api/apiClient'; // Import uploadDocumento
 import Swal from 'sweetalert2';
+import { useGestion } from './context/GestionContext';
+import EmpleadoModal from './components/EmpleadoModal';
 
 // Enum for document types, mirroring prisma schema
 const TipoDocumento = {
@@ -176,6 +178,19 @@ const EmpleadoDetalle = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [activeTab, setActiveTab] = useState('info');
+    const [isModalOpen, setIsModalOpen] = useState(false);
+
+    const { state: gestionState, updateEmpleado } = useGestion();
+    const { empleados: allEmpleados } = gestionState;
+
+    const handleOpenModal = () => setIsModalOpen(true);
+    const handleCloseModal = () => setIsModalOpen(false);
+
+    const handleSaveEmpleado = async (empleadoData) => {
+        await updateEmpleado(id, empleadoData);
+        await loadEmpleado(); // Recargar datos del empleado después de guardar
+    };
+
 
     const loadEmpleado = async () => {
         try {
@@ -225,14 +240,19 @@ const EmpleadoDetalle = () => {
 
     return (
         <div>
-            <div className="flex justify-between items-center mb-6">
+            <div className="flex flex-wrap justify-between items-center mb-6 gap-2">
                 <div>
                     <h1 className="text-3xl font-bold text-[#111418] dark:text-white">{empleado.nombreCompleto}</h1>
                     <p className="text-gray-500 dark:text-gray-400">{empleado.puesto}</p>
                 </div>
-                <Link to="/gestion/recursos-humanos" className="btn-secondary">
-                    &larr; Volver a la lista
-                </Link>
+                <div className="flex gap-2">
+                    <button onClick={handleOpenModal} className="btn-primary">
+                        Editar Empleado
+                    </button>
+                    <Link to="/gestion/recursos-humanos" className="btn-secondary">
+                        &larr; Volver a la lista
+                    </Link>
+                </div>
             </div>
 
              <div className="border-b border-gray-200 dark:border-gray-700 mb-6">
@@ -246,6 +266,15 @@ const EmpleadoDetalle = () => {
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
                 {renderContent()}
             </div>
+
+            {isModalOpen && (
+                <EmpleadoModal
+                    onClose={handleCloseModal}
+                    onSave={handleSaveEmpleado}
+                    empleadoToEdit={empleado}
+                    empleados={allEmpleados}
+                />
+            )}
         </div>
     );
 };
