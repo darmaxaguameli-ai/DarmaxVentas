@@ -8,7 +8,6 @@ const links = [
   { name: "Ingresos", path: "ingresos", icon: "payments" },
   { name: "Gastos", path: "gastos", icon: "receipt_long" },
   { name: "Clientes", path: "usuarios", icon: "group" },
-  { name: "Empleados", path: "empleados", icon: "badge" },
   { name: "Recursos Humanos", path: "recursos-humanos", icon: "folder_managed" },
   { name: "Configuración", path: "configuracion", icon: "tune" },
   { name: "Control Diario de Ventas", path: "control-ventas-diarias", icon: "history" },
@@ -105,16 +104,6 @@ const GestionSidebar = ({ isOpen, onClose, isCollapsed, toggleCollapsed }) => {
           >
             <span className="material-symbols-outlined text-lg">logout</span>
             {!isCollapsed && <span className="text-sm font-medium">Cerrar Sesión</span>}
-        </button>
-
-        {/* Toggle collapse button for desktop (moved here from Dashboard) */}
-        <button
-            className="hidden md:flex p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 w-full justify-center"
-            onClick={toggleCollapsed}
-        >
-            <span className="material-symbols-outlined text-gray-700 dark:text-gray-200">
-                {isCollapsed ? 'menu_open' : 'menu'}
-            </span>
         </button>
       </div>
     </aside>

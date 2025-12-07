@@ -1,239 +1,31 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { Link } from "react-router-dom";
 import { useGestion } from "./context/GestionContext";
 import Swal from 'sweetalert2'; // Importar SweetAlert2
-
-const UserRole = {
-  ADMIN: "ADMIN",
-  VENDEDOR: "VENDEDOR",
-  REPARTIDOR: "REPARTIDOR",
-  CLIENTE: "CLIENTE",
-};
-
-const UserModal = ({ onClose, userToEdit, onSave }) => {
-  const initialUserState = {
-    name: "",
-    email: "",
-    password: "",
-    phone: "",
-    street: "",
-    neighborhood: "",
-    city: "",
-    postalCode: "",
-    role: UserRole.VENDEDOR, // Rol por defecto para nuevos empleados
-  };
-
-  const [user, setUser] = useState(() =>
-    userToEdit ? { ...userToEdit, password: "" } : initialUserState
-  );
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setUser((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    const userData = { ...user };
-
-    if (!userData.password) {
-      delete userData.password;
-    }
-
-    if (userData.phone === "") {
-      userData.phone = null;
-    }
-    if (userData.email === "") {
-      userData.email = null;
-    }
-    if (userData.street === "") {
-      userData.street = null;
-    }
-    if (userData.neighborhood === "") {
-      userData.neighborhood = null;
-    }
-    if (userData.city === "") {
-      userData.city = null;
-    }
-    if (userData.postalCode === "") {
-      userData.postalCode = null;
-    }
-
-    onSave(userData);
-    onClose();
-  };
-
-  const isEditing = !!userToEdit;
-  const employeeRoles = Object.values(UserRole).filter(role => role !== UserRole.CLIENTE);
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4">
-      <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl w-full max-w-lg">
-        <h2 className="text-2xl font-bold mb-6 text-[#111418] dark:text-white">
-          {isEditing ? "Editar Empleado" : "Agregar Nuevo Empleado"}
-        </h2>
-        <form
-          onSubmit={handleSubmit}
-          className="space-y-4 max-h-[80vh] overflow-y-auto pr-2"
-        >
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="label-style">Nombre Completo</label>
-              <input
-                name="name"
-                type="text"
-                value={user.name || ""}
-                onChange={handleChange}
-                required
-                className="input-style"
-              />
-            </div>
-            <div>
-              <label className="label-style">Rol</label>
-              <select
-                name="role"
-                value={user.role || UserRole.VENDEDOR}
-                onChange={handleChange}
-                className="input-style"
-              >
-                {employeeRoles.map((role) => (
-                  <option key={role} value={role}>
-                    {role}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="label-style">Email</label>
-              <input
-                name="email"
-                type="email"
-                value={user.email || ""}
-                onChange={handleChange}
-                className="input-style"
-              />
-            </div>
-            <div>
-              <label className="label-style">Teléfono</label>
-              <input
-                name="phone"
-                type="tel"
-                value={user.phone || ""}
-                onChange={handleChange}
-                className="input-style"
-              />
-            </div>
-          </div>
-
-          {!isEditing && (
-            <div>
-              <label className="label-style">Contraseña</label>
-              <input
-                name="password"
-                type="password"
-                value={user.password}
-                onChange={handleChange}
-                required
-                className="input-style"
-              />
-            </div>
-          )}
-
-          <hr className="my-4 border-gray-200 dark:border-gray-700" />
-          <h3 className="text-lg font-medium text-gray-800 dark:text-gray-200">
-            Dirección
-          </h3>
-
-          <div>
-            <label className="label-style">Calle y Número</label>
-            <input
-              name="street"
-              type="text"
-              value={user.street || ""}
-              onChange={handleChange}
-              className="input-style"
-            />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="label-style">Colonia/Barrio</label>
-              <input
-                name="neighborhood"
-                type="text"
-                value={user.neighborhood || ""}
-                onChange={handleChange}
-                className="input-style"
-              />
-            </div>
-            <div>
-              <label className="label-style">Ciudad</label>
-              <input
-                name="city"
-                type="text"
-                value={user.city || ""}
-                onChange={handleChange}
-                className="input-style"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="label-style">Código Postal</label>
-            <input
-              name="postalCode"
-              type="text"
-              value={user.postalCode || ""}
-              onChange={handleChange}
-              className="input-style"
-            />
-          </div>
-
-          <div className="flex justify-end gap-4 pt-4">
-            <button
-              type="button"
-              onClick={onClose}
-              className="btn-secondary"
-            >
-              Cancelar
-            </button>
-            <button type="submit" className="btn-primary">
-              Guardar
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-};
+import EmpleadoModal from "./components/EmpleadoModal";
 
 const Empleados = () => {
-  const { state, addUser, updateUser, deleteUser } = useGestion();
-  const { users, loading, error } = state;
+  const { state, addEmpleado, updateEmpleado, deleteEmpleado } = useGestion();
+  const { empleados, loading, error } = state;
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [userToEdit, setUserToEdit] = useState(null);
+  const [empleadoToEdit, setEmpleadoToEdit] = useState(null);
 
-  // Filtrar solo empleados
-  const employeeUsers = users.filter(user => user.role !== UserRole.CLIENTE);
-
-  const handleOpenModal = (user = null) => {
-    setUserToEdit(user);
+  const handleOpenModal = (empleado = null) => {
+    setEmpleadoToEdit(empleado);
     setIsModalOpen(true);
   };
 
   const handleCloseModal = () => {
-    setUserToEdit(null);
+    setEmpleadoToEdit(null);
     setIsModalOpen(false);
   };
 
-  const handleSaveUser = (user) => {
-    if (user.id) {
-      updateUser(user); // edición
+  const handleSaveEmpleado = (empleado) => {
+    if (empleado.id) {
+      updateEmpleado(empleado.id, empleado); // edición
     } else {
-      addUser(user); // creación
+      addEmpleado(empleado); // creación
     }
   };
 
@@ -250,30 +42,8 @@ const Empleados = () => {
     });
 
     if (result.isConfirmed) {
-      deleteUser(id);
+      deleteEmpleado(id);
     }
-  };
-
-  const RoleBadge = ({ role }) => {
-    const roleStyles = {
-      ADMIN:
-        "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300",
-      VENDEDOR:
-        "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300",
-      REPARTIDOR:
-        "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300",
-      CLIENTE:
-        "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300",
-    };
-    return (
-      <span
-        className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-          roleStyles[role] || ""
-        }`}
-      >
-        {role}
-      </span>
-    );
   };
 
   return (
@@ -282,16 +52,21 @@ const Empleados = () => {
         <h1 className="text-3xl font-bold text-[#111418] dark:text-white">
           Gestión de Empleados
         </h1>
-        <button onClick={() => handleOpenModal()} className="btn-primary">
-          Agregar Empleado
-        </button>
+        <div className="flex gap-2">
+          <Link to="/gestion/recursos-humanos" className="btn-secondary">
+            &larr; Volver a RRHH
+          </Link>
+          <button onClick={() => handleOpenModal()} className="btn-primary">
+            Agregar Empleado
+          </button>
+        </div>
       </div>
 
       {isModalOpen && (
-        <UserModal
+        <EmpleadoModal
           onClose={handleCloseModal}
-          onSave={handleSaveUser}
-          userToEdit={userToEdit}
+          onSave={handleSaveEmpleado}
+          empleadoToEdit={empleadoToEdit}
         />
       )}
 
@@ -301,9 +76,9 @@ const Empleados = () => {
             <tr>
               <th className="th-style">ID</th>
               <th className="th-style">Nombre</th>
-              <th className="th-style">Email</th>
+              <th className="th-style">Email Personal</th>
               <th className="th-style">Teléfono</th>
-              <th className="th-style">Rol</th>
+              <th className="th-style">Puesto</th>
               <th className="th-style text-right">Acciones</th>
             </tr>
           </thead>
@@ -323,7 +98,7 @@ const Empleados = () => {
                   Error al cargar empleados: {error}
                 </td>
               </tr>
-            ) : employeeUsers.length === 0 ? (
+            ) : empleados.length === 0 ? (
               <tr>
                 <td
                   colSpan="6"
@@ -333,26 +108,24 @@ const Empleados = () => {
                 </td>
               </tr>
             ) : (
-              employeeUsers.map((user) => (
-                <tr key={user.id}>
+              empleados.map((empleado) => (
+                <tr key={empleado.id}>
                   <td className="td-style font-mono text-xs">
-                    {user.customId}
+                    {empleado.id}
                   </td>
-                  <td className="td-style font-medium">{user.name}</td>
-                  <td className="td-style">{user.email || "N/A"}</td>
-                  <td className="td-style">{user.phone || "N/A"}</td>
-                  <td className="td-style">
-                    <RoleBadge role={user.role} />
-                  </td>
+                  <td className="td-style font-medium">{empleado.nombreCompleto}</td>
+                  <td className="td-style">{empleado.emailPersonal || "N/A"}</td>
+                  <td className="td-style">{empleado.telefono || "N/A"}</td>
+                  <td className="td-style">{empleado.puesto || "N/A"}</td>
                   <td className="td-style text-right space-x-4">
                     <button
-                      onClick={() => handleOpenModal(user)}
+                      onClick={() => handleOpenModal(empleado)}
                       className="text-primary hover:text-primary/90 font-medium"
                     >
                       Editar
                     </button>
                     <button
-                      onClick={() => handleDelete(user.id)}
+                      onClick={() => handleDelete(empleado.id)}
                       className="text-red-500 hover:text-red-700 font-medium"
                     >
                       Eliminar

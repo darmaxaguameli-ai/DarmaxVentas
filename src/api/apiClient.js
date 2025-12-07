@@ -97,3 +97,10 @@ export const createEmpleado = (empleadoData) => apiClient.post('/empleados', emp
 export const updateEmpleado = (id, empleadoData) => apiClient.put(`/empleados/${id}`, empleadoData).then(res => res.data);
 export const deleteEmpleado = (id) => apiClient.delete(`/empleados/${id}`).then(res => res.data);
 export const fetchEmpleadoById = (id) => apiClient.get(`/empleados/${id}`).then(res => res.data);
+export const uploadDocumento = (empleadoId, formData) => {
+  return apiClient.post(`/empleados/${empleadoId}/documentos`, formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  }).then(res => res.data);
+};

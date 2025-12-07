@@ -913,7 +913,7 @@ app.get('/api/empleados/:id', verifyToken, async (req, res) => {
 
 // POST a new employee
 app.post('/api/empleados', verifyToken, async (req, res) => {
-  const { userId, fechaContratacion, managerId, ...data } = req.body;
+  const { userId, fechaContratacion, managerId, role, ...data } = req.body;
   try {
     const empleadoData = {
       ...data,
@@ -992,6 +992,55 @@ app.delete('/api/empleados/:id', verifyToken, async (req, res) => {
       return res.status(404).json({ error: 'Empleado no encontrado.' });
     }
     res.status(500).json({ error: 'Error al eliminar el empleado.' });
+  }
+});
+
+// Import multer for file uploads and put from @vercel/blob
+const multer = require('multer');
+const { put } = require('@vercel/blob');
+
+// Configure multer for in-memory storage, which is ideal for serverless environments
+const upload = multer({ storage: multer.memoryStorage() });
+
+// POST a new document for an employee
+app.post('/api/empleados/:id/documentos', verifyToken, upload.single('file'), async (req, res) => {
+  const { id: empleadoId } = req.params;
+  const { nombre, tipo } = req.body;
+  
+  if (!req.file) {
+    return res.status(400).json({ error: 'No se ha subido ningún archivo.' });
+  }
+  
+  if (!nombre || !tipo) {
+    return res.status(400).json({ error: 'El nombre y el tipo de documento son requeridos.' });
+  }
+
+  const file = req.file;
+  const blobName = `documentos/${empleadoId}/${Date.now()}-${file.originalname}`;
+
+  try {
+    // Step 1: Upload the file to Vercel Blob
+    const blob = await put(blobName, file.buffer, {
+      access: 'public', // The file will be publicly accessible
+      contentType: file.mimetype,
+    });
+
+    // Step 2: Create the document record in the database
+    const newDocumento = await prisma.documento.create({
+      data: {
+        nombre,
+        tipo,
+        url: blob.url, // Use the URL returned from Vercel Blob
+        empleado: {
+          connect: { id: empleadoId },
+        },
+      },
+    });
+
+    res.status(201).json(newDocumento);
+  } catch (error) {
+    console.error(`Error uploading document for empleado ${empleadoId}:`, error);
+    res.status(500).json({ error: 'Ocurrió un error al subir el documento.' });
   }
 });
 

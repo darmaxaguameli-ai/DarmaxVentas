@@ -1,9 +1,10 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useGestion } from "./context/GestionContext";
-import CashFlowChart from "./components/CashFlowChart"; // Added this line
+import CashFlowChart from "./components/CashFlowChart";
 import ExpensePieChart from './components/ExpensePieChart';
 import SalesByChannelChart from './components/SalesByChannelChart';
 import TopSellingProducts from './components/TopSellingProducts';
+import NotificationCenter from './components/NotificationCenter';
 
 const StatCard = ({ title, value, subtext, type }) => {
     let valueColorClass = "text-[#111418] dark:text-white";
@@ -11,9 +12,9 @@ const StatCard = ({ title, value, subtext, type }) => {
     if (type === "expense") valueColorClass = "text-red-600 dark:text-red-400";
     if (type === "netProfit") valueColorClass = value < 0 ? "text-red-600 dark:red-400" : "text-primary";
 
-    const formattedValue = new Intl.NumberFormat('en-US', {
+    const formattedValue = new Intl.NumberFormat('es-MX', {
         style: 'currency',
-        currency: 'USD',
+        currency: 'MXN',
     }).format(value);
 
     return (
@@ -28,55 +29,83 @@ const StatCard = ({ title, value, subtext, type }) => {
 const Resumen = () => {
     const { state } = useGestion();
     const { income, expenses, inventory, dailySalesRecords } = state;
+    const [timePeriod, setTimePeriod] = useState('monthly'); // 'monthly' or 'annual'
 
-    const { totalIncome, totalExpenses, netProfit } = useMemo(() => {
-        const totalIncome = income.reduce((sum, item) => sum + item.amount, 0);
-        const totalExpenses = expenses.reduce((sum, item) => sum + item.amount, 0);
+    const { totalIncome, totalExpenses, netProfit, incomeTransactions, expenseTransactions } = useMemo(() => {
+        const now = new Date();
+        const currentMonth = now.getMonth();
+        const currentYear = now.getFullYear();
+
+        const filterByPeriod = (item) => {
+            const itemDate = new Date(item.date);
+            if (timePeriod === 'monthly') {
+                return itemDate.getMonth() === currentMonth && itemDate.getFullYear() === currentYear;
+            }
+            if (timePeriod === 'annual') {
+                return itemDate.getFullYear() === currentYear;
+            }
+            return true; // Should not happen with defined states
+        };
+
+        const filteredIncome = income.filter(filterByPeriod);
+        const filteredExpenses = expenses.filter(filterByPeriod);
+
+        const totalIncome = filteredIncome.reduce((sum, item) => sum + item.amount, 0);
+        const totalExpenses = filteredExpenses.reduce((sum, item) => sum + item.amount, 0);
         const netProfit = totalIncome - totalExpenses;
-        return { totalIncome, totalExpenses, netProfit };
-    }, [income, expenses]);
+
+        return {
+            totalIncome,
+            totalExpenses,
+            netProfit,
+            incomeTransactions: filteredIncome.length,
+            expenseTransactions: filteredExpenses.length
+        };
+    }, [income, expenses, timePeriod]);
     
     const lowStockItems = useMemo(() => {
         return inventory.filter(item => item.stock < 50);
     }, [inventory]);
 
-    const expenseSuggestions = useMemo(() => {
-        const descriptionMonths = new Map();
-        expenses.forEach(expense => {
-            const description = expense.description.toLowerCase().trim();
-            const month = expense.date.substring(0, 7); // YYYY-MM
-            if (!descriptionMonths.has(description)) {
-                descriptionMonths.set(description, new Set());
-            }
-            descriptionMonths.get(description).add(month);
-        });
-
-        const recurringDescriptions = new Set();
-        descriptionMonths.forEach((months, description) => {
-            if (months.size > 1) { // It's recurring if it appears in more than 1 month
-                recurringDescriptions.add(description);
-            }
-        });
-
-        const currentMonth = new Date().toISOString().substring(0, 7);
-        return expenses
-            .filter(expense => {
-                const description = expense.description.toLowerCase().trim();
-                const month = expense.date.substring(0, 7);
-                return month === currentMonth && recurringDescriptions.has(description);
-            })
-            .map(expense => `Considera optimizar los gastos recurrentes en "${expense.description}".`);
-    }, [expenses]);
-
     return (
         <div>
             <h1 className="text-3xl font-bold mb-6 text-dark dark:text-white">Resumen General</h1>
             
+            <div className="flex justify-start md:justify-end mb-4 gap-2">
+                <button 
+                    onClick={() => setTimePeriod('monthly')}
+                    className={`px-4 py-2 text-sm font-medium rounded-lg ${timePeriod === 'monthly' ? 'bg-primary text-white shadow' : 'bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200'}`}
+                >
+                    Este Mes
+                </button>
+                <button 
+                    onClick={() => setTimePeriod('annual')}
+                    className={`px-4 py-2 text-sm font-medium rounded-lg ${timePeriod === 'annual' ? 'bg-primary text-white shadow' : 'bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200'}`}
+                >
+                    Este Año
+                </button>
+            </div>
+
             {/* Stat Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                <StatCard title="Ingresos Totales" value={totalIncome} subtext={`${income.length} transacciones`} type="income" />
-                <StatCard title="Gastos Totales" value={totalExpenses} subtext={`${expenses.length} transacciones`} type="expense" />
-                <StatCard title="Balance Neto" value={netProfit} subtext="Ingresos - Gastos" type="netProfit" />
+                <StatCard 
+                    title={`Ingresos (${timePeriod === 'monthly' ? 'Mes Actual' : 'Año Actual'})`} 
+                    value={totalIncome} 
+                    subtext={`${incomeTransactions} transacciones`} 
+                    type="income" 
+                />
+                <StatCard 
+                    title={`Gastos (${timePeriod === 'monthly' ? 'Mes Actual' : 'Año Actual'})`} 
+                    value={totalExpenses} 
+                    subtext={`${expenseTransactions} transacciones`} 
+                    type="expense" 
+                />
+                <StatCard 
+                    title={`Balance Neto (${timePeriod === 'monthly' ? 'Mes Actual' : 'Año Actual'})`} 
+                    value={netProfit} 
+                    subtext="Ingresos - Gastos" 
+                    type="netProfit" 
+                />
             </div>
 
             {/* Charts and Lists */}
@@ -100,21 +129,7 @@ const Resumen = () => {
                             <p className="mt-4 text-sm text-gray-500 dark:text-gray-400">No hay productos con inventario bajo.</p>
                         )}
                     </div>
-                    <div className="p-6 bg-white dark:bg-gray-800 rounded-2xl shadow-lg">
-                        <h3 className="text-lg font-semibold text-[#111418] dark:text-white">Sugerencias de Ahorro</h3>
-                        {expenseSuggestions.length > 0 ? (
-                            <ul className="mt-4 space-y-3">
-                                {expenseSuggestions.map((suggestion, index) => (
-                                    <li key={index} className="flex items-start gap-3 text-sm">
-                                        <span className="material-symbols-outlined text-lg text-amber-500 mt-0.5">lightbulb</span>
-                                        <span className="text-gray-700 dark:text-gray-300">{suggestion}</span>
-                                    </li>
-                                ))}
-                            </ul>
-                        ) : (
-                            <p className="mt-4 text-sm text-gray-500 dark:text-gray-400">No hay sugerencias de ahorro por el momento.</p>
-                        )}
-                    </div>
+                    <NotificationCenter />
                 </div>
                  <div className="md:col-span-2 lg:col-span-3">
                     <ExpensePieChart expenses={expenses} />
