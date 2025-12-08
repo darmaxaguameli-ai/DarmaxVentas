@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import apiClient from '../../api/apiClient';
 import { useAuth } from '../../context/AuthContext';
 import ClientOrderHeader from '../../components/ClientOrderHeader'; // Importar ClientOrderHeader
+import { formatDate } from '@/utils/formatters';
 
 const statusStyles = {
   PENDIENTE: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300',
@@ -44,7 +45,7 @@ const OrderCard = ({ order }) => {
           <div className="flex-grow">
             <p className="font-bold text-lg text-primary">{order.customId}</p>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              {new Date(order.createdAt).toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric' })}
+              {formatDate(order.createdAt)}
             </p>
           </div>
           <div className="flex flex-col sm:items-end gap-2">

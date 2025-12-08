@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { formatDate } from '@/utils/formatters';
 
 const PayInIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -27,7 +28,7 @@ const PosHeader = ({ onPayIn, onPayOut, onCloseRegister }) => {
     return () => clearInterval(timer);
   }, []);
 
-  const formattedDate = currentTime.toLocaleDateString('es-MX', {
+  const formattedDate = formatDate(currentTime, {
     day: '2-digit',
     month: 'long',
     year: 'numeric',

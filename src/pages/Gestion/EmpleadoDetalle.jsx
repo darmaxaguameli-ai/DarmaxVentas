@@ -4,6 +4,7 @@ import { fetchEmpleadoById, uploadDocumento } from '@/api/apiClient'; // Import 
 import Swal from 'sweetalert2';
 import { useGestion } from './context/GestionContext';
 import EmpleadoModal from './components/EmpleadoModal';
+import { formatDate, formatCurrency } from '@/utils/formatters';
 
 // Enum for document types, mirroring prisma schema
 const TipoDocumento = {
@@ -132,11 +133,6 @@ const GestionDocumentos = ({ empleado, reloadEmpleado }) => {
 
 const HistorialSalario = ({ empleado }) => {
     const historial = empleado?.historialSueldos || [];
-
-    // Helper for formatting currency
-    const formatCurrency = (value) => new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(value);
-    // Helper for formatting dates
-    const formatDate = (dateString) => new Date(dateString).toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric' });
 
     return (
         <div className="space-y-4">
@@ -285,15 +281,15 @@ const InfoGeneral = ({ empleado }) => (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
             <InfoItem label="Nombre Completo" value={empleado.nombreCompleto} />
             <InfoItem label="Puesto" value={empleado.puesto} />
-            <InfoItem label="Sueldo Actual" value={new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(empleado.sueldo || 0)} />
+            <InfoItem label="Sueldo Actual" value={formatCurrency(empleado.sueldo || 0)} />
             <InfoItem label="Jefe Inmediato" value={empleado.manager?.nombreCompleto || 'N/A'} />
             <InfoItem label="Teléfono" value={empleado.telefono || 'N/A'} />
             <InfoItem label="Email Personal" value={empleado.emailPersonal || 'N/A'} />
             <InfoItem label="Estatus" value={empleado.estatus} />
-            <InfoItem label="Fecha de Contratación" value={new Date(empleado.fechaContratacion).toLocaleDateString('es-MX')} />
+            <InfoItem label="Fecha de Contratación" value={formatDate(empleado.fechaContratacion)} />
              {empleado.estatus === 'INACTIVO' && (
                 <>
-                    <InfoItem label="Fecha de Terminación" value={new Date(empleado.fechaTerminacion).toLocaleDateString('es-MX')} />
+                    <InfoItem label="Fecha de Terminación" value={formatDate(empleado.fechaTerminacion)} />
                     <InfoItem label="Motivo de Terminación" value={empleado.tipoTerminacion} />
                 </>
             )}

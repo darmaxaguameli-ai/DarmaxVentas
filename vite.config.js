@@ -1,5 +1,6 @@
 const { defineConfig } = require('vite');
 const react = require('@vitejs/plugin-react');
+const path = require('path');
 
 // https://vitejs.dev/config/
 module.exports = defineConfig({
@@ -10,6 +11,11 @@ module.exports = defineConfig({
         target: 'http://localhost:3001',
         changeOrigin: true,
       },
+    },
+  },
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, './src'),
     },
   },
 });

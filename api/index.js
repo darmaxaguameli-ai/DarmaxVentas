@@ -255,7 +255,10 @@ app.delete('/api/water-types/:id', verifyToken, async (req, res) => {
 // --- SERVICE PRICES API ---
 app.get('/api/service-prices', async (req, res) => {
   try {
-    const servicePrices = await prisma.servicePrice.findMany({ include: { waterType: true }, orderBy: { price: 'asc' } });
+    const servicePrices = await prisma.servicePrice.findMany({ 
+      include: { waterType: true, jugBrands: true }, // Incluir también las marcas de garrafón
+      orderBy: { price: 'asc' } 
+    });
     res.json(servicePrices);
   } catch (error) {
     res.status(500).json({ error: 'Error fetching service prices' });
@@ -263,22 +266,45 @@ app.get('/api/service-prices', async (req, res) => {
 });
 app.post('/api/service-prices', verifyToken, async (req, res) => {
   try {
-    const { waterTypeId, ...rest } = req.body;
-    const data = waterTypeId ? { ...rest, waterType: { connect: { id: waterTypeId } } } : rest;
-    const servicePrice = await prisma.servicePrice.create({ data });
+    const { waterTypeId, jugBrandIds, ...rest } = req.body;
+    const data = { ...rest };
+    
+    if (waterTypeId) {
+      data.waterType = { connect: { id: waterTypeId } };
+    }
+    if (jugBrandIds && jugBrandIds.length > 0) {
+      data.jugBrands = { connect: jugBrandIds.map(id => ({ id })) };
+    }
+
+    const servicePrice = await prisma.servicePrice.create({ data, include: { jugBrands: true, waterType: true } });
     res.status(201).json(servicePrice);
   } catch (error) {
-    res.status(500).json({ error: 'Error creating service price' });
+    console.error('Error creating service price:', error);
+    res.status(500).json({ error: 'Error creating service price', details: error.message });
   }
 });
 app.put('/api/service-prices/:id', verifyToken, async (req, res) => {
   try {
-    const { waterTypeId, ...rest } = req.body;
-    const data = waterTypeId ? { ...rest, waterType: { connect: { id: waterTypeId } } } : { ...rest, waterTypeId: null };
-    const servicePrice = await prisma.servicePrice.update({ where: { id: req.params.id }, data });
+    const { name, method, price, waterTypeId, jugBrandIds } = req.body;
+
+    // Construir explícitamente el payload para asegurar que las relaciones se manejen bien
+    const dataForUpdate = {
+      name,
+      method,
+      price,
+      waterType: waterTypeId ? { connect: { id: waterTypeId } } : { disconnect: true },
+      jugBrands: { set: jugBrandIds ? jugBrandIds.map(id => ({ id })) : [] }
+    };
+
+    const servicePrice = await prisma.servicePrice.update({ 
+      where: { id: req.params.id }, 
+      data: dataForUpdate,
+      include: { jugBrands: true, waterType: true }
+    });
     res.json(servicePrice);
   } catch (error) {
-    res.status(500).json({ error: 'Error updating service price' });
+    console.error(`Error updating service price ${req.params.id}:`, error);
+    res.status(500).json({ error: 'Error updating service price', details: error.message });
   }
 });
 app.delete('/api/service-prices/:id', verifyToken, async (req, res) => {

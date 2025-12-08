@@ -137,7 +137,7 @@ const WaterTypeModal = ({ itemToEdit, onSave, onClose }) => {
 // ====================================================================
 const ManageServicePrices = () => {
     const { state, addServicePrice, updateServicePrice, deleteServicePrice } = useGestion();
-    const { servicePrices, waterTypes } = state;
+    const { servicePrices, waterTypes, jugBrands } = state;
     const [isModalOpen, setModalOpen] = useState(false);
     const [itemToEdit, setItemToEdit] = useState(null);
 
@@ -176,7 +176,7 @@ const ManageServicePrices = () => {
                     Agregar Precio
                 </button>
             </div>
-            {isModalOpen && <ServicePriceModal itemToEdit={itemToEdit} waterTypes={waterTypes} onSave={handleSave} onClose={() => setModalOpen(false)} />}
+            {isModalOpen && <ServicePriceModal itemToEdit={itemToEdit} waterTypes={waterTypes} jugBrands={jugBrands} onSave={handleSave} onClose={() => setModalOpen(false)} />}
             <div className="overflow-x-auto">
                 <table className="min-w-full">
                     <thead>
@@ -184,6 +184,7 @@ const ManageServicePrices = () => {
                             <th className="th-style">Servicio</th>
                             <th className="th-style">Método</th>
                             <th className="th-style">Tipo de Agua</th>
+                            <th className="th-style">Marcas Aplicables</th>
                             <th className="th-style">Precio</th>
                             <th className="th-style text-right">Acciones</th>
                         </tr>
@@ -194,6 +195,11 @@ const ManageServicePrices = () => {
                                 <td className="td-style">{sp.name}</td>
                                 <td className="td-style">{sp.method}</td>
                                 <td className="td-style">{sp.waterType?.name || 'N/A'}</td>
+                                <td className="td-style">
+                                    {sp.jugBrands && sp.jugBrands.length > 0 
+                                        ? sp.jugBrands.map(jb => jb.name).join(', ') 
+                                        : 'Todas'}
+                                </td>
                                 <td className="td-style">${sp.price.toFixed(2)}</td>
                                 <td className="td-style text-right space-x-2">
                                     <button onClick={() => { setItemToEdit(sp); setModalOpen(true); }} className="btn-secondary">Editar</button>
@@ -208,57 +214,82 @@ const ManageServicePrices = () => {
     );
 };
 
-const ServicePriceModal = ({ itemToEdit, waterTypes, onSave, onClose }) => {
-    const [data, setData] = useState({
-        name: itemToEdit?.name || 'Recarga',
-        method: itemToEdit?.method || 'Mostrador',
-        price: itemToEdit?.price || '',
-        waterTypeId: itemToEdit?.waterTypeId || '',
-    });
+const ServicePriceModal = ({ itemToEdit, waterTypes, jugBrands, onSave, onClose }) => {
+    const [name, setName] = useState(itemToEdit?.name || 'Recarga');
+    const [method, setMethod] = useState(itemToEdit?.method || 'Mostrador');
+    const [price, setPrice] = useState(itemToEdit?.price || '');
+    const [waterTypeId, setWaterTypeId] = useState(itemToEdit?.waterTypeId || '');
+    const [jugBrandIds, setJugBrandIds] = useState(itemToEdit?.jugBrands?.map(jb => jb.id) || []);
 
-    const handleChange = (e) => {
-        const { name, value } = e.target;
-        setData(prev => ({...prev, [name]: value}));
+    const handleJugBrandChange = (brandId) => {
+        setJugBrandIds(prevIds => 
+            prevIds.includes(brandId)
+                ? prevIds.filter(id => id !== brandId)
+                : [...prevIds, brandId]
+        );
     };
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        onSave({ ...data, price: parseFloat(data.price) });
+        onSave({ 
+            name,
+            method,
+            price: parseFloat(price),
+            waterTypeId: waterTypeId || null,
+            jugBrandIds,
+        });
     };
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center">
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4">
             <div className="bg-white dark:bg-gray-800 p-6 rounded-lg w-full max-w-lg">
                 <h3 className="text-lg font-bold mb-4">{itemToEdit ? 'Editar' : 'Agregar'} Precio de Servicio</h3>
                 <form onSubmit={handleSubmit} className="space-y-4">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4"> {/* Responsivo */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label className="label-style">Nombre del Servicio</label>
-                            <input name="name" type="text" value={data.name} onChange={handleChange} className="input-style w-full" required />
+                            <input name="name" type="text" value={name} onChange={(e) => setName(e.target.value)} className="input-style w-full" required />
                         </div>
                         <div>
                             <label className="label-style">Método</label>
-                            <select name="method" value={data.method} onChange={handleChange} className="input-style w-full">
+                            <select name="method" value={method} onChange={(e) => setMethod(e.target.value)} className="input-style w-full">
                                 <option value="Mostrador">Mostrador</option>
                                 <option value="Domicilio">Domicilio</option>
                                 <option value="General">General (ej. Recolección)</option>
                             </select>
                         </div>
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4"> {/* Responsivo */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                          <div>
                             <label className="label-style">Tipo de Agua (opcional)</label>
-                            <select name="waterTypeId" value={data.waterTypeId} onChange={handleChange} className="input-style w-full">
-                                <option value="">N/A</option>
+                            <select name="waterTypeId" value={waterTypeId} onChange={(e) => setWaterTypeId(e.target.value)} className="input-style w-full">
+                                <option value="">N/A (General)</option>
                                 {waterTypes.map(wt => <option key={wt.id} value={wt.id}>{wt.name}</option>)}
                             </select>
                         </div>
                         <div>
                             <label className="label-style">Precio</label>
-                            <input name="price" type="number" step="0.01" value={data.price} onChange={handleChange} className="input-style w-full" required />
+                            <input name="price" type="number" step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} className="input-style w-full" required />
                         </div>
                     </div>
-                    <div className="flex justify-end gap-2">
+                    <div>
+                        <label className="label-style">Marcas de Garrafón Aplicables (opcional)</label>
+                        <p className="text-xs text-gray-500 mb-2">Si no seleccionas ninguna, el precio se aplicará a todas las marcas.</p>
+                        <div className="max-h-32 overflow-y-auto space-y-2 p-3 border rounded-md">
+                            {jugBrands.map(jb => (
+                                <label key={jb.id} className="flex items-center gap-2 cursor-pointer">
+                                    <input 
+                                        type="checkbox" 
+                                        checked={jugBrandIds.includes(jb.id)}
+                                        onChange={() => handleJugBrandChange(jb.id)}
+                                        className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                                    />
+                                    <span className="text-sm">{jb.name}</span>
+                                </label>
+                            ))}
+                        </div>
+                    </div>
+                    <div className="flex justify-end gap-2 pt-4">
                         <button type="button" onClick={onClose} className="btn-secondary">Cancelar</button>
                         <button type="submit" className="btn-primary">Guardar</button>
                     </div>

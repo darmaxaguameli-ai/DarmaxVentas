@@ -1,12 +1,9 @@
 import { useState, useMemo, useEffect } from 'react';
 import * as XLSX from 'xlsx';
 import { useGestion } from './context/GestionContext';
+import { formatDate } from '@/utils/formatters';
 
-const getDayName = (dateString) => {
-    const date = new Date(dateString + 'T12:00:00'); // Add T12:00:00 to avoid timezone issues
-    if (isNaN(date.getTime())) return '';
-    return date.toLocaleDateString('es-MX', { weekday: 'long' });
-};
+
 
 // Componente para el modal de edición de registros de ventas diarias
 const DailySalesRecordEditModal = ({ isOpen, onClose, recordToEdit, onSave }) => {
@@ -164,7 +161,7 @@ const ControlVentasDiarias = () => {
 
     const initialManualFormState = {
         date: new Date().toISOString().slice(0, 10),
-        dayOfWeek: getDayName(new Date().toISOString().slice(0, 10)),
+        dayOfWeek: formatDate(new Date().toISOString().slice(0, 10), { weekday: 'long' }),
 
         // MOSTRADOR
         mostradorColor: '', mostradorBon: '', mostradorEpura: '', mostradorCiel: '', mostradorElectro: '', mostrador10Lts: '', mostradorVtaG: '', mostradorTotal: '',
@@ -299,7 +296,7 @@ const ControlVentasDiarias = () => {
             setManualForm(prev => ({ 
                 ...prev, 
                 date: value,
-                dayOfWeek: getDayName(value)
+                dayOfWeek: formatDate(value, { weekday: 'long' })
             }));
         } else {
             setManualForm(prev => ({ ...prev, [name]: parsedValue }));
@@ -475,7 +472,7 @@ const ControlVentasDiarias = () => {
                     }
                     
                     const formattedDate = date.toISOString().slice(0, 10);
-                    const dayOfWeek = getDayName(formattedDate); // Get full day name
+                    const dayOfWeek = formatDate(formattedDate, { weekday: 'long' }); // Get full day name
 
                     processedDailyRecords.push({
                         date: formattedDate,
@@ -575,13 +572,7 @@ const ControlVentasDiarias = () => {
         setOpenMonth(prevOpenMonth => (prevOpenMonth === month ? null : month));
     };
 
-    // Función auxiliar para formatear la fecha sin la hora, adaptada para la visualización en la tabla
-    const formatDisplayDate = (dateString) => {
-        if (!dateString) return '';
-        const date = new Date(dateString);
-        // Usar 'es-MX' para formato de fecha en español de México (DD/MM/YYYY)
-        return date.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' });
-    };
+
 
     return (
         <div>
@@ -693,7 +684,7 @@ const ControlVentasDiarias = () => {
                                                                                  <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                                                                                     {previewData.map((item, idx) => (
                                                                                         <tr key={idx}>
-                                                                                            <td className="td-style">{formatDisplayDate(item.date)}</td>
+                                                                                            <td className="td-style">{formatDate(item.date, { day: '2-digit', month: '2-digit', year: 'numeric' })}</td>
                                                                                             <td className="td-style">{item.dayOfWeek}</td>
                                                                                             <td className="td-style">{item.mostradorColor}</td>
                                                                                             <td className="td-style">{item.mostradorBon}</td>
@@ -860,7 +851,7 @@ const ControlVentasDiarias = () => {
                                     onClick={() => toggleMonth(month)}
                                     className="w-full flex justify-between items-center p-4 text-left font-semibold text-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                                 >
-                                    <span>{new Date(month + '-02T12:00:00').toLocaleDateString('es-MX', { month: 'long', year: 'numeric' })}</span>
+                                    <span>{formatDate(new Date(month + '-02'), { month: 'long', year: 'numeric' })}</span>
                                     <div className='flex items-center gap-4'>
                                       <span className='text-base font-bold text-primary'>
                                         Total: ${totalImporte.toFixed(2)}
@@ -906,7 +897,7 @@ const ControlVentasDiarias = () => {
                                             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                                                 {records.map((item) => ( // Use records from the grouped data
                                                     <tr key={item.id}>
-                                                        <td className="td-style">{formatDisplayDate(item.date)}</td>
+                                                        <td className="td-style">{formatDate(item.date, { day: '2-digit', month: '2-digit', year: 'numeric' })}</td>
                                                         <td className="td-style">{item.dayOfWeek}</td>
                                                         <td className="td-style">{item.mostradorColor}</td>
                                                         <td className="td="td-style>{item.mostradorBon}</td>

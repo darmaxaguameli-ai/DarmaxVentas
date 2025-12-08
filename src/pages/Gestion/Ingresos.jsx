@@ -6,6 +6,7 @@ import 'react-datepicker/dist/react-datepicker.css'; // Importar estilos de Date
 import { registerLocale } from 'react-datepicker';
 import es from 'date-fns/locale/es'; // Importar el locale español
 import { format, parseISO } from 'date-fns'; // Importar format y parseISO de date-fns para manejo de fechas
+import { formatDate } from '@/utils/formatters';
 
 registerLocale('es', es); // Registrar el locale español
 
@@ -143,13 +144,7 @@ const Ingresos = () => {
         }
     }
 
-    // Función auxiliar para formatear la fecha sin la hora, adaptada para la visualización en la tabla
-    const formatDisplayDate = (dateString) => {
-        if (!dateString) return '';
-        const date = new Date(dateString);
-        // Usar 'es-MX' para formato de fecha en español de México (DD/MM/YYYY)
-        return date.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' });
-    };
+
 
 
     return (
@@ -185,7 +180,7 @@ const Ingresos = () => {
                                 <td className="td-style font-medium">{item.description}</td>
                                 <td className="td-style">{item.pedidoId || 'N/A'}</td>
                                 <td className="td-style text-green-500 text-right">${item.amount.toFixed(2)}</td>
-                                <td className="td-style">{formatDisplayDate(item.date)}</td>
+                                <td className="td-style">{formatDate(item.date, { day: '2-digit', month: '2-digit', year: 'numeric' })}</td>
                                 <td className="td-style text-right space-x-4">
                                     <button onClick={() => handleOpenModal(item)} className="text-primary hover:text-primary/90 font-medium">Editar</button>
                                     <button onClick={() => handleDelete(item.id)} className="text-red-500 hover:text-red-700 font-medium">Eliminar</button>

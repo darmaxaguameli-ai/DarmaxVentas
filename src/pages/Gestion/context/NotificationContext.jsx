@@ -34,6 +34,25 @@ export const NotificationProvider = ({ children }) => {
         setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
     }, []);
 
+    const deleteNotification = useCallback((id) => {
+        setNotifications(prev => {
+            const notificationToDelete = prev.find(n => n.id === id);
+            
+            // Si la notificación tiene un snoozeId, la guardamos en localStorage
+            if (notificationToDelete && notificationToDelete.snoozeId) {
+                try {
+                    const snoozed = JSON.parse(localStorage.getItem('snoozedNotifications') || '{}');
+                    snoozed[notificationToDelete.snoozeId] = new Date().toISOString();
+                    localStorage.setItem('snoozedNotifications', JSON.stringify(snoozed));
+                } catch (e) {
+                    console.error("Failed to update snoozed notifications in localStorage", e);
+                }
+            }
+            
+            return prev.filter(n => n.id !== id);
+        });
+    }, []);
+
     const unreadCount = useMemo(() => {
         return notifications.filter(n => !n.isRead).length;
     }, [notifications]);
@@ -44,6 +63,7 @@ export const NotificationProvider = ({ children }) => {
         addNotification,
         markAsRead,
         markAllAsRead,
+        deleteNotification,
     };
 
     return (

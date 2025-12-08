@@ -129,7 +129,7 @@ const Resumen = () => {
                             <p className="mt-4 text-sm text-gray-500 dark:text-gray-400">No hay productos con inventario bajo.</p>
                         )}
                     </div>
-                    <NotificationCenter />
+                    <NotificationCenter overlayOnDesktop={true} />
                 </div>
                  <div className="md:col-span-2 lg:col-span-3">
                     <ExpensePieChart expenses={expenses} />

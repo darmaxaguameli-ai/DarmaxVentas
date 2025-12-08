@@ -47,21 +47,21 @@ model WaterType {
 
 // Precios de los servicios (recargas, tarifas, etc.)
 model ServicePrice {
-  id   String @id @default(cuid())
-  name String // "Recarga", "Tarifa de Recolección"
-
-  // "Domicilio", "Mostrador"
-  // Para la tarifa de recolección, el método puede ser "General" o similar.
-  method String
+  id     String @id @default(cuid())
+  name   String // "Recarga", "Tarifa de Recolección"
+  method String // "Domicilio", "Mostrador"
   price  Float
 
-  // Relación con el tipo de agua (opcional, para tarifas generales)
+  // Relaciones opcionales
   waterType   WaterType? @relation(fields: [waterTypeId], references: [id])
   waterTypeId String?
 
-  // Un precio de servicio debe ser único para un nombre, método y tipo de agua.
-  @@unique([name, method, waterTypeId])
+  jugBrands JugBrand[] // Relación muchos a muchos
+
   itemsPedido PedidoItem[]
+
+  // Un precio de servicio debe ser único para la combinación de sus propiedades
+  @@unique([name, method, waterTypeId])
 }
 
 // Marcas de garrafones que manejas (Bonafont, Ciel, etc.)
@@ -72,9 +72,9 @@ model JugBrand {
   // Relación con la tapa compatible en el inventario
   compatibleCap   Product? @relation(fields: [compatibleCapId], references: [id])
   compatibleCapId String?
+  
+  servicePrices ServicePrice[] // Relación muchos a muchos
 }
-
-
 // =====================================================================
 // MODELOS PRINCIPALES (MODIFICADOS)
 // =====================================================================
@@ -102,39 +102,39 @@ model User {
 // Renombrado de "Producto" a "Product" para seguir convenciones.
 // Representa artículos FÍSICOS con stock.
 model Product {
-  id        String     @id @default(cuid())
-  name      String     @unique
+  id          String       @id @default(cuid())
+  name        String       @unique
   // Precio de VENTA del artículo físico (ej: garrafón vacío)
-  price     Float
-  stock     Int        @default(0)
-  imageUrl  String?
+  price       Float
+  stock       Int          @default(0)
+  imageUrl    String?
   // Categorías como: "Garrafones Vacíos", "Tapas"
-  category  String?
+  category    String?
   itemsPedido PedidoItem[]
-  
+
   // Relación inversa para las tapas
   jugBrandsAsCap JugBrand[]
 }
 
 model Pedido {
-  id             String        @id @default(cuid())
-  customId       String        @unique // Ej: ORD-0001
-  total          Float
-  status         PedidoStatus  @default(PENDIENTE)
-  deliveryMethod String        // ej: "domicilio", "recoleccion", "sucursal"
-  paymentMethod  String?       // ej: "efectivo", "tarjeta"
-  paymentStatus  PaymentStatus @default(NO_PAGADO)
-  deliveryDate   DateTime?     // Fecha de entrega preferida
-  deliveryTimeSlot String?     // Franja horaria de entrega preferida (ej: "9am-12pm")
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+  id               String        @id @default(cuid())
+  customId         String        @unique // Ej: ORD-0001
+  total            Float
+  status           PedidoStatus  @default(PENDIENTE)
+  deliveryMethod   String // ej: "domicilio", "recoleccion", "sucursal"
+  paymentMethod    String? // ej: "efectivo", "tarjeta"
+  paymentStatus    PaymentStatus @default(NO_PAGADO)
+  deliveryDate     DateTime? // Fecha de entrega preferida
+  deliveryTimeSlot String? // Franja horaria de entrega preferida (ej: "9am-12pm")
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
 
-  cliente      User          @relation(fields: [clienteId], references: [id])
+  cliente      User         @relation(fields: [clienteId], references: [id])
   clienteId    String
   items        PedidoItem[]
-  sesionCaja   SesionCaja?   @relation(fields: [sesionCajaId], references: [id])
+  sesionCaja   SesionCaja?  @relation(fields: [sesionCajaId], references: [id])
   sesionCajaId String?
-  ingreso      Ingreso?      @relation("PedidoToIngreso")
+  ingreso      Ingreso?     @relation("PedidoToIngreso")
 }
 
 // Modificado para poder registrar la venta de un Producto físico o un Servicio
@@ -147,15 +147,14 @@ model PedidoItem {
   pedidoId String
 
   // Un item del pedido puede ser UN producto físico O UN servicio de precio
-  product      Product?      @relation(fields: [productId], references: [id])
-  productId    String?
-  servicePrice ServicePrice? @relation(fields: [servicePriceId], references: [id])
+  product        Product?      @relation(fields: [productId], references: [id])
+  productId      String?
+  servicePrice   ServicePrice? @relation(fields: [servicePriceId], references: [id])
   servicePriceId String?
 
   // Asegura que un item no pueda ser un producto y un servicio a la vez en el mismo pedido.
   // La lógica de negocio debe asegurar que o productId o servicePriceId esté definido, pero no ambos.
 }
-
 
 // =====================================================================
 // MODELOS PARA EL DASHBOARD DE GESTIÓN (SIN CAMBIOS GRANDES)
@@ -176,7 +175,7 @@ model SesionCaja {
 
 model Transaccion {
   id          String     @id @default(cuid())
-  type        String     // "INGRESO_CAJA", "RETIRO_CAJA", "VENTA"
+  type        String // "INGRESO_CAJA", "RETIRO_CAJA", "VENTA"
   amount      Float
   description String?
   createdAt   DateTime   @default(now())
@@ -203,45 +202,45 @@ model Ingreso {
 }
 
 model DailySalesRecord {
-  id                       String    @id @default(cuid())
-  date                     DateTime  @unique
+  id                       String   @id @default(cuid())
+  date                     DateTime @unique
   dayOfWeek                String
-  mostradorColor           Int       @default(0)
-  mostradorBon             Int       @default(0)
-  mostradorEpura           Int       @default(0)
-  mostradorCiel            Int       @default(0)
-  mostradorElectro         Int       @default(0)
-  mostrador10Lts           Int       @default(0)
-  mostradorVtaG            Int       @default(0)
-  mostradorTotal           Float     @default(0)
-  pedidosColor             Int       @default(0)
-  pedidosBon               Int       @default(0)
-  pedidosEpura             Int       @default(0)
-  pedidosCiel              Int       @default(0)
-  pedidosElectro           Int       @default(0)
-  pedidos10Lts             Int       @default(0)
-  pedidosVtaG              Int       @default(0)
-  pedidosTotal             Float     @default(0)
-  negociosColor            Int       @default(0)
-  negociosBon              Int       @default(0)
-  negociosEpura            Int       @default(0)
-  negociosCiel             Int       @default(0)
-  negociosElectro          Int       @default(0)
-  negocios10Lts            Int       @default(0)
-  negociosVtaG             Int       @default(0)
-  negociosTotal            Float     @default(0)
-  totalTipoGarrafonColor   Int       @default(0)
-  totalTipoGarrafonBon     Int       @default(0)
-  totalTipoGarrafonEpura   Int       @default(0)
-  totalTipoGarrafonCiel    Int       @default(0)
-  totalTipoGarrafonElectro Int       @default(0)
-  totalTipoGarrafon10Lts   Int       @default(0)
-  totalTipoGarrafonVtaG    Int       @default(0)
-  totalGarrafones          Int       @default(0)
-  totalImporte             Float     @default(0)
-  createdAt                DateTime  @default(now())
-  updatedAt                DateTime  @updatedAt
-  ingreso                  Ingreso?  @relation("DailySalesRecordToIngreso")
+  mostradorColor           Int      @default(0)
+  mostradorBon             Int      @default(0)
+  mostradorEpura           Int      @default(0)
+  mostradorCiel            Int      @default(0)
+  mostradorElectro         Int      @default(0)
+  mostrador10Lts           Int      @default(0)
+  mostradorVtaG            Int      @default(0)
+  mostradorTotal           Float    @default(0)
+  pedidosColor             Int      @default(0)
+  pedidosBon               Int      @default(0)
+  pedidosEpura             Int      @default(0)
+  pedidosCiel              Int      @default(0)
+  pedidosElectro           Int      @default(0)
+  pedidos10Lts             Int      @default(0)
+  pedidosVtaG              Int      @default(0)
+  pedidosTotal             Float    @default(0)
+  negociosColor            Int      @default(0)
+  negociosBon              Int      @default(0)
+  negociosEpura            Int      @default(0)
+  negociosCiel             Int      @default(0)
+  negociosElectro          Int      @default(0)
+  negocios10Lts            Int      @default(0)
+  negociosVtaG             Int      @default(0)
+  negociosTotal            Float    @default(0)
+  totalTipoGarrafonColor   Int      @default(0)
+  totalTipoGarrafonBon     Int      @default(0)
+  totalTipoGarrafonEpura   Int      @default(0)
+  totalTipoGarrafonCiel    Int      @default(0)
+  totalTipoGarrafonElectro Int      @default(0)
+  totalTipoGarrafon10Lts   Int      @default(0)
+  totalTipoGarrafonVtaG    Int      @default(0)
+  totalGarrafones          Int      @default(0)
+  totalImporte             Float    @default(0)
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+  ingreso                  Ingreso? @relation("DailySalesRecordToIngreso")
 }
 
 // =====================================================================
@@ -267,63 +266,63 @@ enum TipoDocumento {
 }
 
 model Empleado {
-  id                  String           @id @default(cuid())
-  nombreCompleto      String
-  puesto              String
-  sueldo              Float // Sueldo actual
-  
+  id             String @id @default(cuid())
+  nombreCompleto String
+  puesto         String
+  sueldo         Float // Sueldo actual
+
   // Información de contacto y dirección
-  telefono            String?
-  emailPersonal       String?          @unique
-  street              String?
-  neighborhood        String?
-  city                String?
-  postalCode          String?
+  telefono      String?
+  emailPersonal String? @unique
+  street        String?
+  neighborhood  String?
+  city          String?
+  postalCode    String?
 
   // Fechas y estatus de RRHH
-  fechaContratacion   DateTime
-  fechaTerminacion    DateTime?
-  tipoTerminacion     TipoTerminacion?
-  estatus             EstatusEmpleado  @default(ACTIVO)
+  fechaContratacion DateTime
+  fechaTerminacion  DateTime?
+  tipoTerminacion   TipoTerminacion?
+  estatus           EstatusEmpleado  @default(ACTIVO)
 
   // Relación con la tabla de autenticación (User)
   // Un registro de empleado puede estar asociado con una cuenta de usuario
-  user                User?            @relation(fields: [userId], references: [id])
-  userId              String?          @unique
+  user   User?   @relation(fields: [userId], references: [id])
+  userId String? @unique
 
   // Relación para el organigrama (auto-referencial)
-  manager             Empleado?        @relation("DirectReports", fields: [managerId], references: [id])
-  managerId           String?
-  subordinados        Empleado[]       @relation("DirectReports")
+  manager      Empleado?  @relation("DirectReports", fields: [managerId], references: [id])
+  managerId    String?
+  subordinados Empleado[] @relation("DirectReports")
 
   // Relación con sus documentos y historial de sueldos
-  documentos          Documento[]
-  historialSueldos    HistorialSueldo[]
-  
-  createdAt           DateTime         @default(now())
-  updatedAt           DateTime         @updatedAt
+  documentos       Documento[]
+  historialSueldos HistorialSueldo[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Documento {
-  id          String         @id @default(cuid())
-  nombre      String         // Ej: "Contrato Laboral", "INE Frente"
-  url         String         // URL del archivo almacenado (ej: en S3, Cloudinary, etc.)
-  tipo        TipoDocumento  // Usar el enum
-  createdAt   DateTime       @default(now())
-  
+  id        String        @id @default(cuid())
+  nombre    String // Ej: "Contrato Laboral", "INE Frente"
+  url       String // URL del archivo almacenado (ej: en S3, Cloudinary, etc.)
+  tipo      TipoDocumento // Usar el enum
+  createdAt DateTime      @default(now())
+
   // Relación con el empleado
-  empleado    Empleado       @relation(fields: [empleadoId], references: [id])
-  empleadoId  String
+  empleado   Empleado @relation(fields: [empleadoId], references: [id])
+  empleadoId String
 }
 
 model HistorialSueldo {
-  id            String   @id @default(cuid())
-  empleado      Empleado @relation(fields: [empleadoId], references: [id])
-  empleadoId    String
-  sueldo        Float
-  fechaInicio   DateTime
-  fechaFin      DateTime? // Opcional, si hay una fecha de finalización para este sueldo
-  motivo        String?   // Ej: "Aumento por desempeño", "Ajuste anual"
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id          String    @id @default(cuid())
+  empleado    Empleado  @relation(fields: [empleadoId], references: [id])
+  empleadoId  String
+  sueldo      Float
+  fechaInicio DateTime
+  fechaFin    DateTime? // Opcional, si hay una fecha de finalización para este sueldo
+  motivo      String? // Ej: "Aumento por desempeño", "Ajuste anual"
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 }

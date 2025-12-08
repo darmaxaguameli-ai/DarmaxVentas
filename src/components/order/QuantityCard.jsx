@@ -40,11 +40,13 @@ const QuantityCard = ({
         aria-label={name}
       />
 
-      <div className="px-4 pb-4 pt-1 flex flex-col gap-4">
+      <div className="px-4 pb-4 pt-1 flex flex-col gap-4 flex-grow">
         {/* Nombre del producto, más grande */}
-        <p className="text-lg sm:text-xl font-semibold text-dark dark:text-white leading-snug">
-          {name}
-        </p>
+        <div className="flex-grow">
+          <p className="text-lg sm:text-xl font-semibold text-dark dark:text-white leading-snug">
+            {name}
+          </p>
+        </div>
 
         {/* Controles de cantidad, botones grandes */}
         <div className="flex items-center justify-between gap-4">

@@ -114,6 +114,11 @@ const gestionReducer = (state, action) => {
         return { ...state, jugBrands: [...state.jugBrands, action.payload] };
     case "ADD_EMPLEADO":
         return { ...state, empleados: [...state.empleados, action.payload] };
+    case "UPDATE_SERVICEPRICE":
+        return {
+            ...state,
+            servicePrices: state.servicePrices.map(sp => sp.id === action.payload.id ? action.payload : sp),
+        };
     case "UPDATE_PRODUCT_IN_STATE": // Nuevo caso para actualizar un producto en el estado local
         return {
             ...state,
@@ -169,14 +174,14 @@ export const GestionProvider = ({ children }) => {
     [`add${modelName}`]: useCallback(async (data) => {
       try {
         const newRecord = await api[`create${modelName}`](data);
-        dispatch({ type: `ADD_${modelName.toUpperCase()}`, payload: newRecord });
+        await fetchManagementData(); // Refrescar todos los datos para asegurar consistencia
         Swal.fire('Éxito', `${modelName} añadido exitosamente.`, 'success');
         return newRecord;
       } catch (error) {
         Swal.fire('Error', `Error al añadir ${modelName.toLowerCase()}: ${error.message}`, 'error');
         throw error;
       }
-    }, []),
+    }, [fetchManagementData]),
     [`update${modelName}`]: useCallback(async (id, data) => {
       try {
         const updatedRecord = await api[`update${modelName}`](id, data);
@@ -203,8 +208,21 @@ export const GestionProvider = ({ children }) => {
   const productActions = createCrudActions('Product', { createProduct: apiCreateProduct, updateProduct: apiUpdateProduct, deleteProduct: apiDeleteProduct });
   const userActions = createCrudActions('User', { createUser: apiCreateUser, updateUser: apiUpdateUser, deleteUser: apiDeleteUser });
   const waterTypeActions = createCrudActions('WaterType', { createWaterType: apiCreateWaterType, updateWaterType: apiUpdateWaterType, deleteWaterType: apiDeleteWaterType });
-  const servicePriceActions = createCrudActions('ServicePrice', { createServicePrice: apiCreateServicePrice, updateServicePrice: apiUpdateServicePrice, deleteServicePrice: apiDeleteServicePrice });
-  const jugBrandActions = createCrudActions('JugBrand', { createJugBrand: apiCreateJugBrand, updateJugBrand: apiUpdateJugBrand, deleteJugBrand: apiDeleteJugBrand });
+    const servicePriceActions = createCrudActions('ServicePrice', {
+      createServicePrice: apiCreateServicePrice,
+      updateServicePrice: async (id, data) => {
+          try {
+              const updatedRecord = await apiUpdateServicePrice(id, data);
+              dispatch({ type: 'UPDATE_SERVICEPRICE', payload: updatedRecord });
+              Swal.fire('Éxito', 'Precio de servicio actualizado exitosamente.', 'success');
+              return updatedRecord;
+          } catch (error) {
+              Swal.fire('Error', `Error al actualizar el precio de servicio: ${error.message}`, 'error');
+              throw error;
+          }
+      },
+      deleteServicePrice: apiDeleteServicePrice 
+    });  const jugBrandActions = createCrudActions('JugBrand', { createJugBrand: apiCreateJugBrand, updateJugBrand: apiUpdateJugBrand, deleteJugBrand: apiDeleteJugBrand });
   const expenseActions = createCrudActions('Expense', { createExpense: apiCreateExpense, updateExpense: apiUpdateExpense, deleteExpense: apiDeleteExpense });
   const incomeActions = createCrudActions('Income', { createIncome: apiCreateIncome, updateIncome: apiUpdateIncome, deleteIncome: apiDeleteIncome });
   const empleadoActions = createCrudActions('Empleado', { createEmpleado: apiCreateEmpleado, updateEmpleado: apiUpdateEmpleado, deleteEmpleado: apiDeleteEmpleado });
