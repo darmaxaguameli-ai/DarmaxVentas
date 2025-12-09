@@ -116,3 +116,8 @@ export const uploadDocumento = (empleadoId, formData) => {
 export const fetchOrders = () => apiClient.get('/pedidos').then(res => res.data);
 export const createOrder = (orderData) => apiClient.post('/pedidos', orderData).then(res => res.data);
 export const updateOrder = (id, data) => apiClient.put(`/pedidos/${id}`, data).then(res => res.data);
+
+// ====================================================================
+//  MY ORDERS (for logged-in client)
+// ====================================================================
+export const fetchMyOrders = () => apiClient.get('/my-orders').then(res => res.data);

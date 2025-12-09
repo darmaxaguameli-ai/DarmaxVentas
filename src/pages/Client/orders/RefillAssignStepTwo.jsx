@@ -26,7 +26,6 @@ const DraggableJug = ({ jug, children }) => {
 
   const style = {
     position: "relative",
-    // IMPORTANTE PARA MÓVIL: evita que el navegador haga scroll/zoom en vez de arrastrar
     touchAction: "none",
     transform: transform
       ? `translate3d(${transform.x}px, ${transform.y}px, 0)`
@@ -92,19 +91,9 @@ const RefillAssignStepTwo = () => {
     [sourceJugsFromState]
   );
 
-  // Sensores para mouse + touch (dnd-kit)
   const sensors = useSensors(
-    useSensor(MouseSensor, {
-      activationConstraint: {
-        distance: 5, // píxeles antes de activar drag (evita drags accidentales)
-      },
-    }),
-    useSensor(TouchSensor, {
-      activationConstraint: {
-        delay: 120, // ms manteniendo el dedo antes de arrastrar
-        tolerance: 5, // cuánto se puede mover el dedo durante el delay
-      },
-    })
+    useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 120, tolerance: 5 } })
   );
 
   useEffect(() => {
@@ -124,6 +113,7 @@ const RefillAssignStepTwo = () => {
         id: wt.id,
         name: `Agua ${wt.name}`,
         quantity: 0,
+        assignments: [], // Array para guardar asignaciones detalladas
       }));
       setTargetWater(initialWaterTypes);
     }
@@ -148,32 +138,44 @@ const RefillAssignStepTwo = () => {
   );
 
   const handleDragEnd = ({ active, over }) => {
-    if (
-      !over ||
-      active.data.current?.type !== "jug" ||
-      over.data.current?.type !== "water"
-    )
-      return;
+    if (!over || active.data.current?.type !== "jug" || over.data.current?.type !== "water") return;
 
-    const sourceJugId = active.data.current.jug.id;
+    const sourceJugData = active.data.current.jug;
     const targetWaterId = over.id;
 
-    const sourceJug = sourceJugs.find((j) => j.id === sourceJugId);
+    const sourceJug = sourceJugs.find((j) => j.id === sourceJugData.id);
     if (!sourceJug || sourceJug.quantity === 0) return;
 
     setSourceJugs((prev) =>
       prev.map((jug) =>
-        jug.id === sourceJugId
-          ? { ...jug, quantity: jug.quantity - 1 }
-          : jug
+        jug.id === sourceJugData.id ? { ...jug, quantity: jug.quantity - 1 } : jug
       )
     );
+    
     setTargetWater((prev) =>
-      prev.map((water) =>
-        water.id === targetWaterId
-          ? { ...water, quantity: water.quantity + 1 }
-          : water
-      )
+      prev.map((water) => {
+        if (water.id !== targetWaterId) return water;
+
+        const newAssignments = [...water.assignments];
+        const existingAssignment = newAssignments.find(a => a.jugId === sourceJugData.id);
+
+        if (existingAssignment) {
+          existingAssignment.quantity += 1;
+        } else {
+          newAssignments.push({
+            jugId: sourceJugData.id,
+            jugName: sourceJugData.name,
+            imageUrl: sourceJugData.imageUrl,
+            quantity: 1,
+          });
+        }
+        
+        return {
+          ...water,
+          assignments: newAssignments,
+          quantity: water.quantity + 1,
+        };
+      })
     );
   };
 
@@ -187,37 +189,52 @@ const RefillAssignStepTwo = () => {
   };
 
   const handleManualRemove = (waterTypeId) => {
-    const assignedWater = targetWater.find((w) => w.id === waterTypeId);
-    if (!assignedWater || assignedWater.quantity === 0) return;
+    let jugIdToReturn;
 
-    const jugToReturnTo = sourceJugs.find(
-      (j) => j.quantity < j.initialQuantity
+    setTargetWater(prev =>
+      prev.map(water => {
+        if (water.id === waterTypeId && water.assignments.length > 0) {
+          const lastAssignment = water.assignments[water.assignments.length - 1];
+          jugIdToReturn = lastAssignment.jugId;
+          
+          lastAssignment.quantity -= 1;
+          
+          const newAssignments = water.assignments.filter(a => a.quantity > 0);
+          
+          return {
+            ...water,
+            assignments: newAssignments,
+            quantity: water.quantity - 1,
+          };
+        }
+        return water;
+      })
     );
-    if (!jugToReturnTo) return;
 
-    setSourceJugs((prev) =>
-      prev.map((jug) =>
-        jug.id === jugToReturnTo.id
-          ? { ...jug, quantity: jug.quantity + 1 }
-          : jug
-      )
-    );
-    setTargetWater((prev) =>
-      prev.map((water) =>
-        water.id === waterTypeId
-          ? { ...water, quantity: water.quantity - 1 }
-          : water
-      )
-    );
+    if (jugIdToReturn) {
+      setSourceJugs(prev =>
+        prev.map(jug =>
+          jug.id === jugIdToReturn ? { ...jug, quantity: jug.quantity + 1 } : jug
+        )
+      );
+    }
   };
 
-  const handleGoToStart = () => navigate("/pedidos");
-  const handleBack = () => navigate("/pedidos/rellenar");
+
+  const handleBack = () => navigate("/pedidos/rellenar", { state: location.state });
+  
   const handleContinue = () => {
+    const fromStepTwoPayload = targetWater
+        .map(wt => ({
+            ...wt,
+            assignments: wt.assignments.filter(a => a.quantity > 0)
+        }))
+        .filter(wt => wt.assignments.length > 0);
+
     navigate("/pedidos/rellenar/entrega", {
       state: {
         ...location.state,
-        fromStepTwo: targetWater.filter((p) => p.quantity > 0),
+        fromStepTwo: fromStepTwoPayload,
         maxJugs,
       },
     });
@@ -225,101 +242,53 @@ const RefillAssignStepTwo = () => {
 
   const renderContent = () => {
     if (loading) return <div className="text-center py-10">Cargando...</div>;
-    if (error)
-      return <div className="text-center py-10 text-red-500">{error}</div>;
+    if (error) return <div className="text-center py-10 text-red-500">{error}</div>;
 
     return (
       <>
-        {showAnimation && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-30 transition-opacity duration-500"></div>
-        )}
+        {showAnimation && <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-30 transition-opacity duration-500"></div>}
         <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
           {showAnimation && (
             <>
               <div className="instruction-animation-container">
-                <div className="instruction-jug">
-                  <img
-                    src="/img/garrafones/turquesa.png"
-                    alt="Animación"
-                  />
-                </div>
+                <div className="instruction-jug"><img src="/img/garrafones/turquesa.png" alt="Animación" /></div>
               </div>
               <div className="instruction-animation-container-mobile">
-                <div className="instruction-jug-mobile">
-                  <img
-                    src="/img/garrafones/turquesa.png"
-                    alt="Animación"
-                  />
-                </div>
+                <div className="instruction-jug-mobile"><img src="/img/garrafones/turquesa.png" alt="Animación" /></div>
               </div>
             </>
           )}
           <div className="flex flex-wrap justify-between items-start gap-4 mb-6 relative z-40">
-            <p
-              className={`hidden md:block transition-all duration-300 ${
-                showAnimation
-                  ? "text-white font-bold"
-                  : "text-text-secondary dark:text-white/80"
-              }`}
-            >
-              Arrastra tus garrafones de la izquierda hacia el tipo de agua que
-              deseas a la derecha.
+            <p className={`hidden md:block transition-all duration-300 ${showAnimation ? "text-white font-bold" : "text-text-secondary dark:text-white/80"}`}>
+              Arrastra tus garrafones de la izquierda hacia el tipo de agua que deseas a la derecha.
             </p>
-            <p
-              className={`block md:hidden transition-all duration-300 ${
-                showAnimation
-                  ? "text-white font-bold"
-                  : "text-text-secondary dark:text-white/80"
-              }`}
-            >
-              Arrastra tus garrafones de arriba hacia el tipo de agua que deseas
-              abajo.
+            <p className={`block md:hidden transition-all duration-300 ${showAnimation ? "text-white font-bold" : "text-text-secondary dark:text-white/80"}`}>
+              Arrastra tus garrafones de arriba hacia el tipo de agua que deseas abajo.
             </p>
             <div className="flex flex-col items-end gap-1">
               <p className="text-sm font-medium">Total Asignado</p>
               <p className="text-3xl font-black">
                 <span className="text-primary">{totalJugsAssigned}</span>
-                <span className="text-text-secondary dark:text-white/60 text-xl">
-                  {" "}
-                  / {maxJugs}
-                </span>
+                <span className="text-text-secondary dark:text-white/60 text-xl"> / {maxJugs}</span>
               </p>
             </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 min-h-[300px]">
-            <div
-              className={`space-y-4 p-4 rounded-xl bg-white/50 dark:bg-gray-900/50 ${
-                showAnimation ? "highlight-tutorial" : ""
-              }`}
-            >
+            <div className={`space-y-4 p-4 rounded-xl bg-white/50 dark:bg-gray-900/50 ${showAnimation ? "highlight-tutorial" : ""}`}>
               <h2 className="text-xl font-bold text-center">Mis Garrafones</h2>
               {sourceJugs.map((jug) => (
                 <DraggableJug key={jug.id} jug={jug}>
-                  <div
-                    className={`p-4 rounded-lg shadow flex items-center justify-between bg-white dark:bg-gray-800 transition-opacity ${
-                      jug.quantity === 0 ? "opacity-40" : "cursor-grab"
-                    }`}
-                  >
+                  <div className={`p-4 rounded-lg shadow flex items-center justify-between bg-white dark:bg-gray-800 transition-opacity ${jug.quantity === 0 ? "opacity-40" : "cursor-grab"}`}>
                     <div className="flex items-center gap-3">
-                      <img
-                        src={jug.imageUrl}
-                        alt={jug.name}
-                        className="h-12 w-12 object-contain"
-                      />
+                      <img src={jug.imageUrl} alt={jug.name} className="h-12 w-12 object-contain" />
                       <span className="font-medium">{jug.name}</span>
                     </div>
-                    <span className="text-2xl font-bold">
-                      {jug.quantity}
-                    </span>
+                    <span className="text-2xl font-bold">{jug.quantity}</span>
                   </div>
                 </DraggableJug>
               ))}
             </div>
-            <div
-              className={`space-y-4 p-4 rounded-xl bg-white/50 dark:bg-gray-900/50 ${
-                showAnimation ? "highlight-tutorial" : ""
-              }`}
-            >
+            <div className={`space-y-4 p-4 rounded-xl bg-white/50 dark:bg-gray-900/50 ${showAnimation ? "highlight-tutorial" : ""}`}>
               <h2 className="text-xl font-bold text-center">Tipos de Agua</h2>
               {targetWater.map((water) => (
                 <DroppableWaterType key={water.id} {...water}>
@@ -329,25 +298,11 @@ const RefillAssignStepTwo = () => {
                       <div className="wave two"></div>
                     </div>
                     <div className="relative flex flex-col items-center justify-center gap-2">
-                      <p className="text-lg font-bold text-center">
-                        {water.name}
-                      </p>
+                      <p className="text-lg font-bold text-center">{water.name}</p>
                       <div className="flex items-center gap-4">
-                        <button
-                          onClick={() => handleManualRemove(water.id)}
-                          className="btn-secondary p-2 h-8 w-8 flex items-center justify-center rounded-full"
-                        >
-                          -
-                        </button>
-                        <span className="text-3xl font-black text-primary tabular-nums">
-                          {water.quantity}
-                        </span>
-                        <button
-                          onClick={() => handleManualAdd(water.id)}
-                          className="btn-secondary p-2 h-8 w-8 flex items-center justify-center rounded-full"
-                        >
-                          +
-                        </button>
+                        <button onClick={() => handleManualRemove(water.id)} className="btn-secondary p-2 h-8 w-8 flex items-center justify-center rounded-full">-</button>
+                        <span className="text-3xl font-black text-primary tabular-nums">{water.quantity}</span>
+                        <button onClick={() => handleManualAdd(water.id)} className="btn-secondary p-2 h-8 w-8 flex items-center justify-center rounded-full">+</button>
                       </div>
                     </div>
                   </div>
@@ -370,11 +325,7 @@ const RefillAssignStepTwo = () => {
       <div className="flex flex-col gap-6">{renderContent()}</div>
       <footer className="mt-auto pt-8">
         <div className="flex flex-col-reverse sm:flex-row gap-4 justify-between items-center">
-          <button
-            type="button"
-            onClick={handleBack}
-            className="flex h-12 sm:h-14 w-full sm:w-auto items-center justify-center rounded-lg border border-slate-300 bg-slate-100 text-dark dark:bg-slate-800 dark:text-white dark:border-slate-600 text-base sm:text-lg font-semibold px-6 sm:px-8 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all"
-          >
+          <button type="button" onClick={handleBack} className="flex h-12 sm:h-14 w-full sm:w-auto items-center justify-center rounded-lg border border-slate-300 bg-slate-100 text-dark dark:bg-slate-800 dark:text-white dark:border-slate-600 text-base sm:text-lg font-semibold px-6 sm:px-8 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all">
             Volver al paso 1
           </button>
           <button

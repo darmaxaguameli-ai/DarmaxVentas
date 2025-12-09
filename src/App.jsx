@@ -42,6 +42,7 @@ import ClientDataConfirmation from "./pages/Client/orders/ClientDataConfirmation
 import BuyJugsStepOne from "./pages/Client/orders/BuyJugsStepOne.jsx";
 import BuyJugsFillOptionStepTwo from "./pages/Client/orders/BuyJugsFillOptionStepTwo.jsx";
 import BuyJugsAssignWaterStepThree from "./pages/Client/orders/BuyJugsAssignWaterStepThree.jsx";
+import OrderConfirmation from "./pages/Client/orders/OrderConfirmation.jsx";
 import ClientProfile from "./pages/Client/ClientProfile";
 import MisPedidos from "./pages/Client/MisPedidos.jsx";
 
@@ -99,6 +100,7 @@ function App() {
       <Route path="/pedidos/comprar" element={<BuyJugsStepOne />} />
       <Route path="/pedidos/comprar/opcion-llenado" element={<BuyJugsFillOptionStepTwo />} />
       <Route path="/pedidos/comprar/asignar-agua" element={<BuyJugsAssignWaterStepThree />} />
+      <Route path="/pedidos/confirmado" element={<OrderConfirmation />} />
     </Routes>
   );
 }

@@ -21,18 +21,24 @@ const StatusBadge = ({ status }) => (
 );
 
 const OrderItem = ({ item }) => {
-    const name = item.product?.name || item.servicePrice?.name || 'Producto desconocido';
+    // Prioridad para el nombre: Nombre del producto, Nombre del garrafón específico, Nombre del servicio
+    const name = item.product?.name || item.jugBrandName || item.servicePrice?.name || 'Producto desconocido';
     const waterType = item.servicePrice?.waterType?.name;
-    const jugBrand = item.servicePrice?.jugBrands.map(jb => jb.name).join(', ');
     
+    // Si es un servicio de recarga (tiene waterType), el nombre principal ya es el del garrafón.
+    // El nombre del servicio ("Recarga") se puede añadir en la descripción.
+    const displayName = waterType && item.jugBrandName ? item.jugBrandName : name;
+    const serviceDescription = waterType ? `Recarga con ${waterType}` : null;
+
     return (
         <div className="flex items-center justify-between py-2">
             <div>
-                <p className="font-semibold text-gray-800 dark:text-gray-200">{name}</p>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                    {waterType && `Tipo de agua: ${waterType}`}
-                    {jugBrand && ` | Marcas: ${jugBrand}`}
-                </p>
+                <p className="font-semibold text-gray-800 dark:text-gray-200">{displayName}</p>
+                {serviceDescription && (
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    {serviceDescription}
+                  </p>
+                )}
             </div>
             <div className="text-right">
                 <p className="font-semibold">{item.quantity} x {formatCurrency(item.price)}</p>

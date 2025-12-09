@@ -1,11 +1,10 @@
 // src/pages/cliente/orders/RefillJugStepOne.jsx
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import OrderLayout from "../../../layouts/OrderLayout";
 import QuantityCard from "../../../components/order/QuantityCard";
-import { useConfig } from "../../../context/ConfigContext"; // Importar useConfig
+import { useConfig } from "../../../context/ConfigContext";
 
-// Helper to map brand names to images, as the DB doesn't store them
 const brandImageMap = {
   'ciel': '/img/garrafones/ciel.png',
   'epura': '/img/garrafones/epura.png',
@@ -15,30 +14,35 @@ const brandImageMap = {
 };
 
 const getImageUrlForBrand = (name) => {
-  const defaultImage = '/img/garrafones/turquesa.png'; // A sensible default
+  const defaultImage = '/img/garrafones/turquesa.png';
   return brandImageMap[name.toLowerCase()] || defaultImage;
 };
 
 const RefillJugStepOne = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { jugBrands: fetchedJugBrands, loading: configLoading, error: configError } = useConfig();
   
-  // Estado local para los productos seleccionados, inicializado desde fetchedJugBrands
   const [selectedJugs, setSelectedJugs] = useState([]);
 
   useEffect(() => {
     if (!configLoading && !configError && fetchedJugBrands.length > 0) {
-      const initialProducts = fetchedJugBrands.map((brand, index) => ({
-        id: brand.id,
-        name: `Garrafón ${brand.name}`,
-        quantity: 0,
-        featured: index === 0, // Make the first item featured as an example
-        imageUrl: getImageUrlForBrand(brand.name),
-      }));
+      // Revisa si hay un estado previo con selecciones
+      const previousSelection = location.state?.fromStepOne;
+
+      const initialProducts = fetchedJugBrands.map((brand, index) => {
+        const existingJug = previousSelection?.find(p => p.id === brand.id);
+        return {
+          id: brand.id,
+          name: `Garrafón ${brand.name}`,
+          quantity: existingJug?.quantity || 0,
+          featured: index === 0,
+          imageUrl: getImageUrlForBrand(brand.name),
+        };
+      });
       setSelectedJugs(initialProducts);
     }
-  }, [fetchedJugBrands, configLoading, configError]);
-
+  }, [fetchedJugBrands, configLoading, configError, location.state]);
 
   const totalJugs = selectedJugs.reduce((sum, p) => sum + p.quantity, 0);
 
@@ -58,10 +62,19 @@ const RefillJugStepOne = () => {
       return;
     }
 
+    // Al continuar, nos aseguramos de limpiar los datos de los pasos siguientes
+    // para evitar inconsistencias si el usuario ha navegado hacia atrás.
+    const { 
+      fromStepOne, 
+      fromStepTwo, 
+      ...restOfState 
+    } = location.state || {};
+
     navigate("/pedidos/rellenar/asignar", {
       state: {
+        ...restOfState, // Conserva datos de cliente u otros datos no relacionados al flujo
         maxJugs: totalJugs,
-        fromStepOne: selectedJugs.filter(p => p.quantity > 0), // Send only selected products
+        fromStepOne: selectedJugs.filter(p => p.quantity > 0),
       },
     });
   };
@@ -79,14 +92,12 @@ const RefillJugStepOne = () => {
       return <div className="text-center py-10 text-red-500">{configError}</div>;
     }
     
-    // Si no hay marcas de garrafón disponibles
     if (selectedJugs.length === 0 && !configLoading) {
         return <div className="text-center py-10">No hay marcas de garrafón disponibles.</div>;
     }
 
     return (
       <>
-        {/* Resumen superior, texto más grande y claro */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-sm sm:text-base text-text-secondary dark:text-white/80">
           <span>
             Garrafones seleccionados:{" "}
@@ -102,17 +113,7 @@ const RefillJugStepOne = () => {
           </span>
         </div>
 
-        {/* Grid de productos – responsivo y centrado para modo horizontal */}
-        <div
-          className="
-            grid 
-            grid-cols-1
-            sm:grid-cols-3
-            lg:grid-cols-4
-            gap-4 md:gap-6 
-            max-w-5xl mx-auto
-          "
-        >
+        <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6 max-w-5xl mx-auto">
           {selectedJugs.map((product) => (
             <QuantityCard
               key={product.id}
@@ -127,7 +128,6 @@ const RefillJugStepOne = () => {
           ))}
         </div>
 
-        {/* Botones de navegación */}
         <div className="flex justify-between items-center pt-4">
           <button
             type="button"
@@ -139,12 +139,7 @@ const RefillJugStepOne = () => {
           <button
             type="button"
             onClick={handleContinue}
-            className="flex min-w-[200px] items-center justify-center rounded-xl
-                       bg-primary px-10 h-14 text-lg font-semibold text-white
-                       shadow-sm hover:bg-primary/90
-                       focus-visible:outline focus-visible:outline-2 
-                       focus-visible:outline-offset-2 focus-visible:outline-primary
-                       transition-all active:scale-[0.98]"
+            className="flex min-w-[200px] items-center justify-center rounded-xl bg-primary px-10 h-14 text-lg font-semibold text-white shadow-sm hover:bg-primary/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary transition-all active:scale-[0.98]"
             disabled={totalJugs === 0}
           >
             Continuar al paso 2

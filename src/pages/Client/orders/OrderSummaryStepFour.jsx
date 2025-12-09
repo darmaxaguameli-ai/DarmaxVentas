@@ -1,161 +1,169 @@
 // src/pages/cliente/orders/OrderSummaryStepFour.jsx
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import OrderLayout from "../../../layouts/OrderLayout";
-import { createOrder, fetchFilteredServicePrices } from "../../../api/apiClient";
+import { createOrder } from "../../../api/apiClient";
 import { useAuth } from "../../../context/AuthContext";
+import { useConfig } from "../../../context/ConfigContext";
 
 const OrderSummaryStepFour = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Todo lo que venga de pasos anteriores
   const previousState = location.state || {};
   const { user, isAuthenticated } = useAuth();
+  
+  const { servicePrices: allServicePrices, loading: configLoading, error: configError } = useConfig();
 
-  // Estados para manejar los precios de los servicios y la carga
-  const [servicePrices, setServicePrices] = useState([]);
-  const [loadingPrices, setLoadingPrices] = useState(true);
-  const [errorPrices, setErrorPrices] = useState(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  // Guardará los items formateados para el ticket: { name, quantity, price, servicePriceId }
+  const [orderItems, setOrderItems] = useState([]);
   const [orderTotal, setOrderTotal] = useState(0);
+  const [isCalculating, setIsCalculating] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  useEffect(() => {
-    const getServicePrices = async () => {
-      if (tiposAguaAsignados.length === 0 || !deliveryMethod) {
-        setLoadingPrices(false);
-        return;
-      }
-
-      setLoadingPrices(true);
-      setErrorPrices(null);
-      let calculatedTotal = 0;
-      const fetchedPrices = [];
-
-      try {
-        for (const waterTypeAssignment of tiposAguaAsignados) {
-          // Fetch service price for each assigned water type and the chosen delivery method
-          const prices = await fetchFilteredServicePrices({
-            method: deliveryMethod,
-            name: "Recarga", // Assuming "Recarga" is the service name for refills
-            waterTypeId: waterTypeAssignment.id,
-          });
-
-          if (prices && prices.length > 0) {
-            const servicePrice = prices[0]; // Assuming one price per combination
-            fetchedPrices.push({
-              ...servicePrice,
-              quantity: waterTypeAssignment.quantity,
-              waterTypeAssignedId: waterTypeAssignment.id, // Store original water type ID
-            });
-            calculatedTotal += servicePrice.price * waterTypeAssignment.quantity;
-          } else {
-            console.warn(
-              `No service price found for water type ${waterTypeAssignment.name} and delivery method ${deliveryMethod}`
-            );
-            // Handle cases where a price might not be found, e.g., set to 0 or show an error
-          }
-        }
-        setServicePrices(fetchedPrices);
-        setOrderTotal(calculatedTotal);
-      } catch (err) {
-        console.error("Error fetching service prices:", err);
-        setErrorPrices("No se pudieron cargar los precios de los servicios.");
-        setOrderTotal(0);
-      } finally {
-        setLoadingPrices(false);
-      }
-    };
-
-    if (isRefill) {
-      getServicePrices();
-    } else {
-      // For "buy" mode, total might come from previous steps or calculated differently
-      // For now, reset for non-refill flows if this effect runs
-      setServicePrices([]);
-      setOrderTotal(0);
-      setLoadingPrices(false);
-    }
-  }, [tiposAguaAsignados, deliveryMethod, isRefill]);
-
-  // Permite distinguir entre flujos:
-  // - "refill"  -> rellenar garrafones (flujo actual)
-  // - "buy"     -> comprar garrafones (flujo futuro)
   const mode = previousState.mode || "refill";
-
-  const fromStepOne = previousState.fromStepOne || []; // garrafones seleccionados (refill)
-  const fromStepTwo = previousState.fromStepTwo || []; // tipos de agua asignados (refill)
+  const isRefill = mode === "refill";
+  const fromStepTwo = previousState.fromStepTwo || [];
   const maxJugs = previousState.maxJugs ?? 0;
   const deliveryMethod = previousState.deliveryMethod || "delivery";
 
-  // Para el flujo "buy" podemos enviar directamente un arreglo de items:
-  // previousState.orderItems = [{ id, name, quantity, imageUrl, description }]
-  const orderItemsFromState = Array.isArray(previousState.orderItems)
-    ? previousState.orderItems
-    : [];
-
-  // ---- LÓGICA PARA FLUJO REFILL (ACTUAL) ----
-  const garrafonesSeleccionados = fromStepOne.filter(
-    (item) => item.quantity && item.quantity > 0
+  // Ya no necesitamos 'garrafonesSeleccionados' para la UI
+  const tiposAguaAsignados = useMemo(() =>
+    fromStepTwo.filter((item) => item.quantity > 0),
+    [fromStepTwo]
   );
 
-  const tiposAguaAsignados = fromStepTwo.filter(
-    (item) => item.quantity && item.quantity > 0
-  );
+  useEffect(() => {
+    if (configLoading || !isRefill) {
+      setIsCalculating(false);
+      return;
+    }
+    
+    if (!allServicePrices || allServicePrices.length === 0) {
+        setIsCalculating(false);
+        return;
+    }
 
-  const totalGarrafonesRefill = garrafonesSeleccionados.reduce(
-    (sum, item) => sum + item.quantity,
-    0
-  );
+    // Lógica de búsqueda de precios corregida para diferenciar por tamaño
+    const findBestPrice = (prices, method, waterTypeId, jugName) => {
+        const backendMethod = {
+            'pickup': 'Mostrador',
+            'delivery': 'Domicilio',
+            'home_collection': 'Domicilio'
+        }[method] || method;
 
-  // ---- UNIFICACIÓN DE ITEMS QUE SE MOSTRARÁN ----
-  // Si viene orderItems (modo compra), usamos eso.
-  // Si no, usamos los garrafones del refill.
-  let mainItems = [];
+        let serviceNameToSearch = 'Recarga 20L'; // Asumir 20L por defecto
+        if (jugName && (jugName.includes('10L') || jugName.includes('10 Litros'))) {
+            serviceNameToSearch = 'Recarga 10L';
+        }
 
-  if (orderItemsFromState.length > 0) {
-    // Flujo "buy"
-    mainItems = orderItemsFromState;
-  } else {
-    // Flujo "refill"
-    mainItems = garrafonesSeleccionados.map((item) => ({
-      ...item,
-      description: `Cantidad: ${item.quantity}`,
-    }));
-  }
+        const possibleMatches = prices.filter(p => 
+            p.name === serviceNameToSearch &&
+            p.method === backendMethod &&
+            p.waterType?.id === waterTypeId
+        );
+        
+        // Dado que la lógica de negocio no parece requerir especificidad de marca, 
+        // devolvemos la primera coincidencia que ahora es específica por tamaño.
+        return possibleMatches[0] || null;
+    };
 
-  // Total de unidades (garrafones/piezas)
-  const totalUnits =
-    mainItems.reduce((sum, item) => sum + (item.quantity || 0), 0) ||
-    totalGarrafonesRefill ||
-    maxJugs ||
-    0;
+    const calculatePrices = () => {
+      setIsCalculating(true);
+      let calculatedTotal = 0;
+      const finalOrderItemsForState = [];
+      const finalOrderItemsForBackend = [];
 
-  // Textos para método de entrega (usando las claves acordadas)
+      // Iterar sobre los tipos de agua para agrupar en el ticket
+      for (const waterType of tiposAguaAsignados) {
+        let quantityForWaterType = 0;
+        let priceForWaterType = 0;
+        
+        // Calcular el precio para cada asignación individual
+        for (const assignment of waterType.assignments) {
+          const priceRecord = findBestPrice(allServicePrices, deliveryMethod, waterType.id, assignment.jugName);
+          if (priceRecord) {
+            calculatedTotal += priceRecord.price * assignment.quantity;
+            quantityForWaterType += assignment.quantity;
+            priceForWaterType = priceRecord.price; // Asumimos que el precio es el mismo para un tipo de agua
+            
+            // Llenar los items para el backend con todo el detalle
+            finalOrderItemsForBackend.push({
+              quantity: assignment.quantity,
+              price: priceRecord.price,
+              servicePriceId: priceRecord.id,
+              jugBrandId: assignment.jugId,
+              jugBrandName: assignment.jugName,
+              jugBrandImageUrl: assignment.imageUrl,
+            });
+          } else {
+             console.warn(
+                `CLIENT-SIDE: No se encontró precio para el garrafón ${assignment.jugName} con agua ${waterType.name} y método ${deliveryMethod}`
+              );
+          }
+        }
+        
+        // Agrupar para mostrar en el ticket de la UI
+        if(quantityForWaterType > 0) {
+            finalOrderItemsForState.push({
+                name: `Recarga ${waterType.name.replace('Agua ', '')}`,
+                quantity: quantityForWaterType,
+                price: priceForWaterType,
+                servicePriceId: waterType.id, // Usar un ID único para la key del map
+            });
+        }
+      }
+      
+      setOrderTotal(calculatedTotal);
+      // El estado 'orderItems' ahora contiene los datos para el backend
+      setOrderItems(finalOrderItemsForBackend); 
+      // Podríamos usar 'finalOrderItemsForState' si quisiéramos, pero la info ya está en 'tiposAguaAsignados'
+      // Para mantenerlo simple, construiremos el ticket desde 'tiposAguaAsignados' y los precios encontrados.
+      setIsCalculating(false);
+    };
+
+    calculatePrices();
+
+  }, [tiposAguaAsignados, deliveryMethod, isRefill, allServicePrices, configLoading]);
+
+  // Re-calculamos los items para el ticket de forma segura
+  const ticketItems = useMemo(() => {
+    if (isCalculating || !allServicePrices) return [];
+
+    return tiposAguaAsignados.map(wt => {
+        const firstAssignment = wt.assignments[0];
+        if (!firstAssignment) return null;
+
+        const priceRecord = allServicePrices.find(p => 
+            p.waterType?.id === wt.id && 
+            (p.name.includes('20L') || p.name.includes('10L') || p.name === 'Recarga') &&
+            p.method === {'pickup': 'Mostrador', 'delivery': 'Domicilio', 'home_collection': 'Domicilio'}[deliveryMethod]
+        );
+        
+        return {
+            name: `Recarga ${wt.name.replace('Agua ', '')}`,
+            quantity: wt.quantity,
+            price: priceRecord?.price || 0,
+            id: wt.id
+        }
+    }).filter(Boolean);
+  }, [isCalculating, allServicePrices, tiposAguaAsignados, deliveryMethod]);
+
   const deliveryLabels = {
     delivery: "Entrega a domicilio",
     home_collection: "Recolección a domicilio",
-    pickup: "Recoger en sucursal",
+    pickup: "Recoger en mostrador",
   };
 
   const deliveryDescription = {
-    delivery:
-      "Un repartidor llevará tus garrafones a la dirección que nos indiques.",
-    home_collection:
-      "Pasamos a tu domicilio por los garrafones vacíos y luego te los entregamos llenos.",
-    pickup:
-      "Podrás pasar a la sucursal Darmax seleccionada para recoger tu pedido.",
+    delivery: "Un repartidor llevará tus garrafones a la dirección que nos indiques.",
+    home_collection: "Pasamos a tu domicilio por los garrafones vacíos y luego te los entregamos llenos.",
+    pickup: "Podrás pasar al mostrador de nuestra sucursal Darmax a recoger tu pedido.",
   };
 
   const handleBack = () => {
-    // Puedes sobreescribir este backPath desde pasos anteriores si quieres reutilizar
-    // esta pantalla para otros flujos (ej: compra de garrafones)
-    const backPath =
-      previousState.backPath || "/pedidos/rellenar/entrega";
-
-    navigate(backPath, {
-      state: previousState,
-    });
+    const backPath = previousState.backPath || "/pedidos/rellenar/entrega";
+    navigate(backPath, { state: previousState });
   };
 
   const handleConfirm = async () => {
@@ -174,36 +182,24 @@ const OrderSummaryStepFour = () => {
       return;
     }
 
-    // Construct order items for refill flow
-    const orderItems = servicePrices.map((service) => ({
-      quantity: service.quantity,
-      price: service.price,
-      servicePriceId: service.id,
-      // productId: null, // For refill, no product id
-    }));
-
-    // Ensure orderTotal is correctly calculated and not 0 for refill orders
-    if (isRefill && orderTotal === 0) {
-      alert("El total del pedido no puede ser $0 para una recarga.");
+    if (isRefill && orderTotal === 0 && tiposAguaAsignados.length > 0) {
+      alert("El total del pedido no puede ser $0 para una recarga. Verifica la configuración de precios.");
       setIsSubmitting(false);
       return;
     }
 
+    // El backend espera una lista de items, que ya tenemos en `orderItems`
     const orderPayload = {
       clienteId: clientId,
-      total: orderTotal, // Use the calculated orderTotal
+      total: orderTotal,
       deliveryMethod: deliveryMethod,
-      paymentStatus: "NO_PAGADO", // Default to NO_PAGADO, payment integration would change this
-      status: "PENDIENTE", // Initial status
+      paymentStatus: "NO_PAGADO",
+      status: "PENDIENTE",
       items: orderItems,
     };
 
-    console.log("Payload to send:", orderPayload);
-
     try {
       const newOrder = await createOrder(orderPayload);
-      console.log("Pedido creado con éxito:", newOrder);
-      // Navigate to a confirmation page or show a success message
       navigate("/pedidos/confirmado", { state: { orderId: newOrder.customId, orderType: mode } });
     } catch (error) {
       console.error("Error al crear el pedido:", error);
@@ -213,105 +209,37 @@ const OrderSummaryStepFour = () => {
     }
   };
 
-  const isRefill = mode === "refill";
-
   return (
     <OrderLayout
-      title={
-        isRefill
-          ? "Revisa tu pedido de recarga"
-          : "Revisa tu compra de garrafones"
-      }
-      subtitle="Confirma que los productos y el método de entrega sean correctos antes de finalizar."
+      title={isRefill ? "Revisa tu pedido de recarga" : "Revisa tu compra"}
+      subtitle="Confirma que todo sea correcto antes de finalizar."
       step={4}
       totalSteps={4}
     >
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 mt-4">
-        {/* Columna izquierda: detalle del pedido */}
+        {/* Columna Izquierda: AHORA SOLO MUESTRA EL DETALLE DE LA RECARGA */}
         <div className="lg:col-span-3 flex flex-col gap-6">
-          {/* Card: Productos / Garrafones seleccionados */}
-          <div className="rounded-2xl border border-light/60 dark:border-white/10 bg-white/95 dark:bg-dark/60 shadow-md backdrop-blur-xl">
-            <h2 className="px-6 pt-5 pb-3 text-[20px] sm:text-[22px] font-bold tracking-[-0.02em] text-dark dark:text-white border-b border-light/60 dark:border-white/10">
-              {isRefill ? "Tus garrafones" : "Tus productos"}
-            </h2>
-
-            {mainItems.length === 0 ? (
-              <p className="px-6 py-5 text-base text-text-secondary dark:text-white/70">
-                No se encontraron productos seleccionados. Vuelve al paso
-                anterior para elegirlos.
-              </p>
-            ) : (
-              <div className="flex flex-col divide-y divide-light/60 dark:divide-white/10">
-                {mainItems.map((item) => (
-                  <div
-                    key={item.id}
-                    className="flex items-center justify-between gap-4 px-6 py-4"
-                  >
-                    <div className="flex items-center gap-4">
-                      {item.imageUrl && (
-                        <div
-                          className="size-16 rounded-xl bg-center bg-cover bg-no-repeat"
-                          style={{ backgroundImage: `url("${item.imageUrl}")` }}
-                          aria-label={item.name}
-                        />
-                      )}
-                      <div className="flex flex-col justify-center">
-                        <p className="text-base sm:text-lg font-medium text-dark dark:text-white">
-                          {item.name}
-                        </p>
-                        {item.description && (
-                          <p className="text-sm sm:text-base text-text-secondary dark:text-white/70">
-                            {item.description}
-                          </p>
-                        )}
-                        {item.quantity != null && !item.description && (
-                          <p className="text-sm sm:text-base text-text-secondary dark:text-white/70">
-                            Cantidad:{" "}
-                            <span className="font-semibold">
-                              {item.quantity}
-                            </span>
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Card: Tipos de agua asignados (solo aplica para refill y si hay datos) */}
           {isRefill && tiposAguaAsignados.length > 0 && (
             <div className="rounded-2xl border border-light/60 dark:border-white/10 bg-white/95 dark:bg-dark/60 shadow-md backdrop-blur-xl">
-              <h2 className="px-6 pt-5 pb-3 text-[20px] sm:text-[22px] font-bold tracking-[-0.02em] text-dark dark:text-white border-b border-light/60 dark:border-white/10">
-                Tipos de agua asignados
+              <h2 className="px-6 pt-5 pb-3 text-[20px] sm:text-[22px] font-bold text-dark dark:text-white border-b border-light/60 dark:border-white/10">
+                Detalle de la recarga
               </h2>
-
               <div className="flex flex-col divide-y divide-light/60 dark:divide-white/10">
-                {tiposAguaAsignados.map((item) => (
-                  <div
-                    key={item.id}
-                    className="flex items-center justify-between gap-4 px-6 py-4"
-                  >
-                    <div className="flex items-center gap-4">
-                      {item.imageUrl && (
-                        <div
-                          className="size-16 rounded-xl bg-center bg-cover bg-no-repeat"
-                          style={{ backgroundImage: `url("${item.imageUrl}")` }}
-                          aria-label={item.name}
-                        />
-                      )}
-                      <div className="flex flex-col justify-center">
-                        <p className="text-base sm:text-lg font-medium text-dark dark:text-white">
-                          {item.name}
-                        </p>
-                        <p className="text-sm sm:text-base text-text-secondary dark:text-white/70">
-                          Garrafones asignados:{" "}
-                          <span className="font-semibold">
-                            {item.quantity}
-                          </span>
-                        </p>
-                      </div>
+                {tiposAguaAsignados.map((waterType) => (
+                  <div key={waterType.id} className="px-6 py-4">
+                    <p className="text-base sm:text-lg font-bold text-dark dark:text-white">
+                      {waterType.name}
+                    </p>
+                    <div className="pl-4 mt-2 space-y-2">
+                      {waterType.assignments.map(assign => (
+                        <div key={assign.jugId} className="flex items-center justify-between text-sm">
+                            <div className="flex items-center gap-2">
+                                <img src={assign.imageUrl} alt={assign.jugName} className="h-8 w-8 object-contain" />
+                                <span className="text-text-secondary dark:text-white/70">{assign.jugName}</span>
+                            </div>
+                            <span className="font-semibold text-dark dark:text-white">x {assign.quantity}</span>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 ))}
@@ -320,76 +248,56 @@ const OrderSummaryStepFour = () => {
           )}
         </div>
 
-        {/* Columna derecha: resumen general y botones grandes */}
+        {/* Columna Derecha: RESUMEN DE PEDIDO TIPO TICKET */}
         <div className="lg:col-span-2">
-          <div className="sticky top-10 rounded-2xl border border-light/60 dark:border-white/10 bg-white/95 dark:bg-dark/60 shadow-md backdrop-blur-xl p-6 flex flex-col gap-6">
-            <h3 className="text-lg sm:text-xl font-bold text-dark dark:text-white">
-              Resumen del pedido
-            </h3>
+          <div className="sticky top-10 rounded-2xl border-light/60 dark:border-white/10 bg-white/95 dark:bg-dark/60 shadow-md backdrop-blur-xl p-6 flex flex-col gap-6">
+            <h3 className="text-lg sm:text-xl font-bold text-dark dark:text-white">Resumen del pedido</h3>
+            
+            {/* Ticket */}
+            <div className="space-y-3 border-b border-light/60 dark:border-white/10 pb-4">
+              {isCalculating || configLoading ? (
+                  <span className="text-sm text-text-secondary dark:text-white/70">Calculando precios...</span>
+              ) : ticketItems.length > 0 ? (
+                  ticketItems.map((item) => (
+                    <div key={item.id} className="flex justify-between text-sm">
+                        <span className="text-text-secondary dark:text-white/80">{item.quantity} x {item.name}</span>
+                        <span className="font-medium text-dark dark:text-white">${(item.price * item.quantity).toFixed(2)}</span>
+                    </div>
+                  ))
+              ) : (
+                <span className="text-sm text-red-500">No se pudieron calcular los precios.</span>
+              )}
+            </div>
 
-            {/* Total de unidades / Importe */}
-            <div className="flex items-center justify-between">
-              <p className="text-base sm:text-lg font-medium text-text-secondary dark:text-white/80">
-                {isRefill ? "Importe total" : "Total de piezas"}
-              </p>
-              <p className="text-2xl sm:text-3xl font-extrabold text-primary">
-                {loadingPrices ? (
-                  <span className="text-lg text-text-secondary dark:text-white/70">Cargando...</span>
-                ) : errorPrices ? (
-                  <span className="text-lg text-red-500">Error</span>
-                ) : isRefill ? (
-                  `$${orderTotal.toFixed(2)}`
-                ) : (
-                  totalUnits || 0
-                )}
+            {/* Total */}
+            <div className="flex items-center justify-between font-bold">
+              <p className="text-base sm:text-lg text-dark dark:text-white">Importe total</p>
+              <p className="text-2xl sm:text-3xl text-primary">
+                {isCalculating || configLoading ? '...' : `$${orderTotal.toFixed(2)}`}
               </p>
             </div>
 
             {/* Método de entrega */}
             <div className="mt-2 rounded-xl bg-light/60 dark:bg-dark/70 border border-light/60 dark:border-white/15 p-4 flex flex-col gap-2">
-              <p className="text-xs sm:text-sm font-semibold text-text-secondary dark:text-white/70 uppercase tracking-[0.08em]">
-                Método de entrega
-              </p>
-              <p className="text-base sm:text-lg font-bold text-dark dark:text-white">
-                {deliveryLabels[deliveryMethod] || "Entrega a domicilio"}
-              </p>
-              <p className="text-sm sm:text-base text-text-secondary dark:text-white/70">
-                {deliveryDescription[deliveryMethod] ||
-                  "Un repartidor llevará tus garrafones a la dirección que nos indiques."}
-              </p>
+              <p className="text-xs sm:text-sm font-semibold text-text-secondary dark:text-white/70 uppercase tracking-[0.08em]">Método de entrega</p>
+              <p className="text-base sm:text-lg font-bold text-dark dark:text-white">{deliveryLabels[deliveryMethod] || "Entrega a domicilio"}</p>
             </div>
-
-            {/* Botones grandes para adultos mayores */}
+            
+            {/* Botones */}
             <div className="flex flex-col gap-3 mt-2">
               <button
                 type="button"
                 onClick={handleConfirm}
-                disabled={loadingPrices || errorPrices || isSubmitting || (isRefill && orderTotal === 0)}
-                className="w-full rounded-xl bg-primary py-3.5 px-4 text-lg font-semibold text-white
-                           hover:bg-primary/90 transition-colors
-                           focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-dark
-                           disabled:opacity-60 disabled:cursor-not-allowed"
+                disabled={isCalculating || configLoading || configError || isSubmitting || (isRefill && orderTotal === 0 && tiposAguaAsignados.length > 0)}
+                className="w-full rounded-xl bg-primary py-3.5 px-4 text-lg font-semibold text-white hover:bg-primary/90 transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-dark disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {isSubmitting ? "Confirmando..." : "Confirmar pedido"}
               </button>
-
-              <button
-                type="button"
-                onClick={handleBack}
-                className="w-full rounded-xl py-3.5 px-4 text-lg font-semibold text-primary
-                           hover:bg-primary/10 transition-colors"
-              >
+              <button type="button" onClick={handleBack} className="w-full rounded-xl py-3.5 px-4 text-lg font-semibold text-primary hover:bg-primary/10 transition-colors">
                 Volver al paso anterior
               </button>
             </div>
-
-            {maxJugs > 0 && isRefill && (
-              <p className="mt-1 text-xs sm:text-sm text-text-secondary dark:text-white/60 text-center">
-                Seleccionaste un total de{" "}
-                <span className="font-semibold">{maxJugs}</span> garrafones en
-                este pedido.
-              </p>
-            )}
+            
           </div>
         </div>
       </div>

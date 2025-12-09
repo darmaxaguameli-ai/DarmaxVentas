@@ -1111,6 +1111,7 @@ app.get('/api/my-orders', verifyToken, async (req, res) => {
                 waterType: true,
               },
             },
+            // No es necesario un 'include' para los campos nuevos, ya están en PedidoItem
           },
         },
       },
@@ -1144,6 +1145,7 @@ app.get('/api/pedidos', verifyToken, async (req, res) => {
                 jugBrands: true,
               },
             },
+            // No es necesario un 'include' para los campos nuevos, ya están en PedidoItem
           },
         },
       },
@@ -1204,7 +1206,11 @@ app.post('/api/pedidos', verifyToken, async (req, res) => {
         pedidoId: newPedido.id,
         quantity: item.quantity,
         price: item.price,
-        servicePriceId: item.servicePriceId, // Asumiendo que solo se venden servicios por ahora
+        servicePriceId: item.servicePriceId,
+        // Guardar los nuevos campos del garrafón
+        jugBrandId: item.jugBrandId,
+        jugBrandName: item.jugBrandName,
+        jugBrandImageUrl: item.jugBrandImageUrl,
       }));
 
       await tx.pedidoItem.createMany({

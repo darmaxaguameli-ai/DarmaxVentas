@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import apiClient from '../../api/apiClient';
+import { fetchMyOrders } from '../../api/apiClient';
 import { useAuth } from '../../context/AuthContext';
 import ClientOrderHeader from '../../components/ClientOrderHeader'; // Importar ClientOrderHeader
 import { formatDate } from '@/utils/formatters';
@@ -77,12 +77,20 @@ const MisPedidos = () => {
   const [error, setError] = useState(null);
   const { user } = useAuth();
 
+  const completedOrders = useMemo(() => orders.filter(order => 
+    order.status === 'ENTREGADO' || order.status === 'CANCELADO'
+  ), [orders]);
+
+  const pendingOrders = useMemo(() => orders.filter(order => 
+    order.status === 'PENDIENTE' || order.status === 'EN_PROCESO' || order.status === 'EN_RUTA'
+  ), [orders]);
+
   useEffect(() => {
     const fetchOrders = async () => {
       try {
         setLoading(true);
-        const response = await apiClient.get('/my-orders');
-        setOrders(response.data);
+        const data = await fetchMyOrders();
+        setOrders(data);
       } catch (err) {
         setError(err.message || 'No se pudieron cargar los pedidos.');
       } finally {
@@ -111,8 +119,34 @@ const MisPedidos = () => {
       );
     }
     return (
-      <div className="space-y-4 w-full">
-        {orders.map(order => <OrderCard key={order.id} order={order} />)}
+      <div className="space-y-8 w-full">
+        {/* Pedidos en Curso */}
+        <section>
+          <h2 className="text-xl sm:text-2xl font-bold text-dark dark:text-white mb-4">Pedidos en Curso</h2>
+          {pendingOrders.length === 0 ? (
+            <div className="text-center py-5 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
+              <p className="text-gray-500 dark:text-gray-400">No tienes pedidos en curso.</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {pendingOrders.map(order => <OrderCard key={order.id} order={order} />)}
+            </div>
+          )}
+        </section>
+
+        {/* Pedidos Finalizados */}
+        <section>
+          <h2 className="text-xl sm:text-2xl font-bold text-dark dark:text-white mb-4">Pedidos Finalizados</h2>
+          {completedOrders.length === 0 ? (
+            <div className="text-center py-5 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
+              <p className="text-gray-500 dark:text-gray-400">No tienes pedidos finalizados.</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {completedOrders.map(order => <OrderCard key={order.id} order={order} />)}
+            </div>
+          )}
+        </section>
       </div>
     );
   };

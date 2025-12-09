@@ -152,8 +152,10 @@ model PedidoItem {
   servicePrice   ServicePrice? @relation(fields: [servicePriceId], references: [id])
   servicePriceId String?
 
-  // Asegura que un item no pueda ser un producto y un servicio a la vez en el mismo pedido.
-  // La lógica de negocio debe asegurar que o productId o servicePriceId esté definido, pero no ambos.
+  // Campos para almacenar la información específica del garrafón
+  jugBrandId       String?
+  jugBrandName     String?
+  jugBrandImageUrl String?
 }
 
 // =====================================================================
