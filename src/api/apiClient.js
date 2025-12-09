@@ -79,6 +79,11 @@ export const deleteWaterType = (id) => apiClient.delete(`/water-types/${id}`).th
 
 // --- Service Prices ---
 export const fetchServicePrices = () => apiClient.get('/service-prices').then(res => res.data);
+export const fetchFilteredServicePrices = ({ method, waterTypeId, name }) => {
+  return apiClient.get('/service-prices', {
+    params: { method, waterTypeId, name }
+  }).then(res => res.data);
+};
 export const createServicePrice = (data) => apiClient.post('/service-prices', data).then(res => res.data);
 export const updateServicePrice = (id, data) => apiClient.put(`/service-prices/${id}`, data).then(res => res.data);
 export const deleteServicePrice = (id) => apiClient.delete(`/service-prices/${id}`).then(res => res.data);
@@ -104,3 +109,10 @@ export const uploadDocumento = (empleadoId, formData) => {
     },
   }).then(res => res.data);
 };
+
+// ====================================================================
+//  PEDIDOS
+// ====================================================================
+export const fetchOrders = () => apiClient.get('/pedidos').then(res => res.data);
+export const createOrder = (orderData) => apiClient.post('/pedidos', orderData).then(res => res.data);
+export const updateOrder = (id, data) => apiClient.put(`/pedidos/${id}`, data).then(res => res.data);

@@ -1,261 +1,201 @@
-import { useState, useMemo } from "react";
-import ProductGrid from "./ProductGrid";
-import PosRefillGrid from "./PosRefillGrid";
-import PosBuyGrid from "./PosBuyGrid";
-import OrderSummary from "./OrderSummary";
-import CustomerModal from "./CustomerModal";
-import PaymentModal from "./PaymentModal";
-import DeliveryModal from "./DeliveryModal";
-import PosHeader from "./PosHeader";
-import CashDrawerModal from "./CashDrawerModal";
-import CloseRegisterModal from "./CloseRegisterModal";
-import StartDayModal from "./StartDayModal";
-import PasswordModal from "./PasswordModal";
-import { useOrders } from "./hooks/useOrders";
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import { fetchOrders, updateOrder } from '@/api/apiClient';
+import { formatDate, formatCurrency } from '@/utils/formatters';
+import PosHeader from './PosHeader';
+import Swal from 'sweetalert2';
+import NewOrderFlow from './NewOrderFlow';
 
-const VentaMostrador = () => {
-    // Session state
-    const [isSessionActive, setIsSessionActive] = useState(false);
-    const [openingCash, setOpeningCash] = useState(0);
-    const [transactions, setTransactions] = useState([]);
 
-    // Order state
-    const [orderItems, setOrderItems] = useState([]);
-    const [customer, setCustomer] = useState(null);
-    const [deliveryInfo, setDeliveryInfo] = useState({
-        method: 'mostrador',
-        collectEmptyJugs: false,
-        deliveryDetails: null,
-    });
+const statusStyles = {
+    PENDIENTE: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300',
+    EN_PROCESO: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
+    EN_RUTA: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-300',
+    ENTREGADO: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
+    CANCELADO: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300',
+};
+
+const StatusBadge = ({ status }) => (
+    <span className={`px-3 py-1 inline-flex text-sm leading-5 font-semibold rounded-full ${statusStyles[status] || 'bg-gray-100 text-gray-800'}`}>
+        {status.replace('_', ' ')}
+    </span>
+);
+
+const OrderItem = ({ item }) => {
+    const name = item.product?.name || item.servicePrice?.name || 'Producto desconocido';
+    const waterType = item.servicePrice?.waterType?.name;
+    const jugBrand = item.servicePrice?.jugBrands.map(jb => jb.name).join(', ');
     
-    // UI state
-    const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
-    const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
-    const [isDeliveryModalOpen, setIsDeliveryModalOpen] = useState(false);
-    const [isCashDrawerModalOpen, setIsCashDrawerModalOpen] = useState(false);
-    const [cashDrawerActionType, setCashDrawerActionType] = useState('in');
-    const [isCloseRegisterModalOpen, setIsCloseRegisterModalOpen] = useState(false);
-    const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
-    const [activeTab, setActiveTab] = useState('refill'); // Changed default to 'refill'
-    
-    // Get addOrder from context
-    const { addOrder } = useOrders();
+    return (
+        <div className="flex items-center justify-between py-2">
+            <div>
+                <p className="font-semibold text-gray-800 dark:text-gray-200">{name}</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                    {waterType && `Tipo de agua: ${waterType}`}
+                    {jugBrand && ` | Marcas: ${jugBrand}`}
+                </p>
+            </div>
+            <div className="text-right">
+                <p className="font-semibold">{item.quantity} x {formatCurrency(item.price)}</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Subtotal: {formatCurrency(item.quantity * item.price)}</p>
+            </div>
+        </div>
+    )
+};
 
-    // Memoized calculations
-    const subtotal = useMemo(() => orderItems.reduce((sum, item) => sum + item.price * item.quantity, 0), [orderItems]);
-    const shippingCost = useMemo(() => (deliveryInfo.method === 'domicilio' && deliveryInfo.collectEmptyJugs) ? 10 : 0, [deliveryInfo]);
-    const total = useMemo(() => subtotal + shippingCost, [subtotal, shippingCost]);
+const OrderAccordion = ({ order, onUpdateStatus }) => {
+    const [isExpanded, setIsExpanded] = useState(false);
 
-    const cashInDrawer = useMemo(() => {
-        return transactions.reduce((acc, t) => {
-            if (t.type === 'sale' && t.paymentMethod === 'cash') return acc + t.amount;
-            if (t.type === 'pay_in') return acc + t.amount;
-            if (t.type === 'pay_out') return acc - t.amount;
-            return acc;
-        }, openingCash);
-    }, [transactions, openingCash]);
-
-    // Handlers
-    const handleStartSession = (startingAmount) => {
-        setOpeningCash(startingAmount);
-        setTransactions([]);
-        setIsSessionActive(true);
-    };
-
-    const handleEndSession = () => {
-        setIsSessionActive(false);
-        setOpeningCash(0);
-        setTransactions([]); // Clear transactions for next session
-        setOrderItems([]);
-        setCustomer(null);
-        setDeliveryInfo({ method: 'mostrador', collectEmptyJugs: false, deliveryDetails: null });
-    };
-
-    const handleProductSelect = (product) => {
-        setOrderItems(prevItems => {
-            const existingItem = prevItems.find(item => item.id === product.id);
-            if (existingItem) {
-                return prevItems.map(item =>
-                    item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
-                );
+    const handleFinalize = () => {
+        Swal.fire({
+            title: '¿Confirmar entrega?',
+            text: `¿Estás seguro de que quieres marcar el pedido ${order.customId} como ENTREGADO?`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Sí, confirmar',
+            cancelButtonText: 'Cancelar',
+          }).then((result) => {
+            if (result.isConfirmed) {
+                onUpdateStatus(order.id, 'ENTREGADO');
             }
-            return [...prevItems, { ...product, quantity: 1 }];
-        });
-    };
-    
-    const handleQuantityChange = (productId, newQuantity) => {
-        if (newQuantity <= 0) {
-            handleRemoveItem(productId);
-            return;
-        }
-        setOrderItems(prevItems =>
-            prevItems.map(item =>
-                item.id === productId ? { ...item, quantity: newQuantity } : item
-            )
-        );
-    };
-
-    const handleRemoveItem = (productId) => {
-        setOrderItems(prevItems => prevItems.filter(item => item.id !== productId));
-    };
-
-    const handleCustomerAdd = (customerData) => {
-        setCustomer(customerData);
-    };
-
-    const handleSaveDeliveryInfo = (newDeliveryInfo) => {
-        setDeliveryInfo(newDeliveryInfo);
-    };
-
-    const handlePaymentConfirm = (paymentData) => {
-        if (deliveryInfo.method === 'domicilio') {
-            addOrder({
-                orderItems,
-                customer,
-                deliveryInfo,
-                total,
-                shippingCost,
-            });
-        }
-        
-        const newTransaction = {
-            type: 'sale',
-            description: `Venta de ${orderItems.length} productos`,
-            amount: paymentData.total,
-            paymentMethod: paymentData.method,
-            timestamp: new Date(),
-        };
-        setTransactions(prev => [...prev, newTransaction]);
-        
-        // Reset state
-        setOrderItems([]);
-        setCustomer(null);
-        setDeliveryInfo({ method: 'mostrador', collectEmptyJugs: false, deliveryDetails: null });
-        setIsPaymentModalOpen(false);
-    };
-
-    const handleCashDrawerAction = (cashAction) => {
-        const newTransaction = {
-            type: cashAction.type === 'in' ? 'pay_in' : 'pay_out',
-            description: cashAction.reason,
-            amount: cashAction.amount,
-            paymentMethod: 'cash',
-            timestamp: new Date(),
-        };
-        setTransactions(prev => [...prev, newTransaction]);
-        setIsCashDrawerModalOpen(false);
-    };
-
-    const handleOpenPayIn = () => {
-        setCashDrawerActionType('in');
-        setIsCashDrawerModalOpen(true);
-    };
-
-    const handleOpenPayOut = () => {
-        setCashDrawerActionType('out');
-        setIsCashDrawerModalOpen(true);
-    };
-
-    const handleRequestCloseRegister = () => {
-        setIsPasswordModalOpen(true);
-    };
-
-    const handlePasswordConfirm = () => {
-        setIsPasswordModalOpen(false);
-        setIsCloseRegisterModalOpen(true);
-    };
-
-    if (!isSessionActive) {
-        return <StartDayModal onStartSession={handleStartSession} />;
-    }
-
-    const deliveryModalData = {
-        method: deliveryInfo.method,
-        collectEmptyJugs: deliveryInfo.collectEmptyJugs,
-        deliveryDetails: customer || deliveryInfo.deliveryDetails
-    };
-
-    const getTabClassName = (tabName) => {
-        return `px-4 sm:px-6 py-3 font-semibold rounded-t-md transition-colors text-sm sm:text-base focus:outline-none ${
-            activeTab === tabName
-                ? 'bg-white dark:bg-gray-800 text-primary'
-                : 'bg-transparent text-gray-500 hover:text-primary dark:hover:text-gray-300'
-        }`;
+          });
     };
 
     return (
-        <div className="bg-gray-100 dark:bg-gray-900 h-screen flex flex-col font-display text-gray-800 dark:text-gray-200">
-            <header className="p-4 pb-0 flex-shrink-0">
-                <PosHeader 
-                    onPayIn={handleOpenPayIn}
-                    onPayOut={handleOpenPayOut}
-                    onCloseRegister={handleRequestCloseRegister}
-                />
-            </header>
-            
-            <main className="flex-1 grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-3 gap-6 p-4 overflow-hidden">
-                {/* Main content - Product Grid */}
-                <div className="lg:col-span-2 xl:col-span-2 flex flex-col overflow-hidden">
-                    {/* Tabs */}
-                    <div className="flex-shrink-0 border-b border-gray-200 dark:border-gray-700">
-                        <nav className="-mb-px flex gap-2">
-                            <button onClick={() => setActiveTab('refill')} className={getTabClassName('refill')}>
-                                Recargas
-                            </button>
-                            <button onClick={() => setActiveTab('buyNew')} className={getTabClassName('buyNew')}>
-                                Garrafones Nuevos
-                            </button>
-                            <button onClick={() => setActiveTab('directSale')} className={getTabClassName('directSale')}>
-                                Otros Productos
-                            </button>
-                        </nav>
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md transition-shadow hover:shadow-lg">
+            <div className="p-4 cursor-pointer" onClick={() => setIsExpanded(!isExpanded)}>
+                <div className="flex flex-wrap justify-between items-center gap-4">
+                    <div>
+                        <p className="font-bold text-lg text-primary">{order.customId}</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">{order.cliente.name}</p>
+                        <p className="text-xs text-gray-400">{formatDate(order.createdAt)}</p>
                     </div>
-                    
-                    {/* Grid */}
-                    <div className="flex-1 py-4 overflow-y-auto">
-                        {activeTab === 'directSale' && <ProductGrid onProductSelect={handleProductSelect} />}
-                        {activeTab === 'refill' && <PosRefillGrid onProductSelect={handleProductSelect} />}
-                        {activeTab === 'buyNew' && <PosBuyGrid onProductSelect={handleProductSelect} />}
+                    <div className="flex items-center gap-4">
+                        <StatusBadge status={order.status} />
+                        <p className="font-bold text-xl text-gray-800 dark:text-white">{formatCurrency(order.total)}</p>
+                        <span className={`material-symbols-outlined transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}>
+                            expand_more
+                        </span>
                     </div>
                 </div>
-
-                {/* Order Summary */}
-                <div className="lg:col-span-1 xl:col-span-1 h-full">
-                    <OrderSummary 
-                        orderItems={orderItems}
-                        customer={customer}
-                        deliveryMethod={deliveryInfo.method}
-                        onQuantityChange={handleQuantityChange}
-                        onRemoveItem={handleRemoveItem}
-                        subtotal={subtotal}
-                        shippingCost={shippingCost}
-                        total={total}
-                        onCheckout={() => setIsPaymentModalOpen(true)}
-                        onCustomerSelect={() => setIsCustomerModalOpen(true)}
-                        onDeliverySelect={() => setIsDeliveryModalOpen(true)}
-                        onRemoveCustomer={() => setCustomer(null)}
-                    />
+            </div>
+            {isExpanded && (
+                <div className="border-t border-gray-200 dark:border-gray-700 p-4">
+                    <div className="space-y-2 mb-4">
+                        {order.items.map(item => <OrderItem key={item.id} item={item} />)}
+                    </div>
+                    <div className="mt-4 flex justify-end">
+                        <button onClick={handleFinalize} className="btn-primary">Finalizar Pedido</button>
+                    </div>
                 </div>
-            </main>
+            )}
+        </div>
+    );
+};
 
-            {/* Modals */}
-            <CustomerModal isOpen={isCustomerModalOpen} onClose={() => setIsCustomerModalOpen(false)} onCustomerAdd={handleCustomerAdd} />
-            <PaymentModal isOpen={isPaymentModalOpen} onClose={() => setIsPaymentModalOpen(false)} total={total} onPaymentConfirm={handlePaymentConfirm} />
-            <DeliveryModal isOpen={isDeliveryModalOpen} onClose={() => setIsDeliveryModalOpen(false)} onSave={handleSaveDeliveryInfo} initialData={deliveryModalData} />
-            <CashDrawerModal isOpen={isCashDrawerModalOpen} onClose={() => setIsCashDrawerModalOpen(false)} onConfirm={handleCashDrawerAction} defaultType={cashDrawerActionType} />
-            <PasswordModal isOpen={isPasswordModalOpen} onClose={() => setIsPasswordModalOpen(false)} onConfirm={handlePasswordConfirm} />
-            <CloseRegisterModal 
-                isOpen={isCloseRegisterModalOpen}
-                onClose={() => setIsCloseRegisterModalOpen(false)}
-                onEndSession={handleEndSession}
-                sessionData={{
-                    openingCash,
-                    transactions,
-                    expectedInDrawer: cashInDrawer,
-                }}
+const OrderList = ({ orders, title, filterFn, onUpdateStatus }) => {
+    const filteredOrders = useMemo(() => orders.filter(filterFn), [orders, filterFn]);
+
+    return (
+        <div className="bg-gray-200/50 dark:bg-gray-900/50 p-4 rounded-lg">
+            <h2 className="text-xl font-bold mb-4 text-gray-800 dark:text-gray-200">{title}</h2>
+            {filteredOrders.length > 0 ? (
+                <div className="space-y-4">
+                    {filteredOrders.map(order => <OrderAccordion key={order.id} order={order} onUpdateStatus={onUpdateStatus} />)}
+                </div>
+            ) : (
+                <p className="text-gray-500 dark:text-gray-400 text-center py-4">No hay pedidos en esta categoría.</p>
+            )}
+        </div>
+    );
+};
+
+const PedidosDashboard = ({ orders, loading, error, onUpdateStatus }) => {
+    if (loading) return <div className="text-center p-8">Cargando pedidos...</div>;
+    if (error) return <div className="text-center p-8 text-red-500">Error al cargar pedidos: {error}</div>;
+
+    return (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <OrderList
+                orders={orders}
+                title="Pedidos en Mostrador"
+                filterFn={order => order.deliveryMethod === 'pickup' && order.status !== 'ENTREGADO' && order.status !== 'CANCELADO'}
+                onUpdateStatus={onUpdateStatus}
+            />
+            <OrderList
+                orders={orders}
+                title="Pedidos para Recolección"
+                filterFn={order => order.deliveryMethod === 'home_collection' && order.status === 'PENDIENTE'}
+                onUpdateStatus={onUpdateStatus}
+            />
+            <OrderList
+                orders={orders}
+                title="Pedidos para Entrega"
+                filterFn={order => order.deliveryMethod === 'delivery' && order.status === 'EN_PROCESO'}
+                onUpdateStatus={onUpdateStatus}
             />
         </div>
     );
 };
 
+const VentaMostrador = () => {
+    const [orders, setOrders] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const [activeView, setActiveView] = useState('dashboard'); // 'dashboard' or 'new_order'
+
+    const loadOrders = useCallback(async () => {
+        try {
+            setLoading(true);
+            const fetchedOrders = await fetchOrders();
+            setOrders(fetchedOrders);
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        if (activeView === 'dashboard') { // Only load orders if we are in the dashboard view
+            loadOrders();
+        }
+    }, [loadOrders, activeView]);
+
+    const handleUpdateStatus = useCallback(async (orderId, status) => {
+        try {
+            await updateOrder(orderId, { status });
+            Swal.fire('¡Éxito!', 'El estado del pedido ha sido actualizado.', 'success');
+            await loadOrders(); // Refresh the order list
+        } catch (err) {
+            Swal.fire('Error', `No se pudo actualizar el pedido: ${err.message}`, 'error');
+        }
+    }, [loadOrders]);
+    
+    return (
+        <div className="bg-gray-100 dark:bg-gray-900 min-h-screen font-display text-gray-800 dark:text-gray-200">
+            <PosHeader 
+                isDashboard={activeView === 'dashboard'} 
+                onNewOrderClick={() => setActiveView('new_order')} 
+                onDashboardClick={() => setActiveView('dashboard')} 
+            />
+            
+            <main className="p-4 sm:p-6">
+                <div className="flex justify-between items-center mb-6">
+                    <h1 className="text-3xl font-bold">Panel de Vendedor</h1>
+                    <button onClick={loadOrders} className="btn-secondary" disabled={loading}>
+                        {loading ? 'Cargando...' : 'Refrescar Pedidos'}
+                    </button>
+                </div>
+
+                {activeView === 'dashboard' ? (
+                    <PedidosDashboard orders={orders} loading={loading} error={error} onUpdateStatus={handleUpdateStatus} />
+                ) : (
+                    <NewOrderFlow onExit={() => setActiveView('dashboard')} />
+                )}
+            </main>
+        </div>
+    );
+};
+
 export default VentaMostrador;
+

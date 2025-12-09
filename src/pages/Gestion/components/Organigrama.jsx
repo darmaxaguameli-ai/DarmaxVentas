@@ -30,14 +30,31 @@ const Organigrama = ({ empleados }) => {
       employeeMap[employee.id] = { ...employee, children: [] };
     });
 
+    const ceo = employees.find(e => e.puesto === 'CEO');
     const tree = [];
+
+    if (ceo) {
+      tree.push(employeeMap[ceo.id]);
+    }
+
     employees.forEach(employee => {
+      // If CEO exists, skip adding them again in this loop
+      if (ceo && employee.id === ceo.id) {
+        return;
+      }
+
       if (employee.managerId && employeeMap[employee.managerId]) {
         // Ensure not to add duplicates if data is weird
         if (!employeeMap[employee.managerId].children.some(child => child.id === employee.id)) {
             employeeMap[employee.managerId].children.push(employeeMap[employee.id]);
         }
+      } else if (ceo) {
+        // If there's a CEO and this employee has no manager, they report to the CEO
+        if (!employeeMap[ceo.id].children.some(child => child.id === employee.id)) {
+          employeeMap[ceo.id].children.push(employeeMap[employee.id]);
+        }
       } else {
+        // Original behavior: if no CEO, top-level employees become roots
         tree.push(employeeMap[employee.id]);
       }
     });

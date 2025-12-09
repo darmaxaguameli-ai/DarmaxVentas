@@ -966,7 +966,24 @@ app.post('/api/empleados', verifyToken, async (req, res) => {
 // PUT to update an employee
 app.put('/api/empleados/:id', verifyToken, async (req, res) => {
   const { id } = req.params;
-  const { userId, fechaContratacion, fechaTerminacion, managerId, ...data } = req.body;
+  // Destruct and discard relational fields that should not be in the update payload
+  const {
+    userId,
+    fechaContratacion,
+    fechaTerminacion,
+    managerId,
+    // Fields to ignore from the body to prevent validation errors
+    documentos, 
+    user, 
+    manager, 
+    subordinados,
+    historialSueldos,
+    createdAt,
+    updatedAt,
+    id: employeeId, // rename to avoid conflict with `id` from params
+    ...data 
+  } = req.body;
+
   try {
     const empleadoData = { ...data };
 
@@ -992,6 +1009,10 @@ app.put('/api/empleados/:id', verifyToken, async (req, res) => {
     console.error(`Error updating empleado ${id}:`, error);
     if (error.code === 'P2025') {
       return res.status(404).json({ error: 'Empleado no encontrado.' });
+    }
+    // Provide more detailed validation error
+    if (error instanceof prisma.Prisma.PrismaClientValidationError) {
+        return res.status(400).json({ error: 'Error de validación. Revise los datos enviados.', details: error.message });
     }
     res.status(500).json({ error: 'Error al actualizar el empleado.' });
   }
@@ -1107,6 +1128,37 @@ app.get('/api/my-orders', verifyToken, async (req, res) => {
 // ====================================================================
 //  PEDIDOS API (New Order Creation)
 // ====================================================================
+
+// GET all orders (for admin/vendedor)
+app.get('/api/pedidos', verifyToken, async (req, res) => {
+  try {
+    const pedidos = await prisma.pedido.findMany({
+      include: {
+        cliente: true, // Include customer details
+        items: {
+          include: {
+            product: true,
+            servicePrice: {
+              include: {
+                waterType: true,
+                jugBrands: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+    res.json(pedidos);
+  } catch (error) {
+    console.error('Error fetching all orders:', error);
+    res.status(500).json({ error: 'Ocurrió un error al obtener los pedidos.' });
+  }
+});
+
+
 app.post('/api/pedidos', verifyToken, async (req, res) => {
   const {
     clienteId,
@@ -1180,6 +1232,43 @@ app.post('/api/pedidos', verifyToken, async (req, res) => {
       error: 'Ocurrió un error en el servidor al procesar el pedido.',
       details: error.message,
     });
+  }
+});
+
+app.put('/api/pedidos/:id', verifyToken, async (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body;
+
+  if (!status) {
+    return res.status(400).json({ error: 'El estado (status) es requerido.' });
+  }
+
+  try {
+    const updatedPedido = await prisma.pedido.update({
+      where: { id },
+      data: { status },
+      include: {
+        cliente: true,
+        items: {
+          include: {
+            product: true,
+            servicePrice: {
+              include: {
+                waterType: true,
+                jugBrands: true,
+              },
+            },
+          },
+        },
+      },
+    });
+    res.json(updatedPedido);
+  } catch (error) {
+    console.error(`Error updating order ${id}:`, error);
+    if (error.code === 'P2025') {
+      return res.status(404).json({ error: 'Pedido no encontrado.' });
+    }
+    res.status(500).json({ error: 'Error al actualizar el pedido.' });
   }
 });
 

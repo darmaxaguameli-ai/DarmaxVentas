@@ -1,6 +1,9 @@
 // src/pages/cliente/orders/OrderSummaryStepFour.jsx
+import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import OrderLayout from "../../../layouts/OrderLayout";
+import { createOrder, fetchFilteredServicePrices } from "../../../api/apiClient";
+import { useAuth } from "../../../context/AuthContext";
 
 const OrderSummaryStepFour = () => {
   const navigate = useNavigate();
@@ -8,6 +11,72 @@ const OrderSummaryStepFour = () => {
 
   // Todo lo que venga de pasos anteriores
   const previousState = location.state || {};
+  const { user, isAuthenticated } = useAuth();
+
+  // Estados para manejar los precios de los servicios y la carga
+  const [servicePrices, setServicePrices] = useState([]);
+  const [loadingPrices, setLoadingPrices] = useState(true);
+  const [errorPrices, setErrorPrices] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [orderTotal, setOrderTotal] = useState(0);
+
+  useEffect(() => {
+    const getServicePrices = async () => {
+      if (tiposAguaAsignados.length === 0 || !deliveryMethod) {
+        setLoadingPrices(false);
+        return;
+      }
+
+      setLoadingPrices(true);
+      setErrorPrices(null);
+      let calculatedTotal = 0;
+      const fetchedPrices = [];
+
+      try {
+        for (const waterTypeAssignment of tiposAguaAsignados) {
+          // Fetch service price for each assigned water type and the chosen delivery method
+          const prices = await fetchFilteredServicePrices({
+            method: deliveryMethod,
+            name: "Recarga", // Assuming "Recarga" is the service name for refills
+            waterTypeId: waterTypeAssignment.id,
+          });
+
+          if (prices && prices.length > 0) {
+            const servicePrice = prices[0]; // Assuming one price per combination
+            fetchedPrices.push({
+              ...servicePrice,
+              quantity: waterTypeAssignment.quantity,
+              waterTypeAssignedId: waterTypeAssignment.id, // Store original water type ID
+            });
+            calculatedTotal += servicePrice.price * waterTypeAssignment.quantity;
+          } else {
+            console.warn(
+              `No service price found for water type ${waterTypeAssignment.name} and delivery method ${deliveryMethod}`
+            );
+            // Handle cases where a price might not be found, e.g., set to 0 or show an error
+          }
+        }
+        setServicePrices(fetchedPrices);
+        setOrderTotal(calculatedTotal);
+      } catch (err) {
+        console.error("Error fetching service prices:", err);
+        setErrorPrices("No se pudieron cargar los precios de los servicios.");
+        setOrderTotal(0);
+      } finally {
+        setLoadingPrices(false);
+      }
+    };
+
+    if (isRefill) {
+      getServicePrices();
+    } else {
+      // For "buy" mode, total might come from previous steps or calculated differently
+      // For now, reset for non-refill flows if this effect runs
+      setServicePrices([]);
+      setOrderTotal(0);
+      setLoadingPrices(false);
+    }
+  }, [tiposAguaAsignados, deliveryMethod, isRefill]);
 
   // Permite distinguir entre flujos:
   // - "refill"  -> rellenar garrafones (flujo actual)
@@ -89,19 +158,59 @@ const OrderSummaryStepFour = () => {
     });
   };
 
-  const handleConfirm = () => {
-    // Aquí luego conectarás con backend / pago / registro de pedido
-    console.log("Confirmar pedido", {
-      ...previousState,
-      mode,
-      mainItems,
-      tiposAguaAsignados,
-      totalUnits,
-      deliveryMethod,
-    });
+  const handleConfirm = async () => {
+    setIsSubmitting(true);
+    let clientId = null;
 
-    // Ejemplo futuro:
-    // navigate("/cliente/pedidos/confirmado", { state: { orderId: "ABC123" } });
+    if (isAuthenticated && user) {
+      clientId = user.id;
+    } else if (previousState.clientData) {
+      clientId = previousState.clientData.id;
+    }
+
+    if (!clientId) {
+      alert("No se pudo identificar al cliente para crear el pedido.");
+      setIsSubmitting(false);
+      return;
+    }
+
+    // Construct order items for refill flow
+    const orderItems = servicePrices.map((service) => ({
+      quantity: service.quantity,
+      price: service.price,
+      servicePriceId: service.id,
+      // productId: null, // For refill, no product id
+    }));
+
+    // Ensure orderTotal is correctly calculated and not 0 for refill orders
+    if (isRefill && orderTotal === 0) {
+      alert("El total del pedido no puede ser $0 para una recarga.");
+      setIsSubmitting(false);
+      return;
+    }
+
+    const orderPayload = {
+      clienteId: clientId,
+      total: orderTotal, // Use the calculated orderTotal
+      deliveryMethod: deliveryMethod,
+      paymentStatus: "NO_PAGADO", // Default to NO_PAGADO, payment integration would change this
+      status: "PENDIENTE", // Initial status
+      items: orderItems,
+    };
+
+    console.log("Payload to send:", orderPayload);
+
+    try {
+      const newOrder = await createOrder(orderPayload);
+      console.log("Pedido creado con éxito:", newOrder);
+      // Navigate to a confirmation page or show a success message
+      navigate("/pedidos/confirmado", { state: { orderId: newOrder.customId, orderType: mode } });
+    } catch (error) {
+      console.error("Error al crear el pedido:", error);
+      alert(`Error al crear el pedido: ${error.message || "Intenta de nuevo."}`);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const isRefill = mode === "refill";
@@ -218,13 +327,21 @@ const OrderSummaryStepFour = () => {
               Resumen del pedido
             </h3>
 
-            {/* Total de unidades */}
+            {/* Total de unidades / Importe */}
             <div className="flex items-center justify-between">
               <p className="text-base sm:text-lg font-medium text-text-secondary dark:text-white/80">
-                {isRefill ? "Total de garrafones" : "Total de piezas"}
+                {isRefill ? "Importe total" : "Total de piezas"}
               </p>
               <p className="text-2xl sm:text-3xl font-extrabold text-primary">
-                {totalUnits || 0}
+                {loadingPrices ? (
+                  <span className="text-lg text-text-secondary dark:text-white/70">Cargando...</span>
+                ) : errorPrices ? (
+                  <span className="text-lg text-red-500">Error</span>
+                ) : isRefill ? (
+                  `$${orderTotal.toFixed(2)}`
+                ) : (
+                  totalUnits || 0
+                )}
               </p>
             </div>
 
@@ -247,11 +364,13 @@ const OrderSummaryStepFour = () => {
               <button
                 type="button"
                 onClick={handleConfirm}
+                disabled={loadingPrices || errorPrices || isSubmitting || (isRefill && orderTotal === 0)}
                 className="w-full rounded-xl bg-primary py-3.5 px-4 text-lg font-semibold text-white
                            hover:bg-primary/90 transition-colors
-                           focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-dark"
+                           focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-dark
+                           disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                Confirmar pedido
+                {isSubmitting ? "Confirmando..." : "Confirmar pedido"}
               </button>
 
               <button

@@ -4,31 +4,55 @@ import { useLocation, useNavigate } from 'react-router-dom';
 const LoginSuccess = () => {
     const navigate = useNavigate();
     const location = useLocation();
-    const name = location.state?.name || 'Usuario'; // Obtener el nombre del estado de la navegación
-    const role = location.state?.role; // Obtener el rol del estado de la navegación
+    const name = location.state?.name || 'Usuario';
+    const role = location.state?.role;
 
     useEffect(() => {
-        const redirectPath = role === 'CLIENTE' ? '/pedidos' : '/gestion';
-        const redirectMessage = role === 'CLIENTE' ? 'Redirigiendo a la selección de pedidos...' : 'Redirigiendo a tu panel de gestión...';
+        let redirectPath;
+        switch (role) {
+            case 'CLIENTE':
+                redirectPath = '/pedidos';
+                break;
+            case 'VENDEDOR':
+                redirectPath = '/ventas/mostrador';
+                break;
+            case 'ADMIN':
+            case 'REPARTIDOR': // Example if you add more roles
+            default:
+                redirectPath = '/gestion';
+                break;
+        }
 
-        // Después de un tiempo, redirigir
         const timer = setTimeout(() => {
-            navigate(redirectPath, { replace: true });
-        }, 2000); // 2 segundos de espera
+            if (redirectPath) {
+                navigate(redirectPath, { replace: true });
+            }
+        }, 2000); // 2-second delay
 
-        // Limpiar el temporizador si el componente se desmonta
         return () => clearTimeout(timer);
     }, [navigate, role]);
+
+    const getRedirectMessage = () => {
+        switch (role) {
+            case 'CLIENTE':
+                return 'Redirigiendo a tus pedidos...';
+            case 'VENDEDOR':
+                return 'Redirigiendo a la terminal de ventas...';
+            case 'ADMIN':
+            case 'REPARTIDOR':
+            default:
+                return 'Redirigiendo a tu panel de gestión...';
+        }
+    };
 
     return (
         <div className="flex flex-col items-center justify-center h-screen bg-light dark:bg-dark text-dark dark:text-white">
             <div className="text-center animate-fade-in">
                 <h1 className="text-4xl font-bold text-primary">¡Bienvenid@, {name}!</h1>
                 <p className="mt-2 text-lg text-gray-600 dark:text-gray-400">
-                    {role === 'CLIENTE' ? 'Redirigiendo a la selección de pedidos...' : 'Redirigiendo a tu panel de gestión...'}
+                    {getRedirectMessage()}
                 </p>
                 <div className="mt-8">
-                    {/* Un spinner simple */}
                     <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mx-auto"></div>
                 </div>
             </div>
