@@ -711,6 +711,179 @@ app.post('/api/daily-sales-records/bulk', verifyToken, async (req, res) => {
 
 
 // =====================================================
+// CASH DRAWER API
+// =====================================================
+
+// GET active cash drawer session for the logged-in user
+app.get('/api/cash-drawer/active', verifyToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const activeSession = await prisma.sesionCaja.findFirst({
+      where: {
+        vendedorId: userId,
+        estado: 'ABIERTA',
+      },
+      include: {
+        transacciones: {
+          orderBy: {
+            createdAt: 'asc',
+          },
+        },
+      },
+    });
+
+    res.json(activeSession);
+  } catch (error) {
+    console.error('Error fetching active cash drawer session:', error);
+    res.status(500).json({ error: 'Ocurrió un error en el servidor.' });
+  }
+});
+
+// POST to start a new cash drawer session
+app.post('/api/cash-drawer/start', verifyToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { openingBalance } = req.body;
+
+    if (openingBalance === undefined || isNaN(parseFloat(openingBalance))) {
+      return res.status(400).json({ error: 'El saldo inicial (openingBalance) es requerido y debe ser un número.' });
+    }
+
+    // 1. Check if there is already an open session for this user
+    const existingOpenSession = await prisma.sesionCaja.findFirst({
+      where: {
+        vendedorId: userId,
+        estado: 'ABIERTA',
+      },
+    });
+
+    if (existingOpenSession) {
+      return res.status(409).json({ error: 'Ya tienes una sesión de caja abierta. Ciérrala antes de abrir una nueva.' });
+    }
+
+    // 2. Create the new session
+    const newSession = await prisma.sesionCaja.create({
+      data: {
+        vendedor: { connect: { id: userId } },
+        openingBalance: parseFloat(openingBalance),
+        estado: 'ABIERTA',
+      },
+    });
+
+    res.status(201).json(newSession);
+
+  } catch (error) {
+    console.error('Error starting cash drawer session:', error);
+    res.status(500).json({ error: 'Ocurrió un error en el servidor al iniciar la sesión de caja.' });
+  }
+});
+
+// POST to close the active cash drawer session
+app.post('/api/cash-drawer/close', verifyToken, async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { closingBalance } = req.body;
+
+        if (closingBalance === undefined || isNaN(parseFloat(closingBalance))) {
+            return res.status(400).json({ error: 'El saldo de cierre (closingBalance) es requerido y debe ser un número.' });
+        }
+
+        // 1. Find the active session for the user
+        const activeSession = await prisma.sesionCaja.findFirst({
+            where: {
+                vendedorId: userId,
+                estado: 'ABIERTA',
+            },
+            include: {
+                transacciones: true,
+            },
+        });
+
+        if (!activeSession) {
+            return res.status(404).json({ error: 'No se encontró una sesión de caja abierta para cerrar.' });
+        }
+
+        // 2. Calculate the expected balance
+        const totalSales = activeSession.transacciones
+            .filter(t => t.tipo === 'VENTA')
+            .reduce((sum, t) => sum + t.amount, 0);
+        
+        const totalPayIns = activeSession.transacciones
+            .filter(t => t.tipo === 'INGRESO')
+            .reduce((sum, t) => sum + t.amount, 0);
+
+        const totalPayOuts = activeSession.transacciones
+            .filter(t => t.tipo === 'RETIRO')
+            .reduce((sum, t) => sum + t.amount, 0);
+            
+        const expectedBalance = activeSession.openingBalance + totalSales + totalPayIns - totalPayOuts;
+
+        // 3. Update the session to close it
+        const closedSession = await prisma.sesionCaja.update({
+            where: {
+                id: activeSession.id,
+            },
+            data: {
+                endedAt: new Date(),
+                estado: 'CERRADA',
+                closingBalance: parseFloat(closingBalance),
+                expectedBalance: expectedBalance,
+            },
+        });
+
+        res.json(closedSession);
+
+    } catch (error) {
+        console.error('Error closing cash drawer session:', error);
+        res.status(500).json({ error: 'Ocurrió un error en el servidor al cerrar la sesión de caja.' });
+    }
+});
+
+// POST to add a new cash transaction (INGRESO, RETIRO, CAMBIO)
+app.post('/api/cash-drawer/transaction', verifyToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { amount, type, description } = req.body;
+
+    if (amount === undefined || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
+      return res.status(400).json({ error: 'El monto es requerido y debe ser un número positivo.' });
+    }
+    if (!type || !['INGRESO', 'RETIRO', 'VENTA', 'CAMBIO'].includes(type)) { // Check against the enum
+      return res.status(400).json({ error: 'El tipo de transacción es requerido y debe ser INGRESO, RETIRO, VENTA o CAMBIO.' });
+    }
+
+    // Find the active session for the user
+    const activeSession = await prisma.sesionCaja.findFirst({
+      where: {
+        vendedorId: userId,
+        estado: 'ABIERTA',
+      },
+    });
+
+    if (!activeSession) {
+      return res.status(404).json({ error: 'No hay una sesión de caja abierta para registrar transacciones.' });
+    }
+
+    // Create the new transaction
+    const newTransaction = await prisma.transaccionCaja.create({
+      data: {
+        amount: parseFloat(amount),
+        tipo: type, // Ensure this matches the Prisma enum exactly
+        description: description || null,
+        sesion: { connect: { id: activeSession.id } },
+      },
+    });
+
+    res.status(201).json(newTransaction);
+
+  } catch (error) {
+    console.error('Error creating cash transaction:', error);
+    res.status(500).json({ error: 'Ocurrió un error en el servidor al registrar la transacción de caja.' });
+  }
+});
+
+
+// =====================================================
 // USERS API
 // =====================================================
 
@@ -1243,38 +1416,130 @@ app.post('/api/pedidos', verifyToken, async (req, res) => {
 
 app.put('/api/pedidos/:id', verifyToken, async (req, res) => {
   const { id } = req.params;
-  const { status } = req.body;
+  const { status, paymentMethod } = req.body; // paymentMethod might be sent for cash, or we fetch it from existing order
 
   if (!status) {
     return res.status(400).json({ error: 'El estado (status) es requerido.' });
   }
 
   try {
-    const updatedPedido = await prisma.pedido.update({
-      where: { id },
-      data: { status },
-      include: {
-        cliente: true,
-        items: {
-          include: {
-            product: true,
-            servicePrice: {
-              include: {
-                waterType: true,
-                jugBrands: true,
+    const updatedPedido = await prisma.$transaction(async (tx) => {
+      // 1. Get the existing order to check current status and payment method
+      const existingPedido = await tx.pedido.findUnique({
+        where: { id },
+        select: {
+          status: true,
+          paymentMethod: true,
+          total: true,
+          sesionCajaId: true,
+          customId: true, // Need customId for transaction description
+        },
+      });
+
+      if (!existingPedido) {
+        throw new Error('Pedido no encontrado.'); // Throw to rollback transaction
+      }
+      
+      // Determine the actual payment method. Prioritize what's sent in body, then what's in DB.
+      const actualPaymentMethod = paymentMethod || existingPedido.paymentMethod;
+
+      // 2. Update the order status
+      const pedido = await tx.pedido.update({
+        where: { id },
+        data: { status },
+        include: {
+          cliente: true,
+          items: {
+            include: {
+              product: true,
+              servicePrice: {
+                include: {
+                  waterType: true,
+                  jugBrands: true, // This was missing in my initial draft for new_string
+                },
               },
             },
           },
         },
-      },
+      });
+
+      // 3. If status is ENTREGADO and payment is Efectivo, record cash transaction
+      if (status === 'ENTREGADO' && actualPaymentMethod === 'Efectivo') {
+        // Ensure only a VENDEDOR or ADMIN can perform this action
+        if (req.user.role !== 'VENDEDOR' && req.user.role !== 'ADMIN') {
+          throw new Error('Solo vendedores o administradores pueden registrar ventas en caja.');
+        }
+
+        // Find active cash drawer session for the current user
+        let activeSession = await tx.sesionCaja.findFirst({
+          where: {
+            vendedorId: req.user.id,
+            estado: 'ABIERTA',
+          },
+        });
+
+        if (!activeSession) {
+          throw new Error('No hay una sesión de caja abierta para registrar esta venta.');
+        }
+
+        // Check if a transaction for this order already exists in this session
+        const existingTransaction = await tx.transaccionCaja.findFirst({
+          where: {
+            pedidoId: pedido.id,
+            sesionId: activeSession.id,
+            tipo: 'VENTA',
+          },
+        });
+
+        if (existingTransaction) {
+          // If transaction already exists, just return the pedido, don't create duplicate
+          return pedido;
+        }
+
+        // Create a new cash transaction
+        await tx.transaccionCaja.create({
+          data: {
+            tipo: 'VENTA',
+            amount: pedido.total,
+            description: `Venta de Pedido ${pedido.customId}`,
+            sesion: { connect: { id: activeSession.id } },
+            pedido: { connect: { id: pedido.id } },
+          },
+        });
+
+        // Also link the order to the session if it's not already
+        // This is done implicitly by connecting the transaction to the pedido,
+        // but explicit linking on the pedido itself is also good for queries.
+        if (!existingPedido.sesionCajaId) {
+          await tx.pedido.update({
+            where: { id: pedido.id },
+            data: {
+              sesionCaja: { connect: { id: activeSession.id } },
+            },
+          });
+        }
+      }
+
+      return pedido;
     });
+
     res.json(updatedPedido);
   } catch (error) {
     console.error(`Error updating order ${id}:`, error);
-    if (error.code === 'P2025') {
+    // Use the error message from the thrown Error within the transaction for more specific feedback
+    if (error.message.includes('Pedido no encontrado')) {
+      return res.status(404).json({ error: error.message });
+    }
+    if (error.message.includes('sesión de caja abierta')) {
+      return res.status(409).json({ error: error.message });
+    }
+    if (error.message.includes('registrar ventas en caja')) {
+        return res.status(403).json({ error: error.message });
+    }
+    if (error.code === 'P2025') { // Prisma specific not found error
       return res.status(404).json({ error: 'Pedido no encontrado.' });
     }
-    res.status(500).json({ error: 'Error al actualizar el pedido.' });
+    res.status(500).json({ error: 'Error al actualizar el pedido: ' + error.message });
   }
 });
 

@@ -121,3 +121,11 @@ export const updateOrder = (id, data) => apiClient.put(`/pedidos/${id}`, data).t
 //  MY ORDERS (for logged-in client)
 // ====================================================================
 export const fetchMyOrders = () => apiClient.get('/my-orders').then(res => res.data);
+
+// ====================================================================
+//  CASH DRAWER
+// ====================================================================
+export const fetchActiveCashDrawerSession = () => apiClient.get('/cash-drawer/active').then(res => res.data);
+export const startCashDrawerSession = (openingBalance) => apiClient.post('/cash-drawer/start', { openingBalance }).then(res => res.data);
+export const closeCashDrawerSession = (closingBalance) => apiClient.post('/cash-drawer/close', { closingBalance }).then(res => res.data);
+export const createCashTransaction = (transactionData) => apiClient.post('/cash-drawer/transaction', transactionData).then(res => res.data);

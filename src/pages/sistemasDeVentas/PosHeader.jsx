@@ -20,7 +20,7 @@ const CloseRegisterIcon = () => (
 );
 
 
-const PosHeader = ({ isDashboard, onNewOrderClick, onDashboardClick }) => {
+const PosHeader = ({ isDashboard, onNewOrderClick, onDashboardClick, onRefresh, isRefreshing, onLogout, isCashDrawerOpen, onCashMovementClick }) => {
   const [currentTime, setCurrentTime] = useState(new Date());
 
   useEffect(() => {
@@ -40,14 +40,44 @@ const PosHeader = ({ isDashboard, onNewOrderClick, onDashboardClick }) => {
   });
 
   return (
-    <div className="flex flex-wrap justify-between items-center mb-4 p-4 bg-white dark:bg-gray-900 rounded-lg shadow-lg">
-      <div className="flex flex-col">
+    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-4 bg-white dark:bg-gray-900 rounded-b-lg shadow-lg">
+      <div className="flex flex-col mb-4 sm:mb-0">
         <h1 className="text-3xl font-bold text-gray-800 dark:text-white">
           {isDashboard ? 'Panel de Vendedor' : 'Nuevo Pedido'}
         </h1>
         <p className="text-sm text-gray-500 dark:text-gray-300">{formattedDate} | {formattedTime}</p>
       </div>
-      <div className="flex items-center gap-3 mt-4 sm:mt-0">
+      <div className="flex flex-wrap items-center gap-3">
+        {isDashboard && onRefresh && (
+            <button 
+                onClick={onRefresh} 
+                disabled={isRefreshing}
+                className="flex items-center justify-center px-4 py-2 text-sm font-semibold bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-200 rounded-lg shadow-sm hover:bg-gray-300 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-300 transition-colors"
+            >
+                {isRefreshing ? (
+                    <>
+                        <span className="material-symbols-outlined animate-spin mr-2">progress_activity</span>
+                        Actualizando...
+                    </>
+                ) : (
+                    <>
+                        <span className="material-symbols-outlined mr-2">refresh</span>
+                        Actualizar
+                    </>
+                )}
+            </button>
+        )}
+        
+        {isDashboard && isCashDrawerOpen && onCashMovementClick && (
+            <button 
+                onClick={onCashMovementClick} 
+                className="flex items-center justify-center px-4 py-2 text-sm font-semibold bg-green-500 text-white rounded-lg shadow-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-75 transition-colors"
+            >
+                <span className="material-symbols-outlined mr-2">swap_horiz</span>
+                Movimientos de Caja
+            </button>
+        )}
+
         {isDashboard ? (
             <button 
                 onClick={onNewOrderClick} 
@@ -64,6 +94,23 @@ const PosHeader = ({ isDashboard, onNewOrderClick, onDashboardClick }) => {
                 <span className="material-symbols-outlined mr-2">arrow_back</span>
                 Volver al Panel
             </button>
+        )}
+
+        {/* Logout Button */}
+        {onLogout && (
+          <button
+              onClick={onLogout}
+              className={`flex items-center justify-center px-4 py-2 text-sm font-semibold rounded-lg shadow-md transition-colors
+                  ${isCashDrawerOpen 
+                      ? 'bg-red-500 text-white hover:bg-red-600 focus:ring-red-500' 
+                      : 'bg-gray-600 text-white hover:bg-gray-700 focus:ring-gray-500'}`
+                  }
+          >
+              <span className="material-symbols-outlined mr-2">
+                  {isCashDrawerOpen ? 'lock' : 'logout'}
+              </span>
+              Cerrar Sesión
+          </button>
         )}
       </div>
     </div>

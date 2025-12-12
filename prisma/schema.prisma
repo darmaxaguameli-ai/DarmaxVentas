@@ -33,6 +33,19 @@ enum PaymentStatus {
   NO_PAGADO
 }
 
+enum EstadoSesionCaja {
+  ABIERTA
+  CERRADA
+}
+
+enum TipoTransaccionCaja {
+  INGRESO
+  RETIRO
+  VENTA
+  CAMBIO
+}
+
+
 // =====================================================================
 // MODELOS DE CONFIGURACIÓN DEL NEGOCIO (¡NUEVOS!)
 // =====================================================================
@@ -80,23 +93,23 @@ model JugBrand {
 // =====================================================================
 
 model User {
-  id           String       @id @default(cuid())
-  customId     String       @unique // ID legible para humanos, ej: CL-0001
-  name         String
-  email        String?      @unique
-  password     String?
-  phone        String?      @unique
-  street       String?
-  neighborhood String?
-  city         String?
-  postalCode   String?
-  references   String?
-  role         UserRole     @default(CLIENTE)
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
-  pedidos      Pedido[]
-  sesionesCaja SesionCaja[]
-  empleado     Empleado?
+  id                 String            @id @default(cuid())
+  customId           String            @unique // ID legible para humanos, ej: CL-0001
+  name               String
+  email              String?           @unique
+  password           String?
+  phone              String?           @unique
+  street             String?
+  neighborhood       String?
+  city               String?
+  postalCode         String?
+  references         String?
+  role               UserRole          @default(CLIENTE)
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+  pedidos            Pedido[]
+  sesionesCaja       SesionCaja[]
+  empleado           Empleado?
 }
 
 // Renombrado de "Producto" a "Product" para seguir convenciones.
@@ -117,24 +130,25 @@ model Product {
 }
 
 model Pedido {
-  id               String        @id @default(cuid())
-  customId         String        @unique // Ej: ORD-0001
-  total            Float
-  status           PedidoStatus  @default(PENDIENTE)
-  deliveryMethod   String // ej: "domicilio", "recoleccion", "sucursal"
-  paymentMethod    String? // ej: "efectivo", "tarjeta"
-  paymentStatus    PaymentStatus @default(NO_PAGADO)
-  deliveryDate     DateTime? // Fecha de entrega preferida
-  deliveryTimeSlot String? // Franja horaria de entrega preferida (ej: "9am-12pm")
-  createdAt        DateTime      @default(now())
-  updatedAt        DateTime      @updatedAt
+  id                  String           @id @default(cuid())
+  customId            String           @unique // Ej: ORD-0001
+  total               Float
+  status              PedidoStatus     @default(PENDIENTE)
+  deliveryMethod      String // ej: "domicilio", "recoleccion", "sucursal"
+  paymentMethod       String? // ej: "efectivo", "tarjeta"
+  paymentStatus       PaymentStatus    @default(NO_PAGADO)
+  deliveryDate        DateTime? // Fecha de entrega preferida
+  deliveryTimeSlot    String? // Franja horaria de entrega preferida (ej: "9am-12pm")
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
 
-  cliente      User         @relation(fields: [clienteId], references: [id])
-  clienteId    String
-  items        PedidoItem[]
-  sesionCaja   SesionCaja?  @relation(fields: [sesionCajaId], references: [id])
-  sesionCajaId String?
-  ingreso      Ingreso?     @relation("PedidoToIngreso")
+  cliente             User             @relation(fields: [clienteId], references: [id])
+  clienteId           String
+  items               PedidoItem[]
+  sesionCaja          SesionCaja?      @relation(fields: [sesionCajaId], references: [id])
+  sesionCajaId        String?
+  ingreso             Ingreso?         @relation("PedidoToIngreso")
+  transaccionCaja     TransaccionCaja?
 }
 
 // Modificado para poder registrar la venta de un Producto físico o un Servicio
@@ -163,26 +177,29 @@ model PedidoItem {
 // =====================================================================
 
 model SesionCaja {
-  id              String        @id @default(cuid())
-  startedAt       DateTime      @default(now())
+  id              String           @id @default(cuid())
+  startedAt       DateTime         @default(now())
   endedAt         DateTime?
   openingBalance  Float
   closingBalance  Float?
   expectedBalance Float?
-  vendedor        User          @relation(fields: [vendedorId], references: [id])
+  estado          EstadoSesionCaja @default(ABIERTA)
+  vendedor        User             @relation(fields: [vendedorId], references: [id])
   vendedorId      String
-  transacciones   Transaccion[]
+  transacciones   TransaccionCaja[]
   pedidos         Pedido[]
 }
 
-model Transaccion {
-  id          String     @id @default(cuid())
-  type        String // "INGRESO_CAJA", "RETIRO_CAJA", "VENTA"
+model TransaccionCaja {
+  id          String            @id @default(cuid())
+  tipo        TipoTransaccionCaja
   amount      Float
   description String?
-  createdAt   DateTime   @default(now())
-  sesion      SesionCaja @relation(fields: [sesionId], references: [id])
+  createdAt   DateTime          @default(now())
+  sesion      SesionCaja        @relation(fields: [sesionId], references: [id])
   sesionId    String
+  pedido      Pedido?           @relation(fields: [pedidoId], references: [id])
+  pedidoId    String?           @unique
 }
 
 model Gasto {

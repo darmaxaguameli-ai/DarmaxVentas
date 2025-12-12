@@ -12,11 +12,13 @@ const CloseRegisterModal = ({ isOpen, onClose, sessionData, onEndSession }) => {
 
   if (!isOpen) return null;
 
-  const { openingCash, transactions, expectedInDrawer } = sessionData;
-  const sales = transactions.filter(t=>t.type === 'sale' && t.paymentMethod === 'cash').reduce((s,t)=>s+t.amount, 0);
-  const payIns = transactions.filter(t=>t.type === 'pay_in').reduce((s,t)=>s+t.amount, 0);
-  const payOuts = transactions.filter(t=>t.type === 'pay_out').reduce((s,t)=>s+t.amount, 0);
+  const { openingCash, transactions } = sessionData;
+  const sales = transactions.filter(t=>t.tipo === 'VENTA').reduce((s,t)=>s+t.amount, 0);
+  const payIns = transactions.filter(t=>t.tipo === 'INGRESO').reduce((s,t)=>s+t.amount, 0);
+  const payOuts = transactions.filter(t=>t.tipo === 'RETIRO').reduce((s,t)=>s+t.amount, 0);
   
+  const expectedInDrawer = openingCash + sales + payIns - payOuts;
+
   const difference = parseFloat(realCash) - expectedInDrawer;
 
   const getDifferenceStyling = () => {
@@ -26,12 +28,14 @@ const CloseRegisterModal = ({ isOpen, onClose, sessionData, onEndSession }) => {
   };
   
   const handleGenerateReportAndEnd = () => {
+    const realCashInDrawer = parseFloat(realCash) || 0;
     generateEndOfDayReport({
       ...sessionData,
-      realCashInDrawer: parseFloat(realCash) || 0,
+      expectedInDrawer,
+      realCashInDrawer,
       difference: isNaN(difference) ? 0 : difference,
     });
-    onEndSession();
+    onEndSession(realCashInDrawer);
     onClose();
   };
 

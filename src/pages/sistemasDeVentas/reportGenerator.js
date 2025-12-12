@@ -1,5 +1,5 @@
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 
 export const generateEndOfDayReport = (sessionData) => {
   const {
@@ -21,14 +21,14 @@ export const generateEndOfDayReport = (sessionData) => {
   // Summary
   doc.setFontSize(14);
   doc.text("Resumen de la Sesión", 14, 45);
-  doc.autoTable({
+  autoTable(doc, {
     startY: 50,
     head: [['Concepto', 'Monto']],
     body: [
       ['Fondo de Caja Inicial', `$${openingCash.toFixed(2)}`],
-      ['Ventas en Efectivo', `+ $${transactions.filter(t => t.type === 'sale' && t.paymentMethod === 'cash').reduce((sum, t) => sum + t.amount, 0).toFixed(2)}`],
-      ['Ingresos de Dinero', `+ $${transactions.filter(t => t.type === 'pay_in').reduce((sum, t) => sum + t.amount, 0).toFixed(2)}`],
-      ['Retiros de Dinero', `- $${transactions.filter(t => t.type === 'pay_out').reduce((sum, t) => sum + t.amount, 0).toFixed(2)}`],
+      ['Ventas en Efectivo', `+ $${transactions.filter(t => t.tipo === 'VENTA').reduce((sum, t) => sum + t.amount, 0).toFixed(2)}`],
+      ['Ingresos de Dinero', `+ $${transactions.filter(t => t.tipo === 'INGRESO').reduce((sum, t) => sum + t.amount, 0).toFixed(2)}`],
+      ['Retiros de Dinero', `- $${transactions.filter(t => t.tipo === 'RETIRO').reduce((sum, t) => sum + t.amount, 0).toFixed(2)}`],
       { content: 'Total Esperado en Caja', styles: { fontStyle: 'bold' } },
       { content: `$${expectedInDrawer.toFixed(2)}`, styles: { fontStyle: 'bold', halign: 'right' } },
       ['Monto Real en Caja', `$${realCashInDrawer.toFixed(2)}`],
@@ -56,14 +56,14 @@ export const generateEndOfDayReport = (sessionData) => {
   // Transaction Details
   let finalY = doc.lastAutoTable.finalY || 10;
   doc.text("Detalle de Transacciones", 14, finalY + 15);
-  doc.autoTable({
+  autoTable(doc, {
     startY: finalY + 20,
     head: [['Fecha', 'Tipo', 'Descripción/Motivo', 'Monto']],
     body: transactions.map(t => [
-        new Date(t.timestamp).toLocaleTimeString('es-MX'),
-        t.type,
+        new Date(t.createdAt).toLocaleTimeString('es-MX'),
+        t.tipo,
         t.description,
-        `${t.type === 'pay_out' ? '-' : ''}$${t.amount.toFixed(2)}`
+        `${t.tipo === 'RETIRO' ? '-' : ''}$${t.amount.toFixed(2)}`
     ]),
     theme: 'grid',
   });
