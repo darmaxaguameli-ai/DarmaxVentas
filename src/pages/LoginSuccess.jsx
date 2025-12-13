@@ -16,8 +16,10 @@ const LoginSuccess = () => {
             case 'VENDEDOR':
                 redirectPath = '/ventas/mostrador';
                 break;
+            case 'REPARTIDOR':
+                redirectPath = '/repartidor/dashboard';
+                break;
             case 'ADMIN':
-            case 'REPARTIDOR': // Example if you add more roles
             default:
                 redirectPath = '/gestion';
                 break;
@@ -38,8 +40,9 @@ const LoginSuccess = () => {
                 return 'Redirigiendo a tus pedidos...';
             case 'VENDEDOR':
                 return 'Redirigiendo a la terminal de ventas...';
-            case 'ADMIN':
             case 'REPARTIDOR':
+                return 'Redirigiendo a tu dashboard de repartidor...';
+            case 'ADMIN':
             default:
                 return 'Redirigiendo a tu panel de gestión...';
         }

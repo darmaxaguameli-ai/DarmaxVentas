@@ -69,7 +69,12 @@ const DeliveryMethodStepThree = () => {
       }
     } else {
       // Perfil completo o no se necesita dirección -> va al resumen
-      navigate("/pedidos/rellenar/resumen", { state: nextState });
+      navigate("/pedidos/rellenar/resumen", {
+        state: {
+          ...nextState,
+          backPath: location.pathname, // Añadir la ruta actual para el regreso
+        },
+      });
     }
   };
 

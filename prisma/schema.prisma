@@ -104,6 +104,8 @@ model User {
   city               String?
   postalCode         String?
   references         String?
+  lat                Float?
+  lng                Float?
   role               UserRole          @default(CLIENTE)
   createdAt          DateTime          @default(now())
   updatedAt          DateTime          @updatedAt

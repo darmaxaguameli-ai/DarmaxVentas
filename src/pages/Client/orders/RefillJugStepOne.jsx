@@ -72,9 +72,10 @@ const RefillJugStepOne = () => {
 
     navigate("/pedidos/rellenar/asignar", {
       state: {
-        ...restOfState, // Conserva datos de cliente u otros datos no relacionados al flujo
+        ...restOfState,
         maxJugs: totalJugs,
         fromStepOne: selectedJugs.filter(p => p.quantity > 0),
+        backPath: location.pathname, // Añadir la ruta actual para el regreso
       },
     });
   };

@@ -1,8 +1,9 @@
 const express = require('express');
 const prisma = require('./lib/prisma');
 const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken'); // <-- Importar JWT
-require('dotenv').config(); // <-- Cargar variables de entorno
+const jwt = require('jsonwebtoken');
+const axios = require('axios'); // <-- Importar axios
+require('dotenv').config();
 
 const app = express();
 const port = 3001; // Or any port you prefer
@@ -65,6 +66,34 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
+// --- Geocoding Function ---
+const geocodeAddress = async (address) => {
+  try {
+    const response = await axios.get('https://nominatim.openstreetmap.org/search', {
+      params: {
+        q: address,
+        format: 'json',
+        limit: 1
+      },
+      headers: {
+        'User-Agent': 'DarmaxApp/1.0 (erick.rendon@galavi.com)' // Política de uso de Nominatim
+      }
+    });
+
+    if (response.data && response.data.length > 0) {
+      return {
+        lat: parseFloat(response.data[0].lat),
+        lng: parseFloat(response.data[0].lon),
+      };
+    }
+    return { lat: null, lng: null };
+  } catch (error) {
+    console.error('Geocoding error:', error.message);
+    return { lat: null, lng: null };
+  }
+};
+
+
 // Endpoint público para registrar un cliente durante el flujo de pedido
 app.post('/api/register-client', async (req, res) => {
   try {
@@ -81,6 +110,13 @@ app.post('/api/register-client', async (req, res) => {
     if (existingPhone) {
         return res.status(409).json({ error: 'Este número de teléfono ya está registrado. Por favor, inicia sesión o usa otro número.' });
     }
+    
+    // --- Geocodificación de la dirección ---
+    let coordinates = { lat: null, lng: null };
+    if (data.street && data.city) {
+        const fullAddress = `${data.street}, ${data.neighborhood || ''}, ${data.city}, ${data.postalCode || ''}`;
+        coordinates = await geocodeAddress(fullAddress);
+    }
 
     const userData = {
       name: data.name,
@@ -90,6 +126,8 @@ app.post('/api/register-client', async (req, res) => {
       city: data.city || null,
       postalCode: data.postalCode || null,
       references: data.references || null,
+      lat: coordinates.lat, // <-- Guardar latitud
+      lng: coordinates.lng, // <-- Guardar longitud
       role: 'CLIENTE',
     };
 
@@ -1345,9 +1383,10 @@ app.get('/api/pedidos', verifyToken, async (req, res) => {
 });
 
 
-app.post('/api/pedidos', verifyToken, async (req, res) => {
-  const {
-    clienteId,
+app.post('/api/pedidos', async (req, res) => {
+  // El middleware verifyToken se ha quitado para permitir pedidos de invitados
+  let {
+    clienteId, // Puede ser null o undefined
     items,
     total,
     deliveryMethod,
@@ -1355,25 +1394,51 @@ app.post('/api/pedidos', verifyToken, async (req, res) => {
     paymentStatus
   } = req.body;
 
-  if (!clienteId || !items || !total || !deliveryMethod) {
+  if (!items || !total || !deliveryMethod) {
     return res.status(400).json({ error: 'Faltan datos requeridos para crear el pedido.' });
   }
 
   try {
     const result = await prisma.$transaction(async (tx) => {
-      // 1. Generar un customId único para el pedido
+      // --- PASO 1: Asegurar que tenemos un cliente ---
+      if (!clienteId) {
+        // Generar un customId único para el cliente invitado
+        let guestCustomId;
+        let isIdUnique = false;
+        while (!isIdUnique) {
+          const random = String(Math.floor(Math.random() * 9000) + 1000);
+          guestCustomId = `INV-${random}`; // Prefijo para Invitado
+          const existingUser = await tx.user.findUnique({ where: { customId: guestCustomId } });
+          if (!existingUser) {
+            isIdUnique = true;
+          }
+        }
+
+        // Crear el usuario invitado
+        const guestUser = await tx.user.create({
+          data: {
+            name: 'Cliente Web Invitado',
+            customId: guestCustomId,
+            role: 'CLIENTE',
+          },
+        });
+        clienteId = guestUser.id; // Usar el ID del nuevo usuario
+      }
+      
+      // --- PASO 2: Crear el Pedido ---
+      // Generar un customId único para el pedido
       let customId;
-      let isIdUnique = false;
-      while (!isIdUnique) {
-        const random = String(Math.floor(Math.random() * 90000) + 10000); // 5-digit random number
+      let isPedidoIdUnique = false;
+      while (!isPedidoIdUnique) {
+        const random = String(Math.floor(Math.random() * 90000) + 10000);
         customId = `ORD-${random}`;
         const existingPedido = await tx.pedido.findUnique({ where: { customId } });
         if (!existingPedido) {
-          isIdUnique = true;
+          isPedidoIdUnique = true;
         }
       }
 
-      // 2. Crear el Pedido principal
+      // Crear el Pedido principal
       const newPedido = await tx.pedido.create({
         data: {
           customId,
@@ -1385,13 +1450,12 @@ app.post('/api/pedidos', verifyToken, async (req, res) => {
         },
       });
 
-      // 3. Crear los PedidoItems
+      // --- PASO 3: Crear los Ítems del Pedido ---
       const pedidoItemsData = items.map(item => ({
         pedidoId: newPedido.id,
         quantity: item.quantity,
         price: item.price,
         servicePriceId: item.servicePriceId,
-        // Guardar los nuevos campos del garrafón
         jugBrandId: item.jugBrandId,
         jugBrandName: item.jugBrandName,
         jugBrandImageUrl: item.jugBrandImageUrl,
@@ -1401,15 +1465,18 @@ app.post('/api/pedidos', verifyToken, async (req, res) => {
         data: pedidoItemsData,
       });
 
-      // 4. Crear el registro de Ingreso asociado
-      await tx.ingreso.create({
-        data: {
-          description: `Ingreso por Pedido ${customId}`,
-          amount: total,
-          date: new Date(),
-          pedido: { connect: { id: newPedido.id } },
-        },
-      });
+      // --- PASO 4: Crear el Ingreso asociado ---
+      // No crear ingreso si el total es 0 para no ensuciar registros
+      if (total > 0) {
+        await tx.ingreso.create({
+          data: {
+            description: `Ingreso por Pedido ${customId}`,
+            amount: total,
+            date: new Date(),
+            pedido: { connect: { id: newPedido.id } },
+          },
+        });
+      }
 
       return newPedido;
     });

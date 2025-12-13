@@ -38,7 +38,7 @@ const MapController = ({ position, zoom }) => {
 
 const Mapa = ({ driverPosition, orders, selectedOrder }) => {
   const position = selectedOrder 
-    ? [selectedOrder.delivery.lat, selectedOrder.delivery.lng] 
+    ? [selectedOrder.cliente.lat, selectedOrder.cliente.lng] 
     : (driverPosition || [19.4326, -99.1332]);
   
   const zoom = selectedOrder ? 16 : 13;
@@ -58,12 +58,12 @@ const Mapa = ({ driverPosition, orders, selectedOrder }) => {
       {orders && orders.map(order => (
         <Marker 
             key={order.id} 
-            position={[order.delivery.lat, order.delivery.lng]}
+            position={[order.cliente.lat, order.cliente.lng]}
             icon={selectedOrder?.id === order.id ? selectedOrderIcon : orderIcon}
         >
             <Popup>
-                <p className="font-bold">{order.delivery.name}</p>
-                <p>{order.delivery.address}</p>
+                <p className="font-bold">{order.cliente.name}</p>
+                <p>{order.cliente.street}</p>
             </Popup>
         </Marker>
       ))}
