@@ -1,4 +1,3 @@
-console.log('*** SERVIDOR REINICIADO CON LOS ÚLTIMOS CAMBIOS ***');
 const express = require('express');
 const prisma = require('./lib/prisma');
 const bcrypt = require('bcryptjs');
@@ -956,6 +955,42 @@ app.post('/api/users', async (req, res) => {
   }
 });
 
+// GET user by customId or phone
+app.get('/api/users/check', async (req, res) => {
+  const { identifier, type } = req.query;
+
+  if (!identifier || !type) {
+    return res.status(400).json({ error: 'Identifier and type (customId or phone) are required.' });
+  }
+
+  try {
+    let user;
+    if (type === 'customId') {
+      user = await prisma.user.findUnique({
+        where: { customId: identifier },
+      });
+    } else if (type === 'phone') {
+      user = await prisma.user.findUnique({
+        where: { phone: identifier },
+      });
+    } else {
+      return res.status(400).json({ error: 'Invalid search type. Must be "customId" or "phone".' });
+    }
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found.' });
+    }
+
+    // Exclude password from the response, but include a flag if it exists
+    const { password, ...userWithoutPassword } = user;
+    res.json({ ...userWithoutPassword, hasPassword: !!password });
+
+  } catch (error) {
+    console.error('Error checking user:', error);
+    res.status(500).json({ error: 'Ocurrió un error en el servidor al verificar el usuario.' });
+  }
+});
+
 app.get('/api/users/:id', verifyToken, async (req, res) => {
   const { id } = req.params;
   try {
@@ -998,8 +1033,9 @@ app.put('/api/users/:id', verifyToken, async (req, res) => {
     // Remove undefined values to avoid updating fields not present in the request body
     Object.keys(updateData).forEach(key => updateData[key] === undefined && delete updateData[key]);
 
-    // Prevent password from being updated via this general endpoint
+    // Prevent critical fields from being updated via this general endpoint
     delete updateData.password;
+    delete updateData.role; // <-- SECURITY FIX: Do not allow role changes from this endpoint.
 
     const updatedUser = await prisma.user.update({
       where: { id },
@@ -1028,42 +1064,6 @@ app.delete('/api/users/:id', verifyToken, async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
     res.status(500).json({ error: 'Error deleting user' });
-  }
-});
-
-// GET user by customId or phone
-app.get('/api/users/check', async (req, res) => {
-  const { identifier, type } = req.query;
-
-  if (!identifier || !type) {
-    return res.status(400).json({ error: 'Identifier and type (customId or phone) are required.' });
-  }
-
-  try {
-    let user;
-    if (type === 'customId') {
-      user = await prisma.user.findUnique({
-        where: { customId: identifier },
-      });
-    } else if (type === 'phone') {
-      user = await prisma.user.findUnique({
-        where: { phone: identifier },
-      });
-    } else {
-      return res.status(400).json({ error: 'Invalid search type. Must be "customId" or "phone".' });
-    }
-
-    if (!user) {
-      return res.status(404).json({ error: 'User not found.' });
-    }
-
-    // Exclude password from the response, but include a flag if it exists
-    const { password, ...userWithoutPassword } = user;
-    res.json({ ...userWithoutPassword, hasPassword: !!password });
-
-  } catch (error) {
-    console.error('Error checking user:', error);
-    res.status(500).json({ error: 'Ocurrió un error en el servidor al verificar el usuario.' });
   }
 });
 
