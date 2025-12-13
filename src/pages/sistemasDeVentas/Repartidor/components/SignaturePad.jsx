@@ -13,7 +13,7 @@ const SignaturePad = ({ onSave }) => {
         alert("Por favor, proporciona una firma.");
         return;
     }
-    onSave(sigCanvas.current.getTrimmedCanvas().toDataURL('image/png'));
+    onSave(sigCanvas.current.getCanvas().toDataURL('image/png'));
     clear();
   };
 

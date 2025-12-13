@@ -37,11 +37,18 @@ const MapController = ({ position, zoom }) => {
 
 
 const Mapa = ({ driverPosition, orders, selectedOrder }) => {
-  const position = selectedOrder 
+  // Define a default position
+  const defaultPosition = driverPosition || [19.4326, -99.1332];
+
+  // Center the map on the selected order only if it has valid coordinates
+  const position = selectedOrder && selectedOrder.cliente.lat && selectedOrder.cliente.lng
     ? [selectedOrder.cliente.lat, selectedOrder.cliente.lng] 
-    : (driverPosition || [19.4326, -99.1332]);
+    : defaultPosition;
   
-  const zoom = selectedOrder ? 16 : 13;
+  const zoom = selectedOrder && selectedOrder.cliente.lat ? 16 : 13;
+
+  // Filter orders to only include those with valid coordinates
+  const ordersWithCoords = orders.filter(order => order.cliente && order.cliente.lat && order.cliente.lng);
 
   return (
     <MapContainer center={position} zoom={zoom} scrollWheelZoom={true} style={{ height: '100%', width: '100%' }}>
@@ -55,7 +62,7 @@ const Mapa = ({ driverPosition, orders, selectedOrder }) => {
           <Popup>Mi ubicación</Popup>
         </Marker>
       )}
-      {orders && orders.map(order => (
+      {ordersWithCoords.map(order => (
         <Marker 
             key={order.id} 
             position={[order.cliente.lat, order.cliente.lng]}

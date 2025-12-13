@@ -4,12 +4,13 @@ import { useAuth } from '../../../../context/AuthContext';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
-const RepartidorHeader = ({ 
+const RepartidorHeader = ({
   onLogout,
   onCashMovementClick,
   isCashDrawerOpen,
   isRefreshing,
   onRefresh,
+  locationAccuracy,
 }) => {
   const { user } = useAuth();
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -37,6 +38,15 @@ const RepartidorHeader = ({
       </div>
 
       <div className="flex items-center gap-6">
+        <div className="hidden md:flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+            <span className={`material-symbols-outlined transition-colors ${locationAccuracy < 100 ? 'text-green-500' : 'text-yellow-500'}`}>
+                {locationAccuracy < 1000 ? 'location_on' : 'location_searching'}
+            </span>
+            <span>
+                Precisión: {locationAccuracy ? `${Math.round(locationAccuracy)}m` : 'N/A'}
+            </span>
+        </div>
+
         <div className="hidden sm:flex flex-col items-end">
             <p className="font-mono text-lg font-semibold text-gray-800 dark:text-white">{formattedTime}</p>
             <p className="text-xs text-gray-500 dark:text-gray-400 capitalize">{formattedDate}</p>

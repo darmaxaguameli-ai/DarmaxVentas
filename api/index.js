@@ -1599,6 +1599,9 @@ app.put('/api/pedidos/:id', verifyToken, async (req, res) => {
       }
 
       return pedido;
+    }, {
+      maxWait: 10000, // Wait 10 seconds to get a connection
+      timeout: 20000, // Allow 20 seconds for the transaction to complete
     });
 
     res.json(updatedPedido);

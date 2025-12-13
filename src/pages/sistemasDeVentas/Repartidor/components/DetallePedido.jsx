@@ -34,26 +34,28 @@ const DetallePedido = ({ order, onUpdateOrder }) => {
     onUpdateOrder(order.id, { status: 'DELIVERED' });
   };
 
-  const { items, delivery, total, status } = order;
+  const { items, cliente, total, status } = order;
 
   const isDelivered = status === 'DELIVERED';
+  
+  const fullAddress = [cliente.street, cliente.neighborhood, cliente.city, cliente.postalCode].filter(Boolean).join(', ');
 
   return (
     <div className="p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md flex flex-col h-full animate-fade-in">
       <h3 className="text-2xl font-bold mb-4">Detalle del Pedido</h3>
       <div className="flex-grow overflow-y-auto custom-scrollbar pr-2">
         <DetailSection title="Cliente y Entrega">
-          <p className="text-lg font-semibold text-gray-800 dark:text-white">{delivery.name}</p>
-          <p className="text-gray-600 dark:text-gray-300">{delivery.address}</p>
-          <a href={`tel:${delivery.phone}`} className="text-primary hover:underline">{delivery.phone}</a>
-          {delivery.references && <p className="text-sm text-gray-500 mt-1">Referencias: {delivery.references}</p>}
+          <p className="text-lg font-semibold text-gray-800 dark:text-white">{cliente.name}</p>
+          <p className="text-gray-600 dark:text-gray-300">{fullAddress}</p>
+          <a href={`tel:${cliente.phone}`} className="text-primary hover:underline">{cliente.phone}</a>
+          {cliente.references && <p className="text-sm text-gray-500 mt-1">Referencias: {cliente.references}</p>}
         </DetailSection>
 
         <DetailSection title="Productos">
           <ul className="space-y-2">
             {items.map(item => (
               <li key={item.id} className="flex justify-between items-center">
-                <span>{item.name} <span className="text-gray-500">x</span> <span className="font-bold">{item.quantity}</span></span>
+                <span>{item.name || item.jugBrandName} <span className="text-gray-500">x</span> <span className="font-bold">{item.quantity}</span></span>
                 <span className="font-semibold">${(item.price * item.quantity).toFixed(2)}</span>
               </li>
             ))}
