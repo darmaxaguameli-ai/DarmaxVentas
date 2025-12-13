@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import MainLayout from "../layouts/MainLayout";
 import axios from "axios";
+import Button from "../components/common/Button";
 
 const Register = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -222,14 +223,13 @@ const Register = () => {
                   </label>
                 )}
                 {searchError && <p className="text-red-500 text-sm">{searchError}</p>}
-                <button
+                <Button
                   type="button"
                   onClick={checkExistingUser}
-                  className="flex h-12 w-full items-center justify-center rounded-lg bg-secondary px-6
-                             text-base font-semibold text-white shadow-sm hover:bg-secondary/90"
+                  variant="secondary"
                 >
                   Buscar Cliente
-                </button>
+                </Button>
               </div>
             )}
 
@@ -251,7 +251,7 @@ const Register = () => {
                       </Link>{" "}
                       con tu correo electrónico y contraseña.
                     </p>
-                    <button
+                    <Button
                       type="button"
                       onClick={() => {
                         setExistingUserFound(false);
@@ -262,10 +262,11 @@ const Register = () => {
                         setRegistrationError("");
                         setFormData({ name: "", email: "", password: "", confirmPassword: "" });
                       }}
-                      className="btn-secondary mt-4"
+                      variant="secondary"
+                      className="mt-4"
                     >
                       Registrar un nuevo usuario
-                    </button>
+                    </Button>
                   </div>
                 ) : (
                   <>
@@ -405,15 +406,11 @@ const Register = () => {
                     </div>
 
                     {/* Botón submit */}
-                    <button
+                    <Button
                       type="submit"
-                      className="flex h-12 w-full items-center justify-center rounded-lg bg-primary px-6
-                                 text-base font-semibold text-white shadow-sm hover:bg-primary/90
-                                 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary
-                                 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       Registrarse
-                    </button>
+                    </Button>
                   </>
                 )}
               </>

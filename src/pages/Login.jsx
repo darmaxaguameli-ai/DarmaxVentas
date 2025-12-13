@@ -3,6 +3,7 @@ import { useState, useEffect } from "react"; // Importar useEffect
 import { Link, useNavigate } from "react-router-dom";
 import MainLayout from "../layouts/MainLayout";
 import { useAuth } from "../context/AuthContext";
+import Button from "../components/common/Button";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -129,16 +130,12 @@ const Login = () => {
             </div>
 
             {/* Botón de login */}
-            <button
+            <Button
               type="submit"
               disabled={isSubmitting}
-              className="flex h-12 w-full items-center justify-center rounded-lg bg-primary px-6 
-                         text-base font-semibold text-white shadow-sm hover:bg-primary/90 
-                         focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary
-                         disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isSubmitting ? 'Iniciando sesión...' : 'Iniciar sesión'}
-            </button>
+            </Button>
           </form>
         </div>
 

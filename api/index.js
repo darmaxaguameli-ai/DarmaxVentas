@@ -1,3 +1,4 @@
+console.log('*** SERVIDOR REINICIADO CON LOS ÚLTIMOS CAMBIOS ***');
 const express = require('express');
 const prisma = require('./lib/prisma');
 const bcrypt = require('bcryptjs');
@@ -897,7 +898,7 @@ app.get('/api/users', verifyToken, async (req, res) => {
   }
 });
 
-app.post('/api/users', verifyToken, async (req, res) => {
+app.post('/api/users', async (req, res) => {
   try {
     const data = req.body;
 
@@ -910,7 +911,7 @@ app.post('/api/users', verifyToken, async (req, res) => {
       neighborhood: data.neighborhood === '' ? null : data.neighborhood,
       city: data.city === '' ? null : data.city,
       postalCode: data.postalCode === '' ? null : data.postalCode,
-      role: data.role || 'CLIENTE',
+      role: 'CLIENTE', // Security: Force role to 'CLIENTE' on the backend
     };
 
     // Hash password if provided
@@ -924,21 +925,30 @@ app.post('/api/users', verifyToken, async (req, res) => {
     // ✅ GENERAR customId si no viene desde el front
     let customId = data.customId;
     if (!customId) {
-      const rolePrefix = (userData.role || 'CLIENTE').substring(0, 3).toUpperCase();
+      const rolePrefix = 'CLI'; // Force 'CLI' prefix for clients
       const random = String(Math.floor(Math.random() * 900) + 100); // 100–999
-      customId = `${rolePrefix}-${random}`; // ej: ADM-123, VEN-456
+      customId = `${rolePrefix}-${random}`; // ej: CLI-123
     }
 
     const newUser = await prisma.user.create({
       data: {
-        ...userData, // Use the cleaned userData
-        customId, // 👈 aquí sí va una string real
+        ...userData, // Use the cleaned userData with the forced role
+        customId,
       },
     });
+    
+    // Exclude password from the response
+    const { password, ...userWithoutPassword } = newUser;
+    res.status(201).json(userWithoutPassword);
 
-    res.status(201).json(newUser);
   } catch (error) {
     console.error('Error creating user:', error);
+    if (error.code === 'P2002') { // Handle unique constraint violation (e.g., email or phone already exists)
+      return res.status(409).json({
+        error: 'El usuario ya existe.',
+        message: 'Ya existe un usuario con el mismo email o teléfono.',
+      });
+    }
     res.status(500).json({
       error: 'Error creating user',
       message: error.message,
@@ -1022,7 +1032,7 @@ app.delete('/api/users/:id', verifyToken, async (req, res) => {
 });
 
 // GET user by customId or phone
-app.get('/api/users/check', verifyToken, async (req, res) => {
+app.get('/api/users/check', async (req, res) => {
   const { identifier, type } = req.query;
 
   if (!identifier || !type) {
@@ -1056,6 +1066,7 @@ app.get('/api/users/check', verifyToken, async (req, res) => {
     res.status(500).json({ error: 'Ocurrió un error en el servidor al verificar el usuario.' });
   }
 });
+
 
 // =====================================================
 // EMPLEADOS API (HR Module)
