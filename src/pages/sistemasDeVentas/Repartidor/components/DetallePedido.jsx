@@ -26,17 +26,17 @@ const DetallePedido = ({ order, onUpdateOrder }) => {
   }
 
   const handleSaveSignature = (signature) => {
-    onUpdateOrder(order.id, { status: 'DELIVERED', signature });
+    onUpdateOrder(order.id, { status: 'ENTREGADO', signature });
     setShowSignature(false);
   };
 
   const handleMarkAsDelivered = () => {
-    onUpdateOrder(order.id, { status: 'DELIVERED' });
+    onUpdateOrder(order.id, { status: 'ENTREGADO' });
   };
 
   const { items, cliente, total, status } = order;
 
-  const isDelivered = status === 'DELIVERED';
+  const isDelivered = status === 'ENTREGADO';
   
   const fullAddress = [cliente.street, cliente.neighborhood, cliente.city, cliente.postalCode].filter(Boolean).join(', ');
 
@@ -49,6 +49,27 @@ const DetallePedido = ({ order, onUpdateOrder }) => {
           <p className="text-gray-600 dark:text-gray-300">{fullAddress}</p>
           <a href={`tel:${cliente.phone}`} className="text-primary hover:underline">{cliente.phone}</a>
           {cliente.references && <p className="text-sm text-gray-500 mt-1">Referencias: {cliente.references}</p>}
+          
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            <a 
+              href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(fullAddress)}`} 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="btn-secondary btn-sm flex items-center gap-1.5"
+            >
+                <span className="material-symbols-outlined text-base">map</span>
+                Google Maps
+            </a>
+            <a 
+              href={`https://waze.com/ul?q=${encodeURIComponent(fullAddress)}`}
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="btn-secondary btn-sm flex items-center gap-1.5"
+            >
+                <span className="material-symbols-outlined text-base">navigation</span>
+                Waze
+            </a>
+          </div>
         </DetailSection>
 
         <DetailSection title="Productos">

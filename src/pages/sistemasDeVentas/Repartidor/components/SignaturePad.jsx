@@ -13,6 +13,7 @@ const SignaturePad = ({ onSave }) => {
         alert("Por favor, proporciona una firma.");
         return;
     }
+    // Usar getCanvas() en lugar de getTrimmedCanvas() para evitar el error
     onSave(sigCanvas.current.getCanvas().toDataURL('image/png'));
     clear();
   };

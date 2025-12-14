@@ -1500,6 +1500,14 @@ app.put('/api/pedidos/:id', verifyToken, async (req, res) => {
     return res.status(400).json({ error: 'El estado (status) es requerido.' });
   }
 
+
+
+  // Validar que el status sea uno de los valores del enum PedidoStatus
+  const VALID_PEDIDO_STATUS = ['PENDIENTE', 'EN_PROCESO', 'EN_RUTA', 'ENTREGADO', 'CANCELADO'];
+  if (!VALID_PEDIDO_STATUS.includes(status)) {
+    return res.status(400).json({ error: `Estado de pedido inválido. Valores permitidos: ${VALID_PEDIDO_STATUS.join(', ')}.` });
+  }
+
   try {
     const updatedPedido = await prisma.$transaction(async (tx) => {
       // 1. Get the existing order to check current status and payment method
@@ -1543,9 +1551,9 @@ app.put('/api/pedidos/:id', verifyToken, async (req, res) => {
 
       // 3. If status is ENTREGADO and payment is Efectivo, record cash transaction
       if (status === 'ENTREGADO' && actualPaymentMethod === 'Efectivo') {
-        // Ensure only a VENDEDOR or ADMIN can perform this action
-        if (req.user.role !== 'VENDEDOR' && req.user.role !== 'ADMIN') {
-          throw new Error('Solo vendedores o administradores pueden registrar ventas en caja.');
+        // Ensure only a VENDEDOR, ADMIN, or REPARTIDOR can perform this action
+        if (req.user.role !== 'VENDEDOR' && req.user.role !== 'ADMIN' && req.user.role !== 'REPARTIDOR') {
+          throw new Error('Solo vendedores, administradores o repartidores pueden registrar ventas en caja.');
         }
 
         // Find active cash drawer session for the current user

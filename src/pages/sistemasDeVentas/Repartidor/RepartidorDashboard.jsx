@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { fetchOrders, updateOrder, fetchActiveCashDrawerSession, startCashDrawerSession, closeCashDrawerSession, createCashTransaction } from '../../../api/apiClient';
 import { useAuth } from '../../../context/AuthContext';
 import Swal from 'sweetalert2';
@@ -56,7 +56,7 @@ const RepartidorOrderAccordion = ({ order, onUpdateStatus, onSelectOrder, isSele
             cancelButtonText: 'Cancelar',
         }).then((result) => {
             if (result.isConfirmed) {
-                onUpdateStatus(order.id, newStatus);
+                onUpdateStatus(order.id, { status: newStatus });
             }
         });
     };
@@ -172,7 +172,8 @@ const RepartidorDashboard = () => {
     const [error, setError] = useState(null);
     const [selectedOrder, setSelectedOrder] = useState(null);
     const [driverPosition, setDriverPosition] = useState(null);
-    const [view, setView] = useState('columns'); // 'columns' or 'map'
+    const [locationAccuracy, setLocationAccuracy] = useState(null);
+    const prevOrderCount = useRef(0); // <-- Ref para notificaciones
 
     // Cash Drawer State
     const [cashDrawerSession, setCashDrawerSession] = useState(null);
@@ -188,10 +189,25 @@ const RepartidorDashboard = () => {
             setError(null);
             const fetchedOrders = await fetchOrders();
             setOrders(fetchedOrders);
+            prevOrderCount.current = fetchedOrders.length; // <-- Inicializar conteo
         } catch (err) {
             setError(err.message);
         } finally {
             setLoading(false);
+        }
+    }, []);
+
+    const pollOrders = useCallback(async () => {
+        try {
+            const fetchedOrders = await fetchOrders();
+            if (fetchedOrders.length > prevOrderCount.current) {
+                new Audio('/sounds/notification.mp3').play();
+                showToast('¡Ha llegado un nuevo pedido!', 'info');
+            }
+            setOrders(fetchedOrders);
+            prevOrderCount.current = fetchedOrders.length; // <-- Actualizar conteo
+        } catch (err) {
+            console.error("Polling error:", err.message);
         }
     }, []);
 
@@ -219,13 +235,22 @@ const RepartidorDashboard = () => {
         }
     }, [user, fetchSession, loadOrders]);
 
+    // Polling effect
+    useEffect(() => {
+        if (user) {
+            const intervalId = setInterval(pollOrders, 30000); // Poll every 30 seconds
+            return () => clearInterval(intervalId);
+        }
+    }, [user, pollOrders]);
+
     // Geolocation
     useEffect(() => {
         if (navigator.geolocation) {
             const watchId = navigator.geolocation.watchPosition(
                 (position) => {
-                    const { latitude, longitude } = position.coords;
+                    const { latitude, longitude, accuracy } = position.coords;
                     setDriverPosition([latitude, longitude]);
+                    setLocationAccuracy(accuracy);
                     if (error === "No se pudo obtener la ubicación. Revisa los permisos del navegador.") {
                         setError(null); // Limpiar error si se recupera el permiso
                     }
@@ -290,11 +315,11 @@ const RepartidorDashboard = () => {
         }
     }, [fetchSession]);
     
-    const handleUpdateOrder = useCallback(async (orderId, status) => {
+    const handleUpdateOrder = useCallback(async (orderId, updateData) => {
         try {
-            await updateOrder(orderId, { status });
+            await updateOrder(orderId, updateData);
             showToast(`Pedido actualizado`);
-            setOrders(prevOrders => prevOrders.map(o => o.id === orderId ? {...o, status} : o));
+            setOrders(prevOrders => prevOrders.map(o => (o.id === orderId ? { ...o, ...updateData } : o)));
         } catch (err) {
             Swal.fire('Error', `No se pudo actualizar el pedido: ${err.message}`, 'error');
         }
@@ -333,6 +358,7 @@ const RepartidorDashboard = () => {
                 isCashDrawerOpen={cashDrawerSession?.estado === 'ABIERTA'}
                 isRefreshing={loading}
                 onRefresh={loadOrders}
+                locationAccuracy={locationAccuracy}
             />
 
             <div className="flex flex-1 overflow-hidden pt-20">
