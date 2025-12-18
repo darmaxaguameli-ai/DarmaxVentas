@@ -36,7 +36,7 @@ const ClientOrderHeader = ({ primaryLink, showOrderSelectionButton }) => {
       <div className="flex items-center gap-2 sm:gap-4"> {/* Adjusted gap for better mobile spacing */}
         <button
           onClick={toggleTheme}
-          className="flex h-10 w-10 items-center justify-center rounded-full bg-light dark:bg-primary/20 text-text-secondary dark:text-white"
+          className="flex sm:hidden h-10 w-10 items-center justify-center rounded-full bg-light dark:bg-primary/20 text-text-secondary dark:text-white"
           aria-label="Cambiar tema"
         >
           <span className="material-symbols-outlined text-2xl">
@@ -61,6 +61,17 @@ const ClientOrderHeader = ({ primaryLink, showOrderSelectionButton }) => {
                 {linkToShow.to === '/mis-pedidos' ? 'receipt_long' : 'add_shopping_cart'}
               </span>
             </Link>
+
+            {/* Theme button for desktop/tablet, placed before profile dropdown */}
+            <button
+              onClick={toggleTheme}
+              className="hidden sm:flex h-10 w-10 items-center justify-center rounded-full bg-light dark:bg-primary/20 text-text-secondary dark:text-white"
+              aria-label="Cambiar tema"
+            >
+              <span className="material-symbols-outlined text-2xl">
+                {theme === 'dark' ? 'light_mode' : 'dark_mode'}
+              </span>
+            </button>
 
             {/* --- Profile Dropdown Menu --- */}
             <div className="relative">
