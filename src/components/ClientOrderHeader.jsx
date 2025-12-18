@@ -7,6 +7,7 @@ const ClientOrderHeader = ({ primaryLink, showOrderSelectionButton }) => {
   const navigate = useNavigate();
   const { logout, user, isAuthenticated } = useAuth(); // Destructure isAuthenticated
   const { theme, toggleTheme } = useTheme();
+  const [isMenuOpen, setIsMenuOpen] = React.useState(false);
 
   const linkToShow = primaryLink || { to: '/mis-pedidos', label: 'Mis pedidos' };
 
@@ -45,15 +46,12 @@ const ClientOrderHeader = ({ primaryLink, showOrderSelectionButton }) => {
         {isAuthenticated ? (
           <>
             {/* --- Link Dinámico --- */}
-            {/* 1. Versión de texto para pantallas grandes (sm y más) */}
             <Link
               to={linkToShow.to}
               className="hidden sm:block text-sm sm:text-base font-medium text-text-secondary dark:text-white/70 hover:text-primary dark:hover:text-primary transition-colors"
             >
               {linkToShow.label}
             </Link>
-
-            {/* 2. Versión de icono para pantallas pequeñas */}
             <Link
               to={linkToShow.to}
               className="flex sm:hidden h-10 w-10 items-center justify-center rounded-full bg-light dark:bg-primary/20 text-text-secondary dark:text-white"
@@ -64,31 +62,39 @@ const ClientOrderHeader = ({ primaryLink, showOrderSelectionButton }) => {
               </span>
             </Link>
 
-            {/* --- Botones de Perfil y Logout --- */}
-            <button
-              onClick={() => navigate('/profile')}
-              className="flex h-10 w-10 items-center justify-center rounded-full
-                         bg-light dark:bg-primary/20 text-text-secondary dark:text-white"
-              aria-label="Perfil"
-            >
-              <span className="material-symbols-outlined text-2xl">
-                person
-              </span>
-            </button>
-
-            <button
-              onClick={() => {
-                logout();
-                navigate('/logout-success', { state: { name: user?.name } });
-              }}
-              className="flex h-10 w-10 items-center justify-center rounded-full
-                         bg-light dark:bg-primary/20 text-text-secondary dark:text-white"
-              aria-label="Cerrar Sesión"
-            >
-              <span className="material-symbols-outlined text-2xl">
-                logout
-              </span>
-            </button>
+            {/* --- Profile Dropdown Menu --- */}
+            <div className="relative">
+              <button
+                onClick={() => setIsMenuOpen(prev => !prev)}
+                className="flex h-10 w-10 items-center justify-center rounded-full bg-light dark:bg-primary/20 text-text-secondary dark:text-white"
+                aria-label="Abrir menú de usuario"
+              >
+                <span className="material-symbols-outlined text-2xl">
+                  person
+                </span>
+              </button>
+              {isMenuOpen && (
+                <div className="absolute top-full right-0 mt-2 w-48 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none dark:bg-gray-800 dark:ring-gray-700 z-50">
+                  <Link
+                    to="/profile"
+                    onClick={() => setIsMenuOpen(false)}
+                    className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                  >
+                    Mi Perfil
+                  </Link>
+                  <button
+                    onClick={() => {
+                      logout();
+                      navigate('/logout-success', { state: { name: user?.name } });
+                      setIsMenuOpen(false);
+                    }}
+                    className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                  >
+                    Cerrar Sesión
+                  </button>
+                </div>
+              )}
+            </div>
           </>
         ) : (
           showOrderSelectionButton && (
