@@ -288,17 +288,17 @@ const RefillAssignStepTwo = () => {
               <h2 className="text-xl font-bold text-center">Tipos de Agua</h2>
               {targetWater.map((water) => (
                 <DroppableWaterType key={water.id} {...water}>
-                  <div className="p-4 rounded-lg shadow bg-white dark:bg-gray-800 flex flex-col items-center justify-center gap-2 min-h-[100px] relative overflow-hidden">
+                  <div className="p-4 rounded-lg shadow bg-white dark:bg-gray-800 flex flex-col items-center justify-center gap-2 min-h-[120px] relative overflow-hidden">
                     <div className="wave-container">
                       <div className="wave"></div>
                       <div className="wave two"></div>
                     </div>
-                    <div className="relative flex flex-col items-center justify-center gap-2">
+                    <div className="relative z-10 flex flex-col items-center justify-center gap-2">
                       <p className="text-lg font-bold text-center">{water.name}</p>
-                      <div className="flex items-center gap-4">
-                        <button onClick={() => handleManualRemove(water.id)} className="btn-secondary p-2 h-8 w-8 flex items-center justify-center rounded-full">-</button>
-                        <span className="text-3xl font-black text-primary tabular-nums">{water.quantity}</span>
-                        <button onClick={() => handleManualAdd(water.id)} className="btn-secondary p-2 h-8 w-8 flex items-center justify-center rounded-full">+</button>
+                      <div className="flex items-center gap-3">
+                        <button onClick={() => handleManualRemove(water.id)} className="btn-secondary flex h-11 w-11 items-center justify-center rounded-full text-xl">-</button>
+                        <span className="w-12 text-center text-3xl font-black text-primary tabular-nums">{water.quantity}</span>
+                        <button onClick={() => handleManualAdd(water.id)} className="btn-secondary flex h-11 w-11 items-center justify-center rounded-full text-xl">+</button>
                       </div>
                     </div>
                   </div>

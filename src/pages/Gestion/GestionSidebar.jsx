@@ -29,7 +29,7 @@ const GestionSidebar = ({ isOpen, onClose, isCollapsed, toggleCollapsed }) => {
 
   return (
     <aside
-      className={`inset-y-0 left-0 z-40 border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 flex flex-col justify-between
+      className={`fixed inset-y-0 left-0 z-40 border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 flex flex-col justify-between overflow-hidden
         transform transition-all duration-300 ease-in-out flex-shrink-0
         ${isOpen ? 'translate-x-0 w-64 p-4' : '-translate-x-full w-0 p-0'} /* Mobile */
         md:relative md:translate-x-0 md:shadow-none ${isCollapsed ? 'md:w-20 md:px-2' : 'md:w-64 md:p-4'} /* Desktop */

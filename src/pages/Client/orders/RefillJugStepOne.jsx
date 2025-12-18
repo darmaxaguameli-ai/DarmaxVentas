@@ -114,7 +114,7 @@ const RefillJugStepOne = () => {
           </span>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6 max-w-5xl mx-auto">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 md:gap-6 lg:grid-cols-4 max-w-5xl mx-auto">
           {selectedJugs.map((product) => (
             <QuantityCard
               key={product.id}
@@ -140,7 +140,7 @@ const RefillJugStepOne = () => {
           <button
             type="button"
             onClick={handleContinue}
-            className="flex min-w-[200px] items-center justify-center rounded-xl bg-primary px-10 h-14 text-lg font-semibold text-white shadow-sm hover:bg-primary/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary transition-all active:scale-[0.98]"
+            className="flex items-center justify-center rounded-xl bg-primary px-10 h-14 text-lg font-semibold text-white shadow-sm hover:bg-primary/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary transition-all active:scale-[0.98]"
             disabled={totalJugs === 0}
           >
             Continuar al paso 2

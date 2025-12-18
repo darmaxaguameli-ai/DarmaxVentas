@@ -149,7 +149,7 @@ const CashFlowChart = ({ income, expenses }) => {
                     <button onClick={() => handleNavigate('prev')} className="p-1 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700">
                         <span className="material-symbols-outlined">chevron_left</span>
                     </button>
-                    <span className="text-sm font-semibold text-gray-600 dark:text-gray-300 text-center w-32">{displayInterval}</span>
+                    <span className="flex-1 text-center text-sm font-semibold text-gray-600 dark:text-gray-300">{displayInterval}</span>
                     <button onClick={() => handleNavigate('next')} className="p-1 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700">
                         <span className="material-symbols-outlined">chevron_right</span>
                     </button>

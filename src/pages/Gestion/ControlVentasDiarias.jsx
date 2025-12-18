@@ -73,7 +73,7 @@ const DailySalesRecordEditModal = ({ isOpen, onClose, recordToEdit, onSave }) =>
 
                     {/* MOSTRADOR */}
                     <h3 className="text-lg font-medium text-gray-800 dark:text-gray-200 mt-6">MOSTRADOR</h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                         <div><label className="label-style">Color</label><input type="number" name="mostradorColor" value={formData.mostradorColor || ''} onChange={handleChange} className="input-style" /></div>
                         <div><label className="label-style">Bonafon</label><input type="number" name="mostradorBon" value={formData.mostradorBon || ''} onChange={handleChange} className="input-style" /></div>
                         <div><label className="label-style">Epura</label><input type="number" name="mostradorEpura" value={formData.mostradorEpura || ''} onChange={handleChange} className="input-style" /></div>
@@ -86,7 +86,7 @@ const DailySalesRecordEditModal = ({ isOpen, onClose, recordToEdit, onSave }) =>
 
                     {/* PEDIDOS */}
                     <h3 className="text-lg font-medium text-gray-800 dark:text-gray-200 mt-6">PEDIDOS</h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                         <div><label className="label-style">Color</label><input type="number" name="pedidosColor" value={formData.pedidosColor || ''} onChange={handleChange} className="input-style" /></div>
                         <div><label className="label-style">Bonafon</label><input type="number" name="pedidosBon" value={formData.pedidosBon || ''} onChange={handleChange} className="input-style" /></div>
                         <div><label className="label-style">Epura</label><input type="number" name="pedidosEpura" value={formData.pedidosEpura || ''} onChange={handleChange} className="input-style" /></div>
@@ -99,7 +99,7 @@ const DailySalesRecordEditModal = ({ isOpen, onClose, recordToEdit, onSave }) =>
 
                     {/* NEGOCIOS */}
                     <h3 className="text-lg font-medium text-gray-800 dark:text-gray-200 mt-6">NEGOCIOS</h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                         <div><label className="label-style">Color</label><input type="number" name="negociosColor" value={formData.negociosColor || ''} onChange={handleChange} className="input-style" /></div>
                         <div><label className="label-style">Bonafon</label><input type="number" name="negociosBon" value={formData.negociosBon || ''} onChange={handleChange} className="input-style" /></div>
                         <div><label className="label-style">Epura</label><input type="number" name="negociosEpura" value={formData.negociosEpura || ''} onChange={handleChange} className="input-style" /></div>
@@ -772,7 +772,7 @@ const ControlVentasDiarias = () => {
 
                             {/* MOSTRADOR */}
                             <h3 className="text-lg font-medium text-gray-800 dark:text-gray-200 mt-6 border-b pb-2">MOSTRADOR</h3>
-                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-8 gap-x-4 gap-y-3">
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-x-4 gap-y-3">
                                 <div><label className="label-style">Color</label><input type="number" name="mostradorColor" value={manualForm.mostradorColor} onChange={handleManualChange} className="input-style" /></div>
                                 <div><label className="label-style">Bonafon</label><input type="number" name="mostradorBon" value={manualForm.mostradorBon} onChange={handleManualChange} className="input-style" /></div>
                                 <div><label className="label-style">Epura</label><input type="number" name="mostradorEpura" value={manualForm.mostradorEpura} onChange={handleManualChange} className="input-style" /></div>
@@ -785,7 +785,7 @@ const ControlVentasDiarias = () => {
 
                             {/* PEDIDOS */}
                             <h3 className="text-lg font-medium text-gray-800 dark:text-gray-200 mt-6 border-b pb-2">PEDIDOS</h3>
-                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-8 gap-x-4 gap-y-3">
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-x-4 gap-y-3">
                                 <div><label className="label-style">Color</label><input type="number" name="pedidosColor" value={manualForm.pedidosColor} onChange={handleManualChange} className="input-style" /></div>
                                 <div><label className="label-style">Bonafon</label><input type="number" name="pedidosBon" value={manualForm.pedidosBon} onChange={handleManualChange} className="input-style" /></div>
                                 <div><label className="label-style">Epura</label><input type="number" name="pedidosEpura" value={manualForm.pedidosEpura} onChange={handleManualChange} className="input-style" /></div>
@@ -798,7 +798,7 @@ const ControlVentasDiarias = () => {
 
                             {/* NEGOCIOS */}
                             <h3 className="text-lg font-medium text-gray-800 dark:text-gray-200 mt-6 border-b pb-2">NEGOCIOS</h3>
-                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-8 gap-x-4 gap-y-3">
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-x-4 gap-y-3">
                                 <div><label className="label-style">Color</label><input type="number" name="negociosColor" value={manualForm.negociosColor} onChange={handleManualChange} className="input-style" /></div>
                                 <div><label className="label-style">Bonafon</label><input type="number" name="negociosBon" value={manualForm.negociosBon} onChange={handleManualChange} className="input-style" /></div>
                                 <div><label className="label-style">Epura</label><input type="number" name="negociosEpura" value={manualForm.negociosEpura} onChange={handleManualChange} className="input-style" /></div>
@@ -866,7 +866,7 @@ const ControlVentasDiarias = () => {
                                         <table className="min-w-full text-xs">
                                             <thead className="bg-gray-100 dark:bg-gray-700 sticky top-0">
                                                 <tr>
-                                                    <th className="th-style">Fecha</th>
+                                                    <th className="th-style sticky left-0 z-10 bg-gray-100 dark:bg-gray-700">Fecha</th>
                                                     <th className="th-style">Día</th>
                                                     {/* MOSTRADOR */}
                                                     <th className="th-style" colSpan="8">MOSTRADOR</th>
@@ -897,7 +897,7 @@ const ControlVentasDiarias = () => {
                                             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                                                 {records.map((item) => ( // Use records from the grouped data
                                                     <tr key={item.id}>
-                                                        <td className="td-style">{formatDate(item.date, { day: '2-digit', month: '2-digit', year: 'numeric' })}</td>
+                                                        <td className="td-style sticky left-0 bg-white dark:bg-gray-800">{formatDate(item.date, { day: '2-digit', month: '2-digit', year: 'numeric' })}</td>
                                                         <td className="td-style">{item.dayOfWeek}</td>
                                                         <td className="td-style">{item.mostradorColor}</td>
                                                         <td className="td="td-style>{item.mostradorBon}</td>
@@ -932,19 +932,21 @@ const ControlVentasDiarias = () => {
                                                         <td className="td-style">{item.totalTipoGarrafonVtaG}</td>
                                                         <td className="td-style font-bold">{item.totalGarrafones}</td>
                                                         <td className="td-style font-bold">${item.totalImporte.toFixed(2)}</td>
-                                                        <td className="td-style text-right space-x-2">
-                                                            <button 
-                                                                onClick={() => handleOpenEditModal(item)} 
-                                                                className="text-primary hover:text-primary/90 font-medium"
-                                                            >
-                                                                Editar
-                                                            </button>
-                                                            <button 
-                                                                onClick={() => handleDeleteRecord(item.id)} 
-                                                                className="text-red-500 hover:text-red-700 font-medium"
-                                                            >
-                                                                Eliminar
-                                                            </button>
+                                                        <td className="td-style text-right">
+                                                            <div className="flex flex-col sm:flex-row gap-2 justify-end">
+                                                                <button 
+                                                                    onClick={() => handleOpenEditModal(item)} 
+                                                                    className="text-primary hover:text-primary/90 font-medium"
+                                                                >
+                                                                    Editar
+                                                                </button>
+                                                                <button 
+                                                                    onClick={() => handleDeleteRecord(item.id)} 
+                                                                    className="text-red-500 hover:text-red-700 font-medium"
+                                                                >
+                                                                    Eliminar
+                                                                </button>
+                                                            </div>
                                                         </td>
                                                     </tr>
                                                 ))}

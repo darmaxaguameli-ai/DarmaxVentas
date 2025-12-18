@@ -87,7 +87,8 @@ const PickupClientDataStep = () => {
       step={3}
       totalSteps={4}
     >
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <div className="mx-auto max-w-xl">
+        <form onSubmit={handleSubmit} className="space-y-6">
         {error && <div className="text-red-500 bg-red-100 p-3 rounded-lg">{error}</div>}
         {/* ... (resto del formulario sin cambios) ... */}
         <div className="rounded-xl bg-light/70 dark:bg-dark/70 border border-light/60 dark:border-white/15 p-4">
@@ -248,6 +249,7 @@ const PickupClientDataStep = () => {
           </button>
         </div>
       </form>
+    </div>
     </OrderLayout>
   );
 };

@@ -1,10 +1,12 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 
 const ClientOrderHeader = ({ primaryLink, showOrderSelectionButton }) => {
   const navigate = useNavigate();
   const { logout, user, isAuthenticated } = useAuth(); // Destructure isAuthenticated
+  const { theme, toggleTheme } = useTheme();
 
   const linkToShow = primaryLink || { to: '/mis-pedidos', label: 'Mis pedidos' };
 
@@ -13,7 +15,7 @@ const ClientOrderHeader = ({ primaryLink, showOrderSelectionButton }) => {
       className="flex w-full items-center justify-between 
                  rounded-2xl border border-light/60 dark:border-white/10
                  bg-white/90 dark:bg-dark/60 shadow-md backdrop-blur-xl 
-                 px-6 py-4"
+                 px-4 py-4 sm:px-6"
     >
       <Link to="/pedidos" className="flex items-center gap-3">
         <div className="flex h-10 w-10 items-center justify-center rounded-xl text-primary bg-transparent">
@@ -21,7 +23,7 @@ const ClientOrderHeader = ({ primaryLink, showOrderSelectionButton }) => {
         </div>
 
         <div className="flex flex-col">
-          <span className="text-xs font-semibold text-text-secondary dark:text-white/60">
+          <span className="hidden sm:block text-xs font-semibold text-text-secondary dark:text-white/60">
             Sistema de pedidos
           </span>
           <h2 className="text-lg sm:text-xl font-bold tracking-[-0.02em]">
@@ -31,6 +33,15 @@ const ClientOrderHeader = ({ primaryLink, showOrderSelectionButton }) => {
       </Link>
 
       <div className="flex items-center gap-2 sm:gap-4"> {/* Adjusted gap for better mobile spacing */}
+        <button
+          onClick={toggleTheme}
+          className="flex h-10 w-10 items-center justify-center rounded-full bg-light dark:bg-primary/20 text-text-secondary dark:text-white"
+          aria-label="Cambiar tema"
+        >
+          <span className="material-symbols-outlined text-2xl">
+            {theme === 'dark' ? 'light_mode' : 'dark_mode'}
+          </span>
+        </button>
         {isAuthenticated ? (
           <>
             {/* --- Link Dinámico --- */}

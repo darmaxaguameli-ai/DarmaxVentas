@@ -65,20 +65,19 @@ const ExpensePieChart = ({ expenses }) => {
                         <Tooltip content={<CustomTooltip />} />
                         <Legend 
                             iconType="circle"
-                            layout="vertical" 
-                            verticalAlign="middle" 
-                            align="right"
+                            layout="horizontal"
+                            verticalAlign="bottom"
+                            align="center"
                             wrapperStyle={{
                                 fontSize: '12px',
                                 color: '#6b7280',
-                                overflowY: 'auto',
-                                maxHeight: '300px'
+                                paddingTop: '20px' // Add space between chart and legend
                             }}
                             formatter={(value) => <span className="dark:text-gray-300 text-gray-600">{value}</span>}
                         />
                         <Pie
                             data={chartData}
-                            cx="40%" // Centrar el gráfico un poco a la izquierda para dar espacio a la leyenda
+                            cx="50%"
                             cy="50%"
                             innerRadius={60}
                             outerRadius={110}

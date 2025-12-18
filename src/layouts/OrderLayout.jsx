@@ -24,8 +24,8 @@ const OrderLayout = ({
             {/* Contenido */}
             <main className="flex-grow">
               {/* Encabezado de paso + barra de progreso */}
-              <div className="flex flex-wrap justify-between gap-4 px-1 sm:px-0 mb-6">
-                <div className="flex min-w-[260px] flex-col gap-2">
+              <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-6 px-1 sm:px-0 mb-6">
+                <div className="flex flex-grow flex-col gap-2">
                   <p className="text-2xl sm:text-3xl md:text-4xl font-black leading-tight tracking-[-0.03em]">
                     {title}
                   </p>
@@ -35,7 +35,7 @@ const OrderLayout = ({
                     </p>
                   )}
                 </div>
-                <div className="flex flex-col items-end gap-2 min-w-[190px]">
+                <div className="flex w-full max-w-[190px] flex-col items-end gap-2 sm:w-auto">
                   <span className="text-sm font-medium text-text-secondary dark:text-white/70">
                     Paso {step} de {totalSteps}
                   </span>

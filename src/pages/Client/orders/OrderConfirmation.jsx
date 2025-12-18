@@ -34,7 +34,7 @@ const OrderConfirmation = () => {
   return (
     <div className="font-display relative flex min-h-screen w-full flex-col bg-light dark:bg-dark text-dark dark:text-white overflow-x-hidden select-none">
       <div className="flex flex-1 justify-center px-4 sm:px-6 lg:px-12 py-8">
-        <div className="flex w-full max-w-2xl flex-col items-center gap-10 text-center">
+        <div className="flex w-full max-w-2xl flex-col items-center gap-6 text-center sm:gap-10">
           <ClientOrderHeader />
           
           <main className="w-full flex flex-col items-center mt-8">
