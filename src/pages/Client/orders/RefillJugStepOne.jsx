@@ -140,7 +140,7 @@ const RefillJugStepOne = () => {
           <button
             type="button"
             onClick={handleContinue}
-            className="flex items-center justify-center rounded-xl bg-primary px-10 h-14 text-lg font-semibold text-white shadow-sm hover:bg-primary/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary transition-all active:scale-[0.98]"
+            className="flex items-center justify-center rounded-xl bg-primary px-8 h-12 text-base font-semibold text-white shadow-sm hover:bg-primary/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary transition-all active:scale-[0.98]"
             disabled={totalJugs === 0}
           >
             Continuar al paso 2

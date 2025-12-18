@@ -34,7 +34,7 @@ const OrderConfirmation = () => {
   return (
     <div className="font-display relative flex min-h-screen w-full flex-col bg-light dark:bg-dark text-dark dark:text-white overflow-x-hidden select-none">
       <div className="flex flex-1 justify-center px-4 sm:px-6 lg:px-12 py-8">
-        <div className="flex w-full max-w-2xl flex-col items-center gap-6 text-center sm:gap-10">
+        <div className="flex h-full w-full max-w-2xl flex-col items-center justify-between text-center">
           <ClientOrderHeader />
           
           <main className="w-full flex flex-col items-center mt-8">
@@ -72,13 +72,13 @@ const OrderConfirmation = () => {
                 <div className="flex w-full flex-col items-center gap-4 sm:flex-row">
                   <Link 
                       to="/mis-pedidos"
-                      className="flex h-14 w-full items-center justify-center rounded-xl bg-primary px-8 text-lg font-semibold text-white shadow-sm hover:bg-primary/90 transition-all"
+                      className="flex h-12 w-full items-center justify-center rounded-xl bg-primary px-8 text-base font-semibold text-white shadow-sm hover:bg-primary/90 transition-all"
                   >
                       Ver mis pedidos
                   </Link>
                   <Link 
                       to="/pedidos"
-                      className="flex h-14 w-full items-center justify-center rounded-xl border border-slate-300 bg-slate-100 text-dark dark:bg-slate-800 dark:text-white dark:border-slate-600 text-lg font-semibold hover:bg-slate-200 dark:hover:bg-slate-700 transition-all"
+                      className="flex h-12 w-full items-center justify-center rounded-xl border border-slate-300 bg-slate-100 text-dark dark:bg-slate-800 dark:text-white dark:border-slate-600 text-base font-semibold hover:bg-slate-200 dark:hover:bg-slate-700 transition-all"
                   >
                       Hacer otro pedido
                   </Link>
@@ -100,7 +100,7 @@ const OrderConfirmation = () => {
                   </div>
                    <Link 
                         to="/pedidos"
-                        className="flex h-14 w-full items-center justify-center rounded-xl bg-primary px-8 text-lg font-semibold text-white shadow-sm hover:bg-primary/90 transition-all"
+                        className="flex h-12 w-full items-center justify-center rounded-xl bg-primary px-8 text-base font-semibold text-white shadow-sm hover:bg-primary/90 transition-all"
                     >
                         Hacer otro pedido
                     </Link>
@@ -109,7 +109,7 @@ const OrderConfirmation = () => {
                 // --- Vista para invitado puro ---
                  <Link 
                     to="/pedidos"
-                    className="flex h-14 w-full items-center justify-center rounded-xl bg-primary px-8 text-lg font-semibold text-white shadow-sm hover:bg-primary/90 transition-all"
+                    className="flex h-12 w-full items-center justify-center rounded-xl bg-primary px-8 text-base font-semibold text-white shadow-sm hover:bg-primary/90 transition-all"
                 >
                     Hacer otro pedido
                 </Link>
