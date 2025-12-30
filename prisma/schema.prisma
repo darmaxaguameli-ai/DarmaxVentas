@@ -45,13 +45,17 @@ enum TipoTransaccionCaja {
   CAMBIO
 }
 
+enum DeliverySpeed {
+  ESTANDAR
+  EXPRES
+}
+
 
 // =====================================================================
-// MODELOS DE CONFIGURACIÓN DEL NEGOCIO (¡NUEVOS!)
+// MODELOS DE CONFIGURACIÓN DEL NEGOCIO
 // =====================================================================
 
 // Tipos de agua que ofreces (Premium, Alcalina, etc.)
-// Se convierte en un modelo para que puedas añadir más en el futuro.
 model WaterType {
   id       String         @id @default(cuid())
   name     String         @unique
@@ -88,6 +92,49 @@ model JugBrand {
   
   servicePrices ServicePrice[] // Relación muchos a muchos
 }
+
+// =====================================================================
+// MODELOS DE FRANQUICIA Y SUCURSALES (¡NUEVOS!)
+// =====================================================================
+
+// 1. La Franquicia (El dueño de varias purificadoras)
+model Franchise {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  stores    Store[]
+  createdAt DateTime @default(now())
+}
+
+// 2. La Sucursal (Cada punto de venta físico)
+model Store {
+  id           String        @id @default(cuid())
+  name         String
+  address      String
+  latitud      Float?        // Para que el cliente encuentre la más cercana
+  longitud     Float?
+  franchise    Franchise     @relation(fields: [franchiseId], references: [id])
+  franchiseId  String
+  
+  // Relaciones
+  users        User[]
+  pedidos      Pedido[]
+  sesionesCaja SesionCaja[]
+  inventory    StoreInventory[] // El stock ahora es por sucursal
+}
+
+// 3. Inventario por Sucursal
+model StoreInventory {
+  id        String   @id @default(cuid())
+  store     Store    @relation(fields: [storeId], references: [id])
+  storeId   String
+  product   Product  @relation(fields: [productId], references: [id])
+  productId String
+  stock     Int      @default(0)
+
+  @@unique([storeId, productId]) // Una sucursal solo tiene una entrada por producto
+}
+
+
 // =====================================================================
 // MODELOS PRINCIPALES (MODIFICADOS)
 // =====================================================================
@@ -107,19 +154,27 @@ model User {
   role               UserRole          @default(CLIENTE)
   createdAt          DateTime          @default(now())
   updatedAt          DateTime          @updatedAt
+  
+  // Relaciones
   pedidos            Pedido[]
   sesionesCaja       SesionCaja[]
   empleado           Empleado?
+  
+  // Nueva relación con Sucursal (Opcional, pues un cliente puede no tener una fija)
+  store              Store?            @relation(fields: [storeId], references: [id])
+  storeId            String?
+
+  // Relación inversa para pedidos asignados como repartidor
+  pedidosReparto     Pedido[]          @relation("RepartidorPedidos")
 }
 
 // Renombrado de "Producto" a "Product" para seguir convenciones.
-// Representa artículos FÍSICOS con stock.
 model Product {
   id          String       @id @default(cuid())
   name        String       @unique
   // Precio de VENTA del artículo físico (ej: garrafón vacío)
   price       Float
-  stock       Int          @default(0)
+  stock       Int          @default(0) // Stock global o legacy
   imageUrl    String?
   // Categorías como: "Garrafones Vacíos", "Tapas"
   category    String?
@@ -127,6 +182,9 @@ model Product {
 
   // Relación inversa para las tapas
   jugBrandsAsCap JugBrand[]
+
+  // Relación con inventarios de sucursal
+  storeInventories StoreInventory[]
 }
 
 model Pedido {
@@ -142,6 +200,7 @@ model Pedido {
   createdAt           DateTime         @default(now())
   updatedAt           DateTime         @updatedAt
 
+  // Relaciones existentes
   cliente             User             @relation(fields: [clienteId], references: [id])
   clienteId           String
   items               PedidoItem[]
@@ -149,6 +208,20 @@ model Pedido {
   sesionCajaId        String?
   ingreso             Ingreso?         @relation("PedidoToIngreso")
   transaccionCaja     TransaccionCaja?
+
+  // --- NUEVOS CAMPOS DE LOGÍSTICA ---
+  deliverySpeed    DeliverySpeed @default(ESTANDAR)
+  expressSurcharge Float         @default(0.0)
+  deliveryLat      Float?
+  deliveryLng      Float?
+  
+  // Relación con el repartidor
+  repartidor       User?         @relation("RepartidorPedidos", fields: [repartidorId], references: [id])
+  repartidorId     String?
+
+  // Relación con la sucursal (Requerido para saber quién atiende)
+  store            Store         @relation(fields: [storeId], references: [id])
+  storeId          String
 }
 
 // Modificado para poder registrar la venta de un Producto físico o un Servicio
@@ -173,7 +246,7 @@ model PedidoItem {
 }
 
 // =====================================================================
-// MODELOS PARA EL DASHBOARD DE GESTIÓN (SIN CAMBIOS GRANDES)
+// MODELOS PARA EL DASHBOARD DE GESTIÓN
 // =====================================================================
 
 model SesionCaja {
@@ -184,8 +257,14 @@ model SesionCaja {
   closingBalance  Float?
   expectedBalance Float?
   estado          EstadoSesionCaja @default(ABIERTA)
+  
   vendedor        User             @relation(fields: [vendedorId], references: [id])
   vendedorId      String
+  
+  // Relación con la sucursal (Requerido)
+  store           Store            @relation(fields: [storeId], references: [id])
+  storeId         String
+
   transacciones   TransaccionCaja[]
   pedidos         Pedido[]
 }
