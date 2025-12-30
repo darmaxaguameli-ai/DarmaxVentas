@@ -63,7 +63,7 @@ function App() {
       {/* Sistema de Ventas */}
       <Route path="/ventas/productos" element={<ProductGrid />} />
       <Route path="/ventas/mostrador" element={<ProtectedRoute allowedRoles={['ADMIN', 'VENDEDOR']}><VentaMostrador /></ProtectedRoute>} />
-      <Route path="/repartidor" element={<RepartidorDashboard />} />
+      <Route path="/repartidor/dashboard" element={<ProtectedRoute allowedRoles={['ADMIN', 'REPARTIDOR']}><RepartidorDashboard /></ProtectedRoute>} />
 
       {/* Gestión */}
       <Route

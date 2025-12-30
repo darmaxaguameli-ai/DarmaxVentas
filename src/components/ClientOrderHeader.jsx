@@ -1,10 +1,13 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 
 const ClientOrderHeader = ({ primaryLink, showOrderSelectionButton }) => {
   const navigate = useNavigate();
   const { logout, user, isAuthenticated } = useAuth(); // Destructure isAuthenticated
+  const { theme, toggleTheme } = useTheme();
+  const [isMenuOpen, setIsMenuOpen] = React.useState(false);
 
   const linkToShow = primaryLink || { to: '/mis-pedidos', label: 'Mis pedidos' };
 
@@ -13,7 +16,7 @@ const ClientOrderHeader = ({ primaryLink, showOrderSelectionButton }) => {
       className="flex w-full items-center justify-between 
                  rounded-2xl border border-light/60 dark:border-white/10
                  bg-white/90 dark:bg-dark/60 shadow-md backdrop-blur-xl 
-                 px-6 py-4"
+                 px-4 py-4 sm:px-6"
     >
       <Link to="/pedidos" className="flex items-center gap-3">
         <div className="flex h-10 w-10 items-center justify-center rounded-xl text-primary bg-transparent">
@@ -21,7 +24,7 @@ const ClientOrderHeader = ({ primaryLink, showOrderSelectionButton }) => {
         </div>
 
         <div className="flex flex-col">
-          <span className="text-xs font-semibold text-text-secondary dark:text-white/60">
+          <span className="hidden sm:block text-xs font-semibold text-text-secondary dark:text-white/60">
             Sistema de pedidos
           </span>
           <h2 className="text-lg sm:text-xl font-bold tracking-[-0.02em]">
@@ -31,52 +34,86 @@ const ClientOrderHeader = ({ primaryLink, showOrderSelectionButton }) => {
       </Link>
 
       <div className="flex items-center gap-2 sm:gap-4"> {/* Adjusted gap for better mobile spacing */}
+        <button
+          onClick={toggleTheme}
+          className="flex sm:hidden h-10 w-10 items-center justify-center rounded-full bg-light dark:bg-primary/20 text-text-secondary dark:text-white"
+          aria-label="Cambiar tema"
+        >
+          <span className="material-symbols-outlined text-2xl">
+            {theme === 'dark' ? 'light_mode' : 'dark_mode'}
+          </span>
+        </button>
         {isAuthenticated ? (
           <>
-            {/* --- Link Dinámico --- */}
-            {/* 1. Versión de texto para pantallas grandes (sm y más) */}
+            {/* --- Mobile-only buttons --- */}
             <Link
               to={linkToShow.to}
-              className="hidden sm:block text-sm sm:text-base font-medium text-text-secondary dark:text-white/70 hover:text-primary dark:hover:text-primary transition-colors"
-            >
-              {linkToShow.label}
-            </Link>
-
-            {/* 2. Versión de icono para pantallas pequeñas */}
-            <Link
-              to={linkToShow.to}
-              className="flex sm:hidden h-10 w-10 items-center justify-center rounded-full bg-light dark:bg-primary/20 text-text-secondary dark:text-white"
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-light dark:bg-primary/20 text-text-secondary dark:text-white sm:hidden"
               aria-label={linkToShow.label}
             >
               <span className="material-symbols-outlined text-2xl">
                 {linkToShow.to === '/mis-pedidos' ? 'receipt_long' : 'add_shopping_cart'}
               </span>
             </Link>
+            <div className="relative sm:hidden">
+              <button
+                onClick={() => setIsMenuOpen(prev => !prev)}
+                className="flex h-10 w-10 items-center justify-center rounded-full bg-light dark:bg-primary/20 text-text-secondary dark:text-white"
+                aria-label="Abrir menú de usuario"
+              >
+                <span className="material-symbols-outlined text-2xl">person</span>
+              </button>
+              {isMenuOpen && (
+                <div className="absolute top-full right-0 mt-2 w-48 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none dark:bg-gray-800 dark:ring-gray-700 z-50">
+                  <Link to="/profile" onClick={() => setIsMenuOpen(false)} className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
+                    Mi Perfil
+                  </Link>
+                  <button
+                    onClick={() => {
+                      logout();
+                      navigate('/logout-success', { state: { name: user?.name } });
+                      setIsMenuOpen(false);
+                    }}
+                    className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                  >
+                    Cerrar Sesión
+                  </button>
+                </div>
+              )}
+            </div>
 
-            {/* --- Botones de Perfil y Logout --- */}
+            {/* --- Desktop-only buttons --- */}
+            <Link
+              to={linkToShow.to}
+              className="hidden sm:block text-sm font-medium text-text-secondary dark:text-white/70 hover:text-primary dark:hover:text-primary transition-colors"
+            >
+              {linkToShow.label}
+            </Link>
             <button
-              onClick={() => navigate('/profile')}
-              className="flex h-10 w-10 items-center justify-center rounded-full
-                         bg-light dark:bg-primary/20 text-text-secondary dark:text-white"
-              aria-label="Perfil"
+              onClick={toggleTheme}
+              className="hidden sm:flex h-10 w-10 items-center justify-center rounded-full bg-light dark:bg-primary/20 text-text-secondary dark:text-white"
+              aria-label="Cambiar tema"
             >
               <span className="material-symbols-outlined text-2xl">
-                person
+                {theme === 'dark' ? 'light_mode' : 'dark_mode'}
               </span>
             </button>
-
+            <button
+              onClick={() => navigate('/profile')}
+              className="hidden sm:flex h-10 w-10 items-center justify-center rounded-full bg-light dark:bg-primary/20 text-text-secondary dark:text-white"
+              aria-label="Perfil"
+            >
+              <span className="material-symbols-outlined text-2xl">person</span>
+            </button>
             <button
               onClick={() => {
                 logout();
                 navigate('/logout-success', { state: { name: user?.name } });
               }}
-              className="flex h-10 w-10 items-center justify-center rounded-full
-                         bg-light dark:bg-primary/20 text-text-secondary dark:text-white"
+              className="hidden sm:flex h-10 w-10 items-center justify-center rounded-full bg-light dark:bg-primary/20 text-text-secondary dark:text-white"
               aria-label="Cerrar Sesión"
             >
-              <span className="material-symbols-outlined text-2xl">
-                logout
-              </span>
+              <span className="material-symbols-outlined text-2xl">logout</span>
             </button>
           </>
         ) : (

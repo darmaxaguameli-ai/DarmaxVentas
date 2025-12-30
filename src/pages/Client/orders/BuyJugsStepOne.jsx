@@ -85,9 +85,8 @@ const BuyJugsStepOne = () => {
             grid 
             grid-cols-1
             sm:grid-cols-2
-            lg:grid-cols-3
             gap-4 md:gap-6 
-            max-w-5xl mx-auto
+            max-w-3xl mx-auto
           "
         >
           {products.map((product) => (
@@ -116,16 +115,15 @@ const BuyJugsStepOne = () => {
           <button
             type="button"
             onClick={handleContinue}
-            className="flex min-w-[200px] items-center justify-center rounded-xl
-                       bg-primary px-10 h-14 text-lg font-semibold text-white
+            className="flex items-center justify-center rounded-xl
+                       bg-primary px-8 h-12 text-base font-semibold text-white
                        shadow-sm hover:bg-primary/90
                        focus-visible:outline focus-visible:outline-2 
                        focus-visible:outline-offset-2 focus-visible:outline-primary
                        transition-all active:scale-[0.98]"
           >
             Continuar al paso 2
-          </button>
-        </div>
+          </button>        </div>
       </div>
     </OrderLayout>
   );

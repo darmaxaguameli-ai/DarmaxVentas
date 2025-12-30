@@ -151,15 +151,15 @@ const BuyJugsAssignWaterStepThree = () => {
                         e.stopPropagation();
                         changeQuantity(product.id, -1);
                       }}
-                      className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-full
+                      className="flex h-11 w-11 items-center justify-center rounded-full
                                  bg-light dark:bg-dark text-text-secondary dark:text-white/70
                                  hover:bg-light/80 dark:hover:bg-dark/80 transition-colors"
                     >
-                      <span className="material-symbols-outlined text-lg">
+                      <span className="material-symbols-outlined text-xl">
                         remove
                       </span>
                     </button>
-                    <span className="text-lg sm:text-xl font-bold text-dark dark:text-white">
+                    <span className="w-10 text-center text-xl font-bold text-dark dark:text-white sm:text-2xl">
                       {product.quantity}
                     </span>
                     <button
@@ -168,10 +168,10 @@ const BuyJugsAssignWaterStepThree = () => {
                         e.stopPropagation();
                         changeQuantity(product.id, 1);
                       }}
-                      className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-full
+                      className="flex h-11 w-11 items-center justify-center rounded-full
                                  bg-light dark:bg-dark text-text-secondary dark:text-white/70
                                  hover:bg-light/80 dark:hover:bg-dark/80 transition-colors"
-                      >
+                    >
                         <span className="material-symbols-outlined text-lg">
                           add
                         </span>
@@ -186,7 +186,7 @@ const BuyJugsAssignWaterStepThree = () => {
   
         {/* Footer dentro del layout */}
         <footer className="mt-auto pt-2">
-          <div className="flex flex-col-reverse sm:flex-row gap-4 justify-between items-center">
+          <div className="flex flex-col-reverse items-center gap-4 sm:flex-row sm:justify-between">
             <button
               type="button"
               onClick={handleGoToStart}
@@ -194,36 +194,34 @@ const BuyJugsAssignWaterStepThree = () => {
             >
               &larr; Volver al inicio
             </button>
-            <button
-              type="button"
-              onClick={handleBack}
-              className="
-                flex h-12 sm:h-14 w-full sm:w-auto items-center justify-center
-                rounded-lg border border-slate-300
-                bg-slate-100 text-dark 
-                dark:bg-slate-800 dark:text-white dark:border-slate-600
-                text-base sm:text-lg font-semibold
-                px-6 sm:px-8
-                hover:bg-slate-200 dark:hover:bg-slate-700
-                transition-all
-              "
-            >
-              Volver al paso 2
-            </button>
+            <div className="flex w-full flex-col-reverse gap-4 sm:w-auto sm:flex-row">
+              <button
+                type="button"
+                onClick={handleBack}
+                className="
+                  flex h-12 w-full items-center justify-center rounded-lg border border-slate-300
+                  bg-slate-100 px-6 text-base font-semibold
+                  text-dark transition-all
+                  hover:bg-slate-200 dark:border-slate-600 dark:bg-slate-800
+                  dark:text-white dark:hover:bg-slate-700 sm:w-auto sm:px-8 sm:text-lg
+                "
+              >
+                Volver al paso 2
+              </button>
   
-            <button
-              type="button"
-              onClick={handleContinue}
-              disabled={totalAssigned !== maxJugs || maxJugs === 0}
-              className="flex h-12 w-full sm:w-auto items-center justify-center rounded-lg
+              <button
+                type="button"
+                onClick={handleContinue}
+                disabled={totalAssigned !== maxJugs || maxJugs === 0}
+                className="flex h-12 w-full items-center justify-center rounded-lg
                          bg-primary px-8 text-base font-semibold text-white
-                         shadow-sm hover:bg-primary/90
-                         focus-visible:outline focus-visible:outline-2 
-                         focus-visible:outline-offset-2 focus-visible:outline-primary
-                         transition-all disabled:opacity-60 disabled:cursor-not-allowed"
-            >
-              Continuar al resumen
-            </button>
+                         shadow-sm transition-all hover:bg-primary/90 focus-visible:outline
+                         focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary
+                         disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+              >
+                Continuar al resumen
+              </button>
+            </div>
           </div>
         </footer>
       </OrderLayout>

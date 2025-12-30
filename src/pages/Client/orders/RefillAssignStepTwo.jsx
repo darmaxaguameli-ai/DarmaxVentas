@@ -1,5 +1,4 @@
-// src/pages/cliente/orders/RefillAssignStepTwo.jsx
-import { useState, useEffect, useMemo } from "react";
+import { useEffect, useMemo, useReducer, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
   DndContext,
@@ -15,7 +14,7 @@ import { useConfig } from "../../../context/ConfigContext";
 import "../../../animations.css";
 
 // ====================================================================
-// Componente Draggable (Garrafón a la izquierda)
+// Sub-componentes de UI (sin cambios)
 // ====================================================================
 const DraggableJug = ({ jug, children }) => {
   const { attributes, listeners, setNodeRef, transform, isDragging } =
@@ -27,9 +26,7 @@ const DraggableJug = ({ jug, children }) => {
   const style = {
     position: "relative",
     touchAction: "none",
-    transform: transform
-      ? `translate3d(${transform.x}px, ${transform.y}px, 0)`
-      : undefined,
+    transform: transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined,
     zIndex: isDragging ? 9999 : "auto",
   };
 
@@ -40,9 +37,6 @@ const DraggableJug = ({ jug, children }) => {
   );
 };
 
-// ====================================================================
-// Componente Droppable (Tipo de Agua a la derecha)
-// ====================================================================
 const DroppableWaterType = ({ id, name, children }) => {
   const { isOver, setNodeRef } = useDroppable({
     id: id,
@@ -62,34 +56,126 @@ const DroppableWaterType = ({ id, name, children }) => {
 };
 
 // ====================================================================
-// Componente Principal
+// Reducer para manejar el estado complejo de forma atómica
+// ====================================================================
+function assignmentReducer(state, action) {
+  switch (action.type) {
+    case 'INITIALIZE': {
+      const { sourceJugs, waterTypes } = action.payload;
+      return {
+        sourceJugs: sourceJugs.map(jug => ({ ...jug, initialQuantity: jug.quantity })),
+        targetWater: waterTypes.map(wt => ({
+          id: wt.id,
+          name: `Agua ${wt.name}`,
+          quantity: 0,
+          assignments: [],
+        })),
+      };
+    }
+    
+    case 'ASSIGN_JUG': {
+      const { sourceJugId, targetWaterId } = action.payload;
+      const { sourceJugs, targetWater } = state;
+
+      const sourceJug = sourceJugs.find(j => j.id === sourceJugId);
+      if (!sourceJug || sourceJug.quantity === 0) return state;
+
+      const newSourceJugs = sourceJugs.map(jug => 
+        jug.id === sourceJugId ? { ...jug, quantity: jug.quantity - 1 } : jug
+      );
+
+      const newTargetWater = targetWater.map(water => {
+        if (water.id !== targetWaterId) return water;
+        
+        let existingAssignmentFound = false;
+        const updatedAssignments = water.assignments.map(assign => {
+            if (assign.jugId === sourceJugId) {
+                existingAssignmentFound = true;
+                return { ...assign, quantity: assign.quantity + 1 };
+            }
+            return assign;
+        });
+
+        if (!existingAssignmentFound) {
+          updatedAssignments.push({
+            jugId: sourceJug.id,
+            jugName: sourceJug.name,
+            imageUrl: sourceJug.imageUrl,
+            quantity: 1,
+          });
+        }
+        
+        return {
+          ...water,
+          assignments: updatedAssignments,
+          quantity: water.quantity + 1,
+        };
+      });
+
+      return { sourceJugs: newSourceJugs, targetWater: newTargetWater };
+    }
+
+    case 'UNASSIGN_JUG': {
+      const { waterTypeId } = action.payload;
+      const { sourceJugs, targetWater } = state;
+      
+      const waterType = targetWater.find(w => w.id === waterTypeId);
+      if (!waterType || waterType.quantity === 0) return state;
+
+      const assignmentToRemoveFrom = waterType.assignments.find(a => a.quantity > 0);
+      if (!assignmentToRemoveFrom) return state;
+
+      const jugIdToReturn = assignmentToRemoveFrom.jugId;
+
+      const newSourceJugs = sourceJugs.map(jug =>
+        jug.id === jugIdToReturn ? { ...jug, quantity: jug.quantity + 1 } : jug
+      );
+
+      const newTargetWater = targetWater.map(water => {
+        if (water.id !== waterTypeId) return water;
+
+        let assignmentUpdated = false;
+        const updatedAssignments = water.assignments.map(assign => {
+          if (assign.jugId === jugIdToReturn && !assignmentUpdated) {
+            assignmentUpdated = true;
+            return { ...assign, quantity: assign.quantity - 1 };
+          }
+          return assign;
+        }).filter(assign => assign.quantity > 0);
+
+        return {
+          ...water,
+          assignments: updatedAssignments,
+          quantity: water.quantity - 1,
+        };
+      });
+      
+      return { sourceJugs: newSourceJugs, targetWater: newTargetWater };
+    }
+
+    default:
+      throw new Error(`Unhandled action type: ${action.type}`);
+  }
+}
+
+
+// ====================================================================
+// Componente Principal Refactorizado
 // ====================================================================
 const RefillAssignStepTwo = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const sourceJugsFromState = useMemo(
-    () => location.state?.fromStepOne || [],
-    [location.state]
-  );
-
-  const [sourceJugs, setSourceJugs] = useState([]);
-  const [targetWater, setTargetWater] = useState([]);
-
-  const {
-    waterTypes: fetchedWaterTypes,
-    loading: configLoading,
-    error: configError,
-  } = useConfig();
-  const loading = configLoading;
-  const error = configError;
+  const sourceJugsFromState = useMemo(() => location.state?.fromStepOne || [], [location.state]);
+  const { waterTypes: fetchedWaterTypes, loading: configLoading, error: configError } = useConfig();
+  
+  const initialState = { sourceJugs: [], targetWater: [] };
+  const [state, dispatch] = useReducer(assignmentReducer, initialState);
+  const { sourceJugs, targetWater } = state;
 
   const [showAnimation, setShowAnimation] = useState(true);
 
-  const maxJugs = useMemo(
-    () => sourceJugsFromState.reduce((sum, j) => sum + j.quantity, 0),
-    [sourceJugsFromState]
-  );
+  const maxJugs = useMemo(() => sourceJugsFromState.reduce((sum, j) => sum + j.quantity, 0), [sourceJugsFromState]);
 
   const sensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
@@ -101,29 +187,13 @@ const RefillAssignStepTwo = () => {
       navigate("/pedidos/rellenar");
       return;
     }
-    setSourceJugs(
-      sourceJugsFromState.map((jug) => ({
-        ...jug,
-        initialQuantity: jug.quantity,
-      }))
-    );
-
     if (!configLoading && !configError && fetchedWaterTypes.length > 0) {
-      const initialWaterTypes = fetchedWaterTypes.map((wt) => ({
-        id: wt.id,
-        name: `Agua ${wt.name}`,
-        quantity: 0,
-        assignments: [], // Array para guardar asignaciones detalladas
-      }));
-      setTargetWater(initialWaterTypes);
+      dispatch({ 
+        type: 'INITIALIZE', 
+        payload: { sourceJugs: sourceJugsFromState, waterTypes: fetchedWaterTypes }
+      });
     }
-  }, [
-    sourceJugsFromState,
-    fetchedWaterTypes,
-    configLoading,
-    configError,
-    navigate,
-  ]);
+  }, [sourceJugsFromState, fetchedWaterTypes, configLoading, configError, navigate]);
 
   useEffect(() => {
     if (!configError && !configLoading) {
@@ -132,103 +202,28 @@ const RefillAssignStepTwo = () => {
     }
   }, [configError, configLoading]);
 
-  const totalJugsAssigned = useMemo(
-    () => targetWater.reduce((sum, p) => sum + p.quantity, 0),
-    [targetWater]
-  );
+  const totalJugsAssigned = useMemo(() => targetWater.reduce((sum, p) => sum + p.quantity, 0), [targetWater]);
 
   const handleDragEnd = ({ active, over }) => {
     if (!over || active.data.current?.type !== "jug" || over.data.current?.type !== "water") return;
-
-    const sourceJugData = active.data.current.jug;
-    const targetWaterId = over.id;
-
-    const sourceJug = sourceJugs.find((j) => j.id === sourceJugData.id);
-    if (!sourceJug || sourceJug.quantity === 0) return;
-
-    setSourceJugs((prev) =>
-      prev.map((jug) =>
-        jug.id === sourceJugData.id ? { ...jug, quantity: jug.quantity - 1 } : jug
-      )
-    );
-    
-    setTargetWater((prev) =>
-      prev.map((water) => {
-        if (water.id !== targetWaterId) return water;
-
-        const newAssignments = [...water.assignments];
-        const existingAssignment = newAssignments.find(a => a.jugId === sourceJugData.id);
-
-        if (existingAssignment) {
-          existingAssignment.quantity += 1;
-        } else {
-          newAssignments.push({
-            jugId: sourceJugData.id,
-            jugName: sourceJugData.name,
-            imageUrl: sourceJugData.imageUrl,
-            quantity: 1,
-          });
-        }
-        
-        return {
-          ...water,
-          assignments: newAssignments,
-          quantity: water.quantity + 1,
-        };
-      })
-    );
+    dispatch({ type: 'ASSIGN_JUG', payload: { sourceJugId: active.id, targetWaterId: over.id } });
   };
 
   const handleManualAdd = (waterTypeId) => {
     const firstAvailableJug = sourceJugs.find((jug) => jug.quantity > 0);
     if (!firstAvailableJug) return;
-    handleDragEnd({
-      active: { data: { current: { jug: firstAvailableJug, type: "jug" } } },
-      over: { id: waterTypeId, data: { current: { type: "water" } } },
-    });
+    dispatch({ type: 'ASSIGN_JUG', payload: { sourceJugId: firstAvailableJug.id, targetWaterId: waterTypeId } });
   };
 
   const handleManualRemove = (waterTypeId) => {
-    let jugIdToReturn;
-
-    setTargetWater(prev =>
-      prev.map(water => {
-        if (water.id === waterTypeId && water.assignments.length > 0) {
-          const lastAssignment = water.assignments[water.assignments.length - 1];
-          jugIdToReturn = lastAssignment.jugId;
-          
-          lastAssignment.quantity -= 1;
-          
-          const newAssignments = water.assignments.filter(a => a.quantity > 0);
-          
-          return {
-            ...water,
-            assignments: newAssignments,
-            quantity: water.quantity - 1,
-          };
-        }
-        return water;
-      })
-    );
-
-    if (jugIdToReturn) {
-      setSourceJugs(prev =>
-        prev.map(jug =>
-          jug.id === jugIdToReturn ? { ...jug, quantity: jug.quantity + 1 } : jug
-        )
-      );
-    }
+    dispatch({ type: 'UNASSIGN_JUG', payload: { waterTypeId } });
   };
-
 
   const handleBack = () => navigate("/pedidos/rellenar", { state: location.state });
   
   const handleContinue = () => {
     const fromStepTwoPayload = targetWater
-        .map(wt => ({
-            ...wt,
-            assignments: wt.assignments.filter(a => a.quantity > 0)
-        }))
+        .map(wt => ({ ...wt, assignments: wt.assignments.filter(a => a.quantity > 0) }))
         .filter(wt => wt.assignments.length > 0);
 
     navigate("/pedidos/rellenar/entrega", {
@@ -236,13 +231,14 @@ const RefillAssignStepTwo = () => {
         ...location.state,
         fromStepTwo: fromStepTwoPayload,
         maxJugs,
+        backPath: location.pathname,
       },
     });
   };
-
+  
   const renderContent = () => {
-    if (loading) return <div className="text-center py-10">Cargando...</div>;
-    if (error) return <div className="text-center py-10 text-red-500">{error}</div>;
+    if (configLoading) return <div className="text-center py-10">Cargando...</div>;
+    if (configError) return <div className="text-center py-10 text-red-500">{configError}</div>;
 
     return (
       <>
@@ -292,17 +288,17 @@ const RefillAssignStepTwo = () => {
               <h2 className="text-xl font-bold text-center">Tipos de Agua</h2>
               {targetWater.map((water) => (
                 <DroppableWaterType key={water.id} {...water}>
-                  <div className="p-4 rounded-lg shadow bg-white dark:bg-gray-800 flex flex-col items-center justify-center gap-2 min-h-[100px] relative overflow-hidden">
+                  <div className="p-4 rounded-lg shadow bg-white dark:bg-gray-800 flex flex-col items-center justify-center gap-2 min-h-[120px] relative overflow-hidden">
                     <div className="wave-container">
                       <div className="wave"></div>
                       <div className="wave two"></div>
                     </div>
-                    <div className="relative flex flex-col items-center justify-center gap-2">
+                    <div className="relative z-10 flex flex-col items-center justify-center gap-2">
                       <p className="text-lg font-bold text-center">{water.name}</p>
-                      <div className="flex items-center gap-4">
-                        <button onClick={() => handleManualRemove(water.id)} className="btn-secondary p-2 h-8 w-8 flex items-center justify-center rounded-full">-</button>
-                        <span className="text-3xl font-black text-primary tabular-nums">{water.quantity}</span>
-                        <button onClick={() => handleManualAdd(water.id)} className="btn-secondary p-2 h-8 w-8 flex items-center justify-center rounded-full">+</button>
+                      <div className="flex items-center gap-3">
+                        <button onClick={() => handleManualRemove(water.id)} className="btn-secondary flex h-11 w-11 items-center justify-center rounded-full text-xl">-</button>
+                        <span className="w-12 text-center text-3xl font-black text-primary tabular-nums">{water.quantity}</span>
+                        <button onClick={() => handleManualAdd(water.id)} className="btn-secondary flex h-11 w-11 items-center justify-center rounded-full text-xl">+</button>
                       </div>
                     </div>
                   </div>

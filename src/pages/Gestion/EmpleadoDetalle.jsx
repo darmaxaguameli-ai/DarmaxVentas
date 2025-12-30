@@ -252,7 +252,7 @@ const EmpleadoDetalle = () => {
             </div>
 
              <div className="border-b border-gray-200 dark:border-gray-700 mb-6">
-                <nav className="flex space-x-4">
+                <nav className="flex flex-wrap space-x-4">
                     <TabButton tabName="info" label="Información General" />
                     <TabButton tabName="salario" label="Historial de Salario" />
                     <TabButton tabName="documentos" label="Documentos" />

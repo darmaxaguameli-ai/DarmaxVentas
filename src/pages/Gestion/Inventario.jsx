@@ -256,9 +256,11 @@ const Inventario = () => {
                                     <td className="td-style">{item.category}</td>
                                     <td className="td-style">{item.stock}</td>
                                     <td className="td-style text-right">${(item.price || 0).toFixed(2)}</td>
-                                    <td className="td-style text-right space-x-4">
-                                        <button onClick={() => handleOpenModal(item)} className="text-primary hover:text-primary/90 font-medium">Editar</button>
-                                        <button onClick={() => handleDelete(item.id)} className="text-red-500 hover:text-red-700 font-medium">Eliminar</button>
+                                    <td className="td-style text-right">
+                                        <div className="flex flex-col sm:flex-row gap-2 justify-end">
+                                            <button onClick={() => handleOpenModal(item)} className="text-primary hover:text-primary/90 font-medium">Editar</button>
+                                            <button onClick={() => handleDelete(item.id)} className="text-red-500 hover:text-red-700 font-medium">Eliminar</button>
+                                        </div>
                                     </td>
                                 </tr>
                             ))

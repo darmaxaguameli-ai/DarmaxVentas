@@ -1,8 +1,9 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 
+// --- Icon Definitions ---
 const createIcon = (bgColor, iconColor = 'white') => {
     return L.divIcon({
         html: `<div style="background-color: ${bgColor};" class="p-1.5 rounded-full shadow-lg">
@@ -16,54 +17,73 @@ const createIcon = (bgColor, iconColor = 'white') => {
         popupAnchor: [0, -32],
     });
 };
+const driverIcon = createIcon('#2563eb');
+const orderIcon = createIcon('#6b7280');
+const selectedOrderIcon = createIcon('#c2410c');
 
-const driverIcon = createIcon('#2563eb'); // blue-600
-const orderIcon = createIcon('#6b7280'); // gray-500
-const selectedOrderIcon = createIcon('#c2410c'); // orange-700
-
-
+// --- Map Controller Component ---
 const MapController = ({ position, zoom }) => {
   const map = useMap();
   useEffect(() => {
-    if (position) {
-        map.flyTo(position, zoom, {
-            animate: true,
-            duration: 1.5
-        });
+    // Only fly to a new position if it's a valid array of numbers
+    if (Array.isArray(position) && typeof position[0] === 'number' && typeof position[1] === 'number') {
+        map.flyTo(position, zoom, { animate: true, duration: 1.5 });
     }
   }, [position, zoom, map]);
   return null;
 };
 
-
+// --- Main Map Component ---
 const Mapa = ({ driverPosition, orders, selectedOrder }) => {
-  const position = selectedOrder 
-    ? [selectedOrder.delivery.lat, selectedOrder.delivery.lng] 
-    : (driverPosition || [19.4326, -99.1332]);
-  
-  const zoom = selectedOrder ? 16 : 13;
+  // 1. Define a rock-solid default position.
+  const defaultCenter = [19.4326, -99.1332];
+
+  // 2. Determine the center of the map. Only use selectedOrder if its coordinates are valid numbers.
+  const mapCenter = useMemo(() => {
+    if (selectedOrder && selectedOrder.cliente && typeof selectedOrder.cliente.lat === 'number' && typeof selectedOrder.cliente.lng === 'number') {
+      return [selectedOrder.cliente.lat, selectedOrder.cliente.lng];
+    }
+    if (driverPosition && typeof driverPosition[0] === 'number' && typeof driverPosition[1] === 'number') {
+      return driverPosition;
+    }
+    return defaultCenter;
+  }, [selectedOrder, driverPosition]);
+
+  // 3. Determine zoom level.
+  const mapZoom = (selectedOrder && selectedOrder.cliente && typeof selectedOrder.cliente.lat === 'number') ? 16 : 13;
+
+  // 4. Filter orders to ensure they have valid coordinates before rendering markers.
+  const ordersWithCoords = useMemo(() => 
+    orders.filter(order => order.cliente && typeof order.cliente.lat === 'number' && typeof order.cliente.lng === 'number'),
+    [orders]
+  );
 
   return (
-    <MapContainer center={position} zoom={zoom} scrollWheelZoom={true} style={{ height: '100%', width: '100%' }}>
-      <MapController position={position} zoom={zoom} />
+    <MapContainer center={mapCenter} zoom={mapZoom} scrollWheelZoom={true} style={{ height: '100%', width: '100%' }}>
+      <MapController position={mapCenter} zoom={mapZoom} />
       <TileLayer
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
-      {driverPosition && (
+      
+      {/* Driver Marker - only if position is valid */}
+      {driverPosition && typeof driverPosition[0] === 'number' && (
         <Marker position={driverPosition} icon={driverIcon}>
           <Popup>Mi ubicación</Popup>
         </Marker>
       )}
-      {orders && orders.map(order => (
+
+      {/* Order Markers - already filtered */}
+      {ordersWithCoords.map(order => (
         <Marker 
             key={order.id} 
-            position={[order.delivery.lat, order.delivery.lng]}
+            position={[order.cliente.lat, order.cliente.lng]}
             icon={selectedOrder?.id === order.id ? selectedOrderIcon : orderIcon}
+            opacity={selectedOrder?.id === order.id ? 1.0 : 0.6}
         >
             <Popup>
-                <p className="font-bold">{order.delivery.name}</p>
-                <p>{order.delivery.address}</p>
+                <p className="font-bold">{order.cliente.name}</p>
+                <p>{order.cliente.street}</p>
             </Popup>
         </Marker>
       ))}

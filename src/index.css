@@ -16,6 +16,7 @@
 
   body {
     @apply font-sans;
+    overscroll-behavior-y: contain;
   }
 
   /* Opcional: estilos por defecto para headings (según tu guía) */

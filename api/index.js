@@ -1,8 +1,9 @@
 const express = require('express');
 const prisma = require('./lib/prisma');
 const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken'); // <-- Importar JWT
-require('dotenv').config(); // <-- Cargar variables de entorno
+const jwt = require('jsonwebtoken');
+const axios = require('axios'); // <-- Importar axios
+require('dotenv').config();
 
 const app = express();
 const port = 3001; // Or any port you prefer
@@ -65,6 +66,34 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
+// --- Geocoding Function ---
+const geocodeAddress = async (address) => {
+  try {
+    const response = await axios.get('https://nominatim.openstreetmap.org/search', {
+      params: {
+        q: address,
+        format: 'json',
+        limit: 1
+      },
+      headers: {
+        'User-Agent': 'DarmaxApp/1.0 (erick.rendon@galavi.com)' // Política de uso de Nominatim
+      }
+    });
+
+    if (response.data && response.data.length > 0) {
+      return {
+        lat: parseFloat(response.data[0].lat),
+        lng: parseFloat(response.data[0].lon),
+      };
+    }
+    return { lat: null, lng: null };
+  } catch (error) {
+    console.error('Geocoding error:', error.message);
+    return { lat: null, lng: null };
+  }
+};
+
+
 // Endpoint público para registrar un cliente durante el flujo de pedido
 app.post('/api/register-client', async (req, res) => {
   try {
@@ -81,6 +110,13 @@ app.post('/api/register-client', async (req, res) => {
     if (existingPhone) {
         return res.status(409).json({ error: 'Este número de teléfono ya está registrado. Por favor, inicia sesión o usa otro número.' });
     }
+    
+    // --- Geocodificación de la dirección ---
+    let coordinates = { lat: null, lng: null };
+    if (data.street && data.city) {
+        const fullAddress = `${data.street}, ${data.neighborhood || ''}, ${data.city}, ${data.postalCode || ''}`;
+        coordinates = await geocodeAddress(fullAddress);
+    }
 
     const userData = {
       name: data.name,
@@ -90,6 +126,8 @@ app.post('/api/register-client', async (req, res) => {
       city: data.city || null,
       postalCode: data.postalCode || null,
       references: data.references || null,
+      lat: coordinates.lat, // <-- Guardar latitud
+      lng: coordinates.lng, // <-- Guardar longitud
       role: 'CLIENTE',
     };
 
@@ -897,7 +935,7 @@ app.get('/api/users', verifyToken, async (req, res) => {
   }
 });
 
-app.post('/api/users', verifyToken, async (req, res) => {
+app.post('/api/users', async (req, res) => {
   try {
     const data = req.body;
 
@@ -910,7 +948,7 @@ app.post('/api/users', verifyToken, async (req, res) => {
       neighborhood: data.neighborhood === '' ? null : data.neighborhood,
       city: data.city === '' ? null : data.city,
       postalCode: data.postalCode === '' ? null : data.postalCode,
-      role: data.role || 'CLIENTE',
+      role: 'CLIENTE', // Security: Force role to 'CLIENTE' on the backend
     };
 
     // Hash password if provided
@@ -924,25 +962,70 @@ app.post('/api/users', verifyToken, async (req, res) => {
     // ✅ GENERAR customId si no viene desde el front
     let customId = data.customId;
     if (!customId) {
-      const rolePrefix = (userData.role || 'CLIENTE').substring(0, 3).toUpperCase();
+      const rolePrefix = 'CLI'; // Force 'CLI' prefix for clients
       const random = String(Math.floor(Math.random() * 900) + 100); // 100–999
-      customId = `${rolePrefix}-${random}`; // ej: ADM-123, VEN-456
+      customId = `${rolePrefix}-${random}`; // ej: CLI-123
     }
 
     const newUser = await prisma.user.create({
       data: {
-        ...userData, // Use the cleaned userData
-        customId, // 👈 aquí sí va una string real
+        ...userData, // Use the cleaned userData with the forced role
+        customId,
       },
     });
+    
+    // Exclude password from the response
+    const { password, ...userWithoutPassword } = newUser;
+    res.status(201).json(userWithoutPassword);
 
-    res.status(201).json(newUser);
   } catch (error) {
     console.error('Error creating user:', error);
+    if (error.code === 'P2002') { // Handle unique constraint violation (e.g., email or phone already exists)
+      return res.status(409).json({
+        error: 'El usuario ya existe.',
+        message: 'Ya existe un usuario con el mismo email o teléfono.',
+      });
+    }
     res.status(500).json({
       error: 'Error creating user',
       message: error.message,
     });
+  }
+});
+
+// GET user by customId or phone
+app.get('/api/users/check', async (req, res) => {
+  const { identifier, type } = req.query;
+
+  if (!identifier || !type) {
+    return res.status(400).json({ error: 'Identifier and type (customId or phone) are required.' });
+  }
+
+  try {
+    let user;
+    if (type === 'customId') {
+      user = await prisma.user.findUnique({
+        where: { customId: identifier },
+      });
+    } else if (type === 'phone') {
+      user = await prisma.user.findUnique({
+        where: { phone: identifier },
+      });
+    } else {
+      return res.status(400).json({ error: 'Invalid search type. Must be "customId" or "phone".' });
+    }
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found.' });
+    }
+
+    // Exclude password from the response, but include a flag if it exists
+    const { password, ...userWithoutPassword } = user;
+    res.json({ ...userWithoutPassword, hasPassword: !!password });
+
+  } catch (error) {
+    console.error('Error checking user:', error);
+    res.status(500).json({ error: 'Ocurrió un error en el servidor al verificar el usuario.' });
   }
 });
 
@@ -988,8 +1071,9 @@ app.put('/api/users/:id', verifyToken, async (req, res) => {
     // Remove undefined values to avoid updating fields not present in the request body
     Object.keys(updateData).forEach(key => updateData[key] === undefined && delete updateData[key]);
 
-    // Prevent password from being updated via this general endpoint
+    // Prevent critical fields from being updated via this general endpoint
     delete updateData.password;
+    delete updateData.role; // <-- SECURITY FIX: Do not allow role changes from this endpoint.
 
     const updatedUser = await prisma.user.update({
       where: { id },
@@ -1021,41 +1105,6 @@ app.delete('/api/users/:id', verifyToken, async (req, res) => {
   }
 });
 
-// GET user by customId or phone
-app.get('/api/users/check', verifyToken, async (req, res) => {
-  const { identifier, type } = req.query;
-
-  if (!identifier || !type) {
-    return res.status(400).json({ error: 'Identifier and type (customId or phone) are required.' });
-  }
-
-  try {
-    let user;
-    if (type === 'customId') {
-      user = await prisma.user.findUnique({
-        where: { customId: identifier },
-      });
-    } else if (type === 'phone') {
-      user = await prisma.user.findUnique({
-        where: { phone: identifier },
-      });
-    } else {
-      return res.status(400).json({ error: 'Invalid search type. Must be "customId" or "phone".' });
-    }
-
-    if (!user) {
-      return res.status(404).json({ error: 'User not found.' });
-    }
-
-    // Exclude password from the response, but include a flag if it exists
-    const { password, ...userWithoutPassword } = user;
-    res.json({ ...userWithoutPassword, hasPassword: !!password });
-
-  } catch (error) {
-    console.error('Error checking user:', error);
-    res.status(500).json({ error: 'Ocurrió un error en el servidor al verificar el usuario.' });
-  }
-});
 
 // =====================================================
 // EMPLEADOS API (HR Module)
@@ -1334,9 +1383,10 @@ app.get('/api/pedidos', verifyToken, async (req, res) => {
 });
 
 
-app.post('/api/pedidos', verifyToken, async (req, res) => {
-  const {
-    clienteId,
+app.post('/api/pedidos', async (req, res) => {
+  // El middleware verifyToken se ha quitado para permitir pedidos de invitados
+  let {
+    clienteId, // Puede ser null o undefined
     items,
     total,
     deliveryMethod,
@@ -1344,25 +1394,51 @@ app.post('/api/pedidos', verifyToken, async (req, res) => {
     paymentStatus
   } = req.body;
 
-  if (!clienteId || !items || !total || !deliveryMethod) {
+  if (!items || !total || !deliveryMethod) {
     return res.status(400).json({ error: 'Faltan datos requeridos para crear el pedido.' });
   }
 
   try {
     const result = await prisma.$transaction(async (tx) => {
-      // 1. Generar un customId único para el pedido
+      // --- PASO 1: Asegurar que tenemos un cliente ---
+      if (!clienteId) {
+        // Generar un customId único para el cliente invitado
+        let guestCustomId;
+        let isIdUnique = false;
+        while (!isIdUnique) {
+          const random = String(Math.floor(Math.random() * 9000) + 1000);
+          guestCustomId = `INV-${random}`; // Prefijo para Invitado
+          const existingUser = await tx.user.findUnique({ where: { customId: guestCustomId } });
+          if (!existingUser) {
+            isIdUnique = true;
+          }
+        }
+
+        // Crear el usuario invitado
+        const guestUser = await tx.user.create({
+          data: {
+            name: 'Cliente Web Invitado',
+            customId: guestCustomId,
+            role: 'CLIENTE',
+          },
+        });
+        clienteId = guestUser.id; // Usar el ID del nuevo usuario
+      }
+      
+      // --- PASO 2: Crear el Pedido ---
+      // Generar un customId único para el pedido
       let customId;
-      let isIdUnique = false;
-      while (!isIdUnique) {
-        const random = String(Math.floor(Math.random() * 90000) + 10000); // 5-digit random number
+      let isPedidoIdUnique = false;
+      while (!isPedidoIdUnique) {
+        const random = String(Math.floor(Math.random() * 90000) + 10000);
         customId = `ORD-${random}`;
         const existingPedido = await tx.pedido.findUnique({ where: { customId } });
         if (!existingPedido) {
-          isIdUnique = true;
+          isPedidoIdUnique = true;
         }
       }
 
-      // 2. Crear el Pedido principal
+      // Crear el Pedido principal
       const newPedido = await tx.pedido.create({
         data: {
           customId,
@@ -1374,13 +1450,12 @@ app.post('/api/pedidos', verifyToken, async (req, res) => {
         },
       });
 
-      // 3. Crear los PedidoItems
+      // --- PASO 3: Crear los Ítems del Pedido ---
       const pedidoItemsData = items.map(item => ({
         pedidoId: newPedido.id,
         quantity: item.quantity,
         price: item.price,
         servicePriceId: item.servicePriceId,
-        // Guardar los nuevos campos del garrafón
         jugBrandId: item.jugBrandId,
         jugBrandName: item.jugBrandName,
         jugBrandImageUrl: item.jugBrandImageUrl,
@@ -1390,15 +1465,18 @@ app.post('/api/pedidos', verifyToken, async (req, res) => {
         data: pedidoItemsData,
       });
 
-      // 4. Crear el registro de Ingreso asociado
-      await tx.ingreso.create({
-        data: {
-          description: `Ingreso por Pedido ${customId}`,
-          amount: total,
-          date: new Date(),
-          pedido: { connect: { id: newPedido.id } },
-        },
-      });
+      // --- PASO 4: Crear el Ingreso asociado ---
+      // No crear ingreso si el total es 0 para no ensuciar registros
+      if (total > 0) {
+        await tx.ingreso.create({
+          data: {
+            description: `Ingreso por Pedido ${customId}`,
+            amount: total,
+            date: new Date(),
+            pedido: { connect: { id: newPedido.id } },
+          },
+        });
+      }
 
       return newPedido;
     });
@@ -1420,6 +1498,14 @@ app.put('/api/pedidos/:id', verifyToken, async (req, res) => {
 
   if (!status) {
     return res.status(400).json({ error: 'El estado (status) es requerido.' });
+  }
+
+
+
+  // Validar que el status sea uno de los valores del enum PedidoStatus
+  const VALID_PEDIDO_STATUS = ['PENDIENTE', 'EN_PROCESO', 'EN_RUTA', 'ENTREGADO', 'CANCELADO'];
+  if (!VALID_PEDIDO_STATUS.includes(status)) {
+    return res.status(400).json({ error: `Estado de pedido inválido. Valores permitidos: ${VALID_PEDIDO_STATUS.join(', ')}.` });
   }
 
   try {
@@ -1465,9 +1551,9 @@ app.put('/api/pedidos/:id', verifyToken, async (req, res) => {
 
       // 3. If status is ENTREGADO and payment is Efectivo, record cash transaction
       if (status === 'ENTREGADO' && actualPaymentMethod === 'Efectivo') {
-        // Ensure only a VENDEDOR or ADMIN can perform this action
-        if (req.user.role !== 'VENDEDOR' && req.user.role !== 'ADMIN') {
-          throw new Error('Solo vendedores o administradores pueden registrar ventas en caja.');
+        // Ensure only a VENDEDOR, ADMIN, or REPARTIDOR can perform this action
+        if (req.user.role !== 'VENDEDOR' && req.user.role !== 'ADMIN' && req.user.role !== 'REPARTIDOR') {
+          throw new Error('Solo vendedores, administradores o repartidores pueden registrar ventas en caja.');
         }
 
         // Find active cash drawer session for the current user
@@ -1521,6 +1607,9 @@ app.put('/api/pedidos/:id', verifyToken, async (req, res) => {
       }
 
       return pedido;
+    }, {
+      maxWait: 10000, // Wait 10 seconds to get a connection
+      timeout: 20000, // Allow 20 seconds for the transaction to complete
     });
 
     res.json(updatedPedido);

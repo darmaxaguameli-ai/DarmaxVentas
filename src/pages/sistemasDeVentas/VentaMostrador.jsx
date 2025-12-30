@@ -234,6 +234,15 @@ const VentaMostrador = () => {
         }
     }, []);
 
+    const pollOrders = useCallback(async () => {
+        try {
+            const fetchedOrders = await fetchOrders();
+            setOrders(fetchedOrders);
+        } catch (err) {
+            console.error("Polling error:", err.message);
+        }
+    }, []);
+
     const fetchSession = useCallback(async () => {
         setIsCashDrawerLoading(true);
         try {
@@ -260,6 +269,14 @@ const VentaMostrador = () => {
             loadOrders();
         }
     }, [activeView, fetchSession, loadOrders]);
+
+    // Polling effect
+    useEffect(() => {
+        if (activeView === 'dashboard') {
+            const intervalId = setInterval(pollOrders, 30000); // Poll every 30 seconds
+            return () => clearInterval(intervalId); // Cleanup on view change or unmount
+        }
+    }, [activeView, pollOrders]);
 
     const handleStartSession = useCallback(async (amount) => {
         try {

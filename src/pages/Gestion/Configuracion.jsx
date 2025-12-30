@@ -81,7 +81,7 @@ const ManageWaterTypes = () => {
 
     return (
         <div>
-            <div className="flex justify-between items-center mb-4">
+            <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
                 <h2 className="text-xl font-bold">Gestionar Tipos de Agua</h2>
                 <button onClick={() => { setItemToEdit(null); setModalOpen(true); }} className="btn-primary">
                     Agregar Tipo de Agua
@@ -100,9 +100,11 @@ const ManageWaterTypes = () => {
                         {waterTypes.map(wt => (
                             <tr key={wt.id}>
                                 <td className="td-style">{wt.name}</td>
-                                <td className="td-style text-right space-x-2">
-                                    <button onClick={() => { setItemToEdit(wt); setModalOpen(true); }} className="btn-secondary">Editar</button>
-                                    <button onClick={() => handleDelete(wt.id)} className="btn-danger">Eliminar</button>
+                                <td className="td-style text-right">
+                                    <div className="flex flex-col gap-2 justify-end sm:flex-row">
+                                        <button onClick={() => { setItemToEdit(wt); setModalOpen(true); }} className="btn-secondary">Editar</button>
+                                        <button onClick={() => handleDelete(wt.id)} className="btn-danger">Eliminar</button>
+                                    </div>
                                 </td>
                             </tr>
                         ))}
@@ -170,7 +172,7 @@ const ManageServicePrices = () => {
     
     return (
         <div>
-            <div className="flex justify-between items-center mb-4">
+            <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
                 <h2 className="text-xl font-bold">Gestionar Precios de Servicios</h2>
                 <button onClick={() => { setItemToEdit(null); setModalOpen(true); }} className="btn-primary">
                     Agregar Precio
@@ -201,9 +203,11 @@ const ManageServicePrices = () => {
                                         : 'Todas'}
                                 </td>
                                 <td className="td-style">${sp.price.toFixed(2)}</td>
-                                <td className="td-style text-right space-x-2">
-                                    <button onClick={() => { setItemToEdit(sp); setModalOpen(true); }} className="btn-secondary">Editar</button>
-                                    <button onClick={() => handleDelete(sp.id)} className="btn-danger">Eliminar</button>
+                                <td className="td-style text-right">
+                                    <div className="flex flex-col gap-2 justify-end sm:flex-row">
+                                        <button onClick={() => { setItemToEdit(sp); setModalOpen(true); }} className="btn-secondary">Editar</button>
+                                        <button onClick={() => handleDelete(sp.id)} className="btn-danger">Eliminar</button>
+                                    </div>
                                 </td>
                             </tr>
                         ))}
@@ -340,7 +344,7 @@ const ManageJugBrands = () => {
     
     return (
         <div>
-            <div className="flex justify-between items-center mb-4">
+            <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
                 <h2 className="text-xl font-bold">Gestionar Marcas de Garrafón</h2>
                 <button onClick={() => { setItemToEdit(null); setModalOpen(true); }} className="btn-primary">
                     Agregar Marca
@@ -364,9 +368,11 @@ const ManageJugBrands = () => {
                             <tr key={jb.id}>
                                 <td className="td-style">{jb.name}</td>
                                 <td className="td-style">{jb.compatibleCap?.name || 'N/A'}</td>
-                                <td className="td-style text-right space-x-2">
-                                    <button onClick={() => { setItemToEdit(jb); setModalOpen(true); }} className="btn-secondary">Editar</button>
-                                    <button onClick={() => handleDelete(jb.id)} className="btn-danger">Eliminar</button>
+                                <td className="td-style text-right">
+                                    <div className="flex flex-col gap-2 justify-end sm:flex-row">
+                                        <button onClick={() => { setItemToEdit(jb); setModalOpen(true); }} className="btn-secondary">Editar</button>
+                                        <button onClick={() => handleDelete(jb.id)} className="btn-danger">Eliminar</button>
+                                    </div>
                                 </td>
                             </tr>
                         ))}

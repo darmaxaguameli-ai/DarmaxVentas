@@ -181,9 +181,11 @@ const Ingresos = () => {
                                 <td className="td-style">{item.pedidoId || 'N/A'}</td>
                                 <td className="td-style text-green-500 text-right">${item.amount.toFixed(2)}</td>
                                 <td className="td-style">{formatDate(item.date, { day: '2-digit', month: '2-digit', year: 'numeric' })}</td>
-                                <td className="td-style text-right space-x-4">
-                                    <button onClick={() => handleOpenModal(item)} className="text-primary hover:text-primary/90 font-medium">Editar</button>
-                                    <button onClick={() => handleDelete(item.id)} className="text-red-500 hover:text-red-700 font-medium">Eliminar</button>
+                                <td className="td-style text-right">
+                                    <div className="flex flex-col sm:flex-row gap-2 justify-end">
+                                        <button onClick={() => handleOpenModal(item)} className="text-primary hover:text-primary/90 font-medium">Editar</button>
+                                        <button onClick={() => handleDelete(item.id)} className="text-red-500 hover:text-red-700 font-medium">Eliminar</button>
+                                    </div>
                                 </td>
                             </tr>
                         ))}
