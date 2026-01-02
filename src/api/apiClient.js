@@ -30,6 +30,23 @@ export default apiClient;
 // ====================================================================
 
 // ====================================================================
+//  FRANQUICIAS Y SUCURSALES (LOGÍSTICA)
+// ====================================================================
+
+// --- Franchises ---
+export const fetchFranchises = () => apiClient.get('/franchises').then(res => res.data);
+export const createFranchise = (data) => apiClient.post('/franchises', data).then(res => res.data);
+export const updateFranchise = (id, data) => apiClient.put(`/franchises/${id}`, data).then(res => res.data);
+export const deleteFranchise = (id) => apiClient.delete(`/franchises/${id}`).then(res => res.data);
+
+// --- Stores ---
+export const fetchStores = () => apiClient.get('/stores').then(res => res.data);
+export const fetchNearestStore = (lat, lng) => apiClient.get('/stores/nearest', { params: { lat, lng } }).then(res => res.data);
+export const createStore = (data) => apiClient.post('/stores', data).then(res => res.data);
+export const updateStore = (id, data) => apiClient.put(`/stores/${id}`, data).then(res => res.data);
+export const deleteStore = (id) => apiClient.delete(`/stores/${id}`).then(res => res.data);
+
+// ====================================================================
 //  PRODUCTOS
 // ====================================================================
 export const fetchProducts = () => apiClient.get('/products').then(res => res.data);
@@ -129,3 +146,13 @@ export const fetchActiveCashDrawerSession = () => apiClient.get('/cash-drawer/ac
 export const startCashDrawerSession = (openingBalance) => apiClient.post('/cash-drawer/start', { openingBalance }).then(res => res.data);
 export const closeCashDrawerSession = (closingBalance) => apiClient.post('/cash-drawer/close', { closingBalance }).then(res => res.data);
 export const createCashTransaction = (transactionData) => apiClient.post('/cash-drawer/transaction', transactionData).then(res => res.data);
+
+// ====================================================================
+//  EXTERNAL SERVICES
+// ====================================================================
+export const fetchPostalCodeData = (cp) => apiClient.get('/external/dipomex/codigo_postal', { params: { cp } }).then(res => res.data);
+
+// ====================================================================
+//  REPORTS
+// ====================================================================
+export const fetchConsolidatedReport = () => apiClient.get('/reports/consolidated').then(res => res.data);

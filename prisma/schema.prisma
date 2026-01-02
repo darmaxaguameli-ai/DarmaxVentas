@@ -85,6 +85,7 @@ model ServicePrice {
 model JugBrand {
   id   String @id @default(cuid())
   name String @unique
+  imageUrl String? // Nueva columna para la imagen
 
   // Relación con la tapa compatible en el inventario
   compatibleCap   Product? @relation(fields: [compatibleCapId], references: [id])
@@ -120,6 +121,10 @@ model Store {
   pedidos      Pedido[]
   sesionesCaja SesionCaja[]
   inventory    StoreInventory[] // El stock ahora es por sucursal
+  
+  // Relaciones financieras
+  gastos       Gasto[]
+  ingresos     Ingreso[]
 }
 
 // 3. Inventario por Sucursal
@@ -148,7 +153,9 @@ model User {
   phone              String?           @unique
   street             String?
   neighborhood       String?
-  city               String?
+  municipality       String?           // Nuevo: Municipio/Alcaldía
+  state              String?           // Nuevo: Estado
+  city               String?           // Se mantiene para compatibilidad o como campo compuesto
   postalCode         String?
   references         String?
   lat                Float?
@@ -288,6 +295,10 @@ model Gasto {
   description String
   amount      Float
   date        DateTime
+  
+  // Relación con la sucursal (Opcional para compatibilidad con datos viejos, pero idealmente requerido)
+  store       Store?   @relation(fields: [storeId], references: [id])
+  storeId     String?
 }
 
 model Ingreso {
@@ -299,6 +310,10 @@ model Ingreso {
   pedidoId           String?           @unique
   dailySalesRecord   DailySalesRecord? @relation("DailySalesRecordToIngreso", fields: [dailySalesRecordId], references: [id])
   dailySalesRecordId String?           @unique
+  
+  // Relación con la sucursal
+  store              Store?            @relation(fields: [storeId], references: [id])
+  storeId            String?
 }
 
 model DailySalesRecord {

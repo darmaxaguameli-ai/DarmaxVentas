@@ -52,6 +52,15 @@ import {
   createEmpleado as apiCreateEmpleado,
   updateEmpleado as apiUpdateEmpleado,
   deleteEmpleado as apiDeleteEmpleado,
+  // Logistics (Franchise & Store)
+  fetchFranchises as apiFetchFranchises,
+  createFranchise as apiCreateFranchise,
+  updateFranchise as apiUpdateFranchise,
+  deleteFranchise as apiDeleteFranchise,
+  fetchStores as apiFetchStores,
+  createStore as apiCreateStore,
+  updateStore as apiUpdateStore,
+  deleteStore as apiDeleteStore,
 } from "../../../api/apiClient";
 
 const GestionContext = createContext(null);
@@ -74,6 +83,8 @@ const initialState = {
   servicePrices: [],
   jugBrands: [],
   empleados: [],
+  franchises: [],
+  stores: [],
   loading: true,
   error: null,
 };
@@ -96,6 +107,8 @@ const gestionReducer = (state, action) => {
         servicePrices: action.payload.servicePrices || state.servicePrices,
         jugBrands: action.payload.jugBrands || state.jugBrands,
         empleados: action.payload.empleados || state.empleados,
+        franchises: action.payload.franchises || state.franchises,
+        stores: action.payload.stores || state.stores,
         loading: false,
       };
     case "ADD_PRODUCT":
@@ -114,6 +127,10 @@ const gestionReducer = (state, action) => {
         return { ...state, jugBrands: [...state.jugBrands, action.payload] };
     case "ADD_EMPLEADO":
         return { ...state, empleados: [...state.empleados, action.payload] };
+    case "ADD_FRANCHISE":
+        return { ...state, franchises: [...state.franchises, action.payload] };
+    case "ADD_STORE":
+        return { ...state, stores: [...state.stores, action.payload] };
     case "UPDATE_SERVICEPRICE":
         return {
             ...state,
@@ -147,14 +164,14 @@ export const GestionProvider = ({ children }) => {
     try {
       const [
         inventory, users, income, expenses, dailySalesRecords,
-        waterTypes, servicePrices, jugBrands, empleados,
+        waterTypes, servicePrices, jugBrands, empleados, franchises, stores
       ] = await Promise.all([
         apiFetchProducts(), apiFetchUsers(), apiFetchIncomes(), apiFetchExpenses(), apiFetchDailySalesRecords(),
-        apiFetchWaterTypes(), apiFetchServicePrices(), apiFetchJugBrands(), apiFetchEmpleados(),
+        apiFetchWaterTypes(), apiFetchServicePrices(), apiFetchJugBrands(), apiFetchEmpleados(), apiFetchFranchises(), apiFetchStores()
       ]);
       dispatch({
         type: "SET_INITIAL_DATA",
-        payload: { inventory, users, income, expenses, dailySalesRecords, waterTypes, servicePrices, jugBrands, empleados },
+        payload: { inventory, users, income, expenses, dailySalesRecords, waterTypes, servicePrices, jugBrands, empleados, franchises, stores },
       });
     } catch (error) {
       dispatch({ type: "SET_ERROR", payload: error.message });
@@ -226,6 +243,8 @@ export const GestionProvider = ({ children }) => {
   const expenseActions = createCrudActions('Expense', { createExpense: apiCreateExpense, updateExpense: apiUpdateExpense, deleteExpense: apiDeleteExpense });
   const incomeActions = createCrudActions('Income', { createIncome: apiCreateIncome, updateIncome: apiUpdateIncome, deleteIncome: apiDeleteIncome });
   const empleadoActions = createCrudActions('Empleado', { createEmpleado: apiCreateEmpleado, updateEmpleado: apiUpdateEmpleado, deleteEmpleado: apiDeleteEmpleado });
+  const franchiseActions = createCrudActions('Franchise', { createFranchise: apiCreateFranchise, updateFranchise: apiUpdateFranchise, deleteFranchise: apiDeleteFranchise });
+  const storeActions = createCrudActions('Store', { createStore: apiCreateStore, updateStore: apiUpdateStore, deleteStore: apiDeleteStore });
 
   // Custom actions that don't fit the generic CRUD pattern
   const addDailySalesRecord = useCallback(async (recordData) => {
@@ -283,6 +302,8 @@ export const GestionProvider = ({ children }) => {
     ...expenseActions,
     ...incomeActions,
     ...empleadoActions,
+    ...franchiseActions,
+    ...storeActions,
     addDailySalesRecord,
     addDailySalesRecordsBulk,
     updateDailySalesRecord,

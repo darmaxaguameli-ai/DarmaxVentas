@@ -37,13 +37,13 @@ const GestionDashboard = () => {
         <main className="flex-1 p-4 sm:p-6 md:p-8 overflow-y-auto transition-all duration-300 ease-in-out">
           <div className="flex items-center justify-between mb-4">
             <button
-              className="md:hidden p-2 rounded-md bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200"
+              className="md:hidden h-10 w-10 flex items-center justify-center rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 shadow-sm"
               onClick={() => setSidebarOpen(true)}
             >
               <span className="material-symbols-outlined">menu</span>
             </button>
             <button
-              className="hidden md:block p-2 rounded-md bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200"
+              className="hidden md:flex h-10 w-10 items-center justify-center rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 shadow-sm"
               onClick={toggleSidebarCollapsed}
             >
               <span className="material-symbols-outlined">

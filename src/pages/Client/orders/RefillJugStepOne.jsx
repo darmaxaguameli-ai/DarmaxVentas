@@ -32,12 +32,15 @@ const RefillJugStepOne = () => {
 
       const initialProducts = fetchedJugBrands.map((brand, index) => {
         const existingJug = previousSelection?.find(p => p.id === brand.id);
+        // Use dynamic image if available, otherwise fallback to static map
+        const finalImage = brand.imageUrl || getImageUrlForBrand(brand.name);
+        
         return {
           id: brand.id,
           name: `Garrafón ${brand.name}`,
           quantity: existingJug?.quantity || 0,
           featured: index === 0,
-          imageUrl: getImageUrlForBrand(brand.name),
+          imageUrl: finalImage,
         };
       });
       setSelectedJugs(initialProducts);

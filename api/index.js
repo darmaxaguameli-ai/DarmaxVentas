@@ -31,6 +31,7 @@ app.post('/api/login', async (req, res) => {
 
     const user = await prisma.user.findUnique({
       where: { email },
+      include: { store: true } // Incluir datos de la sucursal
     });
 
     if (!user) {
@@ -124,6 +125,8 @@ app.post('/api/register-client', async (req, res) => {
       street: data.street || null,
       neighborhood: data.neighborhood || null,
       city: data.city || null,
+      municipality: data.municipality || null, // Nuevo
+      state: data.state || null,               // Nuevo
       postalCode: data.postalCode || null,
       references: data.references || null,
       lat: coordinates.lat, // <-- Guardar latitud
@@ -163,6 +166,49 @@ app.post('/api/register-client', async (req, res) => {
 });
 
 
+// Endpoint público para completar el registro de un usuario existente (sin contraseña)
+app.post('/api/complete-registration', async (req, res) => {
+  try {
+    const { userId, email, password, name } = req.body;
+
+    if (!userId || !password) {
+      return res.status(400).json({ error: 'Faltan datos requeridos.' });
+    }
+
+    // Verificar si el usuario existe y NO tiene contraseña
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+
+    if (!user) {
+      return res.status(404).json({ error: 'Usuario no encontrado.' });
+    }
+
+    if (user.password) {
+      return res.status(409).json({ error: 'Este usuario ya está registrado. Por favor inicia sesión.' });
+    }
+
+    // Hashear la contraseña
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Actualizar usuario
+    const updatedUser = await prisma.user.update({
+      where: { id: userId },
+      data: {
+        email: email || user.email, // Actualizar email si se provee
+        name: name || user.name,    // Actualizar nombre si se provee
+        password: hashedPassword,
+      },
+    });
+
+    // Opcional: Generar token para autologin inmediato
+    const { password: _, ...userWithoutPassword } = updatedUser;
+    res.json(userWithoutPassword);
+
+  } catch (error) {
+    console.error('Error completing registration:', error);
+    res.status(500).json({ error: 'Error al completar el registro.' });
+  }
+});
+
 // =====================================================
 // AUTHENTICATION MIDDLEWARE
 // =====================================================
@@ -189,11 +235,45 @@ const verifyToken = (req, res, next) => {
 // PRODUCTS API (Formerly PRODUCTOS)
 // =====================================================
 
-// GET all products
-app.get('/api/products', async (req, res) => {
+// GET all products (Store-aware)
+app.get('/api/products', verifyToken, async (req, res) => {
   try {
-    const products = await prisma.product.findMany();
+    const { id: userId, role } = req.user;
+    
+    // 1. Obtener todos los productos base
+    const products = await prisma.product.findMany({
+        orderBy: { name: 'asc' }
+    });
+
+    // 2. Determinar contexto de tienda
+    let storeId = null;
+    if (role !== 'ADMIN') {
+        const user = await prisma.user.findUnique({ where: { id: userId }, select: { storeId: true } });
+        storeId = user?.storeId;
+    }
+
+    // 3. Si hay tienda, sobrescribir stock con el inventario local
+    if (storeId) {
+        const storeInventory = await prisma.storeInventory.findMany({
+            where: { storeId },
+        });
+        
+        // Mapa para acceso rápido: productId -> stock
+        const inventoryMap = new Map();
+        storeInventory.forEach(item => inventoryMap.set(item.productId, item.stock));
+
+        // Mapear productos con stock local
+        const localizedProducts = products.map(p => ({
+            ...p,
+            stock: inventoryMap.get(p.id) || 0 // Si no hay registro, stock es 0
+        }));
+        
+        return res.json(localizedProducts);
+    }
+
+    // Si es ADMIN sin tienda o fallback, devolver tal cual (stock global/legacy)
     res.json(products);
+
   } catch (error) {
     console.error('Error fetching products:', error);
     res.status(500).json({
@@ -217,17 +297,70 @@ app.post('/api/products', verifyToken, async (req, res) => {
   }
 });
 
-// PUT to update a product
+// PUT to update a product (Store-aware stock update)
 app.put('/api/products/:id', verifyToken, async (req, res) => {
-  const { id } = req.params;
+  const { id: productId } = req.params;
+  const { stock, ...productData } = req.body; // Separar stock del resto de datos
+  const { id: userId, role } = req.user;
+
   try {
-    const updatedProduct = await prisma.product.update({
-      where: { id },
-      data: req.body,
+    // 1. Determinar contexto de tienda
+    let storeId = null;
+    if (role !== 'ADMIN') {
+        const user = await prisma.user.findUnique({ where: { id: userId }, select: { storeId: true } });
+        storeId = user?.storeId;
+    }
+
+    // 2. Transacción para asegurar integridad
+    const result = await prisma.$transaction(async (tx) => {
+        let updatedProduct;
+
+        // A) Actualizar datos generales del producto (nombre, precio, etc.)
+        // Solo si hay datos para actualizar aparte del stock
+        if (Object.keys(productData).length > 0) {
+             updatedProduct = await tx.product.update({
+                where: { id: productId },
+                data: productData,
+            });
+        } else {
+            updatedProduct = await tx.product.findUnique({ where: { id: productId } });
+        }
+
+        // B) Actualizar Stock
+        if (stock !== undefined) {
+            if (storeId) {
+                // Si tiene tienda, actualizar/crear registro en StoreInventory
+                await tx.storeInventory.upsert({
+                    where: {
+                        storeId_productId: { // Clave compuesta
+                            storeId,
+                            productId
+                        }
+                    },
+                    update: { stock: parseInt(stock) },
+                    create: {
+                        storeId,
+                        productId,
+                        stock: parseInt(stock)
+                    }
+                });
+                // Devolver el producto con el stock local actualizado para el frontend
+                updatedProduct.stock = parseInt(stock); 
+            } else {
+                // Si es ADMIN global, actualizar stock global (legacy)
+                updatedProduct = await tx.product.update({
+                    where: { id: productId },
+                    data: { stock: parseInt(stock) }
+                });
+            }
+        }
+        
+        return updatedProduct;
     });
-    res.json(updatedProduct);
+
+    res.json(result);
   } catch (error) {
-    console.error(`Error updating product ${id}:`, error);
+    console.error(`Error updating product ${productId}:`, error);
     if (error.code === 'P2025') {
       return res.status(404).json({ error: 'Product not found' });
     }
@@ -365,8 +498,11 @@ app.get('/api/jug-brands', async (req, res) => {
 });
 app.post('/api/jug-brands', verifyToken, async (req, res) => {
   try {
-    const { compatibleCapId, ...rest } = req.body;
-    const data = compatibleCapId ? { ...rest, compatibleCap: { connect: { id: compatibleCapId } } } : rest;
+    const { compatibleCapId, imageUrl, ...rest } = req.body; // Extract imageUrl
+    const data = { ...rest, imageUrl }; // Include it
+    if (compatibleCapId) {
+        data.compatibleCap = { connect: { id: compatibleCapId } };
+    }
     const jugBrand = await prisma.jugBrand.create({ data });
     res.status(201).json(jugBrand);
   } catch (error) {
@@ -375,12 +511,26 @@ app.post('/api/jug-brands', verifyToken, async (req, res) => {
 });
 app.put('/api/jug-brands/:id', verifyToken, async (req, res) => {
   try {
-    const { compatibleCapId, ...rest } = req.body;
-    const data = compatibleCapId ? { ...rest, compatibleCap: { connect: { id: compatibleCapId } } } : { ...rest, compatibleCapId: null };
+    const { compatibleCapId, imageUrl, ...rest } = req.body;
+    
+    // Direct assignment to foreign key is safer for optional relations
+    const data = { 
+        ...rest, 
+        imageUrl,
+        compatibleCapId: compatibleCapId || null // If empty string, set to null
+    };
+
     const jugBrand = await prisma.jugBrand.update({ where: { id: req.params.id }, data });
     res.json(jugBrand);
   } catch (error) {
-    res.status(500).json({ error: 'Error updating jug brand' });
+    console.error('Error updating jug brand:', error.message, error.code, error.meta); // Detailed log
+    if (error.code === 'P2002') {
+        return res.status(409).json({ error: 'Ya existe una marca con este nombre.' });
+    }
+    if (error.code === 'P2003') {
+        return res.status(400).json({ error: 'El producto seleccionado para la tapa no existe.' });
+    }
+    res.status(500).json({ error: 'Error updating jug brand: ' + error.message });
   }
 });
 app.delete('/api/jug-brands/:id', verifyToken, async (req, res) => {
@@ -393,13 +543,253 @@ app.delete('/api/jug-brands/:id', verifyToken, async (req, res) => {
 });
 
 // =====================================================
+// FRANCHISE & STORE API
+// =====================================================
+
+// --- FRANCHISES ---
+app.get('/api/franchises', verifyToken, async (req, res) => {
+  try {
+    const franchises = await prisma.franchise.findMany({ 
+        include: { stores: true },
+        orderBy: { name: 'asc' } 
+    });
+    res.json(franchises);
+  } catch (error) {
+    console.error('Error fetching franchises:', error);
+    res.status(500).json({ error: 'Error fetching franchises' });
+  }
+});
+
+app.post('/api/franchises', verifyToken, async (req, res) => {
+  try {
+    const { name } = req.body;
+    if (!name) return res.status(400).json({ error: 'Name is required' });
+    
+    const franchise = await prisma.franchise.create({ data: { name } });
+    res.status(201).json(franchise);
+  } catch (error) {
+    console.error('Error creating franchise:', error);
+    res.status(500).json({ error: 'Error creating franchise' });
+  }
+});
+
+app.put('/api/franchises/:id', verifyToken, async (req, res) => {
+  try {
+    const { name } = req.body;
+    const franchise = await prisma.franchise.update({
+      where: { id: req.params.id },
+      data: { name }
+    });
+    res.json(franchise);
+  } catch (error) {
+    console.error('Error updating franchise:', error);
+    res.status(500).json({ error: 'Error updating franchise' });
+  }
+});
+
+app.delete('/api/franchises/:id', verifyToken, async (req, res) => {
+  try {
+    await prisma.franchise.delete({ where: { id: req.params.id } });
+    res.status(204).send();
+  } catch (error) {
+    console.error('Error deleting franchise:', error);
+    res.status(500).json({ error: 'Error deleting franchise' });
+  }
+});
+
+// --- STORES ---
+app.get('/api/stores', async (req, res) => { // Removed verifyToken
+  try {
+    const stores = await prisma.store.findMany({ 
+        include: { franchise: true },
+        orderBy: { name: 'asc' } 
+    });
+    res.json(stores);
+  } catch (error) {
+    console.error('Error fetching stores:', error);
+    res.status(500).json({ error: 'Error fetching stores' });
+  }
+});
+
+app.post('/api/stores', verifyToken, async (req, res) => {
+  try {
+    const { name, address, franchiseId, latitud, longitud } = req.body;
+    
+    if (!name || !address || !franchiseId) {
+        return res.status(400).json({ error: 'Name, address and franchiseId are required' });
+    }
+
+    let finalLat = latitud;
+    let finalLng = longitud;
+
+    // Auto-geocode if coordinates are missing
+    if (!finalLat || !finalLng) {
+        const coords = await geocodeAddress(address);
+        finalLat = coords.lat;
+        finalLng = coords.lng;
+    }
+
+    const store = await prisma.store.create({
+      data: {
+        name,
+        address,
+        franchise: { connect: { id: franchiseId } },
+        latitud: finalLat,
+        longitud: finalLng
+      }
+    });
+    res.status(201).json(store);
+  } catch (error) {
+    console.error('Error creating store:', error);
+    res.status(500).json({ error: 'Error creating store' });
+  }
+});
+
+app.put('/api/stores/:id', verifyToken, async (req, res) => {
+  try {
+    const { name, address, franchiseId, latitud, longitud } = req.body;
+    
+    const data = {};
+    if (name) data.name = name;
+    if (address) data.address = address;
+    if (franchiseId) data.franchise = { connect: { id: franchiseId } };
+    
+    // Handle geocoding on update if address changes but coords aren't provided
+    if (address && (!latitud || !longitud)) {
+         const coords = await geocodeAddress(address);
+         data.latitud = coords.lat;
+         data.longitud = coords.lng;
+    } else {
+        if (latitud !== undefined) data.latitud = latitud;
+        if (longitud !== undefined) data.longitud = longitud;
+    }
+
+    const store = await prisma.store.update({
+      where: { id: req.params.id },
+      data
+    });
+    res.json(store);
+  } catch (error) {
+    console.error('Error updating store:', error);
+    res.status(500).json({ error: 'Error updating store' });
+  }
+});
+
+app.delete('/api/stores/:id', verifyToken, async (req, res) => {
+  const { id } = req.params;
+  try {
+    // Usar una transacción para limpiar dependencias antes de borrar la tienda
+    await prisma.$transaction(async (tx) => {
+        // 1. Desvincular usuarios (no borrarlos)
+        await tx.user.updateMany({
+            where: { storeId: id },
+            data: { storeId: null }
+        });
+
+        // 2. Borrar inventario de la sucursal
+        await tx.storeInventory.deleteMany({
+            where: { storeId: id }
+        });
+
+        // 3. Borrar sesiones de caja (y sus transacciones asociadas si cascade está activado en DB, sino manual)
+        // Nota: Si hay pedidos vinculados, esto podría fallar si no hay cascade.
+        // Para desarrollo agresivo:
+        // await tx.transaccionCaja.deleteMany({ where: { sesion: { storeId: id } } }); // Requiere query compleja
+        // await tx.sesionCaja.deleteMany({ where: { storeId: id } });
+
+        // 4. Borrar la tienda
+        await tx.store.delete({ where: { id } });
+    });
+
+    res.status(204).send();
+  } catch (error) {
+    console.error('Error deleting store:', error);
+    // Mejorar mensaje de error para el cliente
+    if (error.code === 'P2003') {
+        return res.status(409).json({ error: 'No se puede eliminar la sucursal porque tiene registros asociados (Pedidos, Ventas, etc.).' });
+    }
+    res.status(500).json({ error: 'Error deleting store' });
+  }
+});
+
+// GET nearest store based on coordinates
+app.get('/api/stores/nearest', async (req, res) => {
+    const { lat, lng } = req.query;
+
+    if (!lat || !lng) {
+        return res.status(400).json({ error: 'Latitude and longitude are required' });
+    }
+
+    try {
+        const userLat = parseFloat(lat);
+        const userLng = parseFloat(lng);
+
+        const stores = await prisma.store.findMany({
+            where: {
+                latitud: { not: null },
+                longitud: { not: null }
+            },
+            select: { id: true, name: true, address: true, latitud: true, longitud: true }
+        });
+
+        if (stores.length === 0) {
+            return res.status(404).json({ error: 'No stores with coordinates found' });
+        }
+
+        // Haversine formula to find the nearest store
+        let nearestStore = null;
+        let minDistance = Infinity;
+
+        const toRad = (value) => (value * Math.PI) / 180;
+
+        stores.forEach(store => {
+            const R = 6371; // Radius of the earth in km
+            const dLat = toRad(store.latitud - userLat);
+            const dLon = toRad(store.longitud - userLng);
+            const a =
+                Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(toRad(userLat)) * Math.cos(toRad(store.latitud)) *
+                Math.sin(dLon / 2) * Math.sin(dLon / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            const d = R * c; // Distance in km
+
+            if (d < minDistance) {
+                minDistance = d;
+                nearestStore = { ...store, distanceKm: d };
+            }
+        });
+
+        res.json(nearestStore);
+
+    } catch (error) {
+        console.error('Error finding nearest store:', error);
+        res.status(500).json({ error: 'Error calculating nearest store' });
+    }
+});
+
+// =====================================================
 // INGRESOS API  (income)
 // =====================================================
 
 // GET all incomes
 app.get('/api/incomes', verifyToken, async (req, res) => {
   try {
-    const incomes = await prisma.ingreso.findMany();
+    const { role, id } = req.user;
+    const where = {};
+
+    if (role !== 'ADMIN') {
+        const user = await prisma.user.findUnique({ where: { id }, select: { storeId: true } });
+        if (user && user.storeId) {
+            where.storeId = user.storeId;
+        } else {
+            return res.json([]);
+        }
+    }
+
+    const incomes = await prisma.ingreso.findMany({ 
+        where,
+        orderBy: { date: 'desc' }
+    });
     res.json(incomes);
   } catch (error) {
     console.error('Error fetching incomes:', error);
@@ -411,11 +801,23 @@ app.get('/api/incomes', verifyToken, async (req, res) => {
 app.post('/api/incomes', verifyToken, async (req, res) => {
   try {
     const { date, ...rest } = req.body;
-    const newIncome = await prisma.ingreso.create({
-      data: {
+    const userId = req.user.id;
+    
+    // Obtener storeId del usuario
+    const user = await prisma.user.findUnique({ where: { id: userId }, select: { storeId: true } });
+    
+    const data = {
         ...rest,
         date: new Date(date),
-      },
+    };
+
+    // Asignar a la sucursal del usuario si existe
+    if (user && user.storeId) {
+        data.store = { connect: { id: user.storeId } };
+    }
+
+    const newIncome = await prisma.ingreso.create({
+      data,
     });
     res.status(201).json(newIncome);
   } catch (error) {
@@ -467,7 +869,22 @@ app.delete('/api/incomes/:id', verifyToken, async (req, res) => {
 
 app.get('/api/expenses', verifyToken, async (req, res) => {
   try {
-    const expenses = await prisma.gasto.findMany();
+    const { role, id } = req.user;
+    const where = {};
+
+    if (role !== 'ADMIN') {
+        const user = await prisma.user.findUnique({ where: { id }, select: { storeId: true } });
+        if (user && user.storeId) {
+            where.storeId = user.storeId;
+        } else {
+            return res.json([]);
+        }
+    }
+
+    const expenses = await prisma.gasto.findMany({
+        where,
+        orderBy: { date: 'desc' }
+    });
     res.json(expenses);
   } catch (error) {
     console.error('Error fetching expenses:', error);
@@ -478,11 +895,23 @@ app.get('/api/expenses', verifyToken, async (req, res) => {
 app.post('/api/expenses', verifyToken, async (req, res) => {
   try {
     const { date, ...rest } = req.body;
-    const newExpense = await prisma.gasto.create({
-      data: {
+    const userId = req.user.id;
+    
+    // Obtener storeId del usuario
+    const user = await prisma.user.findUnique({ where: { id: userId }, select: { storeId: true } });
+
+    const data = {
         ...rest,
         date: new Date(date + 'T12:00:00Z'), // Interpretar la fecha como mediodía UTC
-      },
+    };
+
+    // Asignar a la sucursal del usuario si existe
+    if (user && user.storeId) {
+        data.store = { connect: { id: user.storeId } };
+    }
+
+    const newExpense = await prisma.gasto.create({
+      data,
     });
     res.status(201).json(newExpense);
   } catch (error) {
@@ -756,11 +1185,22 @@ app.post('/api/daily-sales-records/bulk', verifyToken, async (req, res) => {
 app.get('/api/cash-drawer/active', verifyToken, async (req, res) => {
   try {
     const userId = req.user.id;
-    const activeSession = await prisma.sesionCaja.findFirst({
-      where: {
+    
+    // Obtener la sucursal del usuario para asegurar contexto
+    const user = await prisma.user.findUnique({ where: { id: userId }, select: { storeId: true } });
+    
+    const where = {
         vendedorId: userId,
         estado: 'ABIERTA',
-      },
+    };
+
+    // Si tiene tienda asignada, asegurar que la sesión corresponda a esa tienda
+    if (user && user.storeId) {
+        where.storeId = user.storeId;
+    }
+
+    const activeSession = await prisma.sesionCaja.findFirst({
+      where,
       include: {
         transacciones: {
           orderBy: {
@@ -787,6 +1227,20 @@ app.post('/api/cash-drawer/start', verifyToken, async (req, res) => {
       return res.status(400).json({ error: 'El saldo inicial (openingBalance) es requerido y debe ser un número.' });
     }
 
+    // --- FETCH USER STORE ---
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    let storeId = user?.storeId;
+
+    if (!storeId) {
+        // Fallback: Find the first store available
+        const firstStore = await prisma.store.findFirst();
+        if (firstStore) {
+            storeId = firstStore.id;
+        } else {
+             return res.status(400).json({ error: 'No se puede abrir caja: El usuario no tiene sucursal asignada y no hay sucursales registradas.' });
+        }
+    }
+
     // 1. Check if there is already an open session for this user
     const existingOpenSession = await prisma.sesionCaja.findFirst({
       where: {
@@ -803,6 +1257,7 @@ app.post('/api/cash-drawer/start', verifyToken, async (req, res) => {
     const newSession = await prisma.sesionCaja.create({
       data: {
         vendedor: { connect: { id: userId } },
+        store: { connect: { id: storeId } },
         openingBalance: parseFloat(openingBalance),
         estado: 'ABIERTA',
       },
@@ -947,6 +1402,8 @@ app.post('/api/users', async (req, res) => {
       street: data.street === '' ? null : data.street,
       neighborhood: data.neighborhood === '' ? null : data.neighborhood,
       city: data.city === '' ? null : data.city,
+      municipality: data.municipality === '' ? null : data.municipality, // Nuevo
+      state: data.state === '' ? null : data.state,                     // Nuevo
       postalCode: data.postalCode === '' ? null : data.postalCode,
       role: 'CLIENTE', // Security: Force role to 'CLIENTE' on the backend
     };
@@ -1063,9 +1520,12 @@ app.put('/api/users/:id', verifyToken, async (req, res) => {
       street: data.street === '' ? null : data.street,
       neighborhood: data.neighborhood === '' ? null : data.neighborhood,
       city: data.city === '' ? null : data.city,
+      municipality: data.municipality === '' ? null : data.municipality, // Nuevo
+      state: data.state === '' ? null : data.state,                     // Nuevo
       postalCode: data.postalCode === '' ? null : data.postalCode,
       references: data.references === '' ? null : data.references, // New field to handle
       role: data.role, // Role might be updated, but usually not by client
+      storeId: data.storeId // Allow updating store
     };
 
     // Remove undefined values to avoid updating fields not present in the request body
@@ -1355,7 +1815,24 @@ app.get('/api/my-orders', verifyToken, async (req, res) => {
 // GET all orders (for admin/vendedor)
 app.get('/api/pedidos', verifyToken, async (req, res) => {
   try {
+    const { role, id } = req.user;
+    
+    // Construir filtro base
+    const where = {};
+
+    // Si NO es ADMIN, filtrar por la sucursal del usuario
+    if (role !== 'ADMIN') {
+        const user = await prisma.user.findUnique({ where: { id }, select: { storeId: true } });
+        if (user && user.storeId) {
+            where.storeId = user.storeId;
+        } else {
+            // Si es vendedor pero no tiene tienda asignada, no debería ver nada por seguridad
+            return res.json([]); 
+        }
+    }
+
     const pedidos = await prisma.pedido.findMany({
+      where, // Aplicar filtro
       include: {
         cliente: true, // Include customer details
         items: {
@@ -1391,7 +1868,8 @@ app.post('/api/pedidos', async (req, res) => {
     total,
     deliveryMethod,
     paymentMethod,
-    paymentStatus
+    paymentStatus,
+    storeId // NEW: Try to get from body
   } = req.body;
 
   if (!items || !total || !deliveryMethod) {
@@ -1400,6 +1878,27 @@ app.post('/api/pedidos', async (req, res) => {
 
   try {
     const result = await prisma.$transaction(async (tx) => {
+      // --- PASO 0: Determinar la Sucursal (Store) ---
+      if (!storeId) {
+          // 1. Try to find store from client preference
+          if (clienteId) {
+               const client = await tx.user.findUnique({ where: { id: clienteId } });
+               if (client && client.storeId) {
+                   storeId = client.storeId;
+               }
+          }
+          
+          // 2. Fallback to first available store if still null
+          if (!storeId) {
+               const firstStore = await tx.store.findFirst();
+               if (firstStore) {
+                   storeId = firstStore.id;
+               } else {
+                   throw new Error('No hay sucursales configuradas para procesar el pedido.');
+               }
+          }
+      }
+
       // --- PASO 1: Asegurar que tenemos un cliente ---
       if (!clienteId) {
         // Generar un customId único para el cliente invitado
@@ -1415,11 +1914,13 @@ app.post('/api/pedidos', async (req, res) => {
         }
 
         // Crear el usuario invitado
+        // Nota: Asignamos el invitado a la tienda del pedido si no tiene una
         const guestUser = await tx.user.create({
           data: {
             name: 'Cliente Web Invitado',
             customId: guestCustomId,
             role: 'CLIENTE',
+            store: { connect: { id: storeId } }
           },
         });
         clienteId = guestUser.id; // Usar el ID del nuevo usuario
@@ -1447,6 +1948,7 @@ app.post('/api/pedidos', async (req, res) => {
           paymentMethod: paymentMethod || 'Efectivo',
           paymentStatus: paymentStatus || 'NO_PAGADO',
           cliente: { connect: { id: clienteId } },
+          store: { connect: { id: storeId } },
         },
       });
 
@@ -1632,6 +2134,117 @@ app.put('/api/pedidos/:id', verifyToken, async (req, res) => {
   }
 });
 
+
+// ====================================================================
+//  REPORTS API (Advanced)
+// ====================================================================
+
+app.get('/api/reports/consolidated', verifyToken, async (req, res) => {
+    try {
+        console.log("Generando reporte consolidado (Manual Aggregation)...");
+
+        if (req.user.role !== 'ADMIN') {
+            return res.status(403).json({ error: 'Acceso denegado.' });
+        }
+
+        // 1. Fetch data
+        const stores = await prisma.store.findMany({ select: { id: true, name: true } });
+        
+        // Fetch ALL incomes/expenses (optimized select)
+        // This avoids groupBy issues with nulls or strict SQL modes
+        const allIncomes = await prisma.ingreso.findMany({ select: { amount: true, storeId: true } });
+        const allExpenses = await prisma.gasto.findMany({ select: { amount: true, storeId: true } });
+
+        console.log(`Procesando ${allIncomes.length} ingresos y ${allExpenses.length} gastos.`);
+
+        // 2. Manual Aggregation
+        const reportMap = {};
+
+        // Initialize map with stores
+        stores.forEach(store => {
+            reportMap[store.id] = {
+                id: store.id,
+                name: store.name,
+                totalIncome: 0,
+                totalExpense: 0,
+                netProfit: 0
+            };
+        });
+
+        // Add Global category
+        reportMap['global'] = {
+            id: 'global',
+            name: 'Operaciones Globales',
+            totalIncome: 0,
+            totalExpense: 0,
+            netProfit: 0
+        };
+
+        // Sum Incomes
+        allIncomes.forEach(inc => {
+            const key = inc.storeId && reportMap[inc.storeId] ? inc.storeId : 'global';
+            reportMap[key].totalIncome += (inc.amount || 0);
+        });
+
+        // Sum Expenses
+        allExpenses.forEach(exp => {
+            const key = exp.storeId && reportMap[exp.storeId] ? exp.storeId : 'global';
+            reportMap[key].totalExpense += (exp.amount || 0);
+        });
+
+        // Calculate Profit & Format
+        const report = Object.values(reportMap).map(item => ({
+            ...item,
+            netProfit: item.totalIncome - item.totalExpense
+        }));
+
+        // Filter out empty global if needed, or keep it. Let's keep it if it has data.
+        const finalReport = report.filter(item => 
+            item.id !== 'global' || (item.totalIncome > 0 || item.totalExpense > 0)
+        );
+
+        res.json(finalReport);
+
+    } catch (error) {
+        console.error('Error manual aggregation consolidated report:', error);
+        res.status(500).json({ error: 'Error al generar reporte: ' + error.message });
+    }
+});
+
+
+// ====================================================================
+//  EXTERNAL API PROXIES (CORS Bypass)
+// ====================================================================
+
+app.get('/api/external/dipomex/codigo_postal', async (req, res) => {
+    const { cp } = req.query;
+    if (!cp) {
+        return res.status(400).json({ error: 'Código postal requerido' });
+    }
+
+    try {
+        const apiKey = process.env.DIPOMEX_API_KEY; 
+        
+        if (!apiKey) {
+            console.error('CRITICAL: DIPOMEX_API_KEY is not defined in .env');
+            return res.status(500).json({ error: 'Configuración de API incompleta en el servidor.' });
+        }
+
+        const response = await axios.get(`https://api.tau.com.mx/dipomex/v1/codigo_postal`, {
+            params: { cp },
+            headers: { 'APIKEY': apiKey }
+        });
+        
+        res.json(response.data);
+    } catch (error) {
+        console.error('Error fetching from DIPOMEX:', error.message);
+        if (error.response) {
+            console.error('DIPOMEX Error details:', error.response.data);
+            return res.status(error.response.status).json(error.response.data);
+        }
+        res.status(500).json({ error: 'Error al consultar servicio postal externo.' });
+    }
+});
 
 // ====================================================================
 //  START SERVER

@@ -5,6 +5,7 @@ import OrderLayout from "../../../layouts/OrderLayout";
 import { createOrder } from "../../../api/apiClient";
 import { useAuth } from "../../../context/AuthContext";
 import { useConfig } from "../../../context/ConfigContext";
+import { useClient } from "../context/ClientContext"; // Import useClient
 
 const OrderSummaryStepFour = () => {
   const navigate = useNavigate();
@@ -12,6 +13,7 @@ const OrderSummaryStepFour = () => {
 
   const previousState = location.state || {};
   const { user, isAuthenticated } = useAuth();
+  const { selectedStore } = useClient(); // Get store from context
   
   const { servicePrices: allServicePrices, loading: configLoading, error: configError } = useConfig();
 
@@ -135,6 +137,16 @@ const OrderSummaryStepFour = () => {
         setIsSubmitting(false);
         return;
       }
+
+      // --- SUCURSAL CONTEXT ---
+      // Prioritize storeId from navigation state, then context, then user preference
+      const finalStoreId = previousState.storeId || selectedStore?.id || user?.storeId;
+
+      if (!finalStoreId) {
+          alert("No se pudo determinar la sucursal para este pedido. Por favor, selecciona una sucursal al inicio.");
+          setIsSubmitting(false);
+          return;
+      }
   
       // Construir el payload base del pedido
       const orderPayload = {
@@ -143,6 +155,7 @@ const OrderSummaryStepFour = () => {
         paymentStatus: "NO_PAGADO",
         status: "PENDIENTE",
         items: orderItems,
+        storeId: finalStoreId, // ✅ STORE ID ADDED
       };
       
       // Añadir clienteId solo si está disponible

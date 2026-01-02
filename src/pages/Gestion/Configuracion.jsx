@@ -1,12 +1,13 @@
 import React, { useState, useMemo } from 'react';
 import { useGestion } from './context/GestionContext';
 import Swal from 'sweetalert2'; // Importar SweetAlert2
+import ManageFranchisesStores from './components/ManageFranchisesStores';
 
 // ====================================================================
 // Main Configuration Component
 // ====================================================================
 const Configuracion = () => {
-    const [activeTab, setActiveTab] = useState('waterTypes');
+    const [activeTab, setActiveTab] = useState('franchises'); // Default to structural config
 
     const getTabClassName = (tabName) => {
         return `px-4 py-2 font-medium rounded-t-lg transition-colors ${
@@ -22,6 +23,9 @@ const Configuracion = () => {
             
             <div className="border-b border-gray-200 dark:border-gray-700 mb-6">
                 <nav className="flex flex-wrap space-x-2 sm:space-x-4"> {/* Añadido flex-wrap y ajustado space-x */}
+                    <button onClick={() => setActiveTab('franchises')} className={getTabClassName('franchises')}>
+                        Sucursales y Franquicias
+                    </button>
                     <button onClick={() => setActiveTab('waterTypes')} className={getTabClassName('waterTypes')}>
                         Tipos de Agua
                     </button>
@@ -35,6 +39,7 @@ const Configuracion = () => {
             </div>
 
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                {activeTab === 'franchises' && <ManageFranchisesStores />}
                 {activeTab === 'waterTypes' && <ManageWaterTypes />}
                 {activeTab === 'servicePrices' && <ManageServicePrices />}
                 {activeTab === 'jugBrands' && <ManageJugBrands />}
@@ -386,6 +391,7 @@ const ManageJugBrands = () => {
 const JugBrandModal = ({ itemToEdit, capProducts, onSave, onClose }) => {
     const [data, setData] = useState({
         name: itemToEdit?.name || '',
+        imageUrl: itemToEdit?.imageUrl || '', // New field
         compatibleCapId: itemToEdit?.compatibleCapId || '',
     });
 
@@ -395,7 +401,7 @@ const JugBrandModal = ({ itemToEdit, capProducts, onSave, onClose }) => {
     };
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center">
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4">
             <div className="bg-white dark:bg-gray-800 p-6 rounded-lg w-full max-w-md">
                 <h3 className="text-lg font-bold mb-4">{itemToEdit ? 'Editar' : 'Agregar'} Marca de Garrafón</h3>
                 <form onSubmit={(e) => { e.preventDefault(); onSave(data); }}>
@@ -403,6 +409,15 @@ const JugBrandModal = ({ itemToEdit, capProducts, onSave, onClose }) => {
                         <div>
                             <label className="label-style">Nombre de la Marca</label>
                             <input name="name" type="text" value={data.name} onChange={handleChange} className="input-style w-full" required />
+                        </div>
+                        <div>
+                            <label className="label-style">URL de Imagen</label>
+                            <input name="imageUrl" type="text" value={data.imageUrl} onChange={handleChange} placeholder="https://ejemplo.com/imagen.png" className="input-style w-full" />
+                            {data.imageUrl && (
+                                <div className="mt-2 flex justify-center bg-gray-100 dark:bg-gray-700 rounded-lg p-2">
+                                    <img src={data.imageUrl} alt="Preview" className="h-20 object-contain" />
+                                </div>
+                            )}
                         </div>
                         <div>
                             <label className="label-style">Tapa Compatible (del Inventario)</label>

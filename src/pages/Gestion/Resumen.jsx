@@ -1,10 +1,12 @@
 import { useMemo, useState } from "react";
 import { useGestion } from "./context/GestionContext";
+import { useAuth } from "../../context/AuthContext"; // Import useAuth
 import CashFlowChart from "./components/CashFlowChart";
 import ExpensePieChart from './components/ExpensePieChart';
 import SalesByChannelChart from './components/SalesByChannelChart';
 import TopSellingProducts from './components/TopSellingProducts';
 import NotificationCenter from './components/NotificationCenter';
+import ConsolidatedReports from './components/ConsolidatedReports'; // Import ConsolidatedReports
 
 const StatCard = ({ title, value, subtext, type }) => {
     let valueColorClass = "text-[#111418] dark:text-white";
@@ -28,8 +30,12 @@ const StatCard = ({ title, value, subtext, type }) => {
 
 const Resumen = () => {
     const { state } = useGestion();
+    const { user } = useAuth(); // Get current user
     const { income, expenses, inventory, dailySalesRecords } = state;
     const [timePeriod, setTimePeriod] = useState('monthly'); // 'monthly' or 'annual'
+    const [viewMode, setViewMode] = useState('local'); // 'local' or 'consolidated'
+
+    const isAdmin = user?.role === 'ADMIN';
 
     const { totalIncome, totalExpenses, netProfit, incomeTransactions, expenseTransactions } = useMemo(() => {
         const now = new Date();
@@ -69,82 +75,117 @@ const Resumen = () => {
 
     return (
         <div>
-            <h1 className="text-3xl font-bold mb-6 text-dark dark:text-white">Resumen General</h1>
-            
-            <div className="flex justify-start md:justify-end mb-4 gap-2">
-                <button 
-                    onClick={() => setTimePeriod('monthly')}
-                    className={`px-4 py-2 text-sm font-medium rounded-lg ${timePeriod === 'monthly' ? 'bg-primary text-white shadow' : 'bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200'}`}
-                >
-                    Este Mes
-                </button>
-                <button 
-                    onClick={() => setTimePeriod('annual')}
-                    className={`px-4 py-2 text-sm font-medium rounded-lg ${timePeriod === 'annual' ? 'bg-primary text-white shadow' : 'bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200'}`}
-                >
-                    Este Año
-                </button>
-            </div>
-
-            {/* Stat Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                <StatCard 
-                    title={`Ingresos (${timePeriod === 'monthly' ? 'Mes Actual' : 'Año Actual'})`} 
-                    value={totalIncome} 
-                    subtext={`${incomeTransactions} transacciones`} 
-                    type="income" 
-                />
-                <StatCard 
-                    title={`Gastos (${timePeriod === 'monthly' ? 'Mes Actual' : 'Año Actual'})`} 
-                    value={totalExpenses} 
-                    subtext={`${expenseTransactions} transacciones`} 
-                    type="expense" 
-                />
-                <StatCard 
-                    title={`Balance Neto (${timePeriod === 'monthly' ? 'Mes Actual' : 'Año Actual'})`} 
-                    value={netProfit} 
-                    subtext="Ingresos - Gastos" 
-                    type="netProfit" 
-                />
-            </div>
-
-            {/* Charts and Lists */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
-                <div className="md:col-span-2 lg:col-span-2 h-80 md:h-[450px]">
-                    <CashFlowChart income={income} expenses={expenses} />
-                </div>
-                <div className="space-y-6">
-                     <div className="p-6 bg-white dark:bg-gray-800 rounded-2xl shadow-lg">
-                        <h3 className="text-lg font-semibold text-[#111418] dark:text-white">Inventario Bajo</h3>
-                        {lowStockItems.length > 0 ? (
-                            <ul className="mt-4 space-y-3">
-                                {lowStockItems.map(item => (
-                                    <li key={item.id} className="flex justify-between items-center text-sm">
-                                        <span className="font-medium text-gray-700 dark:text-gray-300">{item.name}</span>
-                                        <span className="font-bold text-red-500">{item.stock} restantes</span>
-                                    </li>
-                                ))}
-                            </ul>
-                        ) : (
-                            <p className="mt-4 text-sm text-gray-500 dark:text-gray-400">No hay productos con inventario bajo.</p>
-                        )}
+            <div className="flex flex-wrap justify-between items-center mb-6 gap-4">
+                <h1 className="text-3xl font-bold text-dark dark:text-white">
+                    {viewMode === 'consolidated' ? 'Reporte Consolidado (Red)' : 'Resumen General'}
+                </h1>
+                
+                {isAdmin && (
+                    <div className="bg-gray-100 dark:bg-gray-700 p-1 rounded-lg flex items-center">
+                        <button
+                            onClick={() => setViewMode('local')}
+                            className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${
+                                viewMode === 'local' 
+                                ? 'bg-white dark:bg-gray-600 shadow text-primary dark:text-white' 
+                                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900'
+                            }`}
+                        >
+                            Vista Local
+                        </button>
+                        <button
+                            onClick={() => setViewMode('consolidated')}
+                            className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${
+                                viewMode === 'consolidated' 
+                                ? 'bg-white dark:bg-gray-600 shadow text-primary dark:text-white' 
+                                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900'
+                            }`}
+                        >
+                            Vista Consolidada
+                        </button>
                     </div>
-                    <NotificationCenter overlayOnDesktop={true} />
-                </div>
-                 <div className="md:col-span-2 lg:col-span-3">
-                    <ExpensePieChart expenses={expenses} />
-                 </div>
+                )}
             </div>
+            
+            {viewMode === 'consolidated' ? (
+                <ConsolidatedReports />
+            ) : (
+                <>
+                    <div className="flex justify-start md:justify-end mb-4 gap-2">
+                        <button 
+                            onClick={() => setTimePeriod('monthly')}
+                            className={`px-4 py-2 text-sm font-medium rounded-lg ${timePeriod === 'monthly' ? 'bg-primary text-white shadow' : 'bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200'}`}
+                        >
+                            Este Mes
+                        </button>
+                        <button 
+                            onClick={() => setTimePeriod('annual')}
+                            className={`px-4 py-2 text-sm font-medium rounded-lg ${timePeriod === 'annual' ? 'bg-primary text-white shadow' : 'bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200'}`}
+                        >
+                            Este Año
+                        </button>
+                    </div>
 
-            {/* New Section for Sales Analysis */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
-                <div className="md:col-span-2 lg:col-span-2">
-                    <SalesByChannelChart dailySalesRecords={dailySalesRecords} />
-                </div>
-                <div className="md:col-span-1 lg:col-span-1">
-                    <TopSellingProducts dailySalesRecords={dailySalesRecords} />
-                </div>
-            </div>
+                    {/* Stat Cards */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <StatCard 
+                            title={`Ingresos (${timePeriod === 'monthly' ? 'Mes Actual' : 'Año Actual'})`} 
+                            value={totalIncome} 
+                            subtext={`${incomeTransactions} transacciones`} 
+                            type="income" 
+                        />
+                        <StatCard 
+                            title={`Gastos (${timePeriod === 'monthly' ? 'Mes Actual' : 'Año Actual'})`} 
+                            value={totalExpenses} 
+                            subtext={`${expenseTransactions} transacciones`} 
+                            type="expense" 
+                        />
+                        <StatCard 
+                            title={`Balance Neto (${timePeriod === 'monthly' ? 'Mes Actual' : 'Año Actual'})`} 
+                            value={netProfit} 
+                            subtext="Ingresos - Gastos" 
+                            type="netProfit" 
+                        />
+                    </div>
+
+                    {/* Charts and Lists */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
+                        <div className="md:col-span-2 lg:col-span-2 h-80 md:h-[450px]">
+                            <CashFlowChart income={income} expenses={expenses} />
+                        </div>
+                        <div className="space-y-6">
+                            <div className="p-6 bg-white dark:bg-gray-800 rounded-2xl shadow-lg">
+                                <h3 className="text-lg font-semibold text-[#111418] dark:text-white">Inventario Bajo</h3>
+                                {lowStockItems.length > 0 ? (
+                                    <ul className="mt-4 space-y-3">
+                                        {lowStockItems.map(item => (
+                                            <li key={item.id} className="flex justify-between items-center text-sm">
+                                                <span className="font-medium text-gray-700 dark:text-gray-300">{item.name}</span>
+                                                <span className="font-bold text-red-500">{item.stock} restantes</span>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                ) : (
+                                    <p className="mt-4 text-sm text-gray-500 dark:text-gray-400">No hay productos con inventario bajo.</p>
+                                )}
+                            </div>
+                            <NotificationCenter overlayOnDesktop={true} />
+                        </div>
+                        <div className="md:col-span-2 lg:col-span-3">
+                            <ExpensePieChart expenses={expenses} />
+                        </div>
+                    </div>
+
+                    {/* New Section for Sales Analysis */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
+                        <div className="md:col-span-2 lg:col-span-2">
+                            <SalesByChannelChart dailySalesRecords={dailySalesRecords} />
+                        </div>
+                        <div className="md:col-span-1 lg:col-span-1">
+                            <TopSellingProducts dailySalesRecords={dailySalesRecords} />
+                        </div>
+                    </div>
+                </>
+            )}
         </div>
     );
 }

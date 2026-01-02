@@ -2,11 +2,13 @@ import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import { useClient } from '../pages/Client/context/ClientContext'; // Import useClient
 
 const ClientOrderHeader = ({ primaryLink, showOrderSelectionButton }) => {
   const navigate = useNavigate();
-  const { logout, user, isAuthenticated } = useAuth(); // Destructure isAuthenticated
+  const { logout, user, isAuthenticated } = useAuth(); 
   const { theme, toggleTheme } = useTheme();
+  const { selectedStore, loadingLocation } = useClient(); // Use client context
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
 
   const linkToShow = primaryLink || { to: '/mis-pedidos', label: 'Mis pedidos' };
@@ -23,13 +25,26 @@ const ClientOrderHeader = ({ primaryLink, showOrderSelectionButton }) => {
           <img src="/img/logos/darmax-logo.png" alt="Darmax Logo" className="h-full w-auto object-contain" />
         </div>
 
-        <div className="flex flex-col">
+        <div className="flex flex-col items-start">
           <span className="hidden sm:block text-xs font-semibold text-text-secondary dark:text-white/60">
             Sistema de pedidos
           </span>
-          <h2 className="text-lg sm:text-xl font-bold tracking-[-0.02em]">
+          <h2 className="text-lg sm:text-xl font-bold tracking-[-0.02em] leading-tight">
             Darmax Agua
           </h2>
+          {/* Store Indicator */}
+          <div className="flex items-center gap-1 mt-0.5">
+            {loadingLocation ? (
+                <span className="text-[10px] sm:text-xs text-gray-400 animate-pulse">Ubicando sucursal...</span>
+            ) : selectedStore ? (
+                <span className="bg-primary/10 text-primary px-1.5 py-0.5 rounded text-[10px] sm:text-xs font-medium flex items-center gap-1">
+                    <span className="material-symbols-outlined text-[10px] sm:text-xs">store</span>
+                    <span className="truncate max-w-[100px] sm:max-w-none">{selectedStore.name}</span>
+                </span>
+            ) : (
+                <span className="text-[10px] sm:text-xs text-gray-400">Sin sucursal cercana</span>
+            )}
+          </div>
         </div>
       </Link>
 

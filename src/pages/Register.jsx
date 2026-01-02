@@ -4,6 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 import MainLayout from "../layouts/MainLayout";
 import axios from "axios";
 import Button from "../components/common/Button";
+import Swal from 'sweetalert2'; // Import SweetAlert2
 
 const Register = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -106,24 +107,51 @@ const Register = () => {
     }
 
           try {
+            // Si el usuario ya existe, actualizamos su registro (completar perfil)
+            if (existingUserFound) {
+                if (!existingUserData || !existingUserData.id) {
+                    setRegistrationError("Error interno: No se pudo identificar al usuario para actualizar.");
+                    return;
+                }
+
+                // Usamos el endpoint especial para completar registro sin token
+                const updateResponse = await axios.post(`/api/complete-registration`, {
+                    userId: existingUserData.id,
+                    name: formData.name,
+                    email: formData.email,
+                    password: formData.password, 
+                });
+
+                console.log("Registro completado:", updateResponse.data);
+                Swal.fire({
+                    title: '¡Éxito!',
+                    text: 'Registro completado con éxito. Ahora puedes iniciar sesión.',
+                    icon: 'success',
+                    confirmButtonColor: '#3085d6',
+                    confirmButtonText: 'Ir al Login'
+                });
+                navigate("/login");
+                return;
+            }
+
+            // Si es un usuario totalmente nuevo, usamos POST
             const dataToSend = {
               name: formData.name,
               email: formData.email,
               password: formData.password,
-              role: "CLIENTE", // Always register as CLIENTE
-              // For new registrations, phone and address fields are not sent.
-              // The backend will handle their default to null if not provided.
+              role: "CLIENTE",
             };
-    
-            if (existingUserFound) {
-              setRegistrationError("Ya existe un usuario con este identificador. Por favor, inicia sesión o recupera tu contraseña.");
-              return;
-            }
     
             const response = await axios.post("/api/users", dataToSend);
             console.log("Registro exitoso:", response.data);
-            alert("¡Registro exitoso! Ahora puedes iniciar sesión.");
-            navigate("/login"); // Redirect to login page
+            Swal.fire({
+                title: '¡Bienvenido!',
+                text: 'Registro exitoso. Ahora puedes iniciar sesión.',
+                icon: 'success',
+                confirmButtonColor: '#3085d6',
+                confirmButtonText: 'Ir al Login'
+            });
+            navigate("/login"); 
           } catch (error) {      console.error("Error en el registro:", error);
       if (error.response && error.response.data && error.response.data.message) {
         setRegistrationError(error.response.data.message);
@@ -284,7 +312,7 @@ const Register = () => {
                       <input
                         type="text"
                         name="name"
-                        value={formData.name}
+                        value={formData.name || ""}
                         onChange={handleChange}
                         placeholder="Introduce tu nombre completo"
                         className="h-12 w-full rounded-lg border border-light bg-white px-3 text-base text-dark
@@ -292,7 +320,7 @@ const Register = () => {
                                    focus:border-primary focus:outline-0 focus:ring-2 focus:ring-primary/20
                                    dark:border-white/10 dark:bg-dark dark:text-white dark:placeholder:text-white/50"
                         required
-                        readOnly={!!existingUserData} // Read-only if existing user data is loaded
+                        readOnly={!!existingUserData && !!existingUserData.name} // Only read-only if name is already present
                       />
                     </label>
 
@@ -304,7 +332,7 @@ const Register = () => {
                       <input
                         type="email"
                         name="email"
-                        value={formData.email}
+                        value={formData.email || ""}
                         onChange={handleChange}
                         placeholder="tu@correo.com"
                         className="h-12 w-full rounded-lg border border-light bg-white px-3 text-base text-dark
@@ -312,7 +340,7 @@ const Register = () => {
                                    focus:border-primary focus:outline-0 focus:ring-2 focus:ring-primary/20
                                    dark:border-white/10 dark:bg-dark dark:text-white dark:placeholder:text-white/50"
                         required
-                        readOnly={!!existingUserData} // Make email read-only if existing user data is loaded
+                        readOnly={!!existingUserData && !!existingUserData.email} // Only read-only if email is already present
                       />
                     </label>
 
