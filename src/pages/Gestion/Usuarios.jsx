@@ -389,16 +389,17 @@ const ManageClients = ({ selectedStoreFilter }) => {
                   <th className="th-style">Email</th>
                   <th className="th-style">Teléfono</th>
                   <th className="th-style">Sucursal</th>
+                  <th className="th-style text-center">Puntos</th>
                   <th className="th-style text-right">Acciones</th>
                 </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                 {loading ? (
-                <tr><td colSpan="6" className="p-6 text-center text-gray-500">Cargando clientes...</td></tr>
+                <tr><td colSpan="7" className="p-6 text-center text-gray-500">Cargando clientes...</td></tr>
                 ) : error ? (
-                <tr><td colSpan="6" className="p-6 text-center text-red-500">Error: {error}</td></tr>
+                <tr><td colSpan="7" className="p-6 text-center text-red-500">Error: {error}</td></tr>
                 ) : clientUsers.length === 0 ? (
-                <tr><td colSpan="6" className="p-6 text-center text-gray-500">No hay clientes registrados que coincidan con el filtro.</td></tr>
+                <tr><td colSpan="7" className="p-6 text-center text-gray-500">No hay clientes registrados que coincidan con el filtro.</td></tr>
                 ) : (
                 clientUsers.map((user) => (
                     <tr key={user.id}>
@@ -407,6 +408,7 @@ const ManageClients = ({ selectedStoreFilter }) => {
                     <td className="td-style">{user.email || "N/A"}</td>
                     <td className="td-style">{user.phone || "N/A"}</td>
                     <td className="td-style">{getStoreName(user.storeId)}</td>
+                    <td className="td-style text-center font-bold text-primary">{user.loyaltyPoints || 0}</td>
                     <td className="td-style text-right">
                         <div className="flex flex-col sm:flex-row gap-2 justify-end">
                             <button onClick={() => handleOpenModal(user)} className="text-primary hover:text-primary/90 font-medium">Editar</button>

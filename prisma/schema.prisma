@@ -173,8 +173,25 @@ model User {
   store              Store?            @relation(fields: [storeId], references: [id])
   storeId            String?
 
+  // Puntos de Fidelidad
+  loyaltyPoints      Int               @default(0)
+  loyaltyTransactions LoyaltyTransaction[]
+
   // Relación inversa para pedidos asignados como repartidor
   pedidosReparto     Pedido[]          @relation("RepartidorPedidos")
+}
+
+// Historial de puntos de fidelidad
+model LoyaltyTransaction {
+  id          String   @id @default(cuid())
+  amount      Int      // Positivo (ganado) o negativo (gastado)
+  type        String   // EARNED, REDEEMED, ADJUSTMENT
+  description String?
+  orderId     String?  // Opcional: ID del pedido relacionado
+  createdAt   DateTime @default(now())
+  
+  user        User     @relation(fields: [userId], references: [id])
+  userId      String
 }
 
 // Renombrado de "Producto" a "Product" para seguir convenciones.

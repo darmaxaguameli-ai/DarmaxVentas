@@ -7,6 +7,7 @@ import CustomerModal from "./CustomerModal";
 import PaymentModal from "./PaymentModal";
 import DeliveryModal from "./DeliveryModal";
 import Swal from 'sweetalert2';
+import { createOrder, createUser } from '../../api/apiClient';
 
 const NewOrderFlow = ({ onExit }) => {
     // Re-introduce states from the old VentaMostrador for new order creation
@@ -58,16 +59,84 @@ const NewOrderFlow = ({ onExit }) => {
         setIsDeliveryModalOpen(false); // Close modal after saving delivery info
     };
 
-    const handlePaymentConfirm = (paymentData) => {
-        // TODO: This is where the actual API call to create the order will go
-        console.log("Creating new order from seller:", { orderItems, customer, deliveryInfo, total, paymentData });
-        Swal.fire('Pedido Creado', `Pedido para ${customer?.name || 'Cliente sin nombre'} registrado.`, 'success');
-        // Reset state and go back to dashboard
-        setOrderItems([]);
-        setCustomer(null);
-        setDeliveryInfo({ method: 'domicilio', collectEmptyJugs: false, deliveryDetails: null });
-        setIsPaymentModalOpen(false);
-        onExit(); // Go back to the dashboard view
+    const handlePaymentConfirm = async (paymentData) => {
+        try {
+            Swal.fire({
+                title: 'Procesando Pedido...',
+                text: 'Por favor espere.',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            // 1. Resolve Customer ID
+            let finalCustomerId = customer?.id;
+
+            // If customer is marked as new (from CustomerModal) or we have delivery details but no ID
+            if ((customer?.isNew || !finalCustomerId) && deliveryInfo.deliveryDetails?.name) {
+                try {
+                    // Create the user first
+                    const newUserData = {
+                        name: deliveryInfo.deliveryDetails.name,
+                        phone: deliveryInfo.deliveryDetails.phone || customer?.phone || '',
+                        street: deliveryInfo.deliveryDetails.address || '',
+                        neighborhood: '', // Simplified for now
+                        references: deliveryInfo.deliveryDetails.references || '',
+                        // Role will be forced to CLIENTE by backend
+                    };
+                    
+                    // Only create if we have at least a name
+                    if (newUserData.name) {
+                        const createdUser = await createUser(newUserData);
+                        finalCustomerId = createdUser.id;
+                    }
+                } catch (err) {
+                    console.error("Error creating new user:", err);
+                    // Continue? We might fail if delivery requires user.
+                    // But backend allows guest (null id).
+                    // If it's delivery, we really want the address saved on the user or at least accessible.
+                    // For now, if creation fails, we might proceed as guest or throw.
+                    // Let's throw to warn the seller.
+                    throw new Error("No se pudo registrar el nuevo cliente. Verifique los datos (teléfono duplicado?).");
+                }
+            }
+
+            // 2. Construct Payload
+            const orderPayload = {
+                clienteId: finalCustomerId || null,
+                items: orderItems.map(item => ({
+                    quantity: item.quantity,
+                    price: item.price,
+                    servicePriceId: item.servicePriceId || undefined,
+                    productId: item.productId || item.id, // Fallback to id
+                    jugBrandId: item.jugBrandId || undefined,
+                    jugBrandName: item.jugBrandName || undefined,
+                    jugBrandImageUrl: item.jugBrandImageUrl || undefined
+                })),
+                total: total,
+                deliveryMethod: deliveryInfo.method === 'domicilio' ? 'delivery' : 'pickup',
+                paymentMethod: paymentData.method === 'cash' ? 'Efectivo' : 'Tarjeta',
+                paymentStatus: 'PAGADO', // POS assumes immediate payment or commitment
+            };
+
+            // 3. Call API
+            await createOrder(orderPayload);
+
+            // 4. Success
+            Swal.fire('Pedido Creado', `Pedido registrado exitosamente.`, 'success');
+            
+            // Reset state and go back to dashboard
+            setOrderItems([]);
+            setCustomer(null);
+            setDeliveryInfo({ method: 'domicilio', collectEmptyJugs: false, deliveryDetails: null });
+            setIsPaymentModalOpen(false);
+            onExit(); // Go back to the dashboard view
+
+        } catch (error) {
+            console.error("Error creating order:", error);
+            Swal.fire('Error', 'No se pudo crear el pedido: ' + error.message, 'error');
+        }
     };
 
     const getTabClassName = (tabName) => `px-4 sm:px-6 py-3 font-semibold rounded-t-md transition-colors text-sm sm:text-base focus:outline-none ${activeTab === tabName ? 'bg-white dark:bg-gray-800 text-primary' : 'bg-transparent text-gray-500 hover:text-primary dark:hover:text-gray-300'}`;

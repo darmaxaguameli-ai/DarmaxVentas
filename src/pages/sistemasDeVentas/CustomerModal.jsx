@@ -1,24 +1,36 @@
 import { useState, useEffect } from 'react';
+import { checkUser } from '../../api/apiClient';
+import Swal from 'sweetalert2';
 
 const CustomerModal = ({ isOpen, onClose, onCustomerAdd }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [foundCustomer, setFoundCustomer] = useState(null);
   const [searched, setSearched] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const handleSearch = () => {
+  const handleSearch = async () => {
     if (!searchTerm) return;
-    // Mock search logic
-    if (searchTerm === '5512345678') {
-      setFoundCustomer({
-        id: 'CL-1023',
-        name: 'Juan Pérez',
-        phone: '5512345678',
-        address: 'Av. Siempre Viva 742, Springfield',
-      });
-    } else {
-      setFoundCustomer(null);
+    setLoading(true);
+    setFoundCustomer(null);
+    setSearched(false);
+
+    try {
+        // Try searching by phone first
+        const user = await checkUser(searchTerm, 'phone');
+        setFoundCustomer(user);
+    } catch (error) {
+        // If not found by phone, try by customId
+        try {
+             const userById = await checkUser(searchTerm, 'customId');
+             setFoundCustomer(userById);
+        } catch (err) {
+             // Not found in either
+             console.log("User not found");
+        }
+    } finally {
+        setLoading(false);
+        setSearched(true);
     }
-    setSearched(true);
   };
   
   useEffect(() => {
@@ -35,7 +47,12 @@ const CustomerModal = ({ isOpen, onClose, onCustomerAdd }) => {
   };
   
   const handleAddNewCustomer = () => {
-    onCustomerAdd({ phone: searchTerm, name: `Cliente ${searchTerm.slice(-4)}` });
+    // Pass a temporary object. The parent component (NewOrderFlow) must handle creation.
+    onCustomerAdd({ 
+        phone: searchTerm, 
+        name: '', // Empty name to prompt user later or default
+        isNew: true // Flag to indicate this needs to be created
+    });
     onClose();
   };
 
@@ -73,8 +90,15 @@ const CustomerModal = ({ isOpen, onClose, onCustomerAdd }) => {
                     className="w-full p-3 rounded-lg bg-gray-100 dark:bg-gray-700 border-2 border-transparent focus:border-primary focus:ring-0 transition"
                     placeholder="Teléfono o ID de Cliente"
                     autoFocus
+                    disabled={loading}
                 />
-                <button onClick={handleSearch} className="px-6 py-3 font-semibold text-white bg-primary rounded-lg hover:bg-primary-dark transition-colors">Buscar</button>
+                <button 
+                    onClick={handleSearch} 
+                    disabled={loading}
+                    className="px-6 py-3 font-semibold text-white bg-primary rounded-lg hover:bg-primary-dark transition-colors disabled:opacity-50"
+                >
+                    {loading ? '...' : 'Buscar'}
+                </button>
             </div>
 
             {searched && (
@@ -84,7 +108,7 @@ const CustomerModal = ({ isOpen, onClose, onCustomerAdd }) => {
                             <h3 className="font-bold text-green-800 dark:text-green-200 mb-2">Cliente Encontrado</h3>
                             <p className="font-semibold text-lg">{foundCustomer.name}</p>
                             <p className="text-sm text-gray-600 dark:text-gray-400">{foundCustomer.phone}</p>
-                            <p className="text-sm text-gray-600 dark:text-gray-400">{foundCustomer.address}</p>
+                            <p className="text-sm text-gray-600 dark:text-gray-400">{foundCustomer.street} {foundCustomer.neighborhood}</p>
                             <button onClick={handleAddCustomer} className="mt-4 w-full px-4 py-3 text-sm font-bold text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors">Agregar al Pedido</button>
                         </div>
                     ) : (

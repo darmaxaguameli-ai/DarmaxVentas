@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import ClientOrderHeader from '../../components/ClientOrderHeader';
 import { useAuth } from '../../context/AuthContext';
@@ -8,6 +8,7 @@ const ClientProfile = () => {
   const { user, isAuthenticated, loading: authLoading, updateUser: updateAuthUser, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const lastFetchedCp = useRef(null);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -62,7 +63,16 @@ const ClientProfile = () => {
             city: userData.city || '', // Keep city for legacy/display if needed
             postalCode: userData.postalCode || '',
             references: userData.references || '',
+            // Loyalty Data
+            loyaltyPoints: userData.loyaltyPoints || 0,
+            loyaltyTransactions: userData.loyaltyTransactions || []
           });
+          
+          // Prevent API fetch on initial load if CP exists
+          if (userData.postalCode) {
+              lastFetchedCp.current = userData.postalCode;
+          }
+
         } catch (err) {
           console.error('Error fetching user profile:', err);
           setError('No se pudo cargar el perfil del usuario.');
@@ -77,9 +87,17 @@ const ClientProfile = () => {
   // DIPOMEX API Integration
   useEffect(() => {
     if (formData.postalCode && formData.postalCode.length === 5) {
+      // Skip if we just loaded this CP from DB or already fetched it
+      if (lastFetchedCp.current === formData.postalCode) {
+          return;
+      }
+
       setPostalCodeApiLoading(true);
       setPostalCodeApiError('');
       setColonias([]);
+      
+      // Update ref to prevent re-fetching same code
+      lastFetchedCp.current = formData.postalCode;
 
       const loadPostalData = async () => {
         try {
@@ -131,6 +149,10 @@ const ClientProfile = () => {
 
     try {
       const dataToUpdate = { ...formData };
+      // Remove loyalty data from update payload as it's read-only here
+      delete dataToUpdate.loyaltyPoints;
+      delete dataToUpdate.loyaltyTransactions;
+
       Object.keys(dataToUpdate).forEach(key => {
         if (dataToUpdate[key] === '') dataToUpdate[key] = null;
       });
@@ -165,6 +187,33 @@ const ClientProfile = () => {
         {error && <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-6">{error}</div>}
         {postalCodeApiError && <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-6">{postalCodeApiError}</div>}
         
+        {/* Loyalty Points Section */}
+        <section className="mb-8 p-6 bg-gradient-to-r from-primary/10 to-transparent rounded-xl border border-primary/20">
+            <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-primary flex items-center gap-2">
+                    <span className="material-symbols-outlined">loyalty</span> Puntos de Fidelidad
+                </h2>
+                <div className="text-right">
+                    <p className="text-sm text-text-secondary dark:text-white/70">Saldo actual</p>
+                    <p className="text-3xl font-black text-dark dark:text-white">{formData.loyaltyPoints} pts</p>
+                </div>
+            </div>
+            {formData.loyaltyTransactions && formData.loyaltyTransactions.length > 0 ? (
+                <div className="space-y-2 max-h-40 overflow-y-auto pr-2">
+                    {formData.loyaltyTransactions.map(tx => (
+                        <div key={tx.id} className="flex justify-between items-center text-sm p-2 bg-white/50 dark:bg-black/20 rounded">
+                            <span className="text-text-secondary dark:text-white/80">{tx.description}</span>
+                            <span className={`font-bold ${tx.amount > 0 ? 'text-green-600' : 'text-red-500'}`}>
+                                {tx.amount > 0 ? '+' : ''}{tx.amount}
+                            </span>
+                        </div>
+                    ))}
+                </div>
+            ) : (
+                <p className="text-sm text-text-secondary dark:text-white/60 italic">Aún no tienes movimientos de puntos.</p>
+            )}
+        </section>
+
         <form onSubmit={handleSubmit} className="space-y-8">
           <section className="space-y-4">
             <h2 className="text-lg font-bold text-primary flex items-center gap-2 border-b pb-2 dark:border-gray-700">

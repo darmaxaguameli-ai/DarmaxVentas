@@ -1393,6 +1393,46 @@ app.get('/api/users', verifyToken, async (req, res) => {
 app.post('/api/users', async (req, res) => {
   try {
     const data = req.body;
+    
+    // --- ROLE & AUTH CONFIGURATION ---
+    let finalRole = 'CLIENTE';
+    let finalStoreId = null;
+    const requestedRole = data.role || 'CLIENTE';
+
+    // If attempting to create a non-CLIENT user (Admin, Vendedor, Repartidor), verify permissions
+    if (requestedRole !== 'CLIENTE') {
+        const authHeader = req.headers['authorization'];
+        let isAdmin = false;
+
+        if (authHeader) {
+            const token = authHeader.split(' ')[1];
+            if (token) {
+                try {
+                    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+                    if (decoded.role === 'ADMIN') {
+                        isAdmin = true;
+                    }
+                } catch (err) {
+                    console.warn("Token verification failed during privileged user creation:", err.message);
+                }
+            }
+        }
+
+        if (!isAdmin) {
+            return res.status(403).json({ 
+                error: 'Permisos insuficientes.', 
+                message: 'Solo los administradores pueden crear usuarios con roles especiales (Vendedor, Repartidor, Admin).' 
+            });
+        }
+
+        // If authorized, grant the requested role and store
+        finalRole = requestedRole;
+        finalStoreId = data.storeId || null;
+    } else {
+        // For CLIENTE, force role and ignore storeId (unless we want to allow assigning clients to stores later, but for now safe default)
+        finalRole = 'CLIENTE';
+        finalStoreId = null; 
+    }
 
     // Explicitly convert empty strings to null for optional fields
     const userData = {
@@ -1402,10 +1442,11 @@ app.post('/api/users', async (req, res) => {
       street: data.street === '' ? null : data.street,
       neighborhood: data.neighborhood === '' ? null : data.neighborhood,
       city: data.city === '' ? null : data.city,
-      municipality: data.municipality === '' ? null : data.municipality, // Nuevo
-      state: data.state === '' ? null : data.state,                     // Nuevo
+      municipality: data.municipality === '' ? null : data.municipality,
+      state: data.state === '' ? null : data.state,
       postalCode: data.postalCode === '' ? null : data.postalCode,
-      role: 'CLIENTE', // Security: Force role to 'CLIENTE' on the backend
+      role: finalRole,
+      storeId: finalStoreId
     };
 
     // Hash password if provided
@@ -1419,14 +1460,21 @@ app.post('/api/users', async (req, res) => {
     // ✅ GENERAR customId si no viene desde el front
     let customId = data.customId;
     if (!customId) {
-      const rolePrefix = 'CLI'; // Force 'CLI' prefix for clients
+      let rolePrefix = 'CLI';
+      switch (finalRole) {
+          case 'ADMIN': rolePrefix = 'ADM'; break;
+          case 'VENDEDOR': rolePrefix = 'VEN'; break;
+          case 'REPARTIDOR': rolePrefix = 'REP'; break;
+          default: rolePrefix = 'CLI';
+      }
+
       const random = String(Math.floor(Math.random() * 900) + 100); // 100–999
-      customId = `${rolePrefix}-${random}`; // ej: CLI-123
+      customId = `${rolePrefix}-${random}`; 
     }
 
     const newUser = await prisma.user.create({
       data: {
-        ...userData, // Use the cleaned userData with the forced role
+        ...userData,
         customId,
       },
     });
@@ -1491,10 +1539,16 @@ app.get('/api/users/:id', verifyToken, async (req, res) => {
   try {
     const user = await prisma.user.findUnique({
       where: { id },
+      include: {
+        loyaltyTransactions: {
+          orderBy: { createdAt: 'desc' },
+          take: 20 // Limit history for performance
+        }
+      }
     });
 
     if (!user) {
-      return res.status(404).json({ error: 'User not found.' });
+      return res.status(404).json({ error: 'User not found' });
     }
 
     // Exclude password from the response
@@ -1509,43 +1563,78 @@ app.get('/api/users/:id', verifyToken, async (req, res) => {
 
 app.put('/api/users/:id', verifyToken, async (req, res) => {
   const { id } = req.params;
+  const requesterRole = req.user.role;
+  const requesterIsAdmin = requesterRole === 'ADMIN';
+
   try {
     const data = req.body;
 
+    // 1. Fetch current user to check for role changes and existence
+    const currentUser = await prisma.user.findUnique({ where: { id } });
+    if (!currentUser) {
+        return res.status(404).json({ error: 'User not found' });
+    }
+
     // Explicitly convert empty strings to null for optional fields
+    // We map EACH field manually to ensure nothing is missed
     const updateData = {
-      name: data.name, // Name might be updated
+      name: data.name,
       email: data.email === '' ? null : data.email,
-            phone: data.phone === '' ? null : data.phone,
+      phone: data.phone === '' ? null : data.phone,
       street: data.street === '' ? null : data.street,
       neighborhood: data.neighborhood === '' ? null : data.neighborhood,
       city: data.city === '' ? null : data.city,
-      municipality: data.municipality === '' ? null : data.municipality, // Nuevo
-      state: data.state === '' ? null : data.state,                     // Nuevo
+      municipality: data.municipality === '' ? null : data.municipality,
+      state: data.state === '' ? null : data.state,
       postalCode: data.postalCode === '' ? null : data.postalCode,
-      references: data.references === '' ? null : data.references, // New field to handle
-      role: data.role, // Role might be updated, but usually not by client
-      storeId: data.storeId // Allow updating store
+      references: data.references === '' ? null : data.references,
+      // Handle storeId: Allow if Admin OR if user is updating their own profile (e.g. changing preference)
+      storeId: (requesterIsAdmin || id === req.user.id) && data.storeId !== undefined 
+          ? (data.storeId === '' ? null : data.storeId) 
+          : undefined
     };
 
-    // Remove undefined values to avoid updating fields not present in the request body
-    Object.keys(updateData).forEach(key => updateData[key] === undefined && delete updateData[key]);
+    // 2. Role Change Logic (Admin only)
+    if (requesterIsAdmin && data.role && data.role !== currentUser.role) {
+        updateData.role = data.role;
+        
+        // Regenerate customId with new prefix
+        let rolePrefix = 'CLI';
+        switch (data.role) {
+            case 'ADMIN': rolePrefix = 'ADM'; break;
+            case 'VENDEDOR': rolePrefix = 'VEN'; break;
+            case 'REPARTIDOR': rolePrefix = 'REP'; break;
+            default: rolePrefix = 'CLI';
+        }
+        
+        const random = String(Math.floor(Math.random() * 900) + 100);
+        updateData.customId = `${rolePrefix}-${random}`;
+    }
 
-    // Prevent critical fields from being updated via this general endpoint
-    delete updateData.password;
-    delete updateData.role; // <-- SECURITY FIX: Do not allow role changes from this endpoint.
+    // Remove undefined values to ensure Prisma doesn't try to update fields that weren't sent
+    Object.keys(updateData).forEach(key => updateData[key] === undefined && delete updateData[key]);
 
     const updatedUser = await prisma.user.update({
       where: { id },
       data: updateData,
+      include: {
+        loyaltyTransactions: {
+            orderBy: { createdAt: 'desc' },
+            take: 5
+        }
+      }
     });
-    res.json(updatedUser);
+    
+    // Remove password from response
+    const { password, ...userWithoutPassword } = updatedUser;
+    res.json(userWithoutPassword);
+
   } catch (error) {
     console.error(`Error updating user ${id}:`, error);
     if (error.code === 'P2025') {
       return res.status(404).json({ error: 'User not found' });
     }
-    res.status(500).json({ error: 'Error updating user' });
+    res.status(500).json({ error: 'Error updating user', details: error.message });
   }
 });
 
@@ -1995,143 +2084,349 @@ app.post('/api/pedidos', async (req, res) => {
 });
 
 app.put('/api/pedidos/:id', verifyToken, async (req, res) => {
+
   const { id } = req.params;
+
   const { status, paymentMethod } = req.body; // paymentMethod might be sent for cash, or we fetch it from existing order
 
+
+
   if (!status) {
+
     return res.status(400).json({ error: 'El estado (status) es requerido.' });
+
   }
 
 
 
   // Validar que el status sea uno de los valores del enum PedidoStatus
+
   const VALID_PEDIDO_STATUS = ['PENDIENTE', 'EN_PROCESO', 'EN_RUTA', 'ENTREGADO', 'CANCELADO'];
+
   if (!VALID_PEDIDO_STATUS.includes(status)) {
+
     return res.status(400).json({ error: `Estado de pedido inválido. Valores permitidos: ${VALID_PEDIDO_STATUS.join(', ')}.` });
+
   }
+
+
 
   try {
+
     const updatedPedido = await prisma.$transaction(async (tx) => {
+
       // 1. Get the existing order to check current status and payment method
+
       const existingPedido = await tx.pedido.findUnique({
+
         where: { id },
+
         select: {
+
           status: true,
+
           paymentMethod: true,
+
           total: true,
+
           sesionCajaId: true,
+
           customId: true, // Need customId for transaction description
+
+          clienteId: true, // Need clienteId for loyalty points
+
         },
+
       });
+
+
 
       if (!existingPedido) {
+
         throw new Error('Pedido no encontrado.'); // Throw to rollback transaction
+
       }
+
       
+
       // Determine the actual payment method. Prioritize what's sent in body, then what's in DB.
+
       const actualPaymentMethod = paymentMethod || existingPedido.paymentMethod;
 
-      // 2. Update the order status
-      const pedido = await tx.pedido.update({
-        where: { id },
-        data: { status },
-        include: {
-          cliente: true,
-          items: {
-            include: {
-              product: true,
-              servicePrice: {
-                include: {
-                  waterType: true,
-                  jugBrands: true, // This was missing in my initial draft for new_string
-                },
-              },
-            },
-          },
-        },
-      });
 
-      // 3. If status is ENTREGADO and payment is Efectivo, record cash transaction
-      if (status === 'ENTREGADO' && actualPaymentMethod === 'Efectivo') {
-        // Ensure only a VENDEDOR, ADMIN, or REPARTIDOR can perform this action
-        if (req.user.role !== 'VENDEDOR' && req.user.role !== 'ADMIN' && req.user.role !== 'REPARTIDOR') {
-          throw new Error('Solo vendedores, administradores o repartidores pueden registrar ventas en caja.');
-        }
 
-        // Find active cash drawer session for the current user
-        let activeSession = await tx.sesionCaja.findFirst({
-          where: {
-            vendedorId: req.user.id,
-            estado: 'ABIERTA',
-          },
-        });
+      // 2. Prepare update data
 
-        if (!activeSession) {
-          throw new Error('No hay una sesión de caja abierta para registrar esta venta.');
-        }
+      const dataToUpdate = { status };
 
-        // Check if a transaction for this order already exists in this session
-        const existingTransaction = await tx.transaccionCaja.findFirst({
-          where: {
-            pedidoId: pedido.id,
-            sesionId: activeSession.id,
-            tipo: 'VENTA',
-          },
-        });
+      if (paymentMethod) {
 
-        if (existingTransaction) {
-          // If transaction already exists, just return the pedido, don't create duplicate
-          return pedido;
-        }
+        dataToUpdate.paymentMethod = paymentMethod;
 
-        // Create a new cash transaction
-        await tx.transaccionCaja.create({
-          data: {
-            tipo: 'VENTA',
-            amount: pedido.total,
-            description: `Venta de Pedido ${pedido.customId}`,
-            sesion: { connect: { id: activeSession.id } },
-            pedido: { connect: { id: pedido.id } },
-          },
-        });
-
-        // Also link the order to the session if it's not already
-        // This is done implicitly by connecting the transaction to the pedido,
-        // but explicit linking on the pedido itself is also good for queries.
-        if (!existingPedido.sesionCajaId) {
-          await tx.pedido.update({
-            where: { id: pedido.id },
-            data: {
-              sesionCaja: { connect: { id: activeSession.id } },
-            },
-          });
-        }
       }
 
+
+
+      // If status is ENTREGADO, mark as PAGADO automatically (unless it's credit, but simplifying for now)
+
+      if (status === 'ENTREGADO') {
+
+        dataToUpdate.paymentStatus = 'PAGADO';
+
+      }
+
+
+
+      // 3. Perform the update
+
+      const pedido = await tx.pedido.update({
+
+        where: { id },
+
+        data: dataToUpdate,
+
+        include: {
+
+          cliente: true,
+
+          items: {
+
+            include: {
+
+              product: true,
+
+              servicePrice: {
+
+                include: {
+
+                  waterType: true,
+
+                  jugBrands: true, 
+
+                },
+
+              },
+
+            },
+
+          },
+
+        },
+
+      });
+
+
+
+      // --- LOYALTY POINTS LOGIC ---
+
+      // If status changed to ENTREGADO and it wasn't before
+
+      if (status === 'ENTREGADO' && existingPedido.status !== 'ENTREGADO') {
+
+          const pointsEarned = Math.floor(existingPedido.total / 10);
+
+          if (pointsEarned > 0) {
+
+              // Award points to user
+
+              await tx.user.update({
+
+                  where: { id: existingPedido.clienteId },
+
+                  data: { loyaltyPoints: { increment: pointsEarned } }
+
+              });
+
+
+
+              // Log transaction
+
+              await tx.loyaltyTransaction.create({
+
+                  data: {
+
+                      amount: pointsEarned,
+
+                      type: 'EARNED',
+
+                      description: `Puntos por pedido ${existingPedido.customId}`,
+
+                      orderId: id,
+
+                      user: { connect: { id: existingPedido.clienteId } }
+
+                  }
+
+              });
+
+          }
+
+      }
+
+
+
+      // 4. If status is ENTREGADO and payment is Efectivo, record cash transaction
+
+      if (status === 'ENTREGADO' && actualPaymentMethod === 'Efectivo') {
+
+        // Ensure only a VENDEDOR, ADMIN, or REPARTIDOR can perform this action
+
+        if (req.user.role !== 'VENDEDOR' && req.user.role !== 'ADMIN' && req.user.role !== 'REPARTIDOR') {
+
+          throw new Error('Solo vendedores, administradores o repartidores pueden registrar ventas en caja.');
+
+        }
+
+
+
+        // Find active cash drawer session for the current user
+
+        let activeSession = await tx.sesionCaja.findFirst({
+
+          where: {
+
+            vendedorId: req.user.id,
+
+            estado: 'ABIERTA',
+
+          },
+
+        });
+
+
+
+        if (!activeSession) {
+
+          throw new Error('No hay una sesión de caja abierta para registrar esta venta.');
+
+        }
+
+
+
+        // Check if a transaction for this order already exists in this session
+
+        const existingTransaction = await tx.transaccionCaja.findFirst({
+
+          where: {
+
+            pedidoId: pedido.id,
+
+            sesionId: activeSession.id,
+
+            tipo: 'VENTA',
+
+          },
+
+        });
+
+
+
+        if (existingTransaction) {
+
+          // If transaction already exists, just return the pedido, don't create duplicate
+
+          return pedido;
+
+        }
+
+
+
+        // Create a new cash transaction
+
+        await tx.transaccionCaja.create({
+
+          data: {
+
+            tipo: 'VENTA',
+
+            amount: pedido.total,
+
+            description: `Venta de Pedido ${pedido.customId}`,
+
+            sesion: { connect: { id: activeSession.id } },
+
+            pedido: { connect: { id: pedido.id } },
+
+          },
+
+        });
+
+
+
+        // Also link the order to the session if it's not already
+
+        // This is done implicitly by connecting the transaction to the pedido,
+
+        // but explicit linking on the pedido itself is also good for queries.
+
+        if (!existingPedido.sesionCajaId) {
+
+          await tx.pedido.update({
+
+            where: { id: pedido.id },
+
+            data: {
+
+              sesionCaja: { connect: { id: activeSession.id } },
+
+            },
+
+          });
+
+        }
+
+      }
+
+
+
       return pedido;
+
     }, {
+
       maxWait: 10000, // Wait 10 seconds to get a connection
+
       timeout: 20000, // Allow 20 seconds for the transaction to complete
+
     });
 
+
+
     res.json(updatedPedido);
+
   } catch (error) {
+
     console.error(`Error updating order ${id}:`, error);
+
     // Use the error message from the thrown Error within the transaction for more specific feedback
+
     if (error.message.includes('Pedido no encontrado')) {
+
       return res.status(404).json({ error: error.message });
+
     }
+
     if (error.message.includes('sesión de caja abierta')) {
+
       return res.status(409).json({ error: error.message });
+
     }
+
     if (error.message.includes('registrar ventas en caja')) {
+
         return res.status(403).json({ error: error.message });
+
     }
+
     if (error.code === 'P2025') { // Prisma specific not found error
+
       return res.status(404).json({ error: 'Pedido no encontrado.' });
+
     }
+
     res.status(500).json({ error: 'Error al actualizar el pedido: ' + error.message });
+
   }
+
 });
 
 

@@ -77,6 +77,7 @@ export const fetchUsers = () => apiClient.get('/users').then(res => res.data);
 export const createUser = (userData) => apiClient.post('/users', userData).then(res => res.data);
 export const updateUser = (id, userData) => apiClient.put(`/users/${id}`, userData).then(res => res.data);
 export const deleteUser = (id) => apiClient.delete(`/users/${id}`).then(res => res.data);
+export const checkUser = (identifier, type) => apiClient.get('/users/check', { params: { identifier, type } }).then(res => res.data);
 
 // DAILY SALES RECORDS
 export const fetchDailySalesRecords = () => apiClient.get('/daily-sales-records').then(res => res.data);
