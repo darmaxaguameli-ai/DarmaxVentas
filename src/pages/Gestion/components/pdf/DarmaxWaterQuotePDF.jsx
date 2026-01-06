@@ -35,7 +35,7 @@ const styles = StyleSheet.create({
     objectFit: "fill", // Asegura que cubra toda la hoja carta
   },
   spacer: {                                                                                                    
-    height: 55, // Espacio extra solo para la primera hoja (100 + 80 = 180)                                       │
+    height: 40, // Espacio extra solo para la primera hoja (100 + 80 = 180)                                       │
   },
   titleContainer: {
     position: 'absolute',
