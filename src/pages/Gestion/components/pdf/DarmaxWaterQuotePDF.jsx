@@ -158,6 +158,10 @@ const styles = StyleSheet.create({
 });
 
 export default function CotizacionDarmaxAguaPDF({ data }) {
+  const extras = data?.extrasSeleccionados || [];
+  const extrasCount = extras.length;
+  const extrasLabel = extrasCount > 1 ? "Extras" : "Extra";
+
   const items = [
     { 
         key: "modelo", 
@@ -165,12 +169,13 @@ export default function CotizacionDarmaxAguaPDF({ data }) {
         value: data?.costos?.modeloNombre || "", 
         price: data?.costos?.modelo 
     },
-    { 
-        key: "tinaco", 
-        title: "Tinaco", 
-        value: data?.costos?.tinacoNombre || "", 
-        price: data?.costos?.tinaco 
-    },
+    // Añadir extras seleccionados dinámicamente
+    ...extras.map((ex, index) => ({
+        key: `extra-${ex.id}`,
+        title: index === 0 ? extrasLabel : "", // Título solo en el primero
+        value: ex.name,
+        price: ex.basePrice
+    })),
     { 
         key: "fleteTinacos", 
         title: "Flete (Tinacos)", 

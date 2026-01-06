@@ -36,30 +36,54 @@ export default function DarmaxQuote() {
     cliente: { nombre: "", telefono: "", correo: "", cp: "" },
     costos: { 
         modelo: 0, 
-        modeloNombre: "", // Nuevo campo
-        tinaco: 0, 
-        tinacoNombre: "", // Nuevo campo
+        modeloNombre: "", 
         fleteTinacos: 0, 
         viaticos: 0 
     },
+    extrasSeleccionados: [], 
     promo: { texto: "", costo: "", imagenUrl: "" },
-    firma: "", // Nuevo campo para la firma
+    firma: "",
   });
+
+  const [extrasDisponibles, setExtrasDisponibles] = useState([]);
+  const [loadingExtras, setLoadingExtras] = useState(false);
+
+  // Cargar catálogo completo de extras al montar el componente
+  useEffect(() => {
+    const fetchAllExtras = async () => {
+      setLoadingExtras(true);
+      try {
+        const response = await fetch('https://darmaxagua.com.mx/api/configurador/extras');
+        if (!response.ok) throw new Error('Error al cargar catálogo de extras');
+        const data = await response.json();
+        setExtrasDisponibles(data);
+      } catch (error) {
+        console.error("Error fetching extras catalog:", error);
+      } finally {
+        setLoadingExtras(false);
+      }
+    };
+    fetchAllExtras();
+  }, []);
 
   const data = useMemo(() => {
     const toNum = (v) => {
       const n = Number(String(v).replace(/[^\d.]/g, ""));
       return Number.isFinite(n) ? n : 0;
     };
+    
+    // Sumar extras al total (ahora usan basePrice directo del catálogo)
+    const totalExtras = form.extrasSeleccionados.reduce((acc, ex) => acc + (ex.basePrice || 0), 0);
+
     return {
       ...form,
       costos: {
         ...form.costos,
         modelo: toNum(form.costos.modelo),
-        tinaco: toNum(form.costos.tinaco),
         fleteTinacos: toNum(form.costos.fleteTinacos),
         viaticos: toNum(form.costos.viaticos),
       },
+      totalExtras,
       promo: {
         ...form.promo,
         costo: form.promo.costo === "" ? null : toNum(form.promo.costo),
@@ -73,7 +97,7 @@ export default function DarmaxQuote() {
   useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedData(data);
-    }, 800); // Espera 800ms después de dejar de escribir
+    }, 800); 
 
     return () => clearTimeout(handler);
   }, [data]);
@@ -155,14 +179,49 @@ export default function DarmaxQuote() {
                                 <InputGroup label="Costo del Modelo" value={form.costos.modelo} onChange={onChange("costos.modelo")} type="number" />
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <InputGroup label="Tipo de Tinaco" value={form.costos.tinacoNombre} onChange={onChange("costos.tinacoNombre")} placeholder="Ej. Tricapa 1100L" />
-                                <InputGroup label="Costo del Tinaco" value={form.costos.tinaco} onChange={onChange("costos.tinaco")} type="number" />
-                            </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <InputGroup label="Flete (Tinacos)" value={form.costos.fleteTinacos} onChange={onChange("costos.fleteTinacos")} type="number" />
                                 <InputGroup label="Viáticos Instalador (2 días)" value={form.costos.viaticos} onChange={onChange("costos.viaticos")} type="number" />
                             </div>
                         </div>
+                    </div>
+
+                    {/* Nueva Tarjeta: Equipamiento Extra */}
+                    <div className="bg-white dark:bg-gray-900 p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800">
+                        <SectionTitle>Equipamiento Extra</SectionTitle>
+                        {loadingExtras ? (
+                            <p className="text-xs text-gray-500 animate-pulse">Cargando catálogo...</p>
+                        ) : extrasDisponibles.length > 0 ? (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                {extrasDisponibles.map((extra) => (
+                                    <label key={extra.id} className="flex items-center gap-3 p-2 rounded-lg border border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition-colors group">
+                                        <input 
+                                            type="checkbox"
+                                            className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
+                                            checked={form.extrasSeleccionados.some(ex => ex.id === extra.id)}
+                                            onChange={(e) => {
+                                                const checked = e.target.checked;
+                                                setForm(prev => ({
+                                                    ...prev,
+                                                    extrasSeleccionados: checked 
+                                                        ? [...prev.extrasSeleccionados, extra]
+                                                        : prev.extrasSeleccionados.filter(ex => ex.id !== extra.id)
+                                                }));
+                                            }}
+                                        />
+                                        <div className="flex flex-col">
+                                            <span className="text-xs font-bold text-gray-700 dark:text-gray-300 group-hover:text-primary transition-colors">
+                                                {extra.name}
+                                            </span>
+                                            <span className="text-[10px] text-gray-500 dark:text-gray-400">
+                                                +${extra.basePrice}
+                                            </span>
+                                        </div>
+                                    </label>
+                                ))}
+                            </div>
+                        ) : (
+                            <p className="text-xs text-gray-400 italic">No hay extras disponibles en el catálogo.</p>
+                        )}
                     </div>
 
                     {/* Tarjeta: Promoción */}
