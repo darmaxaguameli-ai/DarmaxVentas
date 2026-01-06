@@ -1643,16 +1643,57 @@ app.put('/api/users/:id', verifyToken, async (req, res) => {
 app.delete('/api/users/:id', verifyToken, async (req, res) => {
   const { id } = req.params;
   try {
-    await prisma.user.delete({
-      where: { id },
+    await prisma.$transaction(async (tx) => {
+        // 1. Eliminar transacciones de fidelidad
+        await tx.loyaltyTransaction.deleteMany({
+            where: { userId: id }
+        });
+
+        // 2. Eliminar pedidos del cliente y sus dependencias
+        const userOrders = await tx.pedido.findMany({
+            where: { clienteId: id },
+            select: { id: true }
+        });
+        
+        const orderIds = userOrders.map(o => o.id);
+
+        if (orderIds.length > 0) {
+            await tx.pedidoItem.deleteMany({
+                where: { pedidoId: { in: orderIds } }
+            });
+            await tx.ingreso.deleteMany({
+                where: { pedidoId: { in: orderIds } }
+            });
+            await tx.transaccionCaja.deleteMany({
+                where: { pedidoId: { in: orderIds } }
+            });
+            await tx.pedido.deleteMany({
+                where: { id: { in: orderIds } }
+            });
+        }
+        
+        // 3. Desvincular de empleado si existe
+        const empleado = await tx.empleado.findUnique({ where: { userId: id } });
+        if (empleado) {
+             await tx.empleado.update({
+                 where: { id: empleado.id },
+                 data: { userId: null }
+             });
+        }
+
+        // 4. Eliminar el usuario
+        await tx.user.delete({
+            where: { id },
+        });
     });
+
     res.status(204).send();
   } catch (error) {
     console.error(`Error deleting user ${id}:`, error);
     if (error.code === 'P2025') {
       return res.status(404).json({ error: 'User not found' });
     }
-    res.status(500).json({ error: 'Error deleting user' });
+    res.status(500).json({ error: 'Error deleting user', details: error.message });
   }
 });
 

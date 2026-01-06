@@ -21,7 +21,7 @@ const styles = StyleSheet.create({
   page: {
     position: "relative",
     fontSize: 11,
-    paddingTop: 130,     // Aumentado para bajar el contenido y dejar más espacio al encabezado
+    paddingTop: 160,     // Aumentado para bajar todo el contenido
     paddingBottom: 80,
     paddingHorizontal: 48,
     fontFamily: "Helvetica",
@@ -35,28 +35,38 @@ const styles = StyleSheet.create({
     objectFit: "fill", // Asegura que cubra toda la hoja carta
   },
 
-  title: {
+  titleContainer: {
+    position: 'absolute',
+    top: 45, // Ajustar según necesidad para alinear con tu imagen
+    left: 160, // 48 (paddingH) + 110 (marginLeft anterior) aprox
+    textAlign: "left",
+  },
+  mainTitle: {
     fontSize: 18,
     fontWeight: 700,
-    textAlign: "center",
-    marginBottom: 14,
+    color: "#111",
+  },
+  subTitle: {
+    fontSize: 14, // Más pequeño que el título principal
+    fontWeight: 400,
+    color: "#444",
+    marginTop: 2,
   },
 
-  headerRow: { 
-    flexDirection: "row", 
-    justifyContent: "flex-end", 
-    marginBottom: 10 
+  dateContainer: {
+    position: 'absolute',
+    top: 125,
+    right: 50,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
+  labelRight: { fontSize: 10, color: "black", fontWeight: "bold", marginRight: 4 },
+  valueRight: { fontSize: 11, color: "black" },
 
   section: {
     marginTop: 10,
     paddingTop: 8,
   },
-
-  label: { fontSize: 10, color: "#111" },
-  value: { fontSize: 11, marginTop: 2 },
-  labelRight: { fontSize: 10, color: "#111", textAlign: "right" },
-  valueRight: { fontSize: 11, marginTop: 2, textAlign: "right" },
 
   grid2: {
     flexDirection: "row",
@@ -67,6 +77,8 @@ const styles = StyleSheet.create({
   gridItem: {
     width: "48%", // Casi la mitad para dejar espacio al gap
     marginBottom: 4,
+    flexDirection: "row",
+    alignItems: "center",
   },
 
   card: {
@@ -102,7 +114,7 @@ const styles = StyleSheet.create({
   totalLabel: { fontSize: 12, fontWeight: 700 },
   totalValue: { fontSize: 12, fontWeight: 700 },
 
-  promoWrap: { marginTop: 8, flexDirection: 'row', gap: 15 },
+  promoWrap: { flexDirection: 'row', gap: 15 },
   promoContent: { flex: 1 },
   promoImgBox: { 
     width: 150, 
@@ -123,7 +135,7 @@ const styles = StyleSheet.create({
   promoText: { fontSize: 10, marginTop: 4, lineHeight: 1.4, color: '#374151' },
 
   firmaWrap: { 
-    marginTop: 40, 
+    marginTop: 20, 
     alignItems: "center", 
     justifyContent: "center" 
   },
@@ -140,25 +152,33 @@ const styles = StyleSheet.create({
     textAlign: "center"
   },
 
-  validity: { marginTop: 20, fontSize: 9, color: "#444", textAlign: "center" },
+  validity: { marginTop: 10, fontSize: 9, color: "#444", textAlign: "center" },
 });
 
 export default function CotizacionDarmaxAguaPDF({ data }) {
   const items = [
     { 
         key: "modelo", 
-        label: data?.costos?.modeloNombre ? `Modelo: ${data.costos.modeloNombre}` : "Modelo", 
+        title: "Modelo", 
+        value: data?.costos?.modeloNombre || "", 
         price: data?.costos?.modelo 
     },
     { 
         key: "tinaco", 
-        label: data?.costos?.tinacoNombre ? `Tinaco: ${data.costos.tinacoNombre}` : "Tinaco", 
+        title: "Tinaco", 
+        value: data?.costos?.tinacoNombre || "", 
         price: data?.costos?.tinaco 
     },
-    { key: "fleteTinacos", label: "Flete (Tinacos)", price: data?.costos?.fleteTinacos },
+    { 
+        key: "fleteTinacos", 
+        title: "Flete (Tinacos)", 
+        value: "", 
+        price: data?.costos?.fleteTinacos 
+    },
     {
       key: "viaticos",
-      label: "Flete viáticos del instalador (se contemplan dos días)",
+      title: "Flete viáticos del instalador (se contemplan dos días)",
+      value: "",
       price: data?.costos?.viaticos,
     },
   ];
@@ -173,18 +193,19 @@ export default function CotizacionDarmaxAguaPDF({ data }) {
         {/* Fondo membretado */}
         <Image 
             style={styles.bg} 
-            src={window.location.origin + "/template/hoja-membretada.jpg"} 
+            src={window.location.origin + "/template/coti_mem.png"} 
             fixed 
         />
 
-        <Text style={styles.title}>Cotización Darmax Agua</Text>
-
-        {/* Encabezado con fecha a la derecha */}
-        <View style={styles.headerRow}>
-          <View>
+        {/* Fecha absoluta en la esquina superior derecha */}
+        <View style={styles.dateContainer}>
             <Text style={styles.labelRight}>Fecha:</Text>
             <Text style={styles.valueRight}>{data?.fecha || ""}</Text>
-          </View>
+        </View>
+
+        <View style={styles.titleContainer}>
+            <Text style={styles.mainTitle}>Cotización</Text>
+            <Text style={styles.subTitle}>Darmax Agua</Text>
         </View>
 
         {/* Datos del cliente */}
@@ -221,8 +242,11 @@ export default function CotizacionDarmaxAguaPDF({ data }) {
           </View>
 
           {items.map((it) => (
-            <View key={it.key} style={{ flexDirection: "row" }}>
-              <Text style={[styles.td, styles.cellConcepto]}>{it.label}</Text>
+            <View key={it.key} style={{ flexDirection: "row", alignItems: 'center' }}>
+              <View style={[styles.td, styles.cellConcepto, { flexDirection: 'row' }]}>
+                <Text style={{ fontWeight: 'bold' }}>{it.title}: </Text>
+                <Text>{it.value}</Text>
+              </View>
               <Text style={[styles.td, styles.cellPrecio]}>{money(it.price)}</Text>
             </View>
           ))}
@@ -270,12 +294,15 @@ export default function CotizacionDarmaxAguaPDF({ data }) {
 
         {/* Firma Centrada */}
         <View style={styles.firmaWrap}>
+          {data?.firma && (
+            <Image src={data.firma} style={{ width: 120, height: 50, marginBottom: -25 }} />
+          )}
           <View style={styles.firmaLine} />
           <Text style={styles.firmaLabel}>Nombre y firma del asesor</Text>
         </View>
 
         {/* Validez */}
-        <Text style={styles.validity}>Válido por 15 días a partir de la fecha de emisión.</Text>
+        <Text style={styles.validity}>Válido por 5 días a partir de la fecha de emisión.</Text>
       </Page>
     </Document>
   );

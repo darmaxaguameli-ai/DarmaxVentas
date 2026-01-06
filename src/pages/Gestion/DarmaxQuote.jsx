@@ -1,6 +1,7 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { PDFDownloadLink, PDFViewer } from "@react-pdf/renderer";
 import DarmaxWaterQuotePDF from "./components/pdf/DarmaxWaterQuotePDF";
+import SignaturePad from "@/pages/sistemasDeVentas/Repartidor/components/SignaturePad";
 
 const todayMX = () => {
   const d = new Date();
@@ -16,9 +17,9 @@ const SectionTitle = ({ children }) => (
     </h3>
 );
 
-const InputGroup = ({ label, value, onChange, placeholder, type = "text" }) => (
-    <div>
-        <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">{label}</label>
+const InputGroup = ({ label, value, onChange, placeholder, type = "text", horizontal = false }) => (
+    <div className={horizontal ? "flex items-center gap-3" : ""}>
+        <label className={`block text-xs font-bold text-gray-700 dark:text-gray-300 ${horizontal ? "min-w-fit mb-0" : "mb-1"}`}>{label}</label>
         <input
             type={type}
             className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all"
@@ -42,6 +43,7 @@ export default function DarmaxQuote() {
         viaticos: 0 
     },
     promo: { texto: "", costo: "", imagenUrl: "" },
+    firma: "", // Nuevo campo para la firma
   });
 
   const data = useMemo(() => {
@@ -65,6 +67,17 @@ export default function DarmaxQuote() {
     };
   }, [form]);
 
+  // --- Lógica de Debounce para el PDF ---
+  const [debouncedData, setDebouncedData] = useState(data);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedData(data);
+    }, 800); // Espera 800ms después de dejar de escribir
+
+    return () => clearTimeout(handler);
+  }, [data]);
+
   const onChange = (path) => (e) => {
     const value = e.target.value;
     setForm((prev) => {
@@ -77,7 +90,15 @@ export default function DarmaxQuote() {
     });
   };
 
-  const doc = <DarmaxWaterQuotePDF data={data} />;
+  const handleSignatureSave = (signatureData) => {
+      setForm(prev => ({ ...prev, firma: signatureData }));
+  };
+
+  const handleSignatureClear = () => {
+      setForm(prev => ({ ...prev, firma: "" }));
+  };
+
+  const doc = <DarmaxWaterQuotePDF data={debouncedData} />;
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -110,7 +131,7 @@ export default function DarmaxQuote() {
                     <div className="bg-white dark:bg-gray-900 p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800">
                         <SectionTitle>Información General</SectionTitle>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <InputGroup label="Fecha" value={form.fecha} onChange={onChange("fecha")} />
+                            <InputGroup label="Fecha" value={form.fecha} onChange={onChange("fecha")} horizontal />
                         </div>
                     </div>
 
@@ -118,10 +139,10 @@ export default function DarmaxQuote() {
                     <div className="bg-white dark:bg-gray-900 p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800">
                         <SectionTitle>Datos del Cliente</SectionTitle>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <InputGroup label="Nombre Completo" value={form.cliente.nombre} onChange={onChange("cliente.nombre")} placeholder="Ej. Juan Pérez" />
-                            <InputGroup label="Teléfono" value={form.cliente.telefono} onChange={onChange("cliente.telefono")} placeholder="Ej. 55 1234 5678" />
-                            <InputGroup label="Correo Electrónico" value={form.cliente.correo} onChange={onChange("cliente.correo")} placeholder="juan@email.com" />
-                            <InputGroup label="Código Postal" value={form.cliente.cp} onChange={onChange("cliente.cp")} placeholder="00000" />
+                            <InputGroup label="Nombre Completo" value={form.cliente.nombre} onChange={onChange("cliente.nombre")} placeholder="Ej. Juan Pérez" horizontal />
+                            <InputGroup label="Teléfono" value={form.cliente.telefono} onChange={onChange("cliente.telefono")} placeholder="Ej. 55 1234 5678" horizontal />
+                            <InputGroup label="Correo Electrónico" value={form.cliente.correo} onChange={onChange("cliente.correo")} placeholder="juan@email.com" horizontal />
+                            <InputGroup label="Código Postal" value={form.cliente.cp} onChange={onChange("cliente.cp")} placeholder="00000" horizontal />
                         </div>
                     </div>
 
@@ -212,6 +233,27 @@ export default function DarmaxQuote() {
                             </div>
                         </div>
                         <p className="text-xs text-gray-400 mt-4 italic">* El valor de la promoción no se suma al total de la cotización.</p>
+                    </div>
+
+                    {/* Tarjeta: Firma */}
+                    <div className="bg-white dark:bg-gray-900 p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800">
+                        <SectionTitle>Firma del Asesor</SectionTitle>
+                        {form.firma ? (
+                            <div className="flex flex-col items-center">
+                                <div className="bg-white p-4 rounded-xl border border-gray-200 dark:border-gray-700 mb-4 w-full">
+                                    <img src={form.firma} alt="Firma del Asesor" className="h-32 object-contain mx-auto" />
+                                </div>
+                                <button 
+                                    onClick={handleSignatureClear}
+                                    className="text-red-500 hover:text-red-700 font-medium text-sm flex items-center gap-2 transition-colors"
+                                >
+                                    <span className="material-symbols-outlined">delete</span>
+                                    Borrar Firma y Firmar de Nuevo
+                                </button>
+                            </div>
+                        ) : (
+                            <SignaturePad onSave={handleSignatureSave} />
+                        )}
                     </div>
 
                 </div>
