@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import ClientOrderHeader from '../../components/ClientOrderHeader';
 import { useAuth } from '../../context/AuthContext';
 import apiClient, { fetchPostalCodeData as apiFetchPostalCode } from '../../api/apiClient'; // Renombrado para evitar conflicto
+import LocationPicker from '../../components/common/LocationPicker';
 
 const ClientProfile = () => {
   const { user, isAuthenticated, loading: authLoading, updateUser: updateAuthUser, logout } = useAuth();
@@ -21,6 +22,8 @@ const ClientProfile = () => {
     city: '',         // Combined field for DB
     postalCode: '',
     references: '',
+    lat: null,        // New Geolocation field
+    lng: null,        // New Geolocation field
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -63,6 +66,8 @@ const ClientProfile = () => {
             city: userData.city || '', // Keep city for legacy/display if needed
             postalCode: userData.postalCode || '',
             references: userData.references || '',
+            lat: userData.lat ? parseFloat(userData.lat) : null,
+            lng: userData.lng ? parseFloat(userData.lng) : null,
             // Loyalty Data
             loyaltyPoints: userData.loyaltyPoints || 0,
             loyaltyTransactions: userData.loyaltyTransactions || []
@@ -141,6 +146,10 @@ const ClientProfile = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  const handleLocationChange = (lat, lng) => {
+      setFormData(prev => ({ ...prev, lat, lng }));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -173,6 +182,15 @@ const ClientProfile = () => {
       setLoading(false);
     }
   };
+
+  const fullAddressSearch = [
+      formData.street, 
+      formData.neighborhood, 
+      formData.municipality, 
+      formData.state, 
+      formData.postalCode,
+      "Mexico"
+  ].filter(Boolean).join(', ');
 
   const renderContent = () => {
     if (authLoading || loading) {
@@ -279,6 +297,23 @@ const ClientProfile = () => {
                     <label className="label-style mb-1 block">Estado</label>
                     <input type="text" name="state" value={formData.state} readOnly className="input-style bg-gray-50 dark:bg-gray-700/50" />
                 </div>
+            </div>
+
+            {/* Location Picker Map */}
+            <div className="mt-4">
+                <label className="label-style mb-2 block flex items-center justify-between">
+                    <span>Ubicación Exacta <span className="text-primary">*</span></span>
+                    <span className="text-xs font-normal text-gray-500">Arrastra el marcador rojo</span>
+                </label>
+                <LocationPicker 
+                    lat={formData.lat} 
+                    lng={formData.lng} 
+                    onLocationChange={handleLocationChange} 
+                    addressToSearch={fullAddressSearch}
+                />
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                    Si no aparece tu ubicación automáticamente, usa el botón "Buscar mi dirección" o arrastra el mapa manualmente.
+                </p>
             </div>
           </section>
           

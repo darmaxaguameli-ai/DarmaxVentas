@@ -1,8 +1,8 @@
-// src/pages/sistemasDeVentas/Repartidor/components/RepartidorHeader.jsx
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../../../context/AuthContext';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { MdLocalShipping, MdPaid, MdLogout, MdLocationOn, MdLocationSearching } from 'react-icons/md';
 
 const RepartidorHeader = ({
   onLogout,
@@ -20,54 +20,67 @@ const RepartidorHeader = ({
     return () => clearInterval(timer);
   }, []);
 
-  const formattedTime = format(currentTime, 'HH:mm:ss');
-  const formattedDate = format(currentTime, 'eeee, d \'de\' MMMM', { locale: es });
+  const formattedTime = format(currentTime, 'HH:mm');
+  const formattedDate = format(currentTime, 'd MMM', { locale: es });
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-20 flex items-center justify-between p-4 bg-white dark:bg-gray-800 shadow-md">
-      <div className="flex items-center gap-4">
-        <div className="flex items-center justify-center h-10 w-10 rounded-full bg-primary text-white">
-            <span className="material-symbols-outlined text-2xl">local_shipping</span>
-        </div>
-        <div>
-            <h1 className="text-xl font-bold text-gray-800 dark:text-white">Dashboard de Repartidor</h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              {user ? `Repartidor: ${user.name}` : 'Cargando...'}
-            </p>
-        </div>
-      </div>
-
-      <div className="flex items-center gap-6">
-        <div className="hidden md:flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-            <span className={`material-symbols-outlined transition-colors ${locationAccuracy < 100 ? 'text-green-500' : 'text-yellow-500'}`}>
-                {locationAccuracy < 1000 ? 'location_on' : 'location_searching'}
-            </span>
-            <span>
-                Precisión: {locationAccuracy ? `${Math.round(locationAccuracy)}m` : 'N/A'}
-            </span>
-        </div>
-
-        <div className="hidden sm:flex flex-col items-end">
-            <p className="font-mono text-lg font-semibold text-gray-800 dark:text-white">{formattedTime}</p>
-            <p className="text-xs text-gray-500 dark:text-gray-400 capitalize">{formattedDate}</p>
-        </div>
+    <header className="fixed top-0 left-0 right-0 z-50 bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 h-16 lg:h-20 transition-all">
+      <div className="h-full px-4 lg:px-6 flex items-center justify-between">
         
-        <div className="flex items-center gap-2">
-            <button 
-                onClick={onCashMovementClick}
-                disabled={!isCashDrawerOpen}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
-            >
-                <span className="material-symbols-outlined">paid</span>
-                Caja
-            </button>
-            <button
-              onClick={onLogout}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-red-600 bg-red-100 rounded-lg hover:bg-red-200 dark:bg-red-900/50 dark:text-red-300 dark:hover:bg-red-900"
-            >
-              <span className="material-symbols-outlined">logout</span>
-              {isCashDrawerOpen ? 'Cerrar Caja' : 'Salir'}
-            </button>
+        {/* Logo & User Info */}
+        <div className="flex items-center gap-3 lg:gap-4">
+            <div className={`flex items-center justify-center w-10 h-10 lg:w-12 lg:h-12 rounded-xl text-white shadow-lg shadow-primary/30 transition-transform ${isRefreshing ? 'animate-pulse bg-primary/80' : 'bg-primary'}`}>
+                <MdLocalShipping className="text-2xl lg:text-3xl" />
+            </div>
+            <div className="leading-tight">
+                <h1 className="text-sm lg:text-lg font-bold text-gray-900 dark:text-white hidden sm:block">Dashboard Repartidor</h1>
+                <h1 className="text-lg font-bold text-gray-900 dark:text-white sm:hidden">Repartidor</h1>
+                <p className="text-xs lg:text-sm text-gray-500 dark:text-gray-400 font-medium truncate max-w-[120px] sm:max-w-none">
+                  {user ? user.name.split(' ')[0] : '...'}
+                </p>
+            </div>
+        </div>
+
+        {/* Right Actions */}
+        <div className="flex items-center gap-2 lg:gap-6">
+            
+            {/* GPS Status (Hidden on very small screens, visible on mobile if space permits) */}
+            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-gray-50 dark:bg-gray-700/50 rounded-full border border-gray-100 dark:border-gray-700">
+                {locationAccuracy < 100 ? (
+                     <MdLocationOn className="text-green-500 text-lg" />
+                ) : (
+                     <MdLocationSearching className="text-yellow-500 text-lg animate-pulse" />
+                )}
+                <span className="text-xs font-semibold text-gray-600 dark:text-gray-300">
+                    {locationAccuracy ? `${Math.round(locationAccuracy)}m` : 'Wait...'}
+                </span>
+            </div>
+
+            {/* Time (Hidden on mobile) */}
+            <div className="hidden md:flex flex-col items-end mr-2">
+                <p className="font-mono text-xl font-bold text-gray-800 dark:text-white leading-none">{formattedTime}</p>
+                <p className="text-xs text-gray-400 capitalize">{formattedDate}</p>
+            </div>
+            
+            <div className="flex items-center gap-2 pl-2 border-l border-gray-100 dark:border-gray-700">
+                <button 
+                    onClick={onCashMovementClick}
+                    disabled={!isCashDrawerOpen}
+                    className="p-2 lg:px-4 lg:py-2 flex items-center gap-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 transition-colors"
+                    title="Caja"
+                >
+                    <MdPaid className="text-xl" />
+                    <span className="hidden lg:inline text-sm font-bold">Caja</span>
+                </button>
+                <button
+                  onClick={onLogout}
+                  className="p-2 lg:px-4 lg:py-2 flex items-center gap-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 dark:bg-red-900/20 dark:text-red-300 dark:hover:bg-red-900/40 transition-colors"
+                  title={isCashDrawerOpen ? 'Cerrar Caja' : 'Salir'}
+                >
+                  <MdLogout className="text-xl" />
+                  <span className="hidden lg:inline text-sm font-bold">{isCashDrawerOpen ? 'Cerrar' : 'Salir'}</span>
+                </button>
+            </div>
         </div>
       </div>
     </header>

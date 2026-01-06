@@ -153,6 +153,9 @@ export const createCashTransaction = (transactionData) => apiClient.post('/cash-
 // ====================================================================
 export const fetchPostalCodeData = (cp) => apiClient.get('/external/dipomex/codigo_postal', { params: { cp } }).then(res => res.data);
 
+// Geocoding Proxy
+export const geocodeAddress = (query) => apiClient.get('/external/geocode', { params: { query } }).then(res => res.data);
+
 // ====================================================================
 //  REPORTS
 // ====================================================================
