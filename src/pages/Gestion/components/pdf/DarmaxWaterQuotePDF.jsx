@@ -21,7 +21,7 @@ const styles = StyleSheet.create({
   page: {
     position: "relative",
     fontSize: 11,
-    paddingTop: 160,     // Aumentado para bajar todo el contenido
+    paddingTop: 100,     // Aumentado para bajar todo el contenido
     paddingBottom: 80,
     paddingHorizontal: 48,
     fontFamily: "Helvetica",
@@ -34,7 +34,9 @@ const styles = StyleSheet.create({
     bottom: 0,
     objectFit: "fill", // Asegura que cubra toda la hoja carta
   },
-
+  spacer: {                                                                                                    
+    height: 55, // Espacio extra solo para la primera hoja (100 + 80 = 180)                                       │
+  },
   titleContainer: {
     position: 'absolute',
     top: 45, // Ajustar según necesidad para alinear con tu imagen
@@ -207,6 +209,9 @@ export default function CotizacionDarmaxAguaPDF({ data }) {
             <Text style={styles.mainTitle}>Cotización</Text>
             <Text style={styles.subTitle}>Darmax Agua</Text>
         </View>
+
+        {/* Espaciador para empujar el contenido solo en la primera página */}
+        <View style={styles.spacer} /> 
 
         {/* Datos del cliente */}
         <View style={[styles.section, styles.card]}>
