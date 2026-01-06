@@ -65,6 +65,9 @@ const styles = StyleSheet.create({
   labelRight: { fontSize: 10, color: "black", fontWeight: "bold", marginRight: 4 },
   valueRight: { fontSize: 11, color: "black" },
 
+  label: { fontSize: 10, color: "#111", fontWeight: "bold" },
+  value: { fontSize: 11, flex: 1 },
+
   section: {
     marginTop: 10,
     paddingTop: 8,
@@ -224,19 +227,19 @@ export default function CotizacionDarmaxAguaPDF({ data }) {
 
           <View style={styles.grid2}>
             <View style={styles.gridItem}>
-              <Text style={styles.label}>Nombre:</Text>
+              <Text style={styles.label}>Nombre: </Text>
               <Text style={styles.value}>{data?.cliente?.nombre || ""}</Text>
             </View>
             <View style={styles.gridItem}>
-              <Text style={styles.label}>Teléfono:</Text>
+              <Text style={styles.label}>Teléfono: </Text>
               <Text style={styles.value}>{data?.cliente?.telefono || ""}</Text>
             </View>
             <View style={styles.gridItem}>
-              <Text style={styles.label}>Correo:</Text>
+              <Text style={styles.label}>Correo: </Text>
               <Text style={styles.value}>{data?.cliente?.correo || ""}</Text>
             </View>
             <View style={styles.gridItem}>
-              <Text style={styles.label}>Código Postal:</Text>
+              <Text style={styles.label}>Código Postal: </Text>
               <Text style={styles.value}>{data?.cliente?.cp || ""}</Text>
             </View>
           </View>
@@ -254,7 +257,7 @@ export default function CotizacionDarmaxAguaPDF({ data }) {
           {items.map((it) => (
             <View key={it.key} style={{ flexDirection: "row", alignItems: 'center' }}>
               <View style={[styles.td, styles.cellConcepto, { flexDirection: 'row' }]}>
-                <Text style={{ fontWeight: 'bold' }}>{it.title}: </Text>
+                {it.title ? <Text style={{ fontWeight: 'bold' }}>{it.title}: </Text> : null}
                 <Text>{it.value}</Text>
               </View>
               <Text style={[styles.td, styles.cellPrecio]}>{money(it.price)}</Text>
