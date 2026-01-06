@@ -200,7 +200,7 @@ export default function CotizacionDarmaxAguaPDF({ data }) {
         {/* Fondo membretado */}
         <Image 
             style={styles.bg} 
-            src={window.location.origin + "/template/coti_mem.png"} 
+            src={window.location.origin + "/template/coti_darm.jpg"} 
             fixed 
         />
 
