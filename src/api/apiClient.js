@@ -157,6 +157,12 @@ export const fetchPostalCodeData = (cp) => apiClient.get('/external/dipomex/codi
 export const geocodeAddress = (query) => apiClient.get('/external/geocode', { params: { query } }).then(res => res.data);
 
 // ====================================================================
+//  COTIZACIONES
+// ====================================================================
+export const createCotizacion = (data) => apiClient.post('/cotizaciones', data).then(res => res.data);
+export const fetchCotizacion = (id) => apiClient.get(`/cotizaciones/${id}`).then(res => res.data);
+
+// ====================================================================
 //  REPORTS
 // ====================================================================
 export const fetchConsolidatedReport = () => apiClient.get('/reports/consolidated').then(res => res.data);

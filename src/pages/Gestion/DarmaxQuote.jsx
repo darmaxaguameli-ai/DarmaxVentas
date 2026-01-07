@@ -2,6 +2,8 @@ import React, { useMemo, useState, useEffect } from "react";
 import { PDFDownloadLink, PDFViewer } from "@react-pdf/renderer";
 import DarmaxWaterQuotePDF from "./components/pdf/DarmaxWaterQuotePDF";
 import SignaturePad from "@/pages/sistemasDeVentas/Repartidor/components/SignaturePad";
+import { createCotizacion } from "../../api/apiClient";
+import Swal from "sweetalert2";
 
 const todayMX = () => {
   const d = new Date();
@@ -33,6 +35,8 @@ const InputGroup = ({ label, value, onChange, placeholder, type = "text", horizo
 export default function DarmaxQuote() {
   const [form, setForm] = useState({
     fecha: todayMX(),
+    diasValidez: "5",
+    nombreAsesor: "",
     cliente: { nombre: "", telefono: "", correo: "", cp: "" },
     costos: { 
         modelo: 0, 
@@ -47,6 +51,9 @@ export default function DarmaxQuote() {
 
   const [extrasDisponibles, setExtrasDisponibles] = useState([]);
   const [loadingExtras, setLoadingExtras] = useState(false);
+  const [savedQuote, setSavedQuote] = useState(null); // Almacena la cotización guardada con folio
+  const [isSaving, setIsSaving] = useState(false);
+  const [signatureMode, setSignatureMode] = useState('pad'); // 'pad' | 'upload'
 
   // Cargar catálogo completo de extras al montar el componente
   useEffect(() => {
@@ -97,10 +104,21 @@ export default function DarmaxQuote() {
   useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedData(data);
+      // Si el usuario edita algo, "invalidamos" el guardado anterior visualmente (opcional)
+      // setSavedQuote(null); // Descomentar si quieres obligar a guardar de nuevo para ver el folio actualizado si cambia algo crítico
     }, 800); 
 
     return () => clearTimeout(handler);
   }, [data]);
+
+  // Si ya guardamos, usamos los datos del servidor (que tienen folio), sino los locales
+  // OJO: Al seguir editando, queremos ver los cambios, no el guardado viejo.
+  // Estrategia: Mostrar 'savedQuote' SOLO si acabamos de guardar y no hemos editado más.
+  // Pero lo más simple para el PDF es pasarle 'data' y si 'savedQuote' existe, inyectarle el folio.
+  const pdfData = useMemo(() => ({
+      ...debouncedData,
+      folio: savedQuote?.folio || null
+  }), [debouncedData, savedQuote]);
 
   const onChange = (path) => (e) => {
     const value = e.target.value;
@@ -112,17 +130,41 @@ export default function DarmaxQuote() {
       ref[parts.at(-1)] = value;
       return copy;
     });
+    setSavedQuote(null); // Resetear guardado al editar
   };
 
   const handleSignatureSave = (signatureData) => {
       setForm(prev => ({ ...prev, firma: signatureData }));
+      setSavedQuote(null);
   };
 
   const handleSignatureClear = () => {
       setForm(prev => ({ ...prev, firma: "" }));
+      setSavedQuote(null);
   };
 
-  const doc = <DarmaxWaterQuotePDF data={debouncedData} />;
+  const handleSaveQuote = async () => {
+      if (!form.cliente.nombre) {
+          Swal.fire("Error", "El nombre del cliente es obligatorio para guardar.", "error");
+          return;
+      }
+
+      setIsSaving(true);
+      try {
+          // Usamos 'data' que ya tiene los números procesados
+          const quoteToSave = { ...data };
+          const response = await createCotizacion(quoteToSave);
+          setSavedQuote(response);
+          Swal.fire("¡Guardado!", `Cotización guardada con Folio: ${String(response.folio).padStart(4, '0')}`, "success");
+      } catch (error) {
+          console.error("Error saving quote:", error);
+          Swal.fire("Error", "No se pudo guardar la cotización.", "error");
+      } finally {
+          setIsSaving(false);
+      }
+  };
+
+  const doc = <DarmaxWaterQuotePDF data={pdfData} />;
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -132,19 +174,47 @@ export default function DarmaxQuote() {
                 <h1 className="text-2xl font-black text-gray-800 dark:text-white">Cotizador Darmax</h1>
                 <p className="text-sm text-gray-500 dark:text-gray-400">Genera cotizaciones profesionales en PDF al instante.</p>
             </div>
-            <PDFDownloadLink
-                document={doc}
-                fileName={`Cotizacion-DarmaxAgua-${form.cliente.nombre || "cliente"}.pdf`}
-                className="flex items-center gap-2 bg-primary hover:bg-primary-dark text-white px-4 py-2 rounded-xl font-bold shadow-lg shadow-primary/30 transition-all active:scale-95"
-            >
-                {({ loading }) => (
-                    <>
-                        <span className="material-symbols-outlined text-xl">download</span>
-                        {loading ? "Generando..." : "Descargar PDF"}
-                    </>
-                )}
-            </PDFDownloadLink>
+            <div className="flex gap-3">
+                <button
+                    onClick={handleSaveQuote}
+                    disabled={isSaving || !!savedQuote}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold shadow-lg transition-all active:scale-95 ${
+                        savedQuote 
+                        ? "bg-green-100 text-green-700 cursor-default shadow-none" 
+                        : "bg-white text-gray-700 hover:bg-gray-50 border border-gray-200"
+                    }`}
+                >
+                    {isSaving ? (
+                        "Guardando..."
+                    ) : savedQuote ? (
+                        <>
+                            <span className="material-symbols-outlined text-xl">check_circle</span>
+                            Guardado (Folio {String(savedQuote.folio).padStart(4, '0')})
+                        </>
+                    ) : (
+                        <>
+                            <span className="material-symbols-outlined text-xl">save</span>
+                            Guardar
+                        </>
+                    )}
+                </button>
+
+                <PDFDownloadLink
+                    document={doc}
+                    fileName={`Cotizacion-DarmaxAgua-${form.cliente.nombre || "cliente"}-${savedQuote?.folio ? String(savedQuote.folio).padStart(4, '0') : "Borrador"}.pdf`}
+                    className="flex items-center gap-2 bg-primary hover:bg-primary-dark text-white px-4 py-2 rounded-xl font-bold shadow-lg shadow-primary/30 transition-all active:scale-95"
+                >
+                    {({ loading }) => (
+                        <>
+                            <span className="material-symbols-outlined text-xl">download</span>
+                            {loading ? "Generando..." : "Descargar PDF"}
+                        </>
+                    )}
+                </PDFDownloadLink>
+            </div>
         </div>
+
+
 
         <div className="flex flex-col lg:flex-row gap-6 h-full overflow-hidden">
             {/* Formulario (Izquierda) */}
@@ -156,6 +226,7 @@ export default function DarmaxQuote() {
                         <SectionTitle>Información General</SectionTitle>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <InputGroup label="Fecha" value={form.fecha} onChange={onChange("fecha")} horizontal />
+                            <InputGroup label="Días de Validez" value={form.diasValidez} onChange={onChange("diasValidez")} type="number" horizontal />
                         </div>
                     </div>
 
@@ -297,6 +368,16 @@ export default function DarmaxQuote() {
                     {/* Tarjeta: Firma */}
                     <div className="bg-white dark:bg-gray-900 p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800">
                         <SectionTitle>Firma del Asesor</SectionTitle>
+                        
+                        <div className="mb-6 pt-2">
+                            <InputGroup 
+                                label="Nombre del Asesor (Opcional)" 
+                                value={form.nombreAsesor} 
+                                onChange={onChange("nombreAsesor")} 
+                                placeholder="Escribe el nombre aquí para que aparezca en la firma..."
+                            />
+                        </div>
+
                         {form.firma ? (
                             <div className="flex flex-col items-center">
                                 <div className="bg-white p-4 rounded-xl border border-gray-200 dark:border-gray-700 mb-4 w-full">
@@ -311,7 +392,61 @@ export default function DarmaxQuote() {
                                 </button>
                             </div>
                         ) : (
-                            <SignaturePad onSave={handleSignatureSave} />
+                            <div className="space-y-4">
+                                {/* Selector de Modo de Firma */}
+                                <div className="flex justify-center bg-gray-100 dark:bg-gray-800 p-1 rounded-lg w-fit mx-auto">
+                                    <button
+                                        onClick={() => setSignatureMode('pad')}
+                                        className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${
+                                            signatureMode === 'pad'
+                                                ? 'bg-white dark:bg-gray-700 text-primary shadow-sm'
+                                                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                                        }`}
+                                    >
+                                        Dibujar en Pantalla
+                                    </button>
+                                    <button
+                                        onClick={() => setSignatureMode('upload')}
+                                        className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${
+                                            signatureMode === 'upload'
+                                                ? 'bg-white dark:bg-gray-700 text-primary shadow-sm'
+                                                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                                        }`}
+                                    >
+                                        Subir Imagen
+                                    </button>
+                                </div>
+
+                                {signatureMode === 'pad' ? (
+                                    <SignaturePad onSave={handleSignatureSave} />
+                                ) : (
+                                    <div className="flex items-center justify-center w-full">
+                                        <label className="flex flex-col items-center justify-center w-full h-40 border-2 border-gray-300 border-dashed rounded-xl cursor-pointer bg-gray-50 dark:hover:bg-gray-800 dark:bg-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:hover:border-gray-500 transition-all group">
+                                            <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                                <span className="material-symbols-outlined text-gray-400 group-hover:text-primary text-4xl mb-3 transition-colors">upload_file</span>
+                                                <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">Clic para subir imagen de firma</p>
+                                                <p className="text-xs text-gray-400 mt-1">PNG, JPG (Fondo transparente recomendado)</p>
+                                            </div>
+                                            <input 
+                                                type="file" 
+                                                className="hidden" 
+                                                accept="image/*"
+                                                onChange={(e) => {
+                                                    const file = e.target.files[0];
+                                                    if (file) {
+                                                        const reader = new FileReader();
+                                                        reader.onloadend = () => {
+                                                            setForm(prev => ({ ...prev, firma: reader.result }));
+                                                            setSavedQuote(null);
+                                                        };
+                                                        reader.readAsDataURL(file);
+                                                    }
+                                                }}
+                                            />
+                                        </label>
+                                    </div>
+                                )}
+                            </div>
                         )}
                     </div>
 

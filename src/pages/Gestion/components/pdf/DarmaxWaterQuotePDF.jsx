@@ -55,9 +55,19 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
 
+  folioContainer: {
+    position: 'absolute',
+    top: 35,
+    right: 50,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  labelWhite: { fontSize: 10, color: "white", fontWeight: "bold", marginRight: 4 },
+  valueWhite: { fontSize: 11, color: "white" },
+
   dateContainer: {
     position: 'absolute',
-    top: 115,
+    top: 120,
     right: 50,
     flexDirection: 'row',
     alignItems: 'center',
@@ -207,7 +217,13 @@ export default function CotizacionDarmaxAguaPDF({ data }) {
             fixed 
         />
 
-        {/* Fecha absoluta en la esquina superior derecha */}
+        {/* Folio absoluto en la esquina superior derecha (Blanco) */}
+        <View style={styles.folioContainer}>
+            <Text style={styles.labelWhite}>Folio:</Text>
+            <Text style={styles.valueWhite}>{data?.folio ? String(data.folio).padStart(4, '0') : "N/A"}</Text>
+        </View>
+
+        {/* Fecha absoluta en la esquina superior derecha (Negro) */}
         <View style={styles.dateContainer}>
             <Text style={styles.labelRight}>Fecha:</Text>
             <Text style={styles.valueRight}>{data?.fecha || ""}</Text>
@@ -308,14 +324,18 @@ export default function CotizacionDarmaxAguaPDF({ data }) {
         {/* Firma Centrada */}
         <View style={styles.firmaWrap}>
           {data?.firma && (
-            <Image src={data.firma} style={{ width: 120, height: 50, marginBottom: -25 }} />
+            <Image src={data.firma} style={{ width: 120, height: 50, marginBottom: -25, objectFit: 'contain' }} />
           )}
           <View style={styles.firmaLine} />
-          <Text style={styles.firmaLabel}>Nombre y firma del asesor</Text>
+          <Text style={styles.firmaLabel}>
+            {data?.nombreAsesor && data.nombreAsesor.trim() !== "" ? data.nombreAsesor : "Nombre y firma del asesor"}
+          </Text>
         </View>
 
         {/* Validez */}
-        <Text style={styles.validity}>Válido por 5 días a partir de la fecha de emisión.</Text>
+        <Text style={styles.validity}>
+            Válido por {data?.diasValidez || 5} días a partir de la fecha de emisión.
+        </Text>
       </Page>
     </Document>
   );

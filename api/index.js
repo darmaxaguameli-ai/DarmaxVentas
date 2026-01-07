@@ -2641,6 +2641,62 @@ app.get('/api/external/dipomex/codigo_postal', async (req, res) => {
   res.status(501).json({ error: 'Not implemented in this snippet' });
 });
 
+// =====================================================
+// COTIZACIONES API
+// =====================================================
+
+// POST: Crear nueva cotización
+app.post('/api/cotizaciones', verifyToken, async (req, res) => {
+  try {
+    const data = req.body;
+    
+    const newQuote = await prisma.cotizacion.create({
+      data: {
+        nombreCliente: data.cliente.nombre,
+        telefono: data.cliente.telefono,
+        correo: data.cliente.correo,
+        cp: data.cliente.cp,
+        
+        modeloNombre: data.costos.modeloNombre,
+        modeloPrecio: parseFloat(data.costos.modelo) || 0,
+        fleteTinacos: parseFloat(data.costos.fleteTinacos) || 0,
+        viaticos: parseFloat(data.costos.viaticos) || 0,
+        
+        // Prisma maneja arrays JSON automáticamente
+        extras: data.extrasSeleccionados || [], 
+        
+        promoTexto: data.promo.texto,
+        promoCosto: data.promo.costo ? parseFloat(data.promo.costo) : null,
+        promoImagen: data.promo.imagenUrl,
+        
+        firma: data.firma,
+        
+        fecha: new Date(), // Usar fecha del servidor para consistencia
+      }
+    });
+    
+    res.status(201).json(newQuote);
+  } catch (error) {
+    console.error('Error creating quote:', error);
+    res.status(500).json({ error: 'Error al guardar la cotización' });
+  }
+});
+
+// GET: Obtener una cotización por ID (para reimprimir)
+app.get('/api/cotizaciones/:id', verifyToken, async (req, res) => {
+    const { id } = req.params;
+    try {
+        const quote = await prisma.cotizacion.findUnique({
+            where: { id }
+        });
+        if (!quote) return res.status(404).json({ error: 'Cotización no encontrada' });
+        res.json(quote);
+    } catch (error) {
+        console.error('Error fetching quote:', error);
+        res.status(500).json({ error: 'Error al obtener la cotización' });
+    }
+});
+
 // ====================================================================
 //  START SERVER
 // ====================================================================
