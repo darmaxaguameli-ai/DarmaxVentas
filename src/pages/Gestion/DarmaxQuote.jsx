@@ -20,8 +20,8 @@ const SectionTitle = ({ children }) => (
 );
 
 const InputGroup = ({ label, value, onChange, placeholder, type = "text", horizontal = false }) => (
-    <div className={horizontal ? "flex items-center gap-3" : ""}>
-        <label className={`block text-xs font-bold text-gray-700 dark:text-gray-300 ${horizontal ? "min-w-fit mb-0" : "mb-1"}`}>{label}</label>
+    <div className={`${horizontal ? "flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3" : "flex flex-col gap-1"}`}>
+        <label className={`block text-xs font-bold text-gray-700 dark:text-gray-300 ${horizontal ? "sm:min-w-fit sm:mb-0" : ""}`}>{label}</label>
         <input
             type={type}
             className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all"
@@ -104,17 +104,11 @@ export default function DarmaxQuote() {
   useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedData(data);
-      // Si el usuario edita algo, "invalidamos" el guardado anterior visualmente (opcional)
-      // setSavedQuote(null); // Descomentar si quieres obligar a guardar de nuevo para ver el folio actualizado si cambia algo crítico
     }, 800); 
 
     return () => clearTimeout(handler);
   }, [data]);
 
-  // Si ya guardamos, usamos los datos del servidor (que tienen folio), sino los locales
-  // OJO: Al seguir editando, queremos ver los cambios, no el guardado viejo.
-  // Estrategia: Mostrar 'savedQuote' SOLO si acabamos de guardar y no hemos editado más.
-  // Pero lo más simple para el PDF es pasarle 'data' y si 'savedQuote' existe, inyectarle el folio.
   const pdfData = useMemo(() => ({
       ...debouncedData,
       folio: savedQuote?.folio || null
@@ -130,17 +124,17 @@ export default function DarmaxQuote() {
       ref[parts.at(-1)] = value;
       return copy;
     });
-    setSavedQuote(null); // Resetear guardado al editar
+    // setSavedQuote(null); // Eliminado para mantener el folio visible tras editar
   };
 
   const handleSignatureSave = (signatureData) => {
       setForm(prev => ({ ...prev, firma: signatureData }));
-      setSavedQuote(null);
+      // setSavedQuote(null);
   };
 
   const handleSignatureClear = () => {
       setForm(prev => ({ ...prev, firma: "" }));
-      setSavedQuote(null);
+      // setSavedQuote(null);
   };
 
   const handleSaveQuote = async () => {
@@ -168,32 +162,32 @@ export default function DarmaxQuote() {
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-6">
+        {/* Header Responsivo */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4 sm:mb-6">
             <div>
-                <h1 className="text-2xl font-black text-gray-800 dark:text-white">Cotizador Darmax</h1>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Genera cotizaciones profesionales en PDF al instante.</p>
+                <h1 className="text-xl sm:text-2xl font-black text-gray-800 dark:text-white">Cotizador Darmax</h1>
+                <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">Genera cotizaciones en PDF.</p>
             </div>
-            <div className="flex gap-3">
+            <div className="flex gap-2 w-full sm:w-auto grid grid-cols-2 sm:flex">
                 <button
                     onClick={handleSaveQuote}
-                    disabled={isSaving || !!savedQuote}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold shadow-lg transition-all active:scale-95 ${
+                    disabled={isSaving}
+                    className={`flex items-center justify-center gap-2 px-3 py-2 sm:px-4 rounded-xl font-bold shadow-md transition-all active:scale-95 text-xs sm:text-sm ${
                         savedQuote 
-                        ? "bg-green-100 text-green-700 cursor-default shadow-none" 
+                        ? "bg-green-100 text-green-700 cursor-default shadow-none border border-green-200" 
                         : "bg-white text-gray-700 hover:bg-gray-50 border border-gray-200"
                     }`}
                 >
                     {isSaving ? (
-                        "Guardando..."
+                        "..."
                     ) : savedQuote ? (
                         <>
-                            <span className="material-symbols-outlined text-xl">check_circle</span>
-                            Guardado (Folio {String(savedQuote.folio).padStart(4, '0')})
+                            <span className="material-symbols-outlined text-lg sm:text-xl">check</span>
+                            <span className="truncate">Folio {String(savedQuote.folio).padStart(4, '0')}</span>
                         </>
                     ) : (
                         <>
-                            <span className="material-symbols-outlined text-xl">save</span>
+                            <span className="material-symbols-outlined text-lg sm:text-xl">save</span>
                             Guardar
                         </>
                     )}
@@ -202,72 +196,70 @@ export default function DarmaxQuote() {
                 <PDFDownloadLink
                     document={doc}
                     fileName={`Cotizacion-DarmaxAgua-${form.cliente.nombre || "cliente"}-${savedQuote?.folio ? String(savedQuote.folio).padStart(4, '0') : "Borrador"}.pdf`}
-                    className="flex items-center gap-2 bg-primary hover:bg-primary-dark text-white px-4 py-2 rounded-xl font-bold shadow-lg shadow-primary/30 transition-all active:scale-95"
+                    className="flex items-center justify-center gap-2 bg-primary hover:bg-primary-dark text-white px-3 py-2 sm:px-4 rounded-xl font-bold shadow-lg shadow-primary/30 transition-all active:scale-95 text-xs sm:text-sm text-center"
                 >
                     {({ loading }) => (
                         <>
-                            <span className="material-symbols-outlined text-xl">download</span>
-                            {loading ? "Generando..." : "Descargar PDF"}
+                            <span className="material-symbols-outlined text-lg sm:text-xl">download</span>
+                            {loading ? "..." : "PDF"}
                         </>
                     )}
                 </PDFDownloadLink>
             </div>
         </div>
 
-
-
         <div className="flex flex-col lg:flex-row gap-6 h-full overflow-hidden">
             {/* Formulario (Izquierda) */}
-            <div className="w-full lg:w-1/2 overflow-y-auto custom-scrollbar pr-2 pb-20">
-                <div className="space-y-6">
+            <div className="w-full lg:w-1/2 overflow-y-auto custom-scrollbar pr-1 sm:pr-2 pb-24 lg:pb-20">
+                <div className="space-y-4 sm:space-y-6">
                     
                     {/* Tarjeta: Datos Generales */}
-                    <div className="bg-white dark:bg-gray-900 p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800">
+                    <div className="bg-white dark:bg-gray-900 p-4 sm:p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800">
                         <SectionTitle>Información General</SectionTitle>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                             <InputGroup label="Fecha" value={form.fecha} onChange={onChange("fecha")} horizontal />
-                            <InputGroup label="Días de Validez" value={form.diasValidez} onChange={onChange("diasValidez")} type="number" horizontal />
+                            <InputGroup label="Días Validez" value={form.diasValidez} onChange={onChange("diasValidez")} type="number" horizontal />
                         </div>
                     </div>
 
                     {/* Tarjeta: Cliente */}
-                    <div className="bg-white dark:bg-gray-900 p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800">
+                    <div className="bg-white dark:bg-gray-900 p-4 sm:p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800">
                         <SectionTitle>Datos del Cliente</SectionTitle>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <InputGroup label="Nombre Completo" value={form.cliente.nombre} onChange={onChange("cliente.nombre")} placeholder="Ej. Juan Pérez" horizontal />
-                            <InputGroup label="Teléfono" value={form.cliente.telefono} onChange={onChange("cliente.telefono")} placeholder="Ej. 55 1234 5678" horizontal />
-                            <InputGroup label="Correo Electrónico" value={form.cliente.correo} onChange={onChange("cliente.correo")} placeholder="juan@email.com" horizontal />
-                            <InputGroup label="Código Postal" value={form.cliente.cp} onChange={onChange("cliente.cp")} placeholder="00000" horizontal />
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                            <InputGroup label="Nombre" value={form.cliente.nombre} onChange={onChange("cliente.nombre")} placeholder="Ej. Juan Pérez" horizontal />
+                            <InputGroup label="Teléfono" value={form.cliente.telefono} onChange={onChange("cliente.telefono")} placeholder="55 1234 5678" horizontal />
+                            <InputGroup label="Correo" value={form.cliente.correo} onChange={onChange("cliente.correo")} placeholder="juan@email.com" horizontal />
+                            <InputGroup label="C.P." value={form.cliente.cp} onChange={onChange("cliente.cp")} placeholder="00000" horizontal />
                         </div>
                     </div>
 
                     {/* Tarjeta: Costos */}
-                    <div className="bg-white dark:bg-gray-900 p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800">
+                    <div className="bg-white dark:bg-gray-900 p-4 sm:p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800">
                         <SectionTitle>Desglose de Costos (MXN)</SectionTitle>
-                        <div className="space-y-6">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <InputGroup label="Nombre del Modelo" value={form.costos.modeloNombre} onChange={onChange("costos.modeloNombre")} placeholder="Ej. Darmax 2500" />
-                                <InputGroup label="Costo del Modelo" value={form.costos.modelo} onChange={onChange("costos.modelo")} type="number" />
+                        <div className="space-y-4 sm:space-y-6">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                                <InputGroup label="Modelo" value={form.costos.modeloNombre} onChange={onChange("costos.modeloNombre")} placeholder="Ej. Darmax 2500" />
+                                <InputGroup label="Costo" value={form.costos.modelo} onChange={onChange("costos.modelo")} type="number" />
                             </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <InputGroup label="Flete (Tinacos)" value={form.costos.fleteTinacos} onChange={onChange("costos.fleteTinacos")} type="number" />
-                                <InputGroup label="Viáticos Instalador (2 días)" value={form.costos.viaticos} onChange={onChange("costos.viaticos")} type="number" />
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                                <InputGroup label="Flete" value={form.costos.fleteTinacos} onChange={onChange("costos.fleteTinacos")} type="number" />
+                                <InputGroup label="Viáticos" value={form.costos.viaticos} onChange={onChange("costos.viaticos")} type="number" />
                             </div>
                         </div>
                     </div>
 
-                    {/* Nueva Tarjeta: Equipamiento Extra */}
-                    <div className="bg-white dark:bg-gray-900 p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800">
+                    {/* Tarjeta: Equipamiento Extra */}
+                    <div className="bg-white dark:bg-gray-900 p-4 sm:p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800">
                         <SectionTitle>Equipamiento Extra</SectionTitle>
                         {loadingExtras ? (
-                            <p className="text-xs text-gray-500 animate-pulse">Cargando catálogo...</p>
+                            <p className="text-xs text-gray-500 animate-pulse">Cargando...</p>
                         ) : extrasDisponibles.length > 0 ? (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
                                 {extrasDisponibles.map((extra) => (
                                     <label key={extra.id} className="flex items-center gap-3 p-2 rounded-lg border border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition-colors group">
                                         <input 
                                             type="checkbox"
-                                            className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
+                                            className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary flex-shrink-0"
                                             checked={form.extrasSeleccionados.some(ex => ex.id === extra.id)}
                                             onChange={(e) => {
                                                 const checked = e.target.checked;
@@ -279,8 +271,8 @@ export default function DarmaxQuote() {
                                                 }));
                                             }}
                                         />
-                                        <div className="flex flex-col">
-                                            <span className="text-xs font-bold text-gray-700 dark:text-gray-300 group-hover:text-primary transition-colors">
+                                        <div className="flex flex-col min-w-0">
+                                            <span className="text-xs font-bold text-gray-700 dark:text-gray-300 group-hover:text-primary transition-colors truncate">
                                                 {extra.name}
                                             </span>
                                             <span className="text-[10px] text-gray-500 dark:text-gray-400">
@@ -291,34 +283,34 @@ export default function DarmaxQuote() {
                                 ))}
                             </div>
                         ) : (
-                            <p className="text-xs text-gray-400 italic">No hay extras disponibles en el catálogo.</p>
+                            <p className="text-xs text-gray-400 italic">Sin extras disponibles.</p>
                         )}
                     </div>
 
                     {/* Tarjeta: Promoción */}
-                    <div className="bg-white dark:bg-gray-900 p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800">
-                        <SectionTitle>Promoción o Regalo (Opcional)</SectionTitle>
+                    <div className="bg-white dark:bg-gray-900 p-4 sm:p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800">
+                        <SectionTitle>Promoción (Opcional)</SectionTitle>
                         <div className="space-y-4">
                             <div>
-                                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Descripción de la promoción</label>
+                                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Descripción</label>
                                 <textarea
-                                    className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all resize-none h-24"
+                                    className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all resize-none h-20"
                                     value={form.promo.texto}
                                     onChange={onChange("promo.texto")}
-                                    placeholder="Ej. Incluye 4 garrafones gratis en tu primera compra..."
+                                    placeholder="Ej. 4 garrafones gratis..."
                                 />
                             </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <InputGroup label="Valor Referencial (MXN)" value={form.promo.costo} onChange={onChange("promo.costo")} type="number" />
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                                <InputGroup label="Valor Ref." value={form.promo.costo} onChange={onChange("promo.costo")} type="number" />
                                 <div>
-                                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Imagen de Promoción</label>
+                                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Imagen</label>
                                     
                                     {!form.promo.imagenUrl ? (
                                         <div className="flex items-center justify-center w-full">
-                                            <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 dark:hover:bg-gray-800 dark:bg-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:hover:border-gray-500 transition-all">
-                                                <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                                                    <span className="material-symbols-outlined text-gray-400 text-3xl mb-2">add_photo_alternate</span>
-                                                    <p className="text-xs text-gray-500 dark:text-gray-400">Clic para subir imagen</p>
+                                            <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 dark:hover:bg-gray-800 dark:bg-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:hover:border-gray-500 transition-all">
+                                                <div className="flex flex-col items-center justify-center pt-2 pb-3">
+                                                    <span className="material-symbols-outlined text-gray-400 text-2xl mb-1">add_photo_alternate</span>
+                                                    <p className="text-[10px] text-gray-500 dark:text-gray-400 text-center px-2">Subir imagen</p>
                                                 </div>
                                                 <input 
                                                     type="file" 
@@ -329,7 +321,6 @@ export default function DarmaxQuote() {
                                                         if (file) {
                                                             const reader = new FileReader();
                                                             reader.onloadend = () => {
-                                                                // Update form directly with Base64 string
                                                                 setForm(prev => ({
                                                                     ...prev,
                                                                     promo: { ...prev.promo, imagenUrl: reader.result }
@@ -342,7 +333,7 @@ export default function DarmaxQuote() {
                                             </label>
                                         </div>
                                     ) : (
-                                        <div className="relative group w-full h-32 bg-gray-100 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden flex items-center justify-center">
+                                        <div className="relative group w-full h-24 bg-gray-100 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden flex items-center justify-center">
                                             <img 
                                                 src={form.promo.imagenUrl} 
                                                 alt="Promo" 
@@ -351,10 +342,9 @@ export default function DarmaxQuote() {
                                             <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                                                 <button 
                                                     onClick={() => setForm(prev => ({ ...prev, promo: { ...prev.promo, imagenUrl: "" } }))}
-                                                    className="bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition-colors"
-                                                    title="Eliminar imagen"
+                                                    className="bg-red-500 text-white p-1.5 rounded-full hover:bg-red-600 transition-colors"
                                                 >
-                                                    <span className="material-symbols-outlined text-lg">delete</span>
+                                                    <span className="material-symbols-outlined text-base">delete</span>
                                                 </button>
                                             </div>
                                         </div>
@@ -362,58 +352,57 @@ export default function DarmaxQuote() {
                                 </div>
                             </div>
                         </div>
-                        <p className="text-xs text-gray-400 mt-4 italic">* El valor de la promoción no se suma al total de la cotización.</p>
                     </div>
 
                     {/* Tarjeta: Firma */}
-                    <div className="bg-white dark:bg-gray-900 p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800">
+                    <div className="bg-white dark:bg-gray-900 p-4 sm:p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800">
                         <SectionTitle>Firma del Asesor</SectionTitle>
                         
-                        <div className="mb-6 pt-2">
+                        <div className="mb-4 pt-1">
                             <InputGroup 
-                                label="Nombre del Asesor (Opcional)" 
+                                label="Nombre del Asesor" 
                                 value={form.nombreAsesor} 
                                 onChange={onChange("nombreAsesor")} 
-                                placeholder="Escribe el nombre aquí para que aparezca en la firma..."
+                                placeholder="Nombre para la firma..."
                             />
                         </div>
 
                         {form.firma ? (
                             <div className="flex flex-col items-center">
-                                <div className="bg-white p-4 rounded-xl border border-gray-200 dark:border-gray-700 mb-4 w-full">
-                                    <img src={form.firma} alt="Firma del Asesor" className="h-32 object-contain mx-auto" />
+                                <div className="bg-white p-3 rounded-xl border border-gray-200 dark:border-gray-700 mb-3 w-full">
+                                    <img src={form.firma} alt="Firma" className="h-24 object-contain mx-auto" />
                                 </div>
                                 <button 
                                     onClick={handleSignatureClear}
-                                    className="text-red-500 hover:text-red-700 font-medium text-sm flex items-center gap-2 transition-colors"
+                                    className="text-red-500 hover:text-red-700 font-medium text-xs sm:text-sm flex items-center gap-2 transition-colors"
                                 >
-                                    <span className="material-symbols-outlined">delete</span>
-                                    Borrar Firma y Firmar de Nuevo
+                                    <span className="material-symbols-outlined text-sm">delete</span>
+                                    Borrar Firma
                                 </button>
                             </div>
                         ) : (
-                            <div className="space-y-4">
+                            <div className="space-y-3">
                                 {/* Selector de Modo de Firma */}
-                                <div className="flex justify-center bg-gray-100 dark:bg-gray-800 p-1 rounded-lg w-fit mx-auto">
+                                <div className="flex justify-center bg-gray-100 dark:bg-gray-800 p-1 rounded-lg w-full sm:w-fit mx-auto">
                                     <button
                                         onClick={() => setSignatureMode('pad')}
-                                        className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${
+                                        className={`flex-1 sm:flex-none px-3 py-1.5 rounded-md text-xs font-bold transition-all text-center ${
                                             signatureMode === 'pad'
                                                 ? 'bg-white dark:bg-gray-700 text-primary shadow-sm'
                                                 : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
                                         }`}
                                     >
-                                        Dibujar en Pantalla
+                                        Dibujar
                                     </button>
                                     <button
                                         onClick={() => setSignatureMode('upload')}
-                                        className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${
+                                        className={`flex-1 sm:flex-none px-3 py-1.5 rounded-md text-xs font-bold transition-all text-center ${
                                             signatureMode === 'upload'
                                                 ? 'bg-white dark:bg-gray-700 text-primary shadow-sm'
                                                 : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
                                         }`}
                                     >
-                                        Subir Imagen
+                                        Subir
                                     </button>
                                 </div>
 
@@ -421,11 +410,10 @@ export default function DarmaxQuote() {
                                     <SignaturePad onSave={handleSignatureSave} />
                                 ) : (
                                     <div className="flex items-center justify-center w-full">
-                                        <label className="flex flex-col items-center justify-center w-full h-40 border-2 border-gray-300 border-dashed rounded-xl cursor-pointer bg-gray-50 dark:hover:bg-gray-800 dark:bg-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:hover:border-gray-500 transition-all group">
+                                        <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-xl cursor-pointer bg-gray-50 dark:hover:bg-gray-800 dark:bg-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:hover:border-gray-500 transition-all group">
                                             <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                                                <span className="material-symbols-outlined text-gray-400 group-hover:text-primary text-4xl mb-3 transition-colors">upload_file</span>
-                                                <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">Clic para subir imagen de firma</p>
-                                                <p className="text-xs text-gray-400 mt-1">PNG, JPG (Fondo transparente recomendado)</p>
+                                                <span className="material-symbols-outlined text-gray-400 group-hover:text-primary text-3xl mb-2 transition-colors">upload_file</span>
+                                                <p className="text-xs text-gray-500 dark:text-gray-400 font-medium text-center">Subir firma (PNG/JPG)</p>
                                             </div>
                                             <input 
                                                 type="file" 
@@ -437,7 +425,7 @@ export default function DarmaxQuote() {
                                                         const reader = new FileReader();
                                                         reader.onloadend = () => {
                                                             setForm(prev => ({ ...prev, firma: reader.result }));
-                                                            setSavedQuote(null);
+                                                            // setSavedQuote(null);
                                                         };
                                                         reader.readAsDataURL(file);
                                                     }
@@ -453,7 +441,7 @@ export default function DarmaxQuote() {
                 </div>
             </div>
 
-            {/* Vista Previa (Derecha - Sticky en Desktop) */}
+            {/* Vista Previa (Derecha - Sticky en Desktop, oculta en móvil) */}
             <div className="hidden lg:flex flex-col w-1/2 h-full bg-gray-100 dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden shadow-inner">
                 <div className="p-3 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
                     <span className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-2">
