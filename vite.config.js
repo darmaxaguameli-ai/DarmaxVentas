@@ -18,4 +18,15 @@ module.exports = defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  define: {
+    // Polyfill Buffer for the browser (needed for @react-pdf/renderer and others)
+    global: 'window',
+  },
+  optimizeDeps: {
+    esbuildOptions: {
+      define: {
+        global: 'globalThis',
+      },
+    },
+  },
 });
