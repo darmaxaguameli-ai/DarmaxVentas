@@ -28,6 +28,7 @@ const InputGroup = ({ label, value, onChange, placeholder, type = "text", horizo
             value={value}
             onChange={onChange}
             placeholder={placeholder}
+            onFocus={(e) => (type === "number" || value === 0 || value === "0") && e.target.select()}
         />
     </div>
 );
@@ -104,7 +105,7 @@ export default function DarmaxQuote() {
   useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedData(data);
-    }, 800); 
+    }, 350); 
 
     return () => clearTimeout(handler);
   }, [data]);
@@ -115,7 +116,14 @@ export default function DarmaxQuote() {
   }), [debouncedData, savedQuote]);
 
   const onChange = (path) => (e) => {
-    const value = e.target.value;
+    let value = e.target.value;
+
+    // Si el valor empieza con 0 y tiene más de un dígito, y no es un decimal (0.), quitar el 0 inicial
+    if (value.length > 1 && value.startsWith("0") && !value.startsWith("0.")) {
+        value = value.replace(/^0+/, '');
+        if (value === "") value = "0";
+    }
+
     setForm((prev) => {
       const copy = structuredClone(prev);
       const parts = path.split(".");
@@ -124,7 +132,6 @@ export default function DarmaxQuote() {
       ref[parts.at(-1)] = value;
       return copy;
     });
-    // setSavedQuote(null); // Eliminado para mantener el folio visible tras editar
   };
 
   const handleSignatureSave = (signatureData) => {
@@ -196,13 +203,14 @@ export default function DarmaxQuote() {
                 <PDFDownloadLink
                     document={doc}
                     fileName={`Cotizacion-DarmaxAgua-${form.cliente.nombre || "cliente"}-${savedQuote?.folio ? String(savedQuote.folio).padStart(4, '0') : "Borrador"}.pdf`}
-                    className="flex items-center justify-center gap-2 bg-primary hover:bg-primary-dark text-white px-3 py-2 sm:px-4 rounded-xl font-bold shadow-lg shadow-primary/30 transition-all active:scale-95 text-xs sm:text-sm text-center"
+                    className="flex items-center justify-center gap-2 bg-primary hover:bg-primary-dark active:bg-primary-dark text-white active:text-white px-3 py-2 sm:px-4 rounded-xl font-bold shadow-lg shadow-primary/30 transition-all active:scale-95 text-xs sm:text-sm text-center select-none touch-none"
+                    style={{ WebkitTapHighlightColor: 'transparent' }}
                 >
                     {({ loading }) => (
-                        <>
+                        <div className="flex items-center gap-2 text-white">
                             <span className="material-symbols-outlined text-lg sm:text-xl">download</span>
-                            {loading ? "..." : "PDF"}
-                        </>
+                            <span className="font-bold">{loading ? "..." : "PDF"}</span>
+                        </div>
                     )}
                 </PDFDownloadLink>
             </div>
