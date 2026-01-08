@@ -1,28 +1,51 @@
 // src/pages/Client/orders/BuyJugsStepOne.jsx
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import OrderLayout from "../../../layouts/OrderLayout";
 import QuantityCard from "../../../components/order/QuantityCard";
+import { fetchProducts } from "../../../api/apiClient";
+import { useAuth } from "../../../context/AuthContext"; // Import useAuth
 
 const BuyJugsStepOne = () => {
   const navigate = useNavigate();
+  const { token, loading: authLoading } = useAuth(); // Get token and auth loading state
 
-  const [products, setProducts] = useState([
-    {
-      id: "darmax20",
-      name: "Garrafón Darmax 20L",
-      quantity: 0,
-      featured: true,
-      imageUrl: "/img/garrafones/turquesa.png",
-    },
-    {
-      id: "darmax10",
-      name: "Garrafón Darmax 10L",
-      quantity: 0,
-      imageUrl:
-        "https://i5.walmartimages.com/asr/477a4697-343e-4479-b790-3e20d7d2c4a8.85794c880e81af65b362fa88a710128c.jpeg?odnHeight=612&odnWidth=612&odnBg=FFFFFF",
-    },
-  ]);
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    // Wait for auth to finish loading to ensure token is available if user is logged in
+    if (authLoading) return;
+
+    const loadProducts = async () => {
+      try {
+        setLoading(true);
+        const allProducts = await fetchProducts();
+        
+        // Filter products with category 'Garrafones' (case insensitive)
+        const jugProducts = allProducts.filter(p => 
+          p.category && p.category.toLowerCase().includes('garrafone')
+        ).map(p => ({
+          id: p.id,
+          name: p.name,
+          quantity: 0,
+          price: p.price,
+          featured: p.name.toLowerCase().includes('20l'),
+          imageUrl: p.imageUrl || "/img/garrafones/turquesa.png",
+        }));
+
+        setProducts(jugProducts);
+      } catch (err) {
+        console.error("Error loading products:", err);
+        setError("No se pudieron cargar los productos.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadProducts();
+  }, [authLoading, token]); // Re-run when auth loading finishes or token changes
 
   const totalJugs = products.reduce((sum, p) => sum + p.quantity, 0);
 
@@ -45,7 +68,7 @@ const BuyJugsStepOne = () => {
     navigate("/pedidos/comprar/opcion-llenado", {
       state: {
         mode: "buy",
-        fromStepOneBuy: products,
+        fromStepOneBuy: products.filter(p => p.quantity > 0), // Only pass selected products
         totalJugsBuy: totalJugs,
       },
     });
@@ -79,29 +102,41 @@ const BuyJugsStepOne = () => {
           </span>
         </div>
 
+        {/* Loading / Error States */}
+        {loading && <div className="text-center py-10">Cargando productos...</div>}
+        {error && <div className="text-center py-10 text-red-500">{error}</div>}
+        
         {/* Grid de productos */}
-        <div
-          className="
-            grid 
-            grid-cols-1
-            sm:grid-cols-2
-            gap-4 md:gap-6 
-            max-w-3xl mx-auto
-          "
-        >
-          {products.map((product) => (
-            <QuantityCard
-              key={product.id}
-              name={product.name}
-              imageUrl={product.imageUrl}
-              quantity={product.quantity}
-              featured={product.featured}
-              onIncrease={() => handleChangeQuantity(product.id, 1)}
-              onDecrease={() => handleChangeQuantity(product.id, -1)}
-              onCardClick={() => handleChangeQuantity(product.id, 1)}
-            />
-          ))}
-        </div>
+        {!loading && !error && products.length === 0 && (
+            <div className="text-center py-10 text-gray-500">No hay garrafones disponibles para la venta.</div>
+        )}
+
+        {/* Grid de productos */}
+        {!loading && !error && products.length > 0 && (
+          <div
+            className="
+              grid 
+              grid-cols-1
+              sm:grid-cols-2
+              gap-4 md:gap-6 
+              max-w-3xl mx-auto
+            "
+          >
+            {products.map((product) => (
+              <QuantityCard
+                key={product.id}
+                name={product.name}
+                imageUrl={product.imageUrl}
+                quantity={product.quantity}
+                featured={product.featured}
+                price={product.price} // Pass price if supported by QuantityCard
+                onIncrease={() => handleChangeQuantity(product.id, 1)}
+                onDecrease={() => handleChangeQuantity(product.id, -1)}
+                onCardClick={() => handleChangeQuantity(product.id, 1)}
+              />
+            ))}
+          </div>
+        )}
 
         {/* Botones de navegación */}
         <div className="flex justify-between items-center pt-4">
@@ -115,12 +150,14 @@ const BuyJugsStepOne = () => {
           <button
             type="button"
             onClick={handleContinue}
-            className="flex items-center justify-center rounded-xl
+            disabled={totalJugs === 0} // Disable if 0
+            className={`flex items-center justify-center rounded-xl
                        bg-primary px-8 h-12 text-base font-semibold text-white
                        shadow-sm hover:bg-primary/90
                        focus-visible:outline focus-visible:outline-2 
                        focus-visible:outline-offset-2 focus-visible:outline-primary
-                       transition-all active:scale-[0.98]"
+                       transition-all active:scale-[0.98]
+                       ${totalJugs === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
             Continuar al paso 2
           </button>        </div>

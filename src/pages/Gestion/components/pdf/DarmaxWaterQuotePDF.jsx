@@ -21,7 +21,7 @@ const styles = StyleSheet.create({
   page: {
     position: "relative",
     fontSize: 11,
-    paddingTop: 100,     // Aumentado para bajar todo el contenido
+    paddingTop: 105,     // Aumentado para bajar todo el contenido
     paddingBottom: 80,
     paddingHorizontal: 48,
     fontFamily: "Helvetica",
@@ -35,7 +35,7 @@ const styles = StyleSheet.create({
     objectFit: "fill", // Asegura que cubra toda la hoja carta
   },
   spacer: {                                                                                                    
-    height: 35, // Espacio extra solo para la primera hoja (100 + 80 = 180)                                       │
+    height: 30, // Espacio extra solo para la primera hoja (100 + 80 = 180)                                       │
   },
   titleContainer: {
     position: 'absolute',

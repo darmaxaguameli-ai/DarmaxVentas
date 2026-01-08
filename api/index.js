@@ -235,21 +235,29 @@ const verifyToken = (req, res, next) => {
 // PRODUCTS API (Formerly PRODUCTOS)
 // =====================================================
 
-// GET all products (Store-aware)
-app.get('/api/products', verifyToken, async (req, res) => {
+// GET all products (Public, but Store-aware if logged in)
+app.get('/api/products', async (req, res) => {
   try {
-    const { id: userId, role } = req.user;
-    
     // 1. Obtener todos los productos base
     const products = await prisma.product.findMany({
         orderBy: { name: 'asc' }
     });
 
-    // 2. Determinar contexto de tienda
+    // 2. Intentar determinar contexto de tienda si hay token
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
     let storeId = null;
-    if (role !== 'ADMIN') {
-        const user = await prisma.user.findUnique({ where: { id: userId }, select: { storeId: true } });
-        storeId = user?.storeId;
+
+    if (token) {
+        try {
+            const decoded = jwt.verify(token, process.env.JWT_SECRET);
+            if (decoded.role !== 'ADMIN') {
+                const user = await prisma.user.findUnique({ where: { id: decoded.id }, select: { storeId: true } });
+                storeId = user?.storeId;
+            }
+        } catch (err) {
+            // Si el token es inválido, simplemente lo ignoramos para este endpoint público
+        }
     }
 
     // 3. Si hay tienda, sobrescribir stock con el inventario local
@@ -271,7 +279,7 @@ app.get('/api/products', verifyToken, async (req, res) => {
         return res.json(localizedProducts);
     }
 
-    // Si es ADMIN sin tienda o fallback, devolver tal cual (stock global/legacy)
+    // Si no hay token o es ADMIN sin tienda o fallback, devolver tal cual (stock global/legacy)
     res.json(products);
 
   } catch (error) {

@@ -13,7 +13,7 @@ const BuyJugsFillOptionStepTwo = () => {
   const totalJugsBuy = previousState.totalJugsBuy || 0;
 
   const [selectedOption, setSelectedOption] = useState("empty"); // "empty" | "full"
-  const { waterTypes, loading: configLoading, error: configError } = useConfig();
+  const { waterTypes, servicePrices, loading: configLoading, error: configError } = useConfig();
 
 
   const handleBack = () => {
@@ -30,6 +30,7 @@ const BuyJugsFillOptionStepTwo = () => {
       totalJugsBuy,
       fillOption: selectedOption,
       availableWaterTypes: waterTypes, // Pass fetched water types
+      servicePrices: servicePrices, // Pass service prices for cost calculation
     };
 
     if (selectedOption === "full") {

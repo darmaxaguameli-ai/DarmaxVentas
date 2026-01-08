@@ -11,6 +11,7 @@ import {
 } from "@dnd-kit/core";
 import OrderLayout from "../../../layouts/OrderLayout";
 import { useConfig } from "../../../context/ConfigContext";
+import { useAuth } from "../../../context/AuthContext";
 import "../../../animations.css";
 
 // ====================================================================
@@ -165,6 +166,7 @@ function assignmentReducer(state, action) {
 const RefillAssignStepTwo = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user } = useAuth();
 
   const sourceJugsFromState = useMemo(() => location.state?.fromStepOne || [], [location.state]);
   const { waterTypes: fetchedWaterTypes, loading: configLoading, error: configError } = useConfig();
@@ -173,7 +175,14 @@ const RefillAssignStepTwo = () => {
   const [state, dispatch] = useReducer(assignmentReducer, initialState);
   const { sourceJugs, targetWater } = state;
 
-  const [showAnimation, setShowAnimation] = useState(true);
+  const [showAnimation, setShowAnimation] = useState(() => {
+    if (user) {
+      const key = `tutorial_refill_views_${user.id}`;
+      const views = parseInt(localStorage.getItem(key) || '0', 10);
+      return views < 2;
+    }
+    return true;
+  });
 
   const maxJugs = useMemo(() => sourceJugsFromState.reduce((sum, j) => sum + j.quantity, 0), [sourceJugsFromState]);
 
@@ -196,11 +205,19 @@ const RefillAssignStepTwo = () => {
   }, [sourceJugsFromState, fetchedWaterTypes, configLoading, configError, navigate]);
 
   useEffect(() => {
-    if (!configError && !configLoading) {
-      const timer = setTimeout(() => setShowAnimation(false), 5000);
+    if (!configError && !configLoading && showAnimation) {
+      if (user) {
+        const key = `tutorial_refill_views_${user.id}`;
+        const views = parseInt(localStorage.getItem(key) || '0', 10);
+        if (views < 2) {
+          localStorage.setItem(key, (views + 1).toString());
+        }
+      }
+
+      const timer = setTimeout(() => setShowAnimation(false), 4000);
       return () => clearTimeout(timer);
     }
-  }, [configError, configLoading]);
+  }, [configError, configLoading, showAnimation, user]);
 
   const totalJugsAssigned = useMemo(() => targetWater.reduce((sum, p) => sum + p.quantity, 0), [targetWater]);
 

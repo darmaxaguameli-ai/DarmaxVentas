@@ -31,7 +31,7 @@
   width: 50px;
   height: 50px;
   opacity: 0;
-  animation: drag-image-animation 5s ease-in-out infinite;
+  animation: drag-image-animation 3.5s ease-in-out infinite;
   filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
 }
 
@@ -67,7 +67,7 @@
   height: 50px;
   left: 50%; /* Centrado horizontalmente */
   opacity: 0;
-  animation: drag-image-animation-mobile 5s ease-in-out infinite;
+  animation: drag-image-animation-mobile 3.5s ease-in-out infinite;
   filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
 }
 

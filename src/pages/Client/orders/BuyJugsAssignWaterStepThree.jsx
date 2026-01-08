@@ -19,6 +19,20 @@ const BuyJugsAssignWaterStepThree = () => {
 
   const previousState = location.state || {};
   const maxJugs = previousState?.fromBuyStepOne?.totalJugs ?? previousState?.maxJugs ?? 0;
+  const servicePrices = previousState?.buyFlow?.servicePrices || [];
+
+  // Helper to find price for water type
+  const getWaterPrice = (waterTypeId) => {
+    if (!servicePrices.length) return 0;
+    // Try to find a 'Recarga' or similar service for this water type, defaulting to 'Domicilio' if possible
+    // This logic might need adjustment based on your specific ServicePrice naming conventions
+    const priceObj = servicePrices.find(sp => 
+      sp.waterTypeId === waterTypeId && 
+      (sp.name.toLowerCase().includes('recarga') || sp.name.toLowerCase().includes('llenado'))
+    ) || servicePrices.find(sp => sp.waterTypeId === waterTypeId); // Fallback to any price for this type
+
+    return priceObj ? priceObj.price : 0;
+  };
 
   // Initialize products from waterTypes passed via navigation state
   const initialWaterTypes = previousState?.buyFlow?.availableWaterTypes?.map(wt => ({
@@ -26,7 +40,8 @@ const BuyJugsAssignWaterStepThree = () => {
     name: `Agua ${wt.name}`,
     quantity: 0,
     featured: wt.name === 'Premium', // Example: make Premium featured
-    imageUrl: getImageUrlForWaterType(wt.name)
+    imageUrl: getImageUrlForWaterType(wt.name),
+    price: getWaterPrice(wt.id) // Add calculated price
   })) || [];
 
   const [products, setProducts] = useState(initialWaterTypes);
@@ -141,9 +156,17 @@ const BuyJugsAssignWaterStepThree = () => {
                   aria-label={product.name}
                 />
                 <div className="px-4 pb-4 pt-2 flex flex-col gap-4">
-                  <p className="text-base sm:text-lg font-medium text-dark dark:text-white">
-                    {product.name}
-                  </p>
+                  <div className="flex justify-between items-start">
+                    <p className="text-base sm:text-lg font-medium text-dark dark:text-white">
+                      {product.name}
+                    </p>
+                     {product.price > 0 && (
+                        <span className="text-sm font-semibold text-primary bg-primary/10 px-2 py-1 rounded-lg">
+                          +${product.price} c/u
+                        </span>
+                      )}
+                  </div>
+                  
                   <div className="flex items-center justify-between gap-3">
                     <button
                       type="button"
