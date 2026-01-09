@@ -135,13 +135,13 @@ const BuyJugsAssignWaterStepThree = () => {
         {products.length === 0 ? (
           <div className="text-center py-10 text-red-500">No hay tipos de agua disponibles para asignar.</div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 mb-6 max-w-3xl mx-auto">
+          <div className="grid grid-cols-2 gap-3 sm:gap-6 mb-6 max-w-3xl mx-auto">
             {products.map((product) => (
               <button
                 key={product.id}
                 type="button"
                 onClick={() => changeQuantity(product.id, 1)} // tap en la card suma 1
-                className={`flex flex-col gap-4 rounded-2xl 
+                className={`flex flex-col gap-2 sm:gap-4 rounded-2xl 
                             border bg-white/95 dark:bg-dark/60 
                             shadow-md backdrop-blur-xl transition-all text-left
                 ${
@@ -155,34 +155,34 @@ const BuyJugsAssignWaterStepThree = () => {
                   style={{ backgroundImage: `url("${product.imageUrl}")` }}
                   aria-label={product.name}
                 />
-                <div className="px-4 pb-4 pt-2 flex flex-col gap-4">
-                  <div className="flex justify-between items-start">
-                    <p className="text-base sm:text-lg font-medium text-dark dark:text-white">
+                <div className="px-3 pb-3 pt-1 sm:px-4 sm:pb-4 flex flex-col gap-2 sm:gap-4 flex-grow">
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-1">
+                    <p className="text-sm sm:text-lg font-bold text-dark dark:text-white leading-tight">
                       {product.name}
                     </p>
                      {product.price > 0 && (
-                        <span className="text-sm font-semibold text-primary bg-primary/10 px-2 py-1 rounded-lg">
-                          +${product.price} c/u
+                        <span className="inline-block w-fit text-[10px] sm:text-sm font-semibold text-primary bg-primary/10 px-1.5 py-0.5 rounded-lg">
+                          +${product.price}
                         </span>
                       )}
                   </div>
                   
-                  <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center justify-between gap-2 sm:gap-3">
                     <button
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
                         changeQuantity(product.id, -1);
                       }}
-                      className="flex h-11 w-11 items-center justify-center rounded-full
+                      className="flex h-9 w-9 sm:h-11 sm:w-11 items-center justify-center rounded-full
                                  bg-light dark:bg-dark text-text-secondary dark:text-white/70
                                  hover:bg-light/80 dark:hover:bg-dark/80 transition-colors"
                     >
-                      <span className="material-symbols-outlined text-xl">
+                      <span className="material-symbols-outlined text-lg sm:text-xl">
                         remove
                       </span>
                     </button>
-                    <span className="w-10 text-center text-xl font-bold text-dark dark:text-white sm:text-2xl">
+                    <span className="text-lg sm:text-2xl font-black text-dark dark:text-white tabular-nums">
                       {product.quantity}
                     </span>
                     <button
@@ -191,11 +191,11 @@ const BuyJugsAssignWaterStepThree = () => {
                         e.stopPropagation();
                         changeQuantity(product.id, 1);
                       }}
-                      className="flex h-11 w-11 items-center justify-center rounded-full
+                      className="flex h-9 w-9 sm:h-11 sm:w-11 items-center justify-center rounded-full
                                  bg-light dark:bg-dark text-text-secondary dark:text-white/70
                                  hover:bg-light/80 dark:hover:bg-dark/80 transition-colors"
                     >
-                        <span className="material-symbols-outlined text-lg">
+                        <span className="material-symbols-outlined text-lg sm:text-xl">
                           add
                         </span>
                       </button>

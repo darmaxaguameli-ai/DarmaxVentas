@@ -24,7 +24,7 @@ const QuantityCard = ({
   return (
     <div
       onClick={handleCardClick}
-      className={`flex flex-col gap-4 rounded-2xl border bg-white dark:bg-dark shadow-sm transition-all
+      className={`flex flex-col gap-2 sm:gap-4 rounded-2xl border bg-white dark:bg-dark shadow-sm transition-all
                   cursor-pointer select-none
         ${
           featured
@@ -40,44 +40,44 @@ const QuantityCard = ({
         aria-label={name}
       />
 
-      <div className="px-4 pb-4 pt-1 flex flex-col gap-4 flex-grow">
-        {/* Nombre del producto, más grande */}
+      <div className="px-3 pb-3 pt-1 sm:px-4 sm:pb-4 flex flex-col gap-2 sm:gap-4 flex-grow">
+        {/* Nombre del producto */}
         <div className="flex-grow">
-          <p className="text-lg sm:text-xl font-semibold text-dark dark:text-white leading-snug">
+          <p className="text-sm sm:text-lg font-semibold text-dark dark:text-white leading-tight sm:leading-snug">
             {name}
           </p>
         </div>
 
-        {/* Controles de cantidad, botones grandes */}
-        <div className="flex items-center justify-between gap-4">
+        {/* Controles de cantidad */}
+        <div className="flex items-center justify-between gap-2 sm:gap-4">
           <button
             type="button"
             onClick={handleDecrease}
-            className="flex h-11 w-11 items-center justify-center rounded-full
+            className="flex h-9 w-9 sm:h-11 sm:w-11 items-center justify-center rounded-full
                        bg-slate-100 dark:bg-slate-800
                        text-text-secondary dark:text-gray-200
                        hover:bg-slate-200 dark:hover:bg-slate-700
                        transition-colors"
           >
-            <span className="material-symbols-outlined text-2xl">
+            <span className="material-symbols-outlined text-xl sm:text-2xl">
               remove
             </span>
           </button>
 
-          <span className="text-2xl font-black text-dark dark:text-white">
+          <span className="text-xl sm:text-2xl font-black text-dark dark:text-white">
             {quantity}
           </span>
 
           <button
             type="button"
             onClick={handleIncrease}
-            className="flex h-11 w-11 items-center justify-center rounded-full
+            className="flex h-9 w-9 sm:h-11 sm:w-11 items-center justify-center rounded-full
                        bg-slate-100 dark:bg-slate-800
                        text-text-secondary dark:text-gray-200
                        hover:bg-slate-200 dark:hover:bg-slate-700
                        transition-colors"
           >
-            <span className="material-symbols-outlined text-2xl">
+            <span className="material-symbols-outlined text-xl sm:text-2xl">
               add
             </span>
           </button>

@@ -67,33 +67,33 @@ const OrderSelection = () => {
             </p>
 
             {/* Cards */}
-            <div className="mt-10 grid w-full max-w-3xl grid-cols-1 gap-6 md:grid-cols-2 md:gap-8">
+            <div className="mt-8 grid w-full max-w-3xl grid-cols-2 gap-3 sm:gap-6 md:grid-cols-2 md:gap-8">
               {/* Card: Rellenar Garrafón */}
               <Link
                 to="/pedidos/rellenar"
                 state={{ storeId: selectedStore?.id }} // Pass store context to flow
-                className="group flex flex-col gap-4 rounded-2xl 
+                className="group flex flex-col gap-3 rounded-2xl 
                            border border-light/60 dark:border-white/10 
                            bg-white/95 dark:bg-dark/70 
-                           px-6 py-7 text-center shadow-md backdrop-blur-xl 
+                           px-3 py-5 sm:px-6 sm:py-7 text-center shadow-md backdrop-blur-xl 
                            transition-all hover:-translate-y-1 hover:shadow-lg"
               >
                 <div
-                  className="mx-auto flex h-20 w-20 items-center justify-center rounded-full
+                  className="mx-auto flex h-14 w-14 sm:h-20 sm:w-20 items-center justify-center rounded-full
                              bg-primary/10 text-primary transition-all 
                              group-hover:bg-primary group-hover:text-white"
                 >
-                  <span className="material-symbols-outlined text-4xl sm:text-5xl">
+                  <span className="material-symbols-outlined text-3xl sm:text-5xl">
                     recycling
                   </span>
                 </div>
 
-                <div className="flex flex-col gap-2">
-                  <p className="text-lg sm:text-xl font-bold">
+                <div className="flex flex-col gap-1 sm:gap-2">
+                  <p className="text-base sm:text-xl font-bold leading-tight">
                     Rellenar garrafón
                   </p>
-                  <p className="text-sm sm:text-base text-text-secondary dark:text-white/70">
-                    Programa una recarga para tus garrafones vacíos.
+                  <p className="text-xs sm:text-base text-text-secondary dark:text-white/70">
+                    Recarga tus vacíos.
                   </p>
                 </div>
               </Link>
@@ -102,28 +102,28 @@ const OrderSelection = () => {
               <Link
                 to="/pedidos/comprar"
                 state={{ storeId: selectedStore?.id }} // Pass store context to flow
-                className="group flex flex-col gap-4 rounded-2xl
+                className="group flex flex-col gap-3 rounded-2xl
                           border border-light/60 dark:border-white/10 
                           bg-white/95 dark:bg-dark/70 
-                          px-6 py-7 text-center shadow-md backdrop-blur-xl 
+                          px-3 py-5 sm:px-6 sm:py-7 text-center shadow-md backdrop-blur-xl 
                           transition-all hover:-translate-y-1 hover:shadow-lg"
               >
                 <div
-                  className="mx-auto flex h-20 w-20 items-center justify-center rounded-full
+                  className="mx-auto flex h-14 w-14 sm:h-20 sm:w-20 items-center justify-center rounded-full
                             bg-primary/10 text-primary transition-all 
                             group-hover:bg-primary group-hover:text-white"
                 >
-                  <span className="material-symbols-outlined text-4xl sm:text-5xl">
+                  <span className="material-symbols-outlined text-3xl sm:text-5xl">
                     water_drop
                   </span>
                 </div>
 
-                <div className="flex flex-col gap-2">
-                  <p className="text-lg sm:text-xl font-bold">
+                <div className="flex flex-col gap-1 sm:gap-2">
+                  <p className="text-base sm:text-xl font-bold leading-tight">
                     Comprar garrafones
                   </p>
-                  <p className="text-sm sm:text-base text-text-secondary dark:text-white/70">
-                    Elige cuántos garrafones de 20L y 10L necesitas.
+                  <p className="text-xs sm:text-base text-text-secondary dark:text-white/70">
+                    Nuevos de 20L y 10L.
                   </p>
                 </div>
               </Link>

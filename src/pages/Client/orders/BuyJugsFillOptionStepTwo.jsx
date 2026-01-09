@@ -74,12 +74,12 @@ const BuyJugsFillOptionStepTwo = () => {
           garrafones en total.
         </p>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-3xl mx-auto">
+        <div className="grid grid-cols-2 gap-3 sm:gap-6 max-w-3xl mx-auto">
           {/* Solo garrafón */}
           <button
             type="button"
             onClick={() => setSelectedOption("empty")}
-            className={`flex flex-col items-center justify-center gap-3 rounded-2xl px-6 py-8 text-center
+            className={`flex flex-col items-center justify-center gap-2 sm:gap-3 rounded-2xl px-3 py-6 sm:px-6 sm:py-8 text-center
                         shadow-md backdrop-blur-xl transition-all border
             ${
               isEmpty
@@ -88,23 +88,23 @@ const BuyJugsFillOptionStepTwo = () => {
             }`}
           >
             <div
-              className={`flex h-20 w-20 items-center justify-center rounded-full
+              className={`flex h-14 w-14 sm:h-20 sm:w-20 items-center justify-center rounded-full
               ${
                 isEmpty
                   ? "bg-primary/10 text-primary"
                   : "bg-light dark:bg-dark text-text-secondary dark:text-white/70"
               }`}
             >
-              <span className="material-symbols-outlined text-4xl sm:text-5xl">
+              <span className="material-symbols-outlined text-3xl sm:text-5xl">
                 inventory_2
               </span>
             </div>
             <div className="flex flex-col gap-1">
-              <h3 className="text-xl sm:text-2xl font-bold text-dark dark:text-white">
+              <h3 className="text-base sm:text-2xl font-bold text-dark dark:text-white leading-tight">
                 Solo garrafón
               </h3>
-              <p className="text-sm sm:text-base text-text-secondary dark:text-white/70 max-w-xs mx-auto">
-                Comprarás únicamente el envase vacío. Ideal si ya tienes agua.
+              <p className="text-xs sm:text-base text-text-secondary dark:text-white/70 max-w-xs mx-auto">
+                Solo el envase vacío.
               </p>
             </div>
           </button>
@@ -113,7 +113,7 @@ const BuyJugsFillOptionStepTwo = () => {
           <button
             type="button"
             onClick={() => setSelectedOption("full")}
-            className={`flex flex-col items-center justify-center gap-3 rounded-2xl px-6 py-8 text-center
+            className={`flex flex-col items-center justify-center gap-2 sm:gap-3 rounded-2xl px-3 py-6 sm:px-6 sm:py-8 text-center
                         shadow-md backdrop-blur-xl transition-all border
             ${
               isFull
@@ -122,23 +122,23 @@ const BuyJugsFillOptionStepTwo = () => {
             }`}
           >
             <div
-              className={`flex h-20 w-20 items-center justify-center rounded-full
+              className={`flex h-14 w-14 sm:h-20 sm:w-20 items-center justify-center rounded-full
               ${
                 isFull
                   ? "bg-primary/10 text-primary"
                   : "bg-light dark:bg-dark text-text-secondary dark:text-white/70"
               }`}
             >
-              <span className="material-symbols-outlined text-4xl sm:text-5xl">
+              <span className="material-symbols-outlined text-3xl sm:text-5xl">
                 water_full
               </span>
             </div>
             <div className="flex flex-col gap-1">
-              <h3 className="text-xl sm:text-2xl font-bold text-dark dark:text-white">
+              <h3 className="text-base sm:text-2xl font-bold text-dark dark:text-white leading-tight">
                 Garrafón lleno
               </h3>
-              <p className="text-sm sm:text-base text-text-secondary dark:text-white/70 max-w-xs mx-auto">
-                Recibe tus garrafones llenos, listos para usarse.
+              <p className="text-xs sm:text-base text-text-secondary dark:text-white/70 max-w-xs mx-auto">
+                Listo para usarse.
               </p>
             </div>
           </button>

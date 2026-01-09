@@ -140,7 +140,7 @@ const Login = () => {
         </div>
 
         {/* Olvidé contraseña */}
-        <p className="mt-8 text-center text-sm text-primary font-medium cursor-pointer hover:underline">
+        <p className="mt-8 text-center text-sm text-text-secondary dark:text-white/70 font-medium cursor-pointer hover:text-dark dark:hover:text-white hover:underline transition-colors">
           ¿Olvidaste tu contraseña?
         </p>
 
@@ -150,7 +150,7 @@ const Login = () => {
             ¿Aún no tienes cuenta?{" "}
             <Link
               to="/registro"
-              className="font-semibold text-primary hover:underline"
+              className="font-semibold text-text-secondary dark:text-white/70 hover:text-dark dark:hover:text-white hover:underline hover:underline-offset-4 transition-colors"
             >
               Regístrate aquí
             </Link>

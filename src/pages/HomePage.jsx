@@ -37,7 +37,7 @@ const HomePage = () => {
             to="/registro"
             className="h-12 flex items-center justify-center rounded-lg
                        bg-primary text-white font-semibold tracking-wide
-                       hover:bg-primary/90 active:scale-[0.98]
+                       hover:bg-primary-dark hover:text-white active:scale-[0.98]
                        transition-all"
           >
             Registrarse
