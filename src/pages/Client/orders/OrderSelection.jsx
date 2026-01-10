@@ -14,7 +14,7 @@ const OrderSelection = () => {
   return (
     <div className="font-display relative flex min-h-screen w-full flex-col bg-light dark:bg-dark text-dark dark:text-white overflow-x-hidden select-none">
       {/* Contenedor principal */}
-      <div className="flex flex-1 justify-center px-4 pb-[72px] pt-[calc(1rem+env(safe-area-inset-top))] sm:p-6 md:p-8">
+      <div className="flex flex-1 justify-center px-4 pb-[130px] pt-[calc(1rem+env(safe-area-inset-top))] sm:p-6 md:p-8">
         <div className="flex h-full w-full max-w-4xl flex-col items-center gap-6">
           {/* Header */}
           <ClientOrderHeader showOrderSelectionButton={true} />
@@ -93,7 +93,7 @@ const OrderSelection = () => {
                     Rellenar garrafón
                   </p>
                   <p className="text-xs sm:text-base text-text-secondary dark:text-white/70">
-                    Recarga tus vacíos.
+                    ¡Dale nueva vida a tu garrafón! Tráelo y lo rellenamos.
                   </p>
                 </div>
               </Link>
@@ -168,7 +168,7 @@ const OrderSelection = () => {
           </main>
 
           {/* Footer */}
-          <footer className="flex w-full flex-col items-center gap-6 py-10 text-center text-text-secondary dark:text-white/60">
+          <footer className="hidden sm:flex w-full flex-col items-center gap-6 py-10 text-center text-text-secondary dark:text-white/60">
             <div className="flex flex-col items-center gap-3 sm:flex-row sm:gap-8">
               <a
                 href="#"

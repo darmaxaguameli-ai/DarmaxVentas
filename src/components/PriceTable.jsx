@@ -87,29 +87,66 @@ const PriceTable = () => {
             </button>
 
             {isExpanded && (
-                <div className="mt-4 rounded-2xl border border-light/60 dark:border-white/10 bg-white/95 dark:bg-dark/70 shadow-lg backdrop-blur-xl overflow-x-auto">
-                    <table className="min-w-full divide-y divide-light/60 dark:divide-white/10">
-                        <thead className="bg-gray-50 dark:bg-gray-700">
-                            <tr>
-                                <th scope="col" className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Servicio</th>
-                                <th scope="col" className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Tipo de Agua</th>
-                                <th scope="col" className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Tamaño</th>
-                                <th scope="col" className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Mostrador</th>
-                                <th scope="col" className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Domicilio</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-light/60 dark:divide-white/10">
-                            {groupedPrices.map((item, index) => (
-                                <tr key={index} className="bg-white dark:bg-gray-800">
-                                    <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{item.service}</td>
-                                    <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">{item.waterType}</td>
-                                    <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">{item.size}</td>
-                                    <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">${item.mostrador ? item.mostrador.toFixed(2) : 'N/A'}</td>
-                                    <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">${item.domicilio ? item.domicilio.toFixed(2) : 'N/A'}</td>
+                <div className="mt-4 rounded-2xl border border-light/60 dark:border-white/10 bg-white/95 dark:bg-dark/70 shadow-lg backdrop-blur-xl overflow-hidden">
+                    
+                    {/* --- Desktop Table (Hidden on Mobile) --- */}
+                    <div className="hidden md:block overflow-x-auto">
+                        <table className="min-w-full divide-y divide-light/60 dark:divide-white/10">
+                            <thead className="bg-gray-50 dark:bg-gray-700">
+                                <tr>
+                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Servicio</th>
+                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Tipo de Agua</th>
+                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Tamaño</th>
+                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Mostrador</th>
+                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Domicilio</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody className="divide-y divide-light/60 dark:divide-white/10">
+                                {groupedPrices.map((item, index) => (
+                                    <tr key={index} className="bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900 dark:text-white">{item.service}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">{item.waterType}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">{item.size}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-primary">${item.mostrador ? item.mostrador.toFixed(2) : 'N/A'}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-primary">${item.domicilio ? item.domicilio.toFixed(2) : 'N/A'}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {/* --- Mobile Card View (Visible only on Mobile) --- */}
+                    <div className="md:hidden flex flex-col divide-y divide-gray-100 dark:divide-gray-700">
+                        {groupedPrices.map((item, index) => (
+                            <div key={index} className="p-4 bg-white dark:bg-gray-800 flex flex-col gap-3">
+                                <div className="flex justify-between items-start">
+                                    <div>
+                                        <h3 className="font-bold text-gray-900 dark:text-white text-base">{item.service}</h3>
+                                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{item.waterType} • {item.size}</p>
+                                    </div>
+                                    <div className="bg-primary/10 text-primary text-xs font-bold px-2 py-1 rounded">
+                                        {item.size}
+                                    </div>
+                                </div>
+                                
+                                <div className="grid grid-cols-2 gap-3 mt-1">
+                                    <div className="bg-gray-50 dark:bg-gray-700/50 p-2 rounded-lg text-center border border-gray-100 dark:border-gray-700">
+                                        <p className="text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-wide">Mostrador</p>
+                                        <p className="font-bold text-gray-900 dark:text-white text-lg">
+                                            {item.mostrador ? `$${item.mostrador.toFixed(2)}` : '--'}
+                                        </p>
+                                    </div>
+                                    <div className="bg-gray-50 dark:bg-gray-700/50 p-2 rounded-lg text-center border border-gray-100 dark:border-gray-700">
+                                        <p className="text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-wide">Domicilio</p>
+                                        <p className="font-bold text-primary text-lg">
+                                            {item.domicilio ? `$${item.domicilio.toFixed(2)}` : '--'}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
                 </div>
             )}
         </div>
