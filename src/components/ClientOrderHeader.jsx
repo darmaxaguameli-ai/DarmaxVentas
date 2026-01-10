@@ -1,17 +1,42 @@
 import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useClient } from '../pages/Client/context/ClientContext'; // Import useClient
+import Swal from 'sweetalert2';
 
 const ClientOrderHeader = ({ primaryLink, showOrderSelectionButton }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { logout, user, isAuthenticated } = useAuth(); 
   const { theme, toggleTheme } = useTheme();
   const { selectedStore, loadingLocation } = useClient(); // Use client context
-  const [isMenuOpen, setIsMenuOpen] = React.useState(false);
 
-  const linkToShow = primaryLink || { to: '/mis-pedidos', label: 'Mis pedidos' };
+  const linkToShow = primaryLink || { to: '/mis-pedidos', label: 'Pedidos' };
+  const currentPath = location.pathname;
+
+  const isActive = (path) => currentPath === path;
+
+  const handleLogout = async () => {
+    const result = await Swal.fire({
+      title: '¿Cerrar sesión?',
+      text: "Tendrás que ingresar de nuevo para ver tus pedidos.",
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#3b82f6',
+      cancelButtonColor: '#ef4444',
+      confirmButtonText: 'Sí, salir',
+      cancelButtonText: 'Cancelar',
+      reverseButtons: true,
+      background: theme === 'dark' ? '#1f2937' : '#fff',
+      color: theme === 'dark' ? '#fff' : '#000'
+    });
+
+    if (result.isConfirmed) {
+      logout();
+      navigate('/logout-success', { state: { name: user?.name } });
+    }
+  };
 
   return (
     <nav
@@ -19,8 +44,8 @@ const ClientOrderHeader = ({ primaryLink, showOrderSelectionButton }) => {
                  fixed bottom-0 left-0 w-full z-[100]
                  rounded-t-[1.5rem] 
                  border-t border-gray-200 dark:border-gray-700
-                 bg-white/95 dark:bg-gray-900/95 shadow-[0_-4px_20px_rgba(0,0,0,0.1)] backdrop-blur-md
-                 px-6 pt-3 pb-[calc(1rem+env(safe-area-inset-bottom))]
+                 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md
+                 px-4 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))]
                  
                  sm:relative sm:inset-auto sm:w-full sm:rounded-2xl sm:border sm:border-b sm:shadow-md sm:px-6 sm:py-4 sm:bg-white/90 sm:dark:bg-dark/60 sm:pb-4 sm:pt-4"
     >
@@ -54,67 +79,68 @@ const ClientOrderHeader = ({ primaryLink, showOrderSelectionButton }) => {
       </Link>
 
       {/* --- MOBILE NAVIGATION BAR (Visible only on mobile) --- */}
-      <div className="flex sm:hidden w-full items-center justify-around">
-        {/* Home / Pedidos */}
-        <Link to="/pedidos" className="flex flex-col items-center gap-1 text-text-secondary dark:text-white/60 hover:text-primary active:text-primary transition-colors">
+      <div className="flex sm:hidden w-full items-center justify-between px-1 gap-1">
+        {/* 1. Inicio */}
+        <Link 
+            to="/pedidos" 
+            className={`flex flex-col items-center gap-0.5 p-2 rounded-lg transition-colors ${isActive('/pedidos') ? 'text-primary' : 'text-text-secondary dark:text-white/60 hover:text-primary active:text-primary'}`}
+        >
           <span className="material-symbols-outlined text-2xl">home</span>
-          <span className="text-[10px] font-medium">Inicio</span>
+          <span className="text-[9px] font-semibold">Inicio</span>
         </Link>
 
-        {/* Action Button (Orders/Cart or Login) */}
+        {/* 2. Action Button (Pedidos/Cart or Login) */}
         {isAuthenticated ? (
-            <Link to={linkToShow.to} className="flex flex-col items-center gap-1 text-text-secondary dark:text-white/60 hover:text-primary active:text-primary transition-colors">
+            <Link 
+                to={linkToShow.to} 
+                className={`flex flex-col items-center gap-0.5 p-2 rounded-lg transition-colors ${isActive(linkToShow.to) ? 'text-primary' : 'text-text-secondary dark:text-white/60 hover:text-primary active:text-primary'}`}
+            >
               <span className="material-symbols-outlined text-2xl">
                 {linkToShow.to === '/mis-pedidos' ? 'receipt_long' : 'add_shopping_cart'}
               </span>
-              <span className="text-[10px] font-medium">Pedidos</span>
+              <span className="text-[9px] font-semibold">Pedidos</span>
             </Link>
         ) : (
-            <Link to="/login" className="flex flex-col items-center gap-1 text-text-secondary dark:text-white/60 hover:text-primary active:text-primary transition-colors">
+            <Link 
+                to="/login" 
+                className={`flex flex-col items-center gap-0.5 p-2 rounded-lg transition-colors ${isActive('/login') ? 'text-primary' : 'text-text-secondary dark:text-white/60 hover:text-primary active:text-primary'}`}
+            >
               <span className="material-symbols-outlined text-2xl">login</span>
-              <span className="text-[10px] font-medium">Entrar</span>
+              <span className="text-[9px] font-semibold">Entrar</span>
             </Link>
         )}
 
-        {/* Profile / Menu */}
+        {/* 3. Perfil (Direct Link) */}
         {isAuthenticated && (
-            <div className="relative">
-                <button
-                    onClick={() => setIsMenuOpen(prev => !prev)}
-                    className={`flex flex-col items-center gap-1 transition-colors ${isMenuOpen ? 'text-primary' : 'text-text-secondary dark:text-white/60'}`}
-                >
-                    <span className="material-symbols-outlined text-2xl">person</span>
-                    <span className="text-[10px] font-medium">Perfil</span>
-                </button>
-                {/* Mobile Menu Popup (Upwards) */}
-                {isMenuOpen && (
-                    <div className="absolute bottom-full right-0 mb-4 w-48 rounded-xl bg-white dark:bg-gray-800 p-2 shadow-2xl border border-gray-100 dark:border-gray-700 animate-in slide-in-from-bottom-2 fade-in duration-200">
-                        <Link to="/profile" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-3 w-full px-4 py-3 rounded-lg text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50">
-                            <span className="material-symbols-outlined text-xl">account_circle</span>
-                            Mi Perfil
-                        </Link>
-                        <button
-                            onClick={toggleTheme}
-                            className="flex items-center gap-3 w-full px-4 py-3 rounded-lg text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50"
-                        >
-                            <span className="material-symbols-outlined text-xl">{theme === 'dark' ? 'light_mode' : 'dark_mode'}</span>
-                            Cambiar Tema
-                        </button>
-                        <div className="h-px bg-gray-100 dark:bg-gray-700 my-1"></div>
-                        <button
-                            onClick={() => {
-                                logout();
-                                navigate('/logout-success', { state: { name: user?.name } });
-                                setIsMenuOpen(false);
-                            }}
-                            className="flex items-center gap-3 w-full px-4 py-3 rounded-lg text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/10"
-                        >
-                            <span className="material-symbols-outlined text-xl">logout</span>
-                            Cerrar Sesión
-                        </button>
-                    </div>
-                )}
-            </div>
+            <Link 
+                to="/profile"
+                className={`flex flex-col items-center gap-0.5 p-2 rounded-lg transition-colors ${isActive('/profile') ? 'text-primary' : 'text-text-secondary dark:text-white/60 hover:text-primary'}`}
+            >
+                <span className="material-symbols-outlined text-2xl">person</span>
+                <span className="text-[9px] font-semibold">Perfil</span>
+            </Link>
+        )}
+
+        {/* 4. Tema (Toggle) */}
+        {isAuthenticated && (
+            <button
+                onClick={toggleTheme}
+                className="flex flex-col items-center gap-0.5 p-2 rounded-lg transition-colors text-text-secondary dark:text-white/60 hover:text-primary"
+            >
+                <span className="material-symbols-outlined text-2xl">{theme === 'dark' ? 'light_mode' : 'dark_mode'}</span>
+                <span className="text-[9px] font-semibold">Tema</span>
+            </button>
+        )}
+
+        {/* 5. Salir (Logout) */}
+        {isAuthenticated && (
+            <button
+                onClick={handleLogout}
+                className="flex flex-col items-center gap-0.5 p-2 rounded-lg transition-colors text-red-500/80 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300"
+            >
+                <span className="material-symbols-outlined text-2xl">logout</span>
+                <span className="text-[9px] font-semibold">Salir</span>
+            </button>
         )}
       </div>
 
@@ -145,10 +171,7 @@ const ClientOrderHeader = ({ primaryLink, showOrderSelectionButton }) => {
               <span className="material-symbols-outlined text-2xl">person</span>
             </button>
             <button
-              onClick={() => {
-                logout();
-                navigate('/logout-success', { state: { name: user?.name } });
-              }}
+              onClick={handleLogout}
               className="hidden sm:flex h-10 w-10 items-center justify-center rounded-full bg-light dark:bg-primary/20 text-text-secondary dark:text-white"
               aria-label="Cerrar Sesión"
             >
