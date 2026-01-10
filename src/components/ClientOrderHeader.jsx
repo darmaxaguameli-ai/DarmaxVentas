@@ -14,12 +14,12 @@ const ClientOrderHeader = ({ primaryLink, showOrderSelectionButton }) => {
   const linkToShow = primaryLink || { to: '/mis-pedidos', label: 'Mis pedidos' };
 
   return (
-    <header
+    <nav
       className="flex items-center justify-between 
-                 fixed bottom-0 left-0 w-full z-50
-                 rounded-t-[2.5rem] 
-                 border-t border-light/60 dark:border-white/10
-                 bg-white/95 dark:bg-dark/90 shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.2)] backdrop-blur-xl 
+                 fixed bottom-0 left-0 w-full z-[100]
+                 rounded-t-[1.5rem] 
+                 border-t border-gray-200 dark:border-gray-700
+                 bg-white/95 dark:bg-gray-900/95 shadow-[0_-4px_20px_rgba(0,0,0,0.1)] backdrop-blur-md
                  px-6 pt-3 pb-[calc(1rem+env(safe-area-inset-bottom))]
                  
                  sm:relative sm:inset-auto sm:w-full sm:rounded-2xl sm:border sm:border-b sm:shadow-md sm:px-6 sm:py-4 sm:bg-white/90 sm:dark:bg-dark/60 sm:pb-4 sm:pt-4"
@@ -166,7 +166,7 @@ const ClientOrderHeader = ({ primaryLink, showOrderSelectionButton }) => {
           )
         )}
       </div>
-    </header>
+    </nav>
   );
 };
 

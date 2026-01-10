@@ -48,9 +48,12 @@ import OrderConfirmation from "./pages/Client/orders/OrderConfirmation.jsx";
 import ClientProfile from "./pages/Client/ClientProfile";
 import MisPedidos from "./pages/Client/MisPedidos.jsx";
 
+import ScrollToTop from "./components/common/ScrollToTop.jsx";
+
 function App() {
   return (
     <ClientProvider>
+      <ScrollToTop />
       <Routes>
         {/* Público / Auth */}
         <Route path="/" element={<HomePage />} />

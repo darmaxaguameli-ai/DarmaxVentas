@@ -51,11 +51,18 @@ const RefillJugStepOne = () => {
 
   const handleChangeQuantity = (id, delta) => {
     setSelectedJugs((prev) =>
-      prev.map((p) =>
-        p.id === id
-          ? { ...p, quantity: Math.max(0, p.quantity + delta) }
-          : p
-      )
+      prev.map((p) => {
+        // If this is the card being interacted with
+        if (p.id === id) {
+            return { 
+                ...p, 
+                quantity: Math.max(0, p.quantity + delta),
+                featured: true // Make this card the featured/active one
+            };
+        }
+        // For all other cards, remove featured status
+        return { ...p, featured: false };
+      })
     );
   };
 
@@ -132,18 +139,18 @@ const RefillJugStepOne = () => {
           ))}
         </div>
 
-        <div className="flex justify-between items-center pt-4">
+        <div className="flex justify-between items-center pt-2 md:pt-4">
           <button
             type="button"
             onClick={handleGoToStart}
-            className="text-sm font-medium text-text-secondary dark:text-white/70 hover:text-primary dark:hover:text-primary transition-colors"
+            className="hidden md:block text-sm font-medium text-text-secondary dark:text-white/70 hover:text-primary dark:hover:text-primary transition-colors"
           >
             &larr; Volver al inicio
           </button>
           <button
             type="button"
             onClick={handleContinue}
-            className="flex items-center justify-center rounded-xl bg-primary px-8 h-12 text-base font-semibold text-white shadow-sm hover:bg-primary/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary transition-all active:scale-[0.98]"
+            className="w-full md:w-auto flex items-center justify-center rounded-xl bg-primary px-8 h-12 text-base font-semibold text-white shadow-sm hover:bg-primary/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary transition-all active:scale-[0.98]"
             disabled={totalJugs === 0}
           >
             Continuar al paso 2
@@ -155,12 +162,26 @@ const RefillJugStepOne = () => {
 
   return (
     <OrderLayout
-      title="Selecciona tus garrafones a rellenar"
+      title={
+        <>
+          <span className="flex items-center gap-2 md:hidden">
+            <button
+              type="button"
+              onClick={handleGoToStart}
+              className="inline-flex items-center justify-center p-1 -ml-2 text-inherit rounded-full active:bg-black/5 dark:active:bg-white/10 transition-colors"
+            >
+              <span className="material-symbols-outlined text-3xl">arrow_back</span>
+            </button>
+            Selecciona tus garrafones
+          </span>
+          <span className="hidden md:inline">Selecciona tus garrafones a rellenar</span>
+        </>
+      }
       subtitle="Indica cuántos garrafones de cada tipo deseas que recojamos para recarga."
       step={1}
       totalSteps={4}
     >
-      <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-4 sm:gap-6">
         {renderContent()}
       </div>
     </OrderLayout>

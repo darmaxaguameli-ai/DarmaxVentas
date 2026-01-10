@@ -177,12 +177,26 @@ const OrderSummaryStepFour = () => {
   
     return (
       <OrderLayout
-        title={isRefill ? "Revisa tu pedido de recarga" : "Revisa tu compra"}
+        title={
+          <>
+            <span className="flex items-center gap-2 md:hidden">
+              <button
+                type="button"
+                onClick={handleBack}
+                className="inline-flex items-center justify-center p-1 -ml-2 text-inherit rounded-full active:bg-black/5 dark:active:bg-white/10 transition-colors"
+              >
+                <span className="material-symbols-outlined text-3xl">arrow_back</span>
+              </button>
+              Resumen
+            </span>
+            <span className="hidden md:inline">{isRefill ? "Revisa tu pedido de recarga" : "Revisa tu compra"}</span>
+          </>
+        }
         subtitle="Confirma que todo sea correcto antes de finalizar."
         step={4}
         totalSteps={4}
       >
-        <div className="w-full max-w-2xl mx-auto flex flex-col gap-6">
+        <div className="w-full max-w-2xl mx-auto flex flex-col gap-4 sm:gap-6">
           <div className="rounded-xl bg-light/60 dark:bg-dark/70 border border-light/60 dark:border-white/15 p-4 flex flex-col gap-2">
             <p className="text-xs sm:text-sm font-semibold text-text-secondary dark:text-white/70 uppercase tracking-[0.08em]">Método de entrega</p>
             <p className="text-base sm:text-lg font-bold text-dark dark:text-white">{deliveryLabels[deliveryMethod] || "Entrega a domicilio"}</p>
@@ -236,7 +250,7 @@ const OrderSummaryStepFour = () => {
                         </div>
           </div>
   
-          <div className="border-t border-light/60 dark:border-white/10 pt-6 space-y-4">
+          <div className="border-t border-light/60 dark:border-white/10 pt-4 sm:pt-6 space-y-4">
               <div className="flex items-center justify-between font-bold">
                 <p className="text-base sm:text-lg text-dark dark:text-white">Importe total</p>
                 <p className="text-2xl sm:text-3xl text-primary">
@@ -245,9 +259,9 @@ const OrderSummaryStepFour = () => {
               </div>
           </div>
   
-      <footer className="mt-auto pt-2">
+      <footer className="mt-auto pt-4 md:pt-8">
         <div className="flex flex-col-reverse sm:flex-row gap-4 justify-between items-center">
-          <button type="button" onClick={handleBack} className="flex h-12 sm:h-14 w-full sm:w-auto items-center justify-center rounded-lg border border-slate-300 bg-slate-100 text-dark dark:bg-slate-800 dark:text-white dark:border-slate-600 text-base sm:text-lg font-semibold px-6 sm:px-8 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all">
+          <button type="button" onClick={handleBack} className="hidden md:flex h-12 sm:h-14 w-full sm:w-auto items-center justify-center rounded-lg border border-slate-300 bg-slate-100 text-dark dark:bg-slate-800 dark:text-white dark:border-slate-600 text-base sm:text-lg font-semibold px-6 sm:px-8 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all">
             Volver al paso 3
           </button>
           <div className="flex flex-col gap-1 w-full sm:w-auto">

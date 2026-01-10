@@ -16,26 +16,40 @@ const OrderLayout = ({
                  bg-light dark:bg-dark text-dark dark:text-white overflow-x-hidden select-none"
     >
       <div className="flex h-full grow flex-col">
-        <div className="flex flex-1 justify-center px-4 pb-32 pt-[calc(1rem+env(safe-area-inset-top))] sm:p-6 md:p-8">
+        <div className="flex flex-1 justify-center px-4 pb-[72px] pt-0 sm:pt-[calc(1rem+env(safe-area-inset-top))] sm:p-6 md:p-8">
           <div className="flex flex-col w-full max-w-4xl flex-1 gap-6">
             {/* Header */}
             <ClientOrderHeader showOrderSelectionButton={true} />
 
             {/* Contenido */}
             <main className="flex-grow">
-              {/* Encabezado de paso + barra de progreso */}
+              {/* 1. Mobile Fixed Header (Title Only) */}
+              <div className="md:hidden fixed top-0 left-0 w-full z-40 bg-light/95 dark:bg-dark/95 backdrop-blur-md 
+                              px-4 pt-[calc(0.75rem+env(safe-area-inset-top))] pb-3 shadow-sm border-b border-black/5 dark:border-white/5 transition-all">
+                 <div className="text-xl font-black text-dark dark:text-white leading-tight flex items-center min-h-[2rem]">
+                    {title}
+                 </div>
+              </div>
+              
+              {/* Spacer for Fixed Header */}
+              <div className="md:hidden h-[calc(3.5rem+env(safe-area-inset-top))] w-full mb-4"></div>
+
+              {/* 2. Desktop Header + Mobile Info (Subtitle + Progress) */}
               <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-6 px-1 sm:px-0 mb-6">
                 <div className="flex flex-grow flex-col gap-2">
-                  <p className="text-2xl sm:text-3xl md:text-4xl font-black leading-tight tracking-[-0.03em]">
-                    {title}
-                  </p>
+                  {/* Desktop Title Wrapper */}
+                  <div className="hidden md:block">
+                    <p className="text-2xl sm:text-3xl md:text-4xl font-black leading-tight tracking-[-0.03em]">
+                        {title}
+                    </p>
+                  </div>
                   {subtitle && (
                     <p className="text-text-secondary dark:text-white/70 text-base leading-normal">
                       {subtitle}
                     </p>
                   )}
                 </div>
-                <div className="flex w-full max-w-[190px] flex-col items-end gap-2 sm:w-auto">
+                <div className="flex w-full flex-col items-start sm:items-end gap-2 sm:w-auto sm:max-w-[190px]">
                   <span className="text-sm font-medium text-text-secondary dark:text-white/70">
                     Paso {step} de {totalSteps}
                   </span>

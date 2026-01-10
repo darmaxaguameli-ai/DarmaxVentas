@@ -197,29 +197,29 @@ const ClientProfile = () => {
       return <div className="text-center py-10 text-dark dark:text-white">Cargando perfil...</div>;
     }
     return (
-      <main className="w-full max-w-4xl mx-auto p-6 sm:p-10 bg-white dark:bg-gray-800 rounded-2xl shadow-xl mt-10">
-        <h1 className="text-2xl sm:text-3xl font-black text-center text-dark dark:text-white mb-8">
+      <main className="w-full max-w-4xl mx-auto p-4 sm:p-10 bg-white dark:bg-gray-800 rounded-2xl shadow-xl mt-2 sm:mt-6">
+        <h1 className="text-xl sm:text-3xl font-black text-center text-dark dark:text-white mb-4 sm:mb-6">
           Tu Perfil de Cliente
         </h1>
-        {successMessage && <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-6">{successMessage}</div>}
-        {error && <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-6">{error}</div>}
-        {postalCodeApiError && <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-6">{postalCodeApiError}</div>}
+        {successMessage && <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4 text-sm">{successMessage}</div>}
+        {error && <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4 text-sm">{error}</div>}
+        {postalCodeApiError && <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4 text-sm">{postalCodeApiError}</div>}
         
         {/* Loyalty Points Section */}
-        <section className="mb-8 p-6 bg-gradient-to-r from-primary/10 to-transparent rounded-xl border border-primary/20">
+        <section className="mb-6 sm:mb-8 p-4 sm:p-6 bg-gradient-to-r from-primary/10 to-transparent rounded-xl border border-primary/20">
             <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-bold text-primary flex items-center gap-2">
-                    <span className="material-symbols-outlined">loyalty</span> Puntos de Fidelidad
+                <h2 className="text-lg sm:text-xl font-bold text-primary flex items-center gap-2">
+                    <span className="material-symbols-outlined text-2xl">loyalty</span> Puntos
                 </h2>
                 <div className="text-right">
-                    <p className="text-sm text-text-secondary dark:text-white/70">Saldo actual</p>
-                    <p className="text-3xl font-black text-dark dark:text-white">{formData.loyaltyPoints} pts</p>
+                    <p className="text-xs sm:text-sm text-text-secondary dark:text-white/70">Saldo actual</p>
+                    <p className="text-2xl sm:text-3xl font-black text-dark dark:text-white">{formData.loyaltyPoints} pts</p>
                 </div>
             </div>
             {formData.loyaltyTransactions && formData.loyaltyTransactions.length > 0 ? (
                 <div className="space-y-2 max-h-40 overflow-y-auto pr-2">
                     {formData.loyaltyTransactions.map(tx => (
-                        <div key={tx.id} className="flex justify-between items-center text-sm p-2 bg-white/50 dark:bg-black/20 rounded">
+                        <div key={tx.id} className="flex justify-between items-center text-xs sm:text-sm p-2 bg-white/50 dark:bg-black/20 rounded">
                             <span className="text-text-secondary dark:text-white/80">{tx.description}</span>
                             <span className={`font-bold ${tx.amount > 0 ? 'text-green-600' : 'text-red-500'}`}>
                                 {tx.amount > 0 ? '+' : ''}{tx.amount}
@@ -228,16 +228,16 @@ const ClientProfile = () => {
                     ))}
                 </div>
             ) : (
-                <p className="text-sm text-text-secondary dark:text-white/60 italic">Aún no tienes movimientos de puntos.</p>
+                <p className="text-xs sm:text-sm text-text-secondary dark:text-white/60 italic">Aún no tienes movimientos de puntos.</p>
             )}
         </section>
 
-        <form onSubmit={handleSubmit} className="space-y-8">
+        <form onSubmit={handleSubmit} className="space-y-6 sm:space-y-8">
           <section className="space-y-4">
             <h2 className="text-lg font-bold text-primary flex items-center gap-2 border-b pb-2 dark:border-gray-700">
                 <span className="material-symbols-outlined">person</span> Datos Personales
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                 <div><label className="label-style mb-1 block">Nombre Completo</label><input type="text" name="name" value={formData.name} readOnly className="input-style bg-gray-50 dark:bg-gray-700/50 cursor-not-allowed"/></div>
                 <div><label className="label-style mb-1 block">Correo Electrónico</label><input type="email" name="email" value={formData.email} readOnly className="input-style bg-gray-50 dark:bg-gray-700/50 cursor-not-allowed"/></div>
             </div>
@@ -249,7 +249,7 @@ const ClientProfile = () => {
                 <span className="material-symbols-outlined">home</span> Dirección de Entrega
             </h2>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
                 <div className="md:col-span-1">
                     <label className="label-style mb-1 block">Código Postal</label>
                     <input type="text" name="postalCode" value={formData.postalCode} onChange={handleChange} placeholder="Ej. 01234" className="input-style" maxLength="5"/>
@@ -261,7 +261,7 @@ const ClientProfile = () => {
                 </div>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                 <div>
                     <label className="label-style mb-1 block">Colonia/Barrio</label>
                     {colonias.length > 0 ? (
@@ -305,12 +305,14 @@ const ClientProfile = () => {
                     <span>Ubicación Exacta <span className="text-primary">*</span></span>
                     <span className="text-xs font-normal text-gray-500">Arrastra el marcador rojo</span>
                 </label>
-                <LocationPicker 
-                    lat={formData.lat} 
-                    lng={formData.lng} 
-                    onLocationChange={handleLocationChange} 
-                    addressToSearch={fullAddressSearch}
-                />
+                <div className="h-[250px] sm:h-[400px] w-full rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
+                    <LocationPicker 
+                        lat={formData.lat} 
+                        lng={formData.lng} 
+                        onLocationChange={handleLocationChange} 
+                        addressToSearch={fullAddressSearch}
+                    />
+                </div>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
                     Si no aparece tu ubicación automáticamente, usa el botón "Buscar mi dirección" o arrastra el mapa manualmente.
                 </p>
@@ -325,7 +327,7 @@ const ClientProfile = () => {
           </section>
           
           <div className="flex justify-end pt-4">
-            <button type="submit" className="btn-primary w-full sm:w-auto px-12 py-4 text-lg shadow-lg hover:scale-[1.02] transition-transform" disabled={loading || postalCodeApiLoading}>
+            <button type="submit" className="btn-primary w-full sm:w-auto px-12 py-3 sm:py-4 text-base sm:text-lg shadow-lg hover:scale-[1.02] transition-transform" disabled={loading || postalCodeApiLoading}>
                 {loading ? 'Guardando...' : 'Guardar Cambios'}
             </button>
           </div>
@@ -335,7 +337,7 @@ const ClientProfile = () => {
   };
 
   return (
-    <div className="font-display relative flex min-h-screen w-full flex-col bg-light dark:bg-dark text-dark dark:text-white overflow-x-hidden select-none">
+    <div className="font-display relative flex min-h-screen w-full flex-col bg-light dark:bg-dark text-dark dark:text-white overflow-x-hidden select-none pb-[72px] sm:pb-0">
       <div className="flex flex-1 justify-center px-4 sm:px-6 lg:px-12 py-8">
         <div className="flex h-full w-full max-w-4xl flex-col items-center justify-between">
           <ClientOrderHeader primaryLink={{ to: '/pedidos', label: 'Hacer Pedido' }} />

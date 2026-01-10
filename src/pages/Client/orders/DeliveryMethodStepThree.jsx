@@ -16,8 +16,18 @@ const DeliveryMethodStepThree = () => {
   const [deliveryMethod, setDeliveryMethod] = useState("delivery");
 
   const handleBack = () => {
-    const backPath = previousState.backPath || "/pedidos/rellenar/asignar";
-    navigate(backPath, { state: { ...previousState, deliveryMethod } });
+    // Determine the correct back path based on the flow mode
+    let targetBackPath = "/pedidos/rellenar/asignar"; // Default for refill
+
+    if (mode === "buy" || buyFlow) {
+        targetBackPath = "/pedidos/comprar/asignar-agua";
+    } else if (previousState.backPath && previousState.backPath !== location.pathname) {
+        // Fallback to whatever was passed as backPath if not explicitly caught above
+        // BUT prevent loop if backPath points to current page (which happens when returning from Step 4)
+        targetBackPath = previousState.backPath;
+    }
+
+    navigate(targetBackPath, { state: { ...previousState, deliveryMethod } });
   };
 
   // Lógica de validación mejorada
@@ -88,7 +98,21 @@ const DeliveryMethodStepThree = () => {
 
   return (
     <OrderLayout
-      title="Elige tu método de entrega"
+      title={
+        <>
+          <span className="flex items-center gap-2 md:hidden">
+            <button
+              type="button"
+              onClick={handleBack}
+              className="inline-flex items-center justify-center p-1 -ml-2 text-inherit rounded-full active:bg-black/5 dark:active:bg-white/10 transition-colors"
+            >
+              <span className="material-symbols-outlined text-3xl">arrow_back</span>
+            </button>
+            Método de entrega
+          </span>
+          <span className="hidden md:inline">Elige tu método de entrega</span>
+        </>
+      }
       subtitle="Decide cómo quieres que manejemos tus garrafones."
       step={3}
       totalSteps={4}
@@ -145,7 +169,7 @@ const DeliveryMethodStepThree = () => {
       </div>
       <footer className="mt-auto pt-2">
         <div className="flex flex-col-reverse sm:flex-row gap-4 justify-between items-center">
-          <button type="button" onClick={handleBack} className="flex h-12 sm:h-14 w-full sm:w-auto items-center justify-center rounded-lg border border-slate-300 bg-slate-100 text-dark dark:bg-slate-800 dark:text-white dark:border-slate-600 text-base sm:text-lg font-semibold px-6 sm:px-8 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all">
+          <button type="button" onClick={handleBack} className="hidden md:flex h-12 sm:h-14 w-full sm:w-auto items-center justify-center rounded-lg border border-slate-300 bg-slate-100 text-dark dark:bg-slate-800 dark:text-white dark:border-slate-600 text-base sm:text-lg font-semibold px-6 sm:px-8 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all">
             Volver al paso 2
           </button>
           <div className="flex flex-col gap-1 w-full sm:w-auto">

@@ -152,7 +152,7 @@ const MisPedidos = () => {
   };
 
   return (
-    <div className="font-display relative flex min-h-screen w-full flex-col bg-light dark:bg-dark text-dark dark:text-white overflow-x-hidden select-none">
+    <div className="font-display relative flex min-h-screen w-full flex-col bg-light dark:bg-dark text-dark dark:text-white overflow-x-hidden select-none pb-[72px] sm:pb-0">
       <div className="flex flex-1 justify-center px-4 sm:px-6 lg:px-12 py-8">
         <div className="flex h-full w-full max-w-4xl flex-col items-center justify-between">
           <ClientOrderHeader primaryLink={{ to: '/pedidos', label: 'Hacer Pedido' }} />
