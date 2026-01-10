@@ -2640,13 +2640,31 @@ app.get('/api/external/geocode', async (req, res) => {
     }
 });
 
-// --- DIPOMEX Proxy (Existing) ---
-// (Your existing fetchPostalCodeData logic likely uses this or similar, ensuring it's here)
+// --- DIPOMEX Proxy ---
 app.get('/api/external/dipomex/codigo_postal', async (req, res) => {
-  // ... existing implementation if any, or placeholder
-  // For this task, we are focusing on the geocode addition.
-  // Assuming the previous code block ended before this.
-  res.status(501).json({ error: 'Not implemented in this snippet' });
+  const { cp } = req.query;
+
+  if (!cp) {
+    return res.status(400).json({ error: 'El parámetro "cp" (código postal) es requerido.' });
+  }
+
+  try {
+    const response = await axios.get('https://api.tau.com.mx/dipomex/v1/codigo_postal', {
+      params: { cp },
+      headers: {
+        'APIKEY': process.env.DIPOMEX_API_KEY
+      }
+    });
+
+    res.json(response.data);
+  } catch (error) {
+    console.error('Error fetching postal code from Dipomex:', error.message);
+    // Si Dipomex devuelve error, lo pasamos al cliente
+    if (error.response) {
+       return res.status(error.response.status).json(error.response.data);
+    }
+    res.status(500).json({ error: 'Error al consultar el servicio de código postal.' });
+  }
 });
 
 // =====================================================
