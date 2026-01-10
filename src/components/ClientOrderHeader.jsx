@@ -15,92 +15,116 @@ const ClientOrderHeader = ({ primaryLink, showOrderSelectionButton }) => {
 
   return (
     <header
-      className="flex w-full items-center justify-between 
-                 rounded-2xl border border-light/60 dark:border-white/10
-                 bg-white/90 dark:bg-dark/60 shadow-md backdrop-blur-xl 
-                 px-4 py-4 sm:px-6"
+      className="flex items-center justify-between 
+                 fixed bottom-0 left-0 w-full z-50
+                 rounded-t-[2.5rem] 
+                 border-t border-light/60 dark:border-white/10
+                 bg-white/95 dark:bg-dark/90 shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.2)] backdrop-blur-xl 
+                 px-6 pt-3 pb-[calc(1rem+env(safe-area-inset-bottom))]
+                 
+                 sm:relative sm:inset-auto sm:w-full sm:rounded-2xl sm:border sm:border-b sm:shadow-md sm:px-6 sm:py-4 sm:bg-white/90 sm:dark:bg-dark/60 sm:pb-4 sm:pt-4"
     >
-      <Link to="/pedidos" className="flex items-center gap-3">
+      {/* --- DESKTOP LOGO & INFO (Hidden on mobile) --- */}
+      <Link to="/pedidos" className="hidden sm:flex items-center gap-3">
         <div className="flex h-10 w-10 items-center justify-center rounded-xl text-primary bg-transparent">
           <img src="/img/logos/darmax-logo.png" alt="Darmax Logo" className="h-full w-auto object-contain" />
         </div>
 
         <div className="flex flex-col items-start">
-          <span className="hidden sm:block text-xs font-semibold text-text-secondary dark:text-white/60">
+          <span className="text-xs font-semibold text-text-secondary dark:text-white/60">
             Sistema de pedidos
           </span>
-          <h2 className="text-lg sm:text-xl font-bold tracking-[-0.02em] leading-tight">
+          <h2 className="text-xl font-bold tracking-[-0.02em] leading-tight">
             Darmax Agua
           </h2>
-          {/* Store Indicator */}
+          {/* Store Indicator Desktop */}
           <div className="flex items-center gap-1 mt-0.5">
             {loadingLocation ? (
-                <span className="text-[10px] sm:text-xs text-gray-400 animate-pulse">Ubicando sucursal...</span>
+                <span className="text-xs text-gray-400 animate-pulse">Ubicando sucursal...</span>
             ) : selectedStore ? (
-                <span className="bg-primary/10 text-primary px-1.5 py-0.5 rounded text-[10px] sm:text-xs font-medium flex items-center gap-1">
-                    <span className="material-symbols-outlined text-[10px] sm:text-xs">store</span>
-                    <span className="truncate max-w-[100px] sm:max-w-none">{selectedStore.name}</span>
+                <span className="bg-primary/10 text-primary px-1.5 py-0.5 rounded text-xs font-medium flex items-center gap-1">
+                    <span className="material-symbols-outlined text-xs">store</span>
+                    <span className="truncate">{selectedStore.name}</span>
                 </span>
             ) : (
-                <span className="text-[10px] sm:text-xs text-gray-400">Sin sucursal cercana</span>
+                <span className="text-xs text-gray-400">Sin sucursal cercana</span>
             )}
           </div>
         </div>
       </Link>
 
-      <div className="flex items-center gap-2 sm:gap-4"> {/* Adjusted gap for better mobile spacing */}
-        <button
-          onClick={toggleTheme}
-          className="flex sm:hidden h-10 w-10 items-center justify-center rounded-full bg-light dark:bg-primary/20 text-text-secondary dark:text-white"
-          aria-label="Cambiar tema"
-        >
-          <span className="material-symbols-outlined text-2xl">
-            {theme === 'dark' ? 'light_mode' : 'dark_mode'}
-          </span>
-        </button>
+      {/* --- MOBILE NAVIGATION BAR (Visible only on mobile) --- */}
+      <div className="flex sm:hidden w-full items-center justify-around">
+        {/* Home / Pedidos */}
+        <Link to="/pedidos" className="flex flex-col items-center gap-1 text-text-secondary dark:text-white/60 hover:text-primary active:text-primary transition-colors">
+          <span className="material-symbols-outlined text-2xl">home</span>
+          <span className="text-[10px] font-medium">Inicio</span>
+        </Link>
+
+        {/* Action Button (Orders/Cart or Login) */}
         {isAuthenticated ? (
-          <>
-            {/* --- Mobile-only buttons --- */}
-            <Link
-              to={linkToShow.to}
-              className="flex h-10 w-10 items-center justify-center rounded-full bg-light dark:bg-primary/20 text-text-secondary dark:text-white sm:hidden"
-              aria-label={linkToShow.label}
-            >
+            <Link to={linkToShow.to} className="flex flex-col items-center gap-1 text-text-secondary dark:text-white/60 hover:text-primary active:text-primary transition-colors">
               <span className="material-symbols-outlined text-2xl">
                 {linkToShow.to === '/mis-pedidos' ? 'receipt_long' : 'add_shopping_cart'}
               </span>
+              <span className="text-[10px] font-medium">Pedidos</span>
             </Link>
-            <div className="relative sm:hidden">
-              <button
-                onClick={() => setIsMenuOpen(prev => !prev)}
-                className="flex h-10 w-10 items-center justify-center rounded-full bg-light dark:bg-primary/20 text-text-secondary dark:text-white"
-                aria-label="Abrir menú de usuario"
-              >
-                <span className="material-symbols-outlined text-2xl">person</span>
-              </button>
-              {isMenuOpen && (
-                <div className="absolute top-full right-0 mt-2 w-48 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none dark:bg-gray-800 dark:ring-gray-700 z-50">
-                  <Link to="/profile" onClick={() => setIsMenuOpen(false)} className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
-                    Mi Perfil
-                  </Link>
-                  <button
-                    onClick={() => {
-                      logout();
-                      navigate('/logout-success', { state: { name: user?.name } });
-                      setIsMenuOpen(false);
-                    }}
-                    className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
-                  >
-                    Cerrar Sesión
-                  </button>
-                </div>
-              )}
-            </div>
+        ) : (
+            <Link to="/login" className="flex flex-col items-center gap-1 text-text-secondary dark:text-white/60 hover:text-primary active:text-primary transition-colors">
+              <span className="material-symbols-outlined text-2xl">login</span>
+              <span className="text-[10px] font-medium">Entrar</span>
+            </Link>
+        )}
 
-            {/* --- Desktop-only buttons --- */}
+        {/* Profile / Menu */}
+        {isAuthenticated && (
+            <div className="relative">
+                <button
+                    onClick={() => setIsMenuOpen(prev => !prev)}
+                    className={`flex flex-col items-center gap-1 transition-colors ${isMenuOpen ? 'text-primary' : 'text-text-secondary dark:text-white/60'}`}
+                >
+                    <span className="material-symbols-outlined text-2xl">person</span>
+                    <span className="text-[10px] font-medium">Perfil</span>
+                </button>
+                {/* Mobile Menu Popup (Upwards) */}
+                {isMenuOpen && (
+                    <div className="absolute bottom-full right-0 mb-4 w-48 rounded-xl bg-white dark:bg-gray-800 p-2 shadow-2xl border border-gray-100 dark:border-gray-700 animate-in slide-in-from-bottom-2 fade-in duration-200">
+                        <Link to="/profile" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-3 w-full px-4 py-3 rounded-lg text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                            <span className="material-symbols-outlined text-xl">account_circle</span>
+                            Mi Perfil
+                        </Link>
+                        <button
+                            onClick={toggleTheme}
+                            className="flex items-center gap-3 w-full px-4 py-3 rounded-lg text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50"
+                        >
+                            <span className="material-symbols-outlined text-xl">{theme === 'dark' ? 'light_mode' : 'dark_mode'}</span>
+                            Cambiar Tema
+                        </button>
+                        <div className="h-px bg-gray-100 dark:bg-gray-700 my-1"></div>
+                        <button
+                            onClick={() => {
+                                logout();
+                                navigate('/logout-success', { state: { name: user?.name } });
+                                setIsMenuOpen(false);
+                            }}
+                            className="flex items-center gap-3 w-full px-4 py-3 rounded-lg text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/10"
+                        >
+                            <span className="material-symbols-outlined text-xl">logout</span>
+                            Cerrar Sesión
+                        </button>
+                    </div>
+                )}
+            </div>
+        )}
+      </div>
+
+      {/* --- DESKTOP RIGHT MENU (Hidden on mobile) --- */}
+      <div className="hidden sm:flex items-center gap-4">
+        {isAuthenticated ? (
+          <>
             <Link
               to={linkToShow.to}
-              className="hidden sm:block text-sm font-medium text-text-secondary dark:text-white/70 hover:text-primary dark:hover:text-primary transition-colors"
+              className="text-sm font-medium text-text-secondary dark:text-white/70 hover:text-primary dark:hover:text-primary transition-colors"
             >
               {linkToShow.label}
             </Link>

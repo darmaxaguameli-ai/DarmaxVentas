@@ -16,7 +16,7 @@ const OrderLayout = ({
                  bg-light dark:bg-dark text-dark dark:text-white overflow-x-hidden select-none"
     >
       <div className="flex h-full grow flex-col">
-        <div className="flex flex-1 justify-center p-4 sm:p-6 md:p-8">
+        <div className="flex flex-1 justify-center px-4 pb-32 pt-[calc(1rem+env(safe-area-inset-top))] sm:p-6 md:p-8">
           <div className="flex flex-col w-full max-w-4xl flex-1 gap-6">
             {/* Header */}
             <ClientOrderHeader showOrderSelectionButton={true} />
