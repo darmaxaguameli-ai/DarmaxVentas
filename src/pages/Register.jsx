@@ -14,6 +14,7 @@ const Register = () => {
   // Form data state
   const [formData, setFormData] = useState({
     name: "",
+    sexo: "",
     email: "",
     password: "",
     confirmPassword: "",
@@ -118,6 +119,7 @@ const Register = () => {
                 const updateResponse = await axios.post(`/api/complete-registration`, {
                     userId: existingUserData.id,
                     name: formData.name,
+                    sexo: formData.sexo,
                     email: formData.email,
                     password: formData.password, 
                 });
@@ -137,6 +139,7 @@ const Register = () => {
             // Si es un usuario totalmente nuevo, usamos POST
             const dataToSend = {
               name: formData.name,
+              sexo: formData.sexo,
               email: formData.email,
               password: formData.password,
               role: "CLIENTE",
@@ -288,7 +291,7 @@ const Register = () => {
                         setSearchIdentifier("");
                         setSearchError("");
                         setRegistrationError("");
-                        setFormData({ name: "", email: "", password: "", confirmPassword: "" });
+                        setFormData({ name: "", sexo: "", email: "", password: "", confirmPassword: "" });
                       }}
                       variant="secondary"
                       className="mt-4"
@@ -322,6 +325,27 @@ const Register = () => {
                         required
                         readOnly={!!existingUserData && !!existingUserData.name} // Only read-only if name is already present
                       />
+                    </label>
+
+                    {/* Sexo */}
+                    <label className="flex flex-col">
+                      <p className="pb-2 text-sm font-medium text-dark dark:text-white">
+                        Sexo
+                      </p>
+                      <select
+                        name="sexo"
+                        value={formData.sexo || ""}
+                        onChange={handleChange}
+                        className="h-12 w-full rounded-lg border border-light bg-white px-3 text-base text-dark
+                                   focus:border-primary focus:outline-0 focus:ring-2 focus:ring-primary/20
+                                   dark:border-white/10 dark:bg-dark dark:text-white"
+                        required
+                      >
+                        <option value="">Selecciona...</option>
+                        <option value="HOMBRE">Hombre</option>
+                        <option value="MUJER">Mujer</option>
+                        <option value="OTRO">Prefiero no decirlo</option>
+                      </select>
                     </label>
 
                     {/* Correo */}

@@ -58,11 +58,18 @@ const PriceTable = () => {
             });
         });
         
-        // Ordenar la tabla para mejor lectura (ej. por tipo de agua, luego por servicio, luego por tamaño)
+        // Ordenar la tabla para mejor lectura: por tipo de agua, luego por tamaño (descendente), luego por servicio
         tableData.sort((a, b) => {
+            // 1. Tipo de Agua
             if (a.waterType !== b.waterType) return a.waterType.localeCompare(b.waterType);
-            if (a.service !== b.service) return a.service.localeCompare(b.service);
-            return parseInt(b.size) - parseInt(a.size); // 20L antes que 10L
+            
+            // 2. Tamaño numérico (20L > 10L > 4L > 1L)
+            const numA = parseInt(a.size) || 0;
+            const numB = parseInt(b.size) || 0;
+            if (numA !== numB) return numB - numA;
+
+            // 3. Nombre del servicio (ej. Recarga vs Nuevo)
+            return a.service.localeCompare(b.service);
         });
 
         return tableData;
@@ -120,9 +127,14 @@ const PriceTable = () => {
                         {groupedPrices.map((item, index) => (
                             <div key={index} className="p-4 bg-white dark:bg-gray-800 flex flex-col gap-3">
                                 <div className="flex justify-between items-start">
-                                    <div>
+                                    <div className="flex flex-col gap-1">
                                         <h3 className="font-bold text-gray-900 dark:text-white text-base">{item.service}</h3>
-                                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{item.waterType} • {item.size}</p>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-xs text-gray-500 dark:text-gray-400">Tipo:</span>
+                                            <span className="bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 text-xs font-bold px-2 py-0.5 rounded-md border border-blue-100 dark:border-blue-800">
+                                                {item.waterType}
+                                            </span>
+                                        </div>
                                     </div>
                                     <div className="bg-primary/10 text-primary text-xs font-bold px-2 py-1 rounded">
                                         {item.size}

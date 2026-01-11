@@ -1,19 +1,82 @@
 // src/pages/cliente/orders/DeliveryMethodStepThree.jsx
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import OrderLayout from "../../../layouts/OrderLayout";
-import { useAuth } from "../../../context/AuthContext"; // Importar useAuth
+import { useAuth } from "../../../context/AuthContext";
+import { useConfig } from "../../../context/ConfigContext";
 
 const DeliveryMethodStepThree = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { isAuthenticated, user } = useAuth(); // Usar el hook de autenticación
+  const { isAuthenticated, user } = useAuth();
+  const { servicePrices, loading: configLoading } = useConfig();
 
   const previousState = location.state || {};
   const mode = previousState.mode || "refill";
   const buyFlow = previousState.buyFlow || null;
 
-  const [deliveryMethod, setDeliveryMethod] = useState("delivery");
+  // Determine items to check availability for
+  const itemsToCheck = useMemo(() => {
+    if (mode === "buy" && buyFlow) {
+        return buyFlow.fromStepOneBuy?.filter(p => p.quantity > 0) || [];
+    }
+    // Refill mode: flatten the structure (waterTypes -> assignments)
+    const refillItems = [];
+    const fromStepTwo = previousState.fromStepTwo || [];
+    fromStepTwo.forEach(wt => {
+        wt.assignments?.forEach(a => {
+            if (a.quantity > 0) {
+                refillItems.push({ ...a, waterTypeId: wt.id });
+            }
+        });
+    });
+    return refillItems;
+  }, [mode, buyFlow, previousState.fromStepTwo]);
+
+  // Check availability of methods based on prices
+  const availableMethods = useMemo(() => {
+    if (configLoading || !servicePrices || itemsToCheck.length === 0) return { delivery: true, pickup: true };
+
+    const checkMethod = (methodName) => {
+        return itemsToCheck.every(item => {
+            // Logic similar to OrderSummaryStepFour
+            const jugName = item.name || item.jugName;
+            const sizeMatch = jugName ? jugName.match(/(\d+(?:\.\d+)?)\s*(?:l|litros?|lt)/i) : null;
+            const sizeSuffix = sizeMatch ? `${sizeMatch[1]}L` : '20L';
+            const serviceNameToSearch = `Recarga ${sizeSuffix}`; // Assuming same service name logic for buy/refill for now, or adapt if Buy has differnet names
+
+            const hasPrice = servicePrices.some(p => 
+                p.name === serviceNameToSearch &&
+                p.method === methodName &&
+                (!item.waterTypeId || p.waterType?.id === item.waterTypeId)
+            );
+            return hasPrice;
+        });
+    };
+
+    return {
+        delivery: checkMethod('Domicilio'),
+        pickup: checkMethod('Mostrador')
+    };
+  }, [itemsToCheck, servicePrices, configLoading]);
+
+  // Initialize deliveryMethod based on availability
+  const [deliveryMethod, setDeliveryMethod] = useState(() => {
+      // Default to delivery if available, else pickup, else null
+      // We can't know availableMethods inside useState initializer accurately if config is loading
+      // So we handle this with an effect or just default 'delivery' and let user switch if disabled?
+      // Better to default 'delivery' but handle valid selection later.
+      return "delivery";
+  });
+
+  // Effect to ensure selected method is valid
+  useState(() => {
+      if (!configLoading && availableMethods) {
+          if (!availableMethods.delivery && deliveryMethod === 'delivery') {
+              setDeliveryMethod('pickup');
+          }
+      }
+  }, [availableMethods, configLoading]);
 
   const handleBack = () => {
     // Determine the correct back path based on the flow mode
@@ -53,13 +116,24 @@ const DeliveryMethodStepThree = () => {
       const { fromStepOneBuy = [], fillOption = "empty" } = buyFlow;
       const orderItems = fromStepOneBuy
         .filter((p) => p.quantity && p.quantity > 0)
-        .map((p) => ({
-          id: p.id,
-          name: fillOption === "empty" ? `${p.name} (solo envase)` : `${p.name} (lleno)`,
-          quantity: p.quantity,
-          imageUrl: p.imageUrl,
-          description: `Cantidad: ${p.quantity}`,
-        }));
+        .map((p) => {
+          // Determinar si es botella o garrafón para el flujo de compra
+          const lowerName = p.name.toLowerCase();
+          const isBottle = lowerName.includes('1l') || lowerName.includes('1 litro') || lowerName.includes('1lt') || lowerName.includes('1.5l');
+          
+          // Limpiar nombre si ya trae prefijo para no duplicar (opcional, pero seguro)
+          let cleanName = p.name.replace(/^Garrafón\s+/i, '').replace(/^Botella\s+/i, '');
+          
+          const displayName = isBottle ? `Botella ${cleanName}` : `Garrafón ${cleanName}`;
+
+          return {
+            id: p.id,
+            name: fillOption === "empty" ? `${displayName} (solo envase)` : `${displayName} (lleno)`,
+            quantity: p.quantity,
+            imageUrl: p.imageUrl,
+            description: `Cantidad: ${p.quantity}`,
+          };
+        });
       nextState = { ...nextState, mode: "buy", buyFlow, orderItems };
     }
 
@@ -124,48 +198,61 @@ const DeliveryMethodStepThree = () => {
       </p>
 
       <div className="grid grid-cols-1 gap-6 mt-2 mb-6 sm:grid-cols-2 lg:grid-cols-3 max-w-4xl mx-auto">
-        <button
-          type="button"
-          onClick={() => setDeliveryMethod("delivery")}
-          aria-pressed={isDelivery}
-          className={`flex flex-col items-center justify-center gap-4 rounded-2xl px-6 py-8 text-center shadow-md backdrop-blur-xl transition-all border ${isDelivery ? "border-primary bg-white/95 dark:bg-dark/70 dark:border-primary scale-[1.02]" : "border-light/60 dark:border-white/10 bg-white/90 dark:bg-dark/60 hover:border-primary/40"}`}
-        >
-          <div className={`flex h-20 w-20 items-center justify-center rounded-full ${isDelivery ? "bg-primary/10 text-primary" : "bg-light dark:bg-dark text-text-secondary dark:text-white/70"}`}>
-            <span className="material-symbols-outlined text-4xl sm:text-5xl">local_shipping</span>
-          </div>
-          <div className="flex flex-col gap-2">
-            <h3 className="text-xl sm:text-2xl font-bold text-dark dark:text-white">Entrega a domicilio</h3>
-            <p className="text-sm sm:text-base text-text-secondary dark:text-white/70 max-w-xs mx-auto">Llevamos tus garrafones llenos directamente a tu casa.</p>
-          </div>
-        </button>
-        <button
-          type="button"
-          onClick={() => setDeliveryMethod("home_collection")}
-          aria-pressed={isHomeCollection}
-          className={`flex flex-col items-center justify-center gap-4 rounded-2xl px-6 py-8 text-center shadow-md backdrop-blur-xl transition-all border ${isHomeCollection ? "border-primary bg-white/95 dark:bg-dark/70 dark:border-primary scale-[1.02]" : "border-light/60 dark:border-white/10 bg-white/90 dark:bg-dark/60 hover:border-primary/40"}`}
-        >
-          <div className={`flex h-20 w-20 items-center justify-center rounded-full ${isHomeCollection ? "bg-primary/10 text-primary" : "bg-light dark:bg-dark text-text-secondary dark:text-white/70"}`}>
-            <span className="material-symbols-outlined text-4xl sm:text-5xl">recycling</span>
-          </div>
-          <div className="flex flex-col gap-2">
-            <h3 className="text-xl sm:text-2xl font-bold text-dark dark:text-white">Recolección a domicilio</h3>
-            <p className="text-sm sm:text-base text-text-secondary dark:text-white/70 max-w-xs mx-auto">Pasamos a tu casa a recoger tus garrafones vacíos para recarga.</p>
-          </div>
-        </button>
-        <button
-          type="button"
-          onClick={() => setDeliveryMethod("pickup")}
-          aria-pressed={isPickup}
-          className={`flex flex-col items-center justify-center gap-4 rounded-2xl px-6 py-8 text-center shadow-md backdrop-blur-xl transition-all border ${isPickup ? "border-primary bg-white/95 dark:bg-dark/70 dark:border-primary scale-[1.02]" : "border-light/60 dark:border-white/10 bg-white/90 dark:bg-dark/60 hover:border-primary/40"}`}
-        >
-          <div className={`flex h-20 w-20 items-center justify-center rounded-full ${isPickup ? "bg-primary/10 text-primary" : "bg-light dark:bg-dark text-text-secondary dark:text-white/70"}`}>
-            <span className="material-symbols-outlined text-4xl sm:text-5xl">storefront</span>
-          </div>
-          <div className="flex flex-col gap-2">
-            <h3 className="text-xl sm:text-2xl font-bold text-dark dark:text-white">Recoger en mostrador</h3>
-            <p className="text-sm sm:text-base text-text-secondary dark:text-white/70 max-w-xs mx-auto">Entrega tus garrafones en el mostrador de nuestra sucursal Darmax.</p>
-          </div>
-        </button>
+        {availableMethods.delivery && (
+            <>
+                <button
+                type="button"
+                onClick={() => setDeliveryMethod("delivery")}
+                aria-pressed={isDelivery}
+                className={`flex flex-col items-center justify-center gap-4 rounded-2xl px-6 py-8 text-center shadow-md backdrop-blur-xl transition-all border ${isDelivery ? "border-primary bg-white/95 dark:bg-dark/70 dark:border-primary scale-[1.02]" : "border-light/60 dark:border-white/10 bg-white/90 dark:bg-dark/60 hover:border-primary/40"}`}
+                >
+                <div className={`flex h-20 w-20 items-center justify-center rounded-full ${isDelivery ? "bg-primary/10 text-primary" : "bg-light dark:bg-dark text-text-secondary dark:text-white/70"}`}>
+                    <span className="material-symbols-outlined text-4xl sm:text-5xl">local_shipping</span>
+                </div>
+                <div className="flex flex-col gap-2">
+                    <h3 className="text-xl sm:text-2xl font-bold text-dark dark:text-white">Entrega a domicilio</h3>
+                    <p className="text-sm sm:text-base text-text-secondary dark:text-white/70 max-w-xs mx-auto">Llevamos tus garrafones llenos directamente a tu casa.</p>
+                </div>
+                </button>
+                <button
+                type="button"
+                onClick={() => setDeliveryMethod("home_collection")}
+                aria-pressed={isHomeCollection}
+                className={`flex flex-col items-center justify-center gap-4 rounded-2xl px-6 py-8 text-center shadow-md backdrop-blur-xl transition-all border ${isHomeCollection ? "border-primary bg-white/95 dark:bg-dark/70 dark:border-primary scale-[1.02]" : "border-light/60 dark:border-white/10 bg-white/90 dark:bg-dark/60 hover:border-primary/40"}`}
+                >
+                <div className={`flex h-20 w-20 items-center justify-center rounded-full ${isHomeCollection ? "bg-primary/10 text-primary" : "bg-light dark:bg-dark text-text-secondary dark:text-white/70"}`}>
+                    <span className="material-symbols-outlined text-4xl sm:text-5xl">recycling</span>
+                </div>
+                <div className="flex flex-col gap-2">
+                    <h3 className="text-xl sm:text-2xl font-bold text-dark dark:text-white">Recolección a domicilio</h3>
+                    <p className="text-sm sm:text-base text-text-secondary dark:text-white/70 max-w-xs mx-auto">Pasamos a tu casa a recoger tus garrafones vacíos para recarga.</p>
+                </div>
+                </button>
+            </>
+        )}
+        
+        {availableMethods.pickup && (
+            <button
+            type="button"
+            onClick={() => setDeliveryMethod("pickup")}
+            aria-pressed={isPickup}
+            className={`flex flex-col items-center justify-center gap-4 rounded-2xl px-6 py-8 text-center shadow-md backdrop-blur-xl transition-all border ${isPickup ? "border-primary bg-white/95 dark:bg-dark/70 dark:border-primary scale-[1.02]" : "border-light/60 dark:border-white/10 bg-white/90 dark:bg-dark/60 hover:border-primary/40"}`}
+            >
+            <div className={`flex h-20 w-20 items-center justify-center rounded-full ${isPickup ? "bg-primary/10 text-primary" : "bg-light dark:bg-dark text-text-secondary dark:text-white/70"}`}>
+                <span className="material-symbols-outlined text-4xl sm:text-5xl">storefront</span>
+            </div>
+            <div className="flex flex-col gap-2">
+                <h3 className="text-xl sm:text-2xl font-bold text-dark dark:text-white">Recoger en mostrador</h3>
+                <p className="text-sm sm:text-base text-text-secondary dark:text-white/70 max-w-xs mx-auto">Entrega tus garrafones en el mostrador de nuestra sucursal Darmax.</p>
+            </div>
+            </button>
+        )}
+
+        {!availableMethods.delivery && !availableMethods.pickup && (
+            <div className="col-span-full text-center py-10 text-gray-500">
+                No hay métodos de entrega disponibles para los productos seleccionados.
+            </div>
+        )}
       </div>
       <footer className="mt-auto pt-2">
         <div className="flex flex-col-reverse sm:flex-row gap-4 justify-between items-center">

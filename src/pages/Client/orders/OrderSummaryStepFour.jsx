@@ -54,10 +54,12 @@ const OrderSummaryStepFour = () => {
             'home_collection': 'Domicilio'
         }[method] || method;
 
-        let serviceNameToSearch = 'Recarga 20L'; // Asumir 20L por defecto
-        if (jugName && (jugName.includes('10L') || jugName.includes('10 Litros'))) {
-            serviceNameToSearch = 'Recarga 10L';
-        }
+        // Extraer tamaño del nombre del garrafón (ej. "4L", "1 Litro")
+        // Regex busca número seguido opcionalmente de espacio y luego L, l, Litro, litros, etc.
+        const sizeMatch = jugName ? jugName.match(/(\d+(?:\.\d+)?)\s*(?:l|litros?|lt)/i) : null;
+        const sizeSuffix = sizeMatch ? `${sizeMatch[1]}L` : '20L'; // Default 20L
+        
+        let serviceNameToSearch = `Recarga ${sizeSuffix}`; 
 
         const possibleMatches = prices.filter(p => 
             p.name === serviceNameToSearch &&

@@ -169,7 +169,7 @@ app.post('/api/register-client', async (req, res) => {
 // Endpoint público para completar el registro de un usuario existente (sin contraseña)
 app.post('/api/complete-registration', async (req, res) => {
   try {
-    const { userId, email, password, name } = req.body;
+    const { userId, email, password, name, sexo } = req.body;
 
     if (!userId || !password) {
       return res.status(400).json({ error: 'Faltan datos requeridos.' });
@@ -195,6 +195,7 @@ app.post('/api/complete-registration', async (req, res) => {
       data: {
         email: email || user.email, // Actualizar email si se provee
         name: name || user.name,    // Actualizar nombre si se provee
+        sexo: sexo || user.sexo,    // Actualizar sexo si se provee
         password: hashedPassword,
       },
     });
@@ -1453,6 +1454,7 @@ app.post('/api/users', async (req, res) => {
       municipality: data.municipality === '' ? null : data.municipality,
       state: data.state === '' ? null : data.state,
       postalCode: data.postalCode === '' ? null : data.postalCode,
+      sexo: data.sexo === '' ? null : data.sexo, // Nuevo campo
       role: finalRole,
       storeId: finalStoreId
     };
@@ -1596,6 +1598,7 @@ app.put('/api/users/:id', verifyToken, async (req, res) => {
       state: data.state === '' ? null : data.state,
       postalCode: data.postalCode === '' ? null : data.postalCode,
       references: data.references === '' ? null : data.references,
+      sexo: data.sexo === '' ? null : data.sexo, // Nuevo campo
       lat: data.lat, // Permitir actualizar latitud
       lng: data.lng, // Permitir actualizar longitud
       // Handle storeId: Allow if Admin OR if user is updating their own profile (e.g. changing preference)

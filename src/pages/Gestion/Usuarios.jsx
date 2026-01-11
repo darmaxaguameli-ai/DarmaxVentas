@@ -38,7 +38,7 @@ const ClientUserModal = ({ onClose, userToEdit, onSave }) => {
   const { state } = useGestion();
   const { stores } = state;
   const initialUserState = { 
-      name: "", email: "", password: "", phone: "", 
+      name: "", email: "", password: "", phone: "", sexo: "",
       street: "", neighborhood: "", municipality: "", state: "", city: "", postalCode: "", references: "",
       role: "CLIENTE", storeId: "" 
   };
@@ -132,7 +132,18 @@ const ClientUserModal = ({ onClose, userToEdit, onSave }) => {
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div><label className="label-style">Email</label><input name="email" type="email" value={user.email || ""} onChange={handleChange} className="input-style" /></div>
-                <div><label className="label-style">Teléfono</label><input name="phone" type="tel" value={user.phone || ""} onChange={handleChange} className="input-style" /></div>
+                <div className="grid grid-cols-2 gap-4">
+                    <div><label className="label-style">Teléfono</label><input name="phone" type="tel" value={user.phone || ""} onChange={handleChange} className="input-style" /></div>
+                    <div>
+                        <label className="label-style">Sexo</label>
+                        <select name="sexo" value={user.sexo || ""} onChange={handleChange} className="input-style">
+                            <option value="">Selecciona...</option>
+                            <option value="HOMBRE">Hombre</option>
+                            <option value="MUJER">Mujer</option>
+                            <option value="OTRO">Prefiero no decirlo</option>
+                        </select>
+                    </div>
+                </div>
               </div>
               {!isEditing && (<div><label className="label-style">Contraseña</label><PasswordInput name="password" value={user.password || ''} onChange={handleChange} required className="input-style" /></div>)}
           </div>
@@ -188,7 +199,7 @@ const StaffUserModal = ({ onClose, userToEdit, onSave }) => {
     const defaultStoreId = userToEdit?.storeId || (currentUser.role !== 'ADMIN' ? currentUser.storeId : "") || "";
 
     const initialUserState = { 
-        name: "", email: "", password: "", phone: "", role: "VENDEDOR", 
+        name: "", email: "", password: "", phone: "", sexo: "", role: "VENDEDOR", 
         street: "", neighborhood: "", city: "", postalCode: "", storeId: defaultStoreId,
         municipality: "", state: ""
     };
@@ -293,8 +304,17 @@ const StaffUserModal = ({ onClose, userToEdit, onSave }) => {
                     ) : ( <input type="hidden" name="storeId" value={user.storeId || ""} /> )}
                 </div>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div><label className="label-style">Teléfono</label><input name="phone" type="tel" value={user.phone || ""} onChange={handleChange} className="input-style" /></div>
+                    <div>
+                        <label className="label-style">Sexo</label>
+                        <select name="sexo" value={user.sexo || ""} onChange={handleChange} className="input-style">
+                            <option value="">Selecciona...</option>
+                            <option value="HOMBRE">Hombre</option>
+                            <option value="MUJER">Mujer</option>
+                            <option value="OTRO">Prefiero no decirlo</option>
+                        </select>
+                    </div>
                     <div>
                     <label className="label-style">{isEditing ? "Nueva Contraseña (opcional)" : "Contraseña"}</label>
                     <PasswordInput name="password" value={user.password || ''} onChange={handleChange} required={!isEditing} className="input-style" />

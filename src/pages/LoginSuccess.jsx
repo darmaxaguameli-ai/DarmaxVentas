@@ -6,6 +6,9 @@ const LoginSuccess = () => {
     const location = useLocation();
     const name = location.state?.name || 'Usuario';
     const role = location.state?.role;
+    const sexo = location.state?.sexo; // Obtener sexo del estado (si Login.jsx lo envía)
+
+    const greeting = sexo === 'HOMBRE' ? '¡Bienvenido' : sexo === 'MUJER' ? '¡Bienvenida' : '¡Bienvenid@';
 
     useEffect(() => {
         let redirectPath;
@@ -49,9 +52,9 @@ const LoginSuccess = () => {
     };
 
     return (
-        <div className="flex flex-col items-center justify-center h-screen bg-light dark:bg-dark text-dark dark:text-white">
+        <div className="flex flex-col items-center justify-center h-screen bg-light dark:bg-dark text-dark dark:text-white px-4">
             <div className="text-center animate-fade-in">
-                <h1 className="text-4xl font-bold text-primary">¡Bienvenid@, {name}!</h1>
+                <h1 className="text-3xl sm:text-4xl font-bold text-primary">{greeting}, {name}!</h1>
                 <p className="mt-2 text-lg text-gray-600 dark:text-gray-400">
                     {getRedirectMessage()}
                 </p>

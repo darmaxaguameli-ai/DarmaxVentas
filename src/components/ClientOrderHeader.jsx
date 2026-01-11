@@ -33,8 +33,13 @@ const ClientOrderHeader = ({ primaryLink, showOrderSelectionButton }) => {
     });
 
     if (result.isConfirmed) {
-      logout();
-      navigate('/logout-success', { state: { name: user?.name } });
+      const userName = user?.name; // Guardar nombre antes de limpiar
+      navigate('/logout-success', { state: { name: userName } });
+      // Pequeño delay para asegurar que la navegación ocurra antes de que 
+      // AuthContext actualice y potencialmente redirija a /login
+      setTimeout(() => {
+          logout();
+      }, 100);
     }
   };
 

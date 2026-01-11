@@ -35,9 +35,14 @@ const RefillJugStepOne = () => {
         // Use dynamic image if available, otherwise fallback to static map
         const finalImage = brand.imageUrl || getImageUrlForBrand(brand.name);
         
+        // Determinar si es botella o garrafón basado en el nombre
+        const lowerName = brand.name.toLowerCase();
+        const isBottle = lowerName.includes('1l') || lowerName.includes('1 litro') || lowerName.includes('1lt') || lowerName.includes('1.5l');
+        const displayName = isBottle ? `Botella ${brand.name}` : `Garrafón ${brand.name}`;
+
         return {
           id: brand.id,
-          name: `Garrafón ${brand.name}`,
+          name: displayName,
           quantity: existingJug?.quantity || 0,
           featured: index === 0,
           imageUrl: finalImage,

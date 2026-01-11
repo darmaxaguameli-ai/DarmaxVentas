@@ -15,6 +15,64 @@ import { useAuth } from "../../../context/AuthContext";
 import "../../../animations.css";
 
 // ====================================================================
+// Datos de Información de Agua (Hardcoded por ahora, idealmente vendría de DB)
+// ====================================================================
+const WATER_INFO = {
+  'Alcalina': {
+    title: 'Agua Alcalina (pH 8.5+)',
+    description: 'Ideal para equilibrar el pH de tu cuerpo. Contiene minerales esenciales como calcio, magnesio y potasio. Ayuda a una hidratación superior y actúa como antioxidante natural.',
+    icon: 'water_ph',
+    color: 'text-blue-600',
+    bg: 'bg-blue-50 dark:bg-blue-900/30'
+  },
+  'Purificada': {
+    title: 'Agua Premium',
+    description: 'Nuestra agua premium ofrece una calidad excepcional, comparable a las mejores marcas del mercado como Ciel, Bonafont y Epura. Pasa por un riguroso proceso de ósmosis inversa y ozonificación para garantizar pureza total, libre de sodio y bacterias. Sabor ligero y fresco.',
+    icon: 'water_drop',
+    color: 'text-cyan-500',
+    bg: 'bg-cyan-50 dark:bg-cyan-900/30'
+  }
+};
+
+const WaterInfoModal = ({ waterName, onClose }) => {
+  // Intentar coincidir el nombre (ej. "Agua Alcalina" -> busca "Alcalina")
+  const infoKey = Object.keys(WATER_INFO).find(key => waterName.includes(key)) || 'Purificada'; 
+  const info = WATER_INFO[infoKey];
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="bg-white dark:bg-gray-800 w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 relative">
+        <button 
+          onClick={onClose}
+          className="absolute top-3 right-3 p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+        >
+          <span className="material-symbols-outlined">close</span>
+        </button>
+        
+        <div className={`p-6 flex flex-col items-center text-center gap-4 ${info.bg}`}>
+          <div className={`h-16 w-16 rounded-full bg-white dark:bg-gray-800 flex items-center justify-center shadow-sm ${info.color}`}>
+            <span className="material-symbols-outlined text-4xl">{info.icon}</span>
+          </div>
+          <h3 className={`text-2xl font-black ${info.color}`}>{info.title}</h3>
+        </div>
+        
+        <div className="p-6 pt-4">
+          <p className="text-gray-600 dark:text-gray-300 text-lg leading-relaxed">
+            {info.description}
+          </p>
+          <button 
+            onClick={onClose}
+            className="mt-6 w-full btn-primary py-3 rounded-xl"
+          >
+            Entendido
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ====================================================================
 // Sub-componentes de UI (sin cambios)
 // ====================================================================
 const DraggableJug = ({ jug, children }) => {
@@ -174,6 +232,7 @@ const RefillAssignStepTwo = () => {
   const initialState = { sourceJugs: [], targetWater: [] };
   const [state, dispatch] = useReducer(assignmentReducer, initialState);
   const { sourceJugs, targetWater } = state;
+  const [infoModalOpen, setInfoModalOpen] = useState(null);
 
   const [showAnimation, setShowAnimation] = useState(() => {
     if (user) {
@@ -272,12 +331,17 @@ const RefillAssignStepTwo = () => {
             </>
           )}
           <div className="flex flex-wrap justify-between items-start gap-4 mb-6 relative z-40">
-            <p className={`hidden md:block transition-all duration-300 ${showAnimation ? "text-white font-bold" : "text-text-secondary dark:text-white/80"}`}>
-              Arrastra tus garrafones de la izquierda hacia el tipo de agua que deseas a la derecha.
-            </p>
-            <p className={`block md:hidden transition-all duration-300 ${showAnimation ? "text-white font-bold" : "text-text-secondary dark:text-white/80"}`}>
-              Arrastra tus garrafones de arriba hacia el tipo de agua que deseas abajo.
-            </p>
+            <div className="flex-1 min-w-[280px]">
+                <p className={`hidden md:block transition-all duration-300 ${showAnimation ? "text-white font-bold" : "text-text-secondary dark:text-white/80"}`}>
+                  Arrastra tus garrafones de la izquierda hacia el tipo de agua que deseas a la derecha.
+                </p>
+                <p className={`block md:hidden transition-all duration-300 ${showAnimation ? "text-white font-bold" : "text-text-secondary dark:text-white/80"}`}>
+                  Arrastra tus garrafones de arriba hacia el tipo de agua que deseas abajo.
+                </p>
+                <p className="mt-2 text-xs sm:text-sm text-text-secondary dark:text-white/70">
+                  <span className="font-semibold text-dark dark:text-white">Tip:</span> Toca el icono <span className="material-symbols-outlined text-[14px] align-middle">info</span> para conocer los beneficios de cada tipo de agua.
+                </p>
+            </div>
             <div className="flex flex-col items-end gap-1">
               <p className="text-sm font-medium">Total Asignado</p>
               <p className="text-3xl font-black">
@@ -311,7 +375,16 @@ const RefillAssignStepTwo = () => {
                       <div className="wave two"></div>
                     </div>
                     <div className="relative z-10 flex flex-col items-center justify-center gap-2">
-                      <p className="text-lg font-bold text-center">{water.name}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-lg font-bold text-center">{water.name}</p>
+                        <button 
+                          onClick={() => setInfoModalOpen(water.name)}
+                          className="text-gray-400 hover:text-primary transition-colors"
+                          title="Ver beneficios"
+                        >
+                          <span className="material-symbols-outlined text-lg">info</span>
+                        </button>
+                      </div>
                       <div className="flex items-center gap-3">
                         <button onClick={() => handleManualRemove(water.id)} className="btn-secondary flex h-11 w-11 items-center justify-center rounded-full text-xl">-</button>
                         <span className="w-12 text-center text-3xl font-black text-primary tabular-nums">{water.quantity}</span>
@@ -324,6 +397,7 @@ const RefillAssignStepTwo = () => {
             </div>
           </div>
         </DndContext>
+        {infoModalOpen && <WaterInfoModal waterName={infoModalOpen} onClose={() => setInfoModalOpen(null)} />}
       </>
     );
   };

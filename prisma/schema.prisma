@@ -161,6 +161,7 @@ model User {
   lat                Float?
   lng                Float?
   role               UserRole          @default(CLIENTE)
+  sexo               String?           // Nuevo campo: HOMBRE, MUJER, OTRO
   createdAt          DateTime          @default(now())
   updatedAt          DateTime          @updatedAt
   

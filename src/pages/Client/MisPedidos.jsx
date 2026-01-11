@@ -20,15 +20,20 @@ const StatusBadge = ({ status }) => (
 );
 
 const OrderItemDetails = ({ item }) => {
-  const name = item.product?.name || item.servicePrice?.name || 'Producto desconocido';
+  // Priorizar el nombre y la imagen que se guardaron específicamente en el pedido
+  const name = item.jugBrandName || item.product?.name || item.servicePrice?.name || 'Producto';
+  const imageUrl = item.jugBrandImageUrl || item.product?.imageUrl || '/img/garrafones/turquesa.png';
   const waterType = item.servicePrice?.waterType?.name;
+
   return (
     <div className="flex items-center gap-4 py-2">
-      <div className="flex-shrink-0 h-12 w-12 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
-        <img src={item.product?.imageUrl || '/img/garrafones/turquesa.png'} alt={name} className="h-10 w-10 object-contain" />
+      <div className="flex-shrink-0 h-12 w-12 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center overflow-hidden">
+        <img src={imageUrl} alt={name} className="h-10 w-10 object-contain" />
       </div>
       <div>
-        <p className="font-semibold text-gray-800 dark:text-gray-200">{name} {waterType && `(${waterType})`}</p>
+        <p className="font-semibold text-gray-800 dark:text-gray-200">
+            {name} {waterType && <span className="text-xs font-normal text-primary ml-1">({waterType})</span>}
+        </p>
         <p className="text-sm text-gray-600 dark:text-gray-400">Cantidad: {item.quantity} | Precio: ${(item.price).toFixed(2)}</p>
       </div>
     </div>

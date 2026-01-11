@@ -13,6 +13,7 @@ const ClientProfile = () => {
 
   const [formData, setFormData] = useState({
     name: '',
+    sexo: '',
     email: '',
     phone: '',
     street: '',
@@ -57,6 +58,7 @@ const ClientProfile = () => {
           
           setFormData({
             name: userData.name || '',
+            sexo: userData.sexo || '',
             email: userData.email || '',
             phone: userData.phone || '',
             street: userData.street || '',
@@ -241,7 +243,21 @@ const ClientProfile = () => {
                 <div><label className="label-style mb-1 block">Nombre Completo</label><input type="text" name="name" value={formData.name} readOnly className="input-style bg-gray-50 dark:bg-gray-700/50 cursor-not-allowed"/></div>
                 <div><label className="label-style mb-1 block">Correo Electrónico</label><input type="email" name="email" value={formData.email} readOnly className="input-style bg-gray-50 dark:bg-gray-700/50 cursor-not-allowed"/></div>
             </div>
-            <div><label className="label-style mb-1 block">Teléfono de Contacto</label><input type="tel" name="phone" value={formData.phone} onChange={handleChange} placeholder="Ej. 5512345678" className="input-style"/></div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+                <div>
+                    <label className="label-style mb-1 block">Teléfono de Contacto</label>
+                    <input type="tel" name="phone" value={formData.phone} onChange={handleChange} placeholder="Ej. 5512345678" className="input-style"/>
+                </div>
+                <div>
+                    <label className="label-style mb-1 block">Sexo</label>
+                    <select name="sexo" value={formData.sexo} onChange={handleChange} className="input-style">
+                        <option value="">Selecciona...</option>
+                        <option value="HOMBRE">Hombre</option>
+                        <option value="MUJER">Mujer</option>
+                        <option value="OTRO">Prefiero no decirlo</option>
+                    </select>
+                </div>
+            </div>
           </section>
           
           <section className="space-y-4">
