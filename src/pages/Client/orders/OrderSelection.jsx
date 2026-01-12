@@ -30,17 +30,19 @@ const OrderSelection = () => {
                         Buscando la sucursal más cercana...
                     </div>
                 ) : (
-                    <div className="flex flex-col items-center gap-1">
-                        <div className="flex items-center gap-2 bg-white/50 dark:bg-white/5 px-4 py-2 rounded-full border border-primary/20 shadow-sm">
-                            <span className="material-symbols-outlined text-primary text-xl">location_on</span>
-                            <span className="text-sm font-medium">Pidiendo en: <strong className="text-primary">{selectedStore?.name || 'Selecciona una sucursal'}</strong></span>
-                            <button 
-                                onClick={() => setIsStoreModalOpen(true)}
-                                className="ml-2 text-xs font-bold text-primary hover:underline uppercase tracking-wider"
-                            >
+                    <div className="flex flex-col items-center gap-2">
+                        <button 
+                            onClick={() => setIsStoreModalOpen(true)}
+                            className="flex items-center gap-2 backdrop-blur-md bg-white/60 dark:bg-black/30 px-4 py-1.5 rounded-full border border-gray-200 dark:border-white/10 shadow-sm hover:scale-105 transition-transform active:scale-95"
+                        >
+                            <span className="material-symbols-outlined text-primary text-lg">storefront</span>
+                            <span className="text-xs sm:text-sm font-bold text-gray-800 dark:text-white truncate max-w-[150px] sm:max-w-none">
+                                {selectedStore?.name || 'Selecciona Sucursal'}
+                            </span>
+                            <span className="text-[10px] font-bold text-primary uppercase ml-1 tracking-wider bg-primary/10 px-2 py-0.5 rounded-full">
                                 Cambiar
-                            </button>
-                        </div>
+                            </span>
+                        </button>
                         {selectedStore && (
                             <p className="text-[10px] text-gray-500 dark:text-gray-400 max-w-xs truncate">
                                 {selectedStore.address}
@@ -67,7 +69,7 @@ const OrderSelection = () => {
             </p>
 
             {/* Cards */}
-            <div className="mt-8 grid w-full max-w-3xl grid-cols-2 gap-3 sm:gap-6 md:grid-cols-2 md:gap-8">
+            <div className="mt-6 grid w-full max-w-3xl grid-cols-2 gap-3 sm:gap-6 md:grid-cols-2 md:gap-8 animate-in slide-in-from-bottom-8 fade-in duration-500">
               {/* Card: Rellenar Garrafón */}
               <Link
                 to="/pedidos/rellenar"
@@ -80,8 +82,8 @@ const OrderSelection = () => {
               >
                 <div
                   className="mx-auto flex h-14 w-14 sm:h-20 sm:w-20 items-center justify-center rounded-full
-                             bg-primary/10 text-primary transition-all 
-                             group-hover:bg-primary group-hover:text-white"
+                             bg-gradient-to-br from-emerald-500 to-green-600 text-white shadow-lg shadow-emerald-500/30
+                             ring-4 ring-emerald-50 dark:ring-emerald-900/20 transition-transform group-hover:scale-110 duration-300"
                 >
                   <span className="material-symbols-outlined text-3xl sm:text-5xl">
                     recycling
@@ -110,8 +112,8 @@ const OrderSelection = () => {
               >
                 <div
                   className="mx-auto flex h-14 w-14 sm:h-20 sm:w-20 items-center justify-center rounded-full
-                            bg-primary/10 text-primary transition-all 
-                            group-hover:bg-primary group-hover:text-white"
+                            bg-gradient-to-br from-cyan-500 to-teal-600 text-white shadow-lg shadow-cyan-500/30
+                            ring-4 ring-cyan-50 dark:ring-cyan-900/20 transition-transform group-hover:scale-110 duration-300"
                 >
                   <span className="material-symbols-outlined text-3xl sm:text-5xl">
                     water_drop
