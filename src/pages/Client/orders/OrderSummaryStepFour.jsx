@@ -116,9 +116,6 @@ const OrderSummaryStepFour = () => {
         }
       }
       
-      console.log("DEBUG: Auth Status", { isAuthenticated, userPoints: user?.loyaltyPoints });
-      console.log("DEBUG: Final Items", finalOrderItems);
-
       // Lógica Inteligente de Recompensas: Buscar el item más caro que se pueda pagar con puntos
       if (isAuthenticated && user && user.loyaltyPoints > 0) {
           // Ordenar items por precio descendente para encontrar el mejor valor
@@ -126,8 +123,6 @@ const OrderSummaryStepFour = () => {
           // Encontrar el primero que cueste menos o igual a los puntos
           const bestReward = sortedItems.find(item => Number(item.price) <= Number(user.loyaltyPoints));
           
-          console.log("DEBUG: Best Reward Found", bestReward);
-
           if (bestReward) {
               setRedeemableItem(bestReward);
           } else {
