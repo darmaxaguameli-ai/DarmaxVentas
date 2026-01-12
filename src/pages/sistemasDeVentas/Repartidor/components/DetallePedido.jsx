@@ -30,9 +30,11 @@ const ActionButton = ({ href, onClick, icon: Icon, label, colorClass }) => {
 
 const DetallePedido = ({ order, onUpdateOrder }) => {
   const [showSignature, setShowSignature] = useState(false);
+  const [signatureData, setSignatureData] = useState(null);
 
   useEffect(() => {
     setShowSignature(false);
+    setSignatureData(order?.signature || null); // Load existing signature if any
   }, [order]);
 
   if (!order) {
@@ -48,12 +50,25 @@ const DetallePedido = ({ order, onUpdateOrder }) => {
   }
 
   const handleSaveSignature = (signature) => {
-    onUpdateOrder(order.id, { status: 'ENTREGADO', signature });
+    setSignatureData(signature);
     setShowSignature(false);
+    // Visual feedback could be added here
   };
 
   const handleMarkAsDelivered = () => {
-    onUpdateOrder(order.id, { status: 'ENTREGADO' });
+    if (!signatureData) {
+        // Shake animation or alert if trying to deliver without signature
+        import('sweetalert2').then(Swal => {
+            Swal.default.fire({
+                icon: 'warning',
+                title: 'Firma Requerida',
+                text: 'Debes obtener la firma del cliente antes de finalizar la entrega.',
+                confirmButtonColor: '#3b82f6'
+            });
+        });
+        return;
+    }
+    onUpdateOrder(order.id, { status: 'ENTREGADO', signature: signatureData });
   };
 
   const { items, cliente, total, status, deliveryLat, deliveryLng } = order;
@@ -121,50 +136,54 @@ const DetallePedido = ({ order, onUpdateOrder }) => {
                  <ActionButton 
                     href={`tel:${cliente.phone}`} 
                     icon={MdPhone} 
-                    label="Llamar" 
-                    colorClass="bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:hover:bg-gray-600"
-                />
-                <ActionButton 
-                    href={wazeUrl}
-                    icon={MdNavigation} 
-                    label="Ir con Waze" 
-                    colorClass="bg-cyan-50 text-cyan-700 hover:bg-cyan-100 dark:bg-cyan-900/30 dark:text-cyan-300 flex-1"
+                    label="Llamar al cliente" 
+                    colorClass="bg-white border-2 border-gray-200 text-gray-700 hover:bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:hover:bg-gray-600"
                 />
             </div>
         </DetailSection>
 
         {/* Products */}
         <DetailSection title="Productos" icon={MdReceipt}>
-          <ul className="space-y-3">
-            {items.map(item => (
-              <li key={item.id} className="flex justify-between items-center border-b border-gray-100 dark:border-gray-700/50 pb-2 last:border-0 last:pb-0">
-                <div className="flex items-center gap-3">
-                    <span className="bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 font-bold w-8 h-8 rounded-lg flex items-center justify-center text-sm">
-                        {item.quantity}
-                    </span>
-                    <span className="text-gray-700 dark:text-gray-300 font-medium">
-                        {item.name || item.jugBrandName}
-                    </span>
+          <div className="space-y-3">
+            {items.map(item => {
+              const waterTypeName = item.servicePrice?.waterType?.name;
+              return (
+                <div key={item.id} className="flex justify-between items-center bg-white dark:bg-gray-700/50 p-3 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm">
+                  <div className="flex items-center gap-3">
+                      <span className="bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-black min-w-[32px] h-8 rounded-lg flex items-center justify-center text-sm border border-blue-100 dark:border-blue-800">
+                          {item.quantity}x
+                      </span>
+                      <div className="flex flex-col">
+                        <span className="text-gray-800 dark:text-gray-200 font-bold text-sm sm:text-base leading-tight">
+                            {item.name || item.jugBrandName || 'Producto'}
+                        </span>
+                        {waterTypeName && (
+                          <span className="text-[10px] font-bold text-primary uppercase tracking-wider">
+                            Agua {waterTypeName}
+                          </span>
+                        )}
+                      </div>
+                  </div>
+                  <span className="font-bold text-gray-900 dark:text-white text-base">
+                      {formatCurrency(item.price * item.quantity)}
+                  </span>
                 </div>
-                <span className="font-bold text-gray-800 dark:text-white">
-                    {formatCurrency(item.price * item.quantity)}
-                </span>
-              </li>
-            ))}
-          </ul>
+              );
+            })}
+          </div>
         </DetailSection>
 
         {/* Signature Area (Portal to Body) */}
         {showSignature && !isDelivered && createPortal(
-          <div className="fixed inset-0 z-[5000] bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center p-4 animate-fade-in">
-             <div className="bg-white dark:bg-gray-800 w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-                <div className="p-4 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center">
-                    <h3 className="font-bold text-lg text-gray-800 dark:text-white">Firma de Recibido</h3>
-                    <button onClick={() => setShowSignature(false)} className="p-2 hover:bg-gray-100 rounded-full dark:hover:bg-gray-700 dark:text-white">
-                        <MdClose className="text-xl" />
+          <div className="fixed inset-0 z-[5000] bg-black/60 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200">
+             <div className="bg-white dark:bg-gray-900 w-full sm:max-w-lg rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in slide-in-from-bottom-10 sm:zoom-in-95 duration-300">
+                <div className="p-4 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center bg-gray-50/50 dark:bg-gray-800/50">
+                    <h3 className="font-black text-lg text-gray-800 dark:text-white uppercase tracking-wide">Firma de Recibido</h3>
+                    <button onClick={() => setShowSignature(false)} className="p-2 hover:bg-gray-200 rounded-full dark:hover:bg-gray-700 dark:text-gray-400 transition-colors">
+                        <MdClose className="text-2xl" />
                     </button>
                 </div>
-                <div className="p-4 bg-gray-50 dark:bg-gray-900">
+                <div className="p-4 sm:p-6 bg-white dark:bg-gray-900">
                     <SignaturePad onSave={handleSaveSignature} onCancel={() => setShowSignature(false)} />
                 </div>
              </div>
@@ -173,8 +192,8 @@ const DetallePedido = ({ order, onUpdateOrder }) => {
         )}
 
         {isDelivered && (
-          <div className="p-6 rounded-xl bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-800 text-center animate-fade-in">
-            <div className="bg-green-100 dark:bg-green-800 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3">
+          <div className="p-6 rounded-xl bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-800 text-center animate-fade-in my-6">
+            <div className="bg-green-100 dark:bg-green-800 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3 shadow-sm">
                 <MdCheckCircle className="text-4xl text-green-600 dark:text-green-200" />
             </div>
             <h3 className="font-bold text-xl text-green-800 dark:text-green-200 mb-1">¡Pedido Entregado!</h3>
@@ -185,20 +204,29 @@ const DetallePedido = ({ order, onUpdateOrder }) => {
       
       {/* Bottom Action Bar (Sticky on Mobile) */}
       {!isDelivered && (
-        <div className="mt-auto pt-4 bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700 flex gap-3 sticky bottom-0 z-10">
+        <div className="mt-auto p-4 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border-t border-gray-100 dark:border-gray-800 flex gap-3 sticky bottom-0 z-10 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
           <button 
               onClick={() => setShowSignature(true)}
-              className="flex-1 bg-gray-900 text-white dark:bg-white dark:text-gray-900 py-4 rounded-xl font-bold hover:opacity-90 transition-opacity flex items-center justify-center gap-2 shadow-lg shadow-gray-200 dark:shadow-none"
+              className={`flex-1 py-3.5 rounded-xl font-bold transition-all active:scale-95 flex items-center justify-center gap-2 border-2 ${
+                  signatureData 
+                  ? 'bg-green-50 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800'
+                  : 'bg-white text-gray-700 border-gray-200 dark:bg-gray-800 dark:text-white dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
+              }`}
           >
-              <MdEdit className="text-xl" />
-              Firmar
+              {signatureData ? <MdCheckCircle className="text-xl" /> : <MdEdit className="text-xl" />}
+              {signatureData ? 'Firmado' : 'Firmar'}
           </button>
           <button 
               onClick={handleMarkAsDelivered}
-              className="flex-1 bg-primary text-white py-4 rounded-xl font-bold hover:bg-primary-dark transition-colors flex items-center justify-center gap-2 shadow-lg shadow-primary/30"
+              disabled={!signatureData}
+              className={`flex-[2] py-3.5 rounded-xl font-bold transition-all flex items-center justify-center gap-2 shadow-lg ${
+                  signatureData
+                  ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:shadow-green-500/30 active:scale-95'
+                  : 'bg-gray-200 text-gray-400 dark:bg-gray-700 dark:text-gray-500 cursor-not-allowed shadow-none'
+              }`}
           >
-              <MdCheckCircle className="text-xl" />
-              Entregar
+              <MdCheckCircle className="text-2xl" />
+              Confirmar Entrega
           </button>
         </div>
       )}

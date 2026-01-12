@@ -1,9 +1,10 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useNavigate } from 'react-router-dom'; // Importar useNavigate
 import { fetchOrders, updateOrder, fetchActiveCashDrawerSession, startCashDrawerSession, closeCashDrawerSession, createCashTransaction } from '../../../api/apiClient';
 import { useAuth } from '../../../context/AuthContext';
 import Swal from 'sweetalert2';
 import { formatCurrency } from '../../../utils/formatters';
-import { MdOutlineDeliveryDining, MdHomeWork, MdDirectionsBike, MdCheckCircle, MdPendingActions, MdLocalShipping, MdMap, MdArrowBack } from 'react-icons/md';
+import { MdOutlineDeliveryDining, MdHomeWork, MdDirectionsBike, MdCheckCircle, MdPendingActions, MdLocalShipping, MdMap, MdArrowBack, MdPhone, MdNavigation } from 'react-icons/md';
 
 // Componentes reutilizados
 import RepartidorHeader from './components/RepartidorHeader';
@@ -68,55 +69,95 @@ const OrderCard = ({ order, onUpdateStatus, onSelectOrder, isSelected }) => {
     };
 
     const clientAddress = `${order.cliente.street || ''}, ${order.cliente.neighborhood || ''}`;
+    
+    // Logic to get best coordinates (Delivery specific -> Client default)
+    const getBestCoords = () => {
+        const dLat = parseFloat(order.deliveryLat);
+        const dLng = parseFloat(order.deliveryLng);
+        if (Number.isFinite(dLat) && Number.isFinite(dLng) && dLat !== 0) return [dLat, dLng];
+        
+        const cLat = parseFloat(order.cliente.lat);
+        const cLng = parseFloat(order.cliente.lng);
+        if (Number.isFinite(cLat) && Number.isFinite(cLng) && cLat !== 0) return [cLat, cLng];
+        
+        return null;
+    };
+
+    const coords = getBestCoords();
+    // Use 'dir' (Directions) for coordinates to start navigation immediately, matching the "Route" behavior
+    // Use 'search' for address fallback
+    const mapUrl = coords 
+        ? `https://www.google.com/maps/dir/?api=1&destination=${coords[0]},${coords[1]}`
+        : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(clientAddress)}`;
 
     return (
         <div 
-          className={`group bg-white dark:bg-gray-800 rounded-xl shadow-sm hover:shadow-md transition-all duration-200 border cursor-pointer relative overflow-hidden ${isSelected ? 'border-primary ring-1 ring-primary' : 'border-gray-200 dark:border-gray-700'}`}
+          className={`group bg-white dark:bg-gray-800 rounded-2xl shadow-sm hover:shadow-md transition-all duration-200 border cursor-pointer relative overflow-hidden ${isSelected ? 'border-primary ring-2 ring-primary/20' : 'border-gray-100 dark:border-gray-700'}`}
           onClick={() => onSelectOrder(order)}
         >
             {/* Left accent bar */}
-            <div className={`absolute left-0 top-0 bottom-0 w-1 ${order.status === 'PENDIENTE' ? 'bg-yellow-400' : order.status === 'EN_RUTA' ? 'bg-indigo-500' : 'bg-green-500'}`}></div>
+            <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${order.status === 'PENDIENTE' ? 'bg-yellow-400' : order.status === 'EN_RUTA' ? 'bg-indigo-500' : 'bg-green-500'}`}></div>
 
-            <div className="p-4 pl-5">
-                <div className="flex justify-between items-start mb-2">
-                    <div className="flex items-center gap-2">
-                        <span className="font-mono text-xs font-bold text-gray-500 bg-gray-100 dark:bg-gray-700 dark:text-gray-400 px-2 py-0.5 rounded">
-                            #{order.customId}
+            <div className="p-5 pl-6">
+                <div className="flex justify-between items-start mb-3">
+                    <div className="flex flex-col gap-1">
+                        <span className="font-mono text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                            Pedido #{order.customId}
                         </span>
-                        <StatusBadge status={order.status} />
+                        <h3 className="text-lg font-black text-gray-900 dark:text-white leading-tight">{order.cliente.name}</h3>
                     </div>
-                    <p className="font-bold text-lg text-primary dark:text-primary-light whitespace-nowrap">
+                    <p className="font-bold text-xl text-primary dark:text-primary-light whitespace-nowrap bg-primary/5 px-2 py-1 rounded-lg">
                         {formatCurrency(order.total)}
                     </p>
                 </div>
 
-                <div className="mb-3">
-                    <h3 className="text-base font-bold text-gray-900 dark:text-white leading-tight mb-1">{order.cliente.name}</h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 flex items-start gap-1">
-                        <span className="material-symbols-outlined text-[16px] mt-0.5 text-gray-400">location_on</span>
-                        <span className="line-clamp-2">{clientAddress}</span>
+                <div className="mb-4">
+                    <p className="text-sm text-gray-600 dark:text-gray-300 flex items-start gap-2 bg-gray-50 dark:bg-gray-700/30 p-2.5 rounded-lg border border-gray-100 dark:border-gray-700">
+                        <span className="material-symbols-outlined text-lg text-primary mt-0.5">location_on</span>
+                        <span className="line-clamp-2 font-medium">{clientAddress}</span>
                     </p>
                 </div>
 
-                <div className="flex gap-2 justify-end mt-2 pt-2 border-t border-gray-100 dark:border-gray-700/50">
-                    {order.status === 'PENDIENTE' && (
-                        <button 
-                            onClick={(e) => handleAction(e, 'EN_RUTA', '¿Iniciar Ruta?', `Mover pedido ${order.customId} a ruta`, 'Sí, en ruta', '#6366f1')}
-                            className="flex-1 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 dark:bg-indigo-900/20 dark:text-indigo-300 dark:hover:bg-indigo-900/40 py-2 px-3 rounded-lg text-sm font-semibold transition-colors flex items-center justify-center gap-2"
+                <div className="flex gap-3 items-center pt-2">
+                    {/* Quick Actions (Call / Map) */}
+                    <div className="flex gap-2">
+                        {order.cliente.phone && (
+                            <a 
+                                href={`tel:${order.cliente.phone}`}
+                                onClick={(e) => e.stopPropagation()}
+                                className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors border border-gray-200 dark:border-gray-600"
+                            >
+                                <MdPhone className="text-xl" />
+                            </a>
+                        )}
+                        <a 
+                            href={mapUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="w-10 h-10 flex items-center justify-center rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 hover:bg-blue-100 transition-colors border border-blue-100 dark:border-blue-800"
                         >
-                            <MdDirectionsBike />
-                            En Ruta
-                        </button>
-                    )}
-                    {order.status === 'EN_RUTA' && (
-                        <button 
-                            onClick={(e) => handleAction(e, 'ENTREGADO', '¿Confirmar Entrega?', `Pedido ${order.customId}`, 'Sí, entregar', '#22c55e')}
-                            className="flex-1 bg-green-50 text-green-600 hover:bg-green-100 dark:bg-green-900/20 dark:text-green-300 dark:hover:bg-green-900/40 py-2 px-3 rounded-lg text-sm font-semibold transition-colors flex items-center justify-center gap-2"
-                        >
-                            <MdCheckCircle />
-                            Entregado
-                        </button>
-                    )}
+                            <MdNavigation className="text-xl" />
+                        </a>
+                    </div>
+
+                    {/* Status Action Button (Primary) */}
+                    <div className="flex-1">
+                        {order.status === 'PENDIENTE' && (
+                            <button 
+                                onClick={(e) => handleAction(e, 'EN_RUTA', '¿Iniciar Ruta?', `Mover pedido ${order.customId} a ruta`, 'Sí, en ruta', '#6366f1')}
+                                className="w-full bg-indigo-600 text-white hover:bg-indigo-700 shadow-lg shadow-indigo-200 dark:shadow-none py-2.5 px-4 rounded-xl text-sm font-bold transition-all active:scale-95 flex items-center justify-center gap-2"
+                            >
+                                <MdDirectionsBike className="text-lg" />
+                                Iniciar Ruta
+                            </button>
+                        )}
+                        {order.status === 'EN_RUTA' && (
+                            <div className="w-full py-2.5 px-4 rounded-xl text-xs font-bold text-center border-2 border-indigo-100 text-indigo-600 dark:border-indigo-900/30 dark:text-indigo-400 bg-indigo-50/50 dark:bg-indigo-900/10">
+                                En curso • Toca para finalizar
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
         </div>
@@ -148,6 +189,7 @@ const OrderListColumn = ({ orders, onUpdateStatus, onSelectOrder, selectedOrderI
 
 const RepartidorDashboard = () => {
     // --- State Management ---
+    const navigate = useNavigate();
     const { user, logout } = useAuth();
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -168,6 +210,18 @@ const RepartidorDashboard = () => {
     const [showCloseRegisterModal, setShowCloseRegisterModal] = useState(false);
     const [showCashMovementModal, setShowCashMovementModal] = useState(false);
 
+    // --- Notification Setup ---
+    useEffect(() => {
+        if ("Notification" in window && Notification.permission !== "granted") {
+            Notification.requestPermission();
+        }
+    }, []);
+
+    const playNotificationSound = () => {
+        const audio = new Audio('/sounds/notification.mp3');
+        audio.play().catch(e => console.log("Audio autoplay blocked until user interaction:", e));
+    };
+
     // --- Data Fetching ---
     const loadOrders = useCallback(async () => {
         try {
@@ -187,8 +241,25 @@ const RepartidorDashboard = () => {
         try {
             const fetchedOrders = await fetchOrders();
             if (fetchedOrders.length > prevOrderCount.current) {
-                new Audio('/sounds/notification.mp3').play();
+                // 1. Sonido
+                playNotificationSound();
+                
+                // 2. Toast en App
                 showToast('¡Ha llegado un nuevo pedido!', 'info');
+
+                // 3. Notificación Nativa (Sistema)
+                if ("Notification" in window && Notification.permission === "granted") {
+                    try {
+                        // Service Worker registration is ideal for mobile, but simple Notification API works if app is open/minimized in some browsers
+                        new Notification("¡Nuevo Pedido en Darmax!", {
+                            body: "Tienes una nueva entrega asignada.",
+                            icon: "/logo_nav.ico",
+                            vibrate: [200, 100, 200]
+                        });
+                    } catch (e) {
+                        console.error("Notification error:", e);
+                    }
+                }
             }
             setOrders(fetchedOrders);
             prevOrderCount.current = fetchedOrders.length;
@@ -252,13 +323,27 @@ const RepartidorDashboard = () => {
     }, [error]);
     
     // --- Handlers ---
-    const handleLogout = useCallback(() => {
+    const handleLogout = useCallback(async () => {
         if (cashDrawerSession && cashDrawerSession.estado === 'ABIERTA') {
             setShowCloseRegisterModal(true);
         } else {
-            logout();
+            const result = await Swal.fire({
+                title: '¿Cerrar sesión?',
+                text: "Saldrás del sistema.",
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Sí, salir',
+                cancelButtonText: 'Cancelar'
+            });
+
+            if (result.isConfirmed) {
+                navigate('/logout-success', { state: { name: user?.name } });
+                setTimeout(() => logout(), 100);
+            }
         }
-    }, [cashDrawerSession, logout]);
+    }, [cashDrawerSession, logout, navigate, user]);
 
     const handleStartSession = useCallback(async (amount) => {
         try {
@@ -280,13 +365,16 @@ const RepartidorDashboard = () => {
             const closedSession = await closeCashDrawerSession(closingBalance);
             setCashDrawerSession(closedSession);
             setShowCloseRegisterModal(false);
-            showToast('Sesión de caja cerrada correctamente.');
-            logout();
+            
+            // Safe Logout Sequence
+            navigate('/logout-success', { state: { name: user?.name } });
+            setTimeout(() => logout(), 100);
+            
         } catch (err) {
             console.error('Error closing session:', err);
             Swal.fire('Error', `No se pudo cerrar la sesión de caja: ${err.message}`, 'error');
         }
-    }, [cashDrawerSession, logout]);
+    }, [cashDrawerSession, logout, navigate, user]);
 
     const handleCashMovementSubmit = useCallback(async (transactionData) => {
         try {
@@ -418,16 +506,18 @@ const RepartidorDashboard = () => {
 
     return (
         <div className="flex h-screen flex-col bg-[#f8fafc] dark:bg-gray-950 font-display text-gray-800 dark:text-gray-200 overflow-hidden">
-            <RepartidorHeader
-                onLogout={handleLogout}
-                onCashMovementClick={() => setShowCashMovementModal(true)}
-                isCashDrawerOpen={cashDrawerSession?.estado === 'ABIERTA'}
-                isRefreshing={loading}
-                onRefresh={loadOrders}
-                locationAccuracy={locationAccuracy}
-            />
+            <div className={showMobileDetail ? 'hidden lg:block' : ''}>
+                <RepartidorHeader
+                    onLogout={handleLogout}
+                    onCashMovementClick={() => setShowCashMovementModal(true)}
+                    isCashDrawerOpen={cashDrawerSession?.estado === 'ABIERTA'}
+                    isRefreshing={loading}
+                    onRefresh={loadOrders}
+                    locationAccuracy={locationAccuracy}
+                />
+            </div>
 
-            <div className="flex flex-1 overflow-hidden pt-16 lg:pt-20 relative">
+            <div className={`flex flex-1 overflow-hidden relative transition-all duration-300 ${showMobileDetail ? 'pt-0 lg:pt-20' : 'pt-14 lg:pt-20'}`}>
                 
                 {/* 
                    ================================================================
@@ -437,28 +527,33 @@ const RepartidorDashboard = () => {
                 <div className="lg:hidden w-full h-full relative">
                     {/* List View */}
                     <div className={`w-full h-full flex flex-col transition-transform duration-300 ${showMobileDetail ? '-translate-x-full' : 'translate-x-0'}`}>
-                         {/* Mobile Tabs */}
-                        <div className="flex bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 overflow-x-auto hide-scrollbar sticky top-0 z-30 shadow-sm">
-                            {tabConfig.map(tab => {
-                                const Icon = tab.icon;
-                                return (
-                                    <button
-                                        key={tab.id}
-                                        onClick={() => setMobileTab(tab.id)}
-                                        className={`flex-1 min-w-[30%] py-3 px-2 flex flex-col items-center justify-center gap-1 border-b-2 transition-all ${mobileTab === tab.id ? 'border-primary text-primary bg-primary/5' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
-                                    >
-                                        <div className="relative">
-                                            <Icon className="text-xl" />
+                         {/* Mobile Tabs (Segmented Control - Responsive) */}
+                        <div className="bg-white dark:bg-gray-900 pt-2 px-2 pb-2 z-30 sticky top-0 border-b border-gray-100 dark:border-gray-800">
+                            <div className="flex bg-gray-100 dark:bg-gray-800 p-1 rounded-xl shadow-inner overflow-x-auto hide-scrollbar">
+                                {tabConfig.map(tab => {
+                                    const Icon = tab.icon;
+                                    const isActive = mobileTab === tab.id;
+                                    return (
+                                        <button
+                                            key={tab.id}
+                                            onClick={() => setMobileTab(tab.id)}
+                                            className={`flex-1 min-w-[30%] sm:min-w-fit py-2 px-1 sm:px-3 rounded-lg flex items-center justify-center gap-1 sm:gap-2 text-[11px] sm:text-sm font-bold transition-all duration-200 whitespace-nowrap ${
+                                                isActive 
+                                                ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm ring-1 ring-black/5 dark:ring-white/5' 
+                                                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                                            }`}
+                                        >
+                                            <Icon className={`text-[20px] sm:text-xl flex-shrink-0 ${isActive ? 'text-primary' : ''}`} />
+                                            <span className="truncate">{tab.label}</span>
                                             {tab.count > 0 && (
-                                                <span className="absolute -top-2 -right-3 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[16px] text-center shadow-sm">
+                                                <span className={`ml-0.5 text-[9px] px-1.5 py-0.5 rounded-full ${isActive ? 'bg-primary/10 text-primary' : 'bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300'}`}>
                                                     {tab.count}
                                                 </span>
                                             )}
-                                        </div>
-                                        <span className="text-xs font-bold uppercase tracking-wider">{tab.label}</span>
-                                    </button>
-                                );
-                            })}
+                                        </button>
+                                    );
+                                })}
+                            </div>
                         </div>
                         {/* Mobile List Content */}
                         <div className="flex-1 overflow-y-auto p-4 bg-gray-50 dark:bg-gray-900/50 pb-20">
@@ -493,7 +588,7 @@ const RepartidorDashboard = () => {
                             </div>
                         </div>
                         <div className="flex-1 flex flex-col h-full overflow-hidden">
-                            <div className="h-[40%] bg-gray-100 relative">
+                            <div className="h-[55%] bg-gray-100 relative">
                                 <Mapa 
                                     driverPosition={driverPosition} 
                                     orders={pendingOrders}
@@ -501,7 +596,7 @@ const RepartidorDashboard = () => {
                                     onOrderLocationUpdate={handleOrderLocationUpdate}
                                 />
                             </div>
-                            <div className="h-[60%] overflow-y-auto bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
+                            <div className="h-[45%] overflow-y-auto bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
                                 <DetallePedido order={selectedOrder} onUpdateOrder={handleUpdateOrder} />
                             </div>
                         </div>

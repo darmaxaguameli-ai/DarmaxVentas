@@ -3,6 +3,7 @@ import { MapContainer, TileLayer, Marker, Popup, useMap, Polyline } from 'react-
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { geocodeAddress } from '../../../../api/apiClient'; // Import API helper
+import { useTheme } from '../../../../context/ThemeContext'; // Importar ThemeContext
 
 // --- Icon Definitions ---
 const createIcon = (bgColor, iconColor = 'white') => {
@@ -80,9 +81,14 @@ const MapController = ({ position, zoom }) => {
 
 // --- Main Map Component ---
 const Mapa = ({ driverPosition, orders, selectedOrder, onOrderLocationUpdate }) => {
+  const { theme } = useTheme(); // Hook para detectar tema
   const [temporaryCoords, setTemporaryCoords] = useState(null);
   const [isGeocoding, setIsGeocoding] = useState(false);
   const mapRef = useRef(null);
+
+  // Define Tile Layers based on Theme (Same as Client)
+  const tileLayerUrl = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
+  const attribution = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>';
 
   // Auto-geocode selected order if missing coordinates
   useEffect(() => {
@@ -215,197 +221,292 @@ const Mapa = ({ driverPosition, orders, selectedOrder, onOrderLocationUpdate }) 
     [orders]
   );
 
-  // 5. Calculate a logical route path (Nearest Neighbor) for visualization
-  const routePath = useMemo(() => {
-    if (!driverPosition || !Array.isArray(driverPosition)) return [];
-    const dLat = parseCoord(driverPosition[0]);
-    const dLng = parseCoord(driverPosition[1]);
-    if (dLat === null || dLng === null) return [];
-
-    // Start with driver position
-    const startPoint = [dLat, dLng];
-    const path = [startPoint];
-    
-    // Get all order coordinates
-    let pendingPoints = ordersWithCoords
-        .map(o => getOrderCoords(o))
-        .filter(p => p !== null);
-
-    let currentPoint = startPoint;
-
-    // Greedy "Nearest Neighbor" sort
-    while (pendingPoints.length > 0) {
-        let nearestIndex = -1;
-        let minDistance = Infinity;
-
-        pendingPoints.forEach((point, index) => {
-            // Simple Euclidean distance squared is enough for sorting
-            const d = Math.pow(point[0] - currentPoint[0], 2) + Math.pow(point[1] - currentPoint[1], 2);
-            if (d < minDistance) {
-                minDistance = d;
-                nearestIndex = index;
-            }
-        });
-
-        if (nearestIndex !== -1) {
-            currentPoint = pendingPoints[nearestIndex];
-            path.push(currentPoint);
-            pendingPoints.splice(nearestIndex, 1);
-        } else {
-            break; 
-        }
-    }
-    return path;
-  }, [driverPosition, ordersWithCoords]);
-
-  const handleDragEnd = (event) => {
-      if (onOrderLocationUpdate && selectedOrder) {
-          const marker = event.target;
-          const newPos = marker.getLatLng();
-          if (newPos) {
-             onOrderLocationUpdate(selectedOrder.id, newPos.lat, newPos.lng);
+    // 5. Calculate a logical route path (Nearest Neighbor) for visualization
+    const routePath = useMemo(() => {
+      if (!driverPosition || !Array.isArray(driverPosition)) return [];
+      const dLat = parseCoord(driverPosition[0]);
+      const dLng = parseCoord(driverPosition[1]);
+      if (dLat === null || dLng === null) return [];
+  
+      // Start with driver position
+      const startPoint = [dLat, dLng];
+      const path = [startPoint];
+      
+      // Get all order coordinates
+      let pendingPoints = ordersWithCoords
+          .map(o => getOrderCoords(o))
+          .filter(p => p !== null);
+  
+      let currentPoint = startPoint;
+  
+      // Greedy "Nearest Neighbor" sort
+      while (pendingPoints.length > 0) {
+          let nearestIndex = -1;
+          let minDistance = Infinity;
+  
+          pendingPoints.forEach((point, index) => {
+              // Simple Euclidean distance squared is enough for sorting
+              const d = Math.pow(point[0] - currentPoint[0], 2) + Math.pow(point[1] - currentPoint[1], 2);
+              if (d < minDistance) {
+                  minDistance = d;
+                  nearestIndex = index;
+              }
+          });
+  
+          if (nearestIndex !== -1) {
+              currentPoint = pendingPoints[nearestIndex];
+              path.push(currentPoint);
+              pendingPoints.splice(nearestIndex, 1);
+          } else {
+              break; 
           }
       }
-  };
+      return path;
+    }, [driverPosition, ordersWithCoords]);
+  
+    const handleDragEnd = (event) => {
+        if (onOrderLocationUpdate && selectedOrder) {
+            const marker = event.target;
+            const newPos = marker.getLatLng();
+            if (newPos) {
+               onOrderLocationUpdate(selectedOrder.id, newPos.lat, newPos.lng);
+            }
+        }
+    };
+  
+    const handleOpenGoogleMapsRoute = () => {
+          if (!driverPosition || ordersWithCoords.length === 0) return;
 
-  return (
-    <MapContainer center={mapCenter} zoom={mapZoom} scrollWheelZoom={true} style={{ height: '100%', width: '100%', zIndex: 0 }} ref={mapRef}>
-      <MapController position={mapCenter} zoom={mapZoom} />
-      <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-      />
-      
-      {/* Logical Route Line */}
-      <Polyline 
-        positions={routePath} 
-        pathOptions={{ 
-            color: '#6366f1', // Indigo-500
-            weight: 4, 
-            opacity: 0.6, 
-            dashArray: '10, 10', // Dashed line to indicate "suggested path"
-            lineCap: 'round'
-        }} 
-      />
-      
-      {/* Driver Marker */}
-      {(() => {
-          const dLat = parseCoord(driverPosition?.[0]);
-          const dLng = parseCoord(driverPosition?.[1]);
-          if (dLat !== null && dLng !== null) {
-              return (
-                <Marker position={[dLat, dLng]} icon={driverIcon}>
-                  <Popup>Mi ubicación</Popup>
-                </Marker>
-              );
-          }
-          return null;
-      })()}
-
-      {/* Selected Order Marker (High Priority) */}
-      {selectedOrder && (() => {
-          const coords = getOrderCoords(selectedOrder);
           
-          // Case A: Valid DB coords
-          if (coords) {
-              return (
-                <Marker 
-                    key={`selected-${selectedOrder.id}`} 
-                    position={coords}
-                    icon={selectedOrderIcon}
-                    zIndexOffset={1000}
-                    draggable={!!onOrderLocationUpdate} // Allow correction even if already set
-                    eventHandlers={{
-                        dragend: handleDragEnd
-                    }}
-                >
-                    <Popup>
-                        <p className="font-bold">{selectedOrder.cliente.name}</p>
-                        <p>{selectedOrder.cliente.street}</p>
-                        <p className="text-xs text-blue-600 mt-1 cursor-pointer">Arrastra para corregir ubicación</p>
-                    </Popup>
-                </Marker>
-              );
-          } 
-          // Case B: Temporary Geocoded coords
-          else if (temporaryCoords) {
-              return (
-                <Marker 
-                    key={`temp-selected-${selectedOrder.id}`} 
-                    position={temporaryCoords}
-                    icon={tempOrderIcon}
-                    zIndexOffset={1000}
-                    opacity={0.8}
-                    draggable={!!onOrderLocationUpdate} // Allow correction for temp coords
-                    eventHandlers={{
-                        dragend: handleDragEnd
-                    }}
-                >
-                    <Popup>
-                        <p className="font-bold text-amber-600">Ubicación Aproximada</p>
-                        <p className="font-bold">{selectedOrder.cliente.name}</p>
-                        <p>{selectedOrder.cliente.street}</p>
-                        <p className="text-xs italic mt-1 mb-1">(Basado en la dirección)</p>
-                        <p className="text-xs text-blue-600 font-bold cursor-pointer">¡Arrastra para fijar la ubicación exacta!</p>
-                    </Popup>
-                </Marker>
-              );
+
+          const startLat = driverPosition[0];
+
+          const startLng = driverPosition[1];
+
+          
+
+          const waypoints = routePath.slice(1, 10); // Skip start (driver), take next 9
+
+          if (waypoints.length === 0) return;
+
+    
+
+          const destination = waypoints.pop(); // Last point is destination
+
+          const intermediate = waypoints.map(p => `${p[0]},${p[1]}`).join('|');
+
+    
+
+          let url = `https://www.google.com/maps/dir/?api=1&origin=${startLat},${startLng}&destination=${destination[0]},${destination[1]}`;
+
+          if (intermediate) {
+
+              url += `&waypoints=${intermediate}`;
+
           }
-          // Case C: Geocoding failed -> Manual Set Mode (Fallback)
-          else if (!isGeocoding) {
-              return (
-                <Marker 
-                    key={`manual-selected-${selectedOrder.id}`} 
-                    position={mapCenter} // Default to current view center (Driver or Default)
-                    icon={tempOrderIcon}
-                    zIndexOffset={1000}
-                    draggable={!!onOrderLocationUpdate}
-                    eventHandlers={{
-                        dragend: handleDragEnd
-                    }}
-                >
-                    <Popup>
-                        <div className="text-center">
-                            <p className="font-bold text-red-600 mb-1">❓ Ubicación No Encontrada</p>
-                            <p className="font-semibold">{selectedOrder.cliente.name}</p>
-                            <p className="text-xs text-gray-600 italic mb-2">No pudimos localizar "{selectedOrder.cliente.street}" automáticamente.</p>
-                            <div className="bg-blue-50 text-blue-700 p-2 rounded text-xs font-bold border border-blue-100">
-                                <span className="block text-lg mb-1">👇</span>
-                                ¡Arrastra este marcador a la casa del cliente para guardar su ubicación!
-                            </div>
-                        </div>
-                    </Popup>
-                </Marker>
-              );
-          }
-          return null;
-      })()}
 
-      {/* Order Markers */}
-      {ordersWithCoords.map(order => {
-          // Avoid duplicating the selected order if it's already rendered above
-          if (selectedOrder && order.id === selectedOrder.id) return null;
+          
 
-          const coords = getOrderCoords(order);
-          // Redundant check handled by filter, but safe for rendering
-          if (!coords) return null;
+          window.open(url, '_blank');
 
-          return (
-            <Marker 
-                key={order.id} 
-                position={coords}
-                icon={orderIcon}
-                opacity={0.6}
-            >
-                <Popup>
-                    <p className="font-bold">{order.cliente.name}</p>
-                    <p>{order.cliente.street}</p>
-                </Popup>
-            </Marker>
-          );
-      })}
-    </MapContainer>
-  );
-};
+      };
+
+    
+
+      const handleNavigateSingle = () => {
+          const coords = getOrderCoords(selectedOrder) || temporaryCoords;
+          if (!coords) return;
+          const [lat, lng] = coords;
+          // Abrir directamente modo navegación en Google Maps
+          window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`, '_blank');
+      };
+
+      return (
+        <div className="w-full h-full relative">
+            <MapContainer center={mapCenter} zoom={mapZoom} scrollWheelZoom={true} style={{ height: '100%', width: '100%', zIndex: 0, background: theme === 'dark' ? '#242f3e' : '#f8f9fa' }} ref={mapRef}>
+            <MapController position={mapCenter} zoom={mapZoom} />
+            <TileLayer
+                attribution={attribution}
+                url={tileLayerUrl}
+                className={theme === 'dark' ? '!filter !invert-[0.9] !hue-rotate-180 !brightness-95 !saturate-[0.6] !contrast-[1.1]' : ''}
+            />
+            
+            {/* Logical Route Line */}
+            <Polyline 
+                positions={routePath} 
+                pathOptions={{ 
+                    color: theme === 'dark' ? '#818cf8' : '#6366f1', // Indigo
+                    weight: 4, 
+                    opacity: 0.6, 
+                    dashArray: '10, 10',
+                    lineCap: 'round'
+                }} 
+            />
+            
+            {/* Driver Marker */}
+            {(() => {
+                const dLat = parseCoord(driverPosition?.[0]);
+                const dLng = parseCoord(driverPosition?.[1]);
+                if (dLat !== null && dLng !== null) {
+                    return (
+                        <Marker position={[dLat, dLng]} icon={driverIcon}>
+                        <Popup>Mi ubicación</Popup>
+                        </Marker>
+                    );
+                }
+                return null;
+            })()}
+
+            {/* Selected Order Marker (High Priority) */}
+            {selectedOrder && (() => {
+                const coords = getOrderCoords(selectedOrder);
+                
+                // Case A: Valid DB coords
+                if (coords) {
+                    return (
+                        <Marker 
+                            key={`selected-${selectedOrder.id}`} 
+                            position={coords}
+                            icon={selectedOrderIcon}
+                            zIndexOffset={1000}
+                            draggable={!!onOrderLocationUpdate}
+                            eventHandlers={{
+                                dragend: handleDragEnd
+                            }}
+                        >
+                            <Popup>
+                                <p className="font-bold">{selectedOrder.cliente.name}</p>
+                                <p>{selectedOrder.cliente.street}</p>
+                                <p className="text-xs text-blue-600 mt-1 cursor-pointer">Arrastra para corregir ubicación</p>
+                            </Popup>
+                        </Marker>
+                    );
+                } 
+                // Case B: Temporary Geocoded coords
+                else if (temporaryCoords) {
+                    return (
+                        <Marker 
+                            key={`temp-selected-${selectedOrder.id}`} 
+                            position={temporaryCoords}
+                            icon={tempOrderIcon}
+                            zIndexOffset={1000}
+                            opacity={0.8}
+                            draggable={!!onOrderLocationUpdate}
+                            eventHandlers={{
+                                dragend: handleDragEnd
+                            }}
+                        >
+                            <Popup>
+                                <p className="font-bold text-amber-600">Ubicación Aproximada</p>
+                                <p>{selectedOrder.cliente.street}</p>
+                                <p className="text-xs text-blue-600 font-bold cursor-pointer">¡Arrastra para fijar!</p>
+                            </Popup>
+                        </Marker>
+                    );
+                }
+                // Case C: Fallback Manual
+                else if (!isGeocoding) {
+                    return (
+                        <Marker 
+                            key={`manual-selected-${selectedOrder.id}`} 
+                            position={mapCenter}
+                            icon={tempOrderIcon}
+                            zIndexOffset={1000}
+                            draggable={!!onOrderLocationUpdate}
+                            eventHandlers={{
+                                dragend: handleDragEnd
+                            }}
+                        >
+                            <Popup>
+                                <div className="text-center">
+                                    <p className="font-bold text-red-600">📍 Fijar Ubicación</p>
+                                    <p className="text-xs">Arrastra este marcador a la casa del cliente</p>
+                                </div>
+                            </Popup>
+                        </Marker>
+                    );
+                }
+                return null;
+            })()}
+
+            {/* Order Markers */}
+            {ordersWithCoords.map(order => {
+                if (selectedOrder && order.id === selectedOrder.id) return null;
+                const coords = getOrderCoords(order);
+                if (!coords) return null;
+                return (
+                    <Marker key={order.id} position={coords} icon={orderIcon} opacity={0.6}>
+                        <Popup><p className="font-bold">{order.cliente.name}</p></Popup>
+                    </Marker>
+                );
+            })}
+            </MapContainer>
+
+            {/* --- FLOATING ACTION BUTTONS (FAB) --- */}
+            <div className="absolute bottom-4 left-0 right-0 px-4 z-[400] flex flex-col items-center gap-2 pointer-events-none">
+                {/* Label - Only show if order selected */}
+                {selectedOrder && (
+                    <div className="animate-in fade-in slide-in-from-bottom-2">
+                        <p className="bg-white/95 dark:bg-gray-800/95 px-3 py-1 rounded-full text-[10px] font-black text-primary shadow-sm border border-primary/20 backdrop-blur-sm uppercase tracking-wider">
+                            Destino: {selectedOrder.cliente.name}
+                        </p>
+                    </div>
+                )}
+
+                <div className="flex items-center justify-center gap-2 w-full pointer-events-auto">
+                    {/* 1. Selected Order Actions */}
+                    {selectedOrder && (
+                        <button
+                            onClick={handleNavigateSingle}
+                            className="flex items-center justify-center gap-2 px-5 h-12 bg-blue-600 text-white rounded-2xl shadow-xl hover:bg-blue-700 active:scale-95 transition-all font-black uppercase tracking-tight text-xs border-2 border-white dark:border-gray-800"
+                            title="Navegar con Google Maps"
+                        >
+                            <span className="material-symbols-outlined text-xl">directions</span>
+                            <span>Navegar</span>
+                        </button>
+                    )}
+
+                    {/* 2. Full Route Button */}
+                    {ordersWithCoords.length > 0 && driverPosition && (
+                        <button
+                            onClick={handleOpenGoogleMapsRoute}
+                            className={`flex items-center justify-center gap-2 px-5 h-12 rounded-2xl shadow-xl active:scale-95 transition-all font-black uppercase tracking-tight text-xs border-2 border-white dark:border-gray-800 ${
+                                selectedOrder 
+                                ? 'bg-indigo-600 text-white' 
+                                : 'bg-indigo-600 text-white w-auto min-w-[180px]'
+                            }`}
+                        >
+                            <span className="material-symbols-outlined text-xl">alt_route</span>
+                            <span>{selectedOrder ? 'Ruta Día' : 'Trazar ruta del día'}</span>
+                        </button>
+                    )}
+                </div>
+            </div>
+
+    
+
+            {/* Info Label */}
+
+            {isGeocoding && (
+
+                <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[400] bg-white/90 dark:bg-gray-800/90 px-4 py-2 rounded-full shadow-lg border border-primary/20 animate-pulse">
+
+                    <p className="text-xs font-bold text-primary flex items-center gap-2">
+
+                        <span className="material-symbols-outlined animate-spin text-sm">progress_activity</span>
+
+                        Buscando ubicación...
+
+                    </p>
+
+                </div>
+
+            )}
+
+        </div>
+
+      );
+
+    };
 
 export default Mapa;

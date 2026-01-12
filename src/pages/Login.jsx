@@ -30,7 +30,7 @@ const Login = () => {
       
       // Si el login es exitoso, redirigir a la pantalla de bienvenida
       // LoginSuccess se encargará de la redirección basada en el rol
-      navigate("/login-success", { state: { name: user.name, role: user.role, sexo: user.sexo } });
+      navigate("/login-success", { state: { name: user.name, role: user.role, sexo: user.sexo }, replace: true });
 
     } catch (err) {
       console.error(err);
