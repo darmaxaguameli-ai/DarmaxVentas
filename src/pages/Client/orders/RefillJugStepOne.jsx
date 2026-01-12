@@ -130,7 +130,22 @@ const RefillJugStepOne = () => {
         </div>
 
         <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 md:gap-6 lg:grid-cols-4 max-w-5xl mx-auto">
-          {selectedJugs.map((product) => (
+          {[...selectedJugs]
+            .sort((a, b) => {
+                const getCapacity = (name) => {
+                    const nameLower = name.toLowerCase();
+                    const match = nameLower.match(/(\d+(?:\.\d+)?)\s*(?:l|litros?|lt)/);
+                    if (match) return parseFloat(match[1]);
+                    if (nameLower.includes('garrafón') || nameLower.includes('garrafon')) return 20; 
+                    if (nameLower.includes('botella')) return 1; 
+                    return 0; 
+                };
+                const capA = getCapacity(a.name);
+                const capB = getCapacity(b.name);
+                if (capA !== capB) return capB - capA;
+                return a.name.localeCompare(b.name);
+            })
+            .map((product) => (
             <QuantityCard
               key={product.id}
               name={product.name}

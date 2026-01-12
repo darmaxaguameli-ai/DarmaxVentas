@@ -22,6 +22,10 @@ const OrderSummaryStepFour = () => {
   const [orderTotal, setOrderTotal] = useState(0);
   const [isCalculating, setIsCalculating] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Estados para fidelidad
+  const [redeemableItem, setRedeemableItem] = useState(null);
+  const [pointsToRedeem, setPointsToRedeem] = useState(0);
 
   const mode = previousState.mode || "refill";
   const isRefill = mode === "refill";
@@ -35,6 +39,7 @@ const OrderSummaryStepFour = () => {
     [fromStepTwo]
   );
 
+  // Efecto para calcular items y buscar recompensas
   useEffect(() => {
     if (configLoading || !isRefill) {
       setIsCalculating(false);
@@ -111,6 +116,25 @@ const OrderSummaryStepFour = () => {
         }
       }
       
+      console.log("DEBUG: Auth Status", { isAuthenticated, userPoints: user?.loyaltyPoints });
+      console.log("DEBUG: Final Items", finalOrderItems);
+
+      // Lógica Inteligente de Recompensas: Buscar el item más caro que se pueda pagar con puntos
+      if (isAuthenticated && user && user.loyaltyPoints > 0) {
+          // Ordenar items por precio descendente para encontrar el mejor valor
+          const sortedItems = [...finalOrderItems].sort((a, b) => Number(b.price) - Number(a.price));
+          // Encontrar el primero que cueste menos o igual a los puntos
+          const bestReward = sortedItems.find(item => Number(item.price) <= Number(user.loyaltyPoints));
+          
+          console.log("DEBUG: Best Reward Found", bestReward);
+
+          if (bestReward) {
+              setRedeemableItem(bestReward);
+          } else {
+              setRedeemableItem(null);
+          }
+      }
+
       setOrderTotal(calculatedTotal + currentCollectionFee);
       setOrderItems(finalOrderItems); 
       setIsCalculating(false);
@@ -118,7 +142,20 @@ const OrderSummaryStepFour = () => {
 
     calculatePrices();
 
-  }, [tiposAguaAsignados, deliveryMethod, isRefill, allServicePrices, configLoading]);
+  }, [tiposAguaAsignados, deliveryMethod, isRefill, allServicePrices, configLoading, isAuthenticated, user]);
+
+    // Recalcular total visual cuando cambia pointsToRedeem
+    const displayTotal = Math.max(0, orderTotal - pointsToRedeem);
+
+    const toggleRedemption = () => {
+        if (pointsToRedeem > 0) {
+            // Cancelar canje
+            setPointsToRedeem(0);
+        } else if (redeemableItem) {
+            // Aplicar canje
+            setPointsToRedeem(redeemableItem.price);
+        }
+    };
 
     const deliveryLabels = {
       delivery: "Entrega a domicilio",
@@ -134,8 +171,8 @@ const OrderSummaryStepFour = () => {
     const handleConfirm = async () => {
       setIsSubmitting(true);
   
-      if (isRefill && orderTotal === 0 && orderItems.length > 0) {
-        alert("El total del pedido no puede ser $0. Verifica la configuración de precios.");
+      if (isRefill && displayTotal === 0 && orderItems.length > 0 && pointsToRedeem === 0) { // Permitir total 0 si es por puntos
+        alert("El total del pedido no puede ser $0 sin canje de puntos.");
         setIsSubmitting(false);
         return;
       }
@@ -152,12 +189,13 @@ const OrderSummaryStepFour = () => {
   
       // Construir el payload base del pedido
       const orderPayload = {
-        total: orderTotal,
+        total: displayTotal, // Enviar el total ya descontado
         deliveryMethod: deliveryMethod,
-        paymentStatus: "NO_PAGADO",
+        paymentStatus: displayTotal === 0 ? "PAGADO" : "NO_PAGADO", // Si es gratis por puntos, ya está pagado
         status: "PENDIENTE",
         items: orderItems,
         storeId: finalStoreId, // ✅ STORE ID ADDED
+        pointsUsed: pointsToRedeem // ✅ Puntos a descontar
       };
       
       // Añadir clienteId solo si está disponible
@@ -203,6 +241,34 @@ const OrderSummaryStepFour = () => {
             <p className="text-xs sm:text-sm font-semibold text-text-secondary dark:text-white/70 uppercase tracking-[0.08em]">Método de entrega</p>
             <p className="text-base sm:text-lg font-bold text-dark dark:text-white">{deliveryLabels[deliveryMethod] || "Entrega a domicilio"}</p>
           </div>
+
+          {/* Tarjeta de Fidelidad Inteligente */}
+          {isAuthenticated && redeemableItem && (
+              <div className="rounded-xl bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 border border-yellow-200 dark:border-yellow-700/50 p-4 relative overflow-hidden">
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 relative z-10">
+                      <div>
+                          <h3 className="font-bold text-yellow-800 dark:text-yellow-400 flex items-center gap-2">
+                              <span className="material-symbols-outlined">stars</span>
+                              ¡Recompensa Disponible!
+                          </h3>
+                          <p className="text-sm text-yellow-900/80 dark:text-yellow-200/80 mt-1">
+                              Tienes <strong>{user.loyaltyPoints} puntos</strong>. Úsalos para llevarte: <br/>
+                              <span className="font-semibold">1x {redeemableItem.jugBrandName} de {redeemableItem.waterTypeName.replace('Agua ', '')}</span> GRATIS.
+                          </p>
+                      </div>
+                      <button 
+                          onClick={toggleRedemption}
+                          className={`px-4 py-2 rounded-lg font-bold text-sm transition-all shadow-sm ${
+                              pointsToRedeem > 0 
+                              ? 'bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/50 dark:text-red-300' 
+                              : 'bg-yellow-400 text-yellow-900 hover:bg-yellow-500'
+                          }`}
+                      >
+                          {pointsToRedeem > 0 ? 'Cancelar Canje' : 'Canjear Puntos'}
+                      </button>
+                  </div>
+              </div>
+          )}
   
           <div className="flex flex-col gap-4">
             <h2 className="text-[20px] sm:text-[22px] font-bold text-dark dark:text-white">
@@ -249,6 +315,26 @@ const OrderSummaryStepFour = () => {
                               </span>
                             </div>
                           )}
+                          
+                          {/* Línea de Descuento por Puntos */}
+                          {pointsToRedeem > 0 && (
+                              <div className="flex items-center justify-between py-3 bg-yellow-50/50 dark:bg-yellow-900/10 -mx-2 px-2 rounded-lg border border-yellow-100 dark:border-yellow-800/30">
+                                <div className="flex items-center gap-3">
+                                  <div className="h-10 w-10 flex items-center justify-center text-yellow-600">
+                                    <span className="material-symbols-outlined text-2xl">stars</span>
+                                  </div>
+                                  <div>
+                                    <p className="font-bold text-yellow-800 dark:text-yellow-400">Canje de Puntos</p>
+                                    <p className="text-sm text-yellow-700/80 dark:text-yellow-300/70">
+                                      1x Producto Gratis
+                                    </p>
+                                  </div>
+                                </div>
+                                <span className="font-bold text-green-600 dark:text-green-400">
+                                  -${pointsToRedeem.toFixed(2)}
+                                </span>
+                              </div>
+                          )}
                         </div>
           </div>
   
@@ -256,7 +342,7 @@ const OrderSummaryStepFour = () => {
               <div className="flex items-center justify-between font-bold">
                 <p className="text-base sm:text-lg text-dark dark:text-white">Importe total</p>
                 <p className="text-2xl sm:text-3xl text-primary">
-                  {isCalculating || configLoading ? '...' : `$${orderTotal.toFixed(2)}`}
+                  {isCalculating || configLoading ? '...' : `$${displayTotal.toFixed(2)}`}
                 </p>
               </div>
           </div>

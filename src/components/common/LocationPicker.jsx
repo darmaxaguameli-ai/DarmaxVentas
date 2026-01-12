@@ -3,30 +3,34 @@ import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from 're
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { geocodeAddress } from '../../api/apiClient';
+import { useTheme } from '../../context/ThemeContext'; // Importar contexto de tema
 
 // --- Icon Definitions ---
 const createIcon = (color) => {
     return L.divIcon({
-        html: `<div style="background-color: ${color};" class="p-1.5 rounded-full shadow-lg border-2 border-white">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 20l-4.95-5.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd" />
-                  </svg>
+        html: `<div class="relative flex items-center justify-center">
+                  <div style="background-color: ${color};" class="relative z-10 p-2 rounded-full shadow-xl border-[3px] border-white dark:border-gray-800 transition-transform hover:scale-110">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" viewBox="0 0 24 24" fill="currentColor">
+                        <path fill-rule="evenodd" d="M11.54 22.351l.07.04.028.016a.76.76 0 00.723 0l.028-.015.071-.041a16.975 16.975 0 001.144-.742 19.58 19.58 0 002.683-2.282c1.944-1.99 3.963-4.98 3.963-8.827a8.25 8.25 0 00-16.5 0c0 3.846 2.02 6.837 3.963 8.827a19.58 19.58 0 002.682 2.282 16.975 16.975 0 001.145.742zM12 13.5a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" />
+                      </svg>
+                  </div>
+                  <div style="background-color: ${color};" class="absolute z-0 w-full h-full rounded-full animate-ping opacity-20"></div>
                </div>`,
         className: 'bg-transparent',
-        iconSize: [40, 40],
-        iconAnchor: [20, 40],
-        popupAnchor: [0, -40],
+        iconSize: [48, 48],
+        iconAnchor: [24, 48],
+        popupAnchor: [0, -48],
     });
 };
 
-const locationIcon = createIcon('#ef4444'); // Red for selected location
+const locationIcon = createIcon('#3b82f6'); // Modern Blue (Primary)
 
 // --- Map Controller to handle View Updates ---
 const MapController = ({ center, zoom }) => {
     const map = useMap();
     useEffect(() => {
         if (center) {
-            map.flyTo(center, zoom);
+            map.flyTo(center, zoom, { duration: 1.5 });
         }
     }, [center, zoom, map]);
     return null;
@@ -62,12 +66,13 @@ const LocationMarker = ({ position, onLocationChange }) => {
             ref={markerRef}
             icon={locationIcon}
         >
-            <Popup>¡Aquí es mi entrega!</Popup>
+            <Popup className="font-sans font-semibold">📍 ¡Aquí entregarán mi pedido!</Popup>
         </Marker>
     );
 };
 
 const LocationPicker = ({ lat, lng, onLocationChange, addressToSearch }) => {
+    const { theme } = useTheme(); // Hook para detectar tema
     const defaultCenter = [19.4326, -99.1332]; // CDMX default
     
     // Initialize map center: Use provided lat/lng if available, otherwise default
@@ -80,6 +85,11 @@ const LocationPicker = ({ lat, lng, onLocationChange, addressToSearch }) => {
     const [mapCenter, setMapCenter] = useState(initialCenter);
     const [zoom, setZoom] = useState(initialZoom);
     const [isSearching, setIsSearching] = useState(false);
+    const [isLoadingLocation, setIsLoadingLocation] = useState(false);
+
+    // Use CartoDB Voyager for base map (clean and modern)
+    const tileLayerUrl = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
+    const attribution = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>';
 
     // Watch for external updates to lat/lng to recenter map if needed (e.g. from DB load)
     useEffect(() => {
@@ -124,17 +134,41 @@ const LocationPicker = ({ lat, lng, onLocationChange, addressToSearch }) => {
         }
     };
 
+    const handleGetCurrentLocation = () => {
+        if (!navigator.geolocation) {
+            alert("Tu navegador no soporta geolocalización.");
+            return;
+        }
+        setIsLoadingLocation(true);
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const { latitude, longitude } = position.coords;
+                setMapCenter([latitude, longitude]);
+                setZoom(17);
+                onLocationChange(latitude, longitude);
+                setIsLoadingLocation(false);
+            },
+            (error) => {
+                console.error("Error getting location:", error);
+                alert("No pudimos obtener tu ubicación. Verifica tus permisos.");
+                setIsLoadingLocation(false);
+            }
+        );
+    };
+
     return (
-        <div className="w-full h-[300px] sm:h-[400px] rounded-xl overflow-hidden shadow-md border border-gray-200 dark:border-gray-700 relative z-0">
+        <div className="w-full h-full relative z-0 group">
             <MapContainer 
                 center={mapCenter} 
                 zoom={zoom} 
                 scrollWheelZoom={false} 
-                style={{ height: '100%', width: '100%' }}
+                style={{ height: '100%', width: '100%', background: theme === 'dark' ? '#242f3e' : '#f8f9fa' }}
+                className="z-0"
             >
                 <TileLayer
-                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    attribution={attribution}
+                    url={tileLayerUrl}
+                    className={theme === 'dark' ? '!filter !invert-[0.9] !hue-rotate-180 !brightness-95 !saturate-[0.6] !contrast-[1.1]' : ''}
                 />
                 <MapController center={mapCenter} zoom={zoom} />
                 <LocationMarker 
@@ -143,28 +177,43 @@ const LocationPicker = ({ lat, lng, onLocationChange, addressToSearch }) => {
                 />
             </MapContainer>
             
-            {/* Search Overlay Button (Optional manual trigger) */}
-            <div className="absolute top-2 right-2 z-[1000]">
+            {/* Controls Container */}
+            <div className="absolute top-3 right-3 z-[1000] flex flex-col gap-2 items-end">
+                 {/* GPS Button */}
+                 <button 
+                    type="button"
+                    onClick={handleGetCurrentLocation}
+                    className="bg-white dark:bg-gray-800 text-gray-700 dark:text-white p-2.5 rounded-xl shadow-lg border border-gray-100 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all active:scale-95"
+                    title="Usar mi ubicación actual"
+                 >
+                    {isLoadingLocation ? (
+                        <span className="animate-spin material-symbols-outlined text-xl text-primary">progress_activity</span>
+                    ) : (
+                        <span className="material-symbols-outlined text-xl text-primary">my_location</span>
+                    )}
+                 </button>
+
+                 {/* Address Search Button */}
                  <button 
                     type="button"
                     onClick={() => handleSearch(addressToSearch)}
                     disabled={isSearching || !addressToSearch}
-                    className="bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 p-2 rounded-lg shadow-md text-xs font-bold flex items-center gap-2 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors border border-gray-200 dark:border-gray-600"
+                    className="bg-white dark:bg-gray-800 text-gray-700 dark:text-white p-2 px-3 rounded-xl shadow-lg text-xs font-bold flex items-center gap-2 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all border border-gray-100 dark:border-gray-600 active:scale-95"
                  >
                     {isSearching ? (
                         <span className="animate-spin material-symbols-outlined text-sm">progress_activity</span>
                     ) : (
-                        <span className="material-symbols-outlined text-sm text-primary">location_searching</span>
+                        <span className="material-symbols-outlined text-sm text-primary">search</span>
                     )}
-                    Ubicar dirección del formulario
+                    <span className="hidden sm:inline">Ubicar dirección</span>
                  </button>
             </div>
 
             {/* Instruction Overlay */}
-            <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-[1000] bg-white/90 dark:bg-black/80 px-4 py-2 rounded-full shadow-lg pointer-events-none">
-                <p className="text-xs font-bold text-gray-800 dark:text-white flex items-center gap-1">
-                    <span className="material-symbols-outlined text-sm text-red-500">touch_app</span>
-                    Toca o arrastra para fijar tu ubicación
+            <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-[1000] bg-white/80 dark:bg-black/60 backdrop-blur-sm px-4 py-1.5 rounded-full shadow-sm pointer-events-none border border-white/20">
+                <p className="text-[10px] sm:text-xs font-bold text-gray-600 dark:text-gray-200 flex items-center gap-1.5">
+                    <span className="material-symbols-outlined text-sm text-primary animate-bounce">touch_app</span>
+                    Toca para mover el marcador
                 </p>
             </div>
         </div>

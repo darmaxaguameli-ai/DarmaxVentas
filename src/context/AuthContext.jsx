@@ -37,8 +37,11 @@ export const AuthProvider = ({ children }) => {
             }
         } catch (error) {
             console.error("No se pudo cargar la sesión:", error);
-            localStorage.clear();
-            sessionStorage.clear();
+            // Solo limpiar credenciales, no todo el storage (para no borrar tema, etc.)
+            localStorage.removeItem('user');
+            localStorage.removeItem('token');
+            sessionStorage.removeItem('user');
+            sessionStorage.removeItem('token');
         } finally {
             setLoading(false);
         }
@@ -56,8 +59,10 @@ export const AuthProvider = ({ children }) => {
             storage.setItem('user', JSON.stringify(loggedInUser));
             storage.setItem('token', receivedToken);
             
-            // Limpiar el otro storage para evitar conflictos
-            (rememberMe ? sessionStorage : localStorage).clear();
+            // Limpiar el otro storage para evitar conflictos (sin borrar todo el storage)
+            const otherStorage = rememberMe ? sessionStorage : localStorage;
+            otherStorage.removeItem('user');
+            otherStorage.removeItem('token');
 
             // Configurar el token en las cabeceras de apiClient para futuras peticiones
             apiClient.defaults.headers.common['Authorization'] = `Bearer ${receivedToken}`;

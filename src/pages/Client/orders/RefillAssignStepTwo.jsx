@@ -353,7 +353,31 @@ const RefillAssignStepTwo = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 min-h-[300px]">
             <div className={`space-y-4 p-4 rounded-xl bg-white/50 dark:bg-gray-900/50 ${showAnimation ? "highlight-tutorial" : ""}`}>
               <h2 className="text-xl font-bold text-center">Mis Garrafones</h2>
-              {sourceJugs.map((jug) => (
+              {[...sourceJugs]
+                .sort((a, b) => {
+                    const getCapacity = (name) => {
+                        const nameLower = name.toLowerCase();
+                        // 1. Buscar explícitamente el tamaño (ej. 10L, 4L, 1.5L)
+                        const match = nameLower.match(/(\d+(?:\.\d+)?)\s*(?:l|litros?|lt)/);
+                        if (match) return parseFloat(match[1]);
+                        
+                        // 2. Si no hay tamaño explícito, inferir por tipo
+                        if (nameLower.includes('garrafón') || nameLower.includes('garrafon')) return 20; // Estándar industrial
+                        if (nameLower.includes('botella')) return 1; // Default botella
+                        
+                        return 0; // Otros
+                    };
+
+                    const capA = getCapacity(a.name);
+                    const capB = getCapacity(b.name);
+                    
+                    // Ordenar por capacidad descendente
+                    if (capA !== capB) return capB - capA;
+                    
+                    // Si tienen la misma capacidad, alfabéticamente
+                    return a.name.localeCompare(b.name);
+                })
+                .map((jug) => (
                 <DraggableJug key={jug.id} jug={jug}>
                   <div className={`p-4 rounded-lg shadow flex items-center justify-between bg-white dark:bg-gray-800 transition-opacity ${jug.quantity === 0 ? "opacity-40" : "cursor-grab"}`}>
                     <div className="flex items-center gap-3">

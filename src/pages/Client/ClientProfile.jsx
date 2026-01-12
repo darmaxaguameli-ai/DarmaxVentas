@@ -321,7 +321,7 @@ const ClientProfile = () => {
                     <span>Ubicación Exacta <span className="text-primary">*</span></span>
                     <span className="text-xs font-normal text-gray-500">Arrastra el marcador rojo</span>
                 </label>
-                <div className="h-[250px] sm:h-[400px] w-full rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
+                <div className="h-[350px] sm:h-[400px] w-full rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
                     <LocationPicker 
                         lat={formData.lat} 
                         lng={formData.lng} 

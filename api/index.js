@@ -2012,10 +2012,12 @@ app.post('/api/pedidos', async (req, res) => {
     deliveryMethod,
     paymentMethod,
     paymentStatus,
-    storeId // NEW: Try to get from body
+    storeId, // NEW: Try to get from body
+    pointsUsed // NEW: Loyalty points to redeem
   } = req.body;
 
-  if (!items || !total || !deliveryMethod) {
+  // Validación corregida para permitir total 0 (cuando se usan puntos)
+  if (!items || total === undefined || total === null || !deliveryMethod) {
     return res.status(400).json({ error: 'Faltan datos requeridos para crear el pedido.' });
   }
 
@@ -2040,6 +2042,22 @@ app.post('/api/pedidos', async (req, res) => {
                    throw new Error('No hay sucursales configuradas para procesar el pedido.');
                }
           }
+      }
+
+      // --- PASO 0.5: Validar y Procesar Puntos (Si aplica) ---
+      if (pointsUsed && pointsUsed > 0) {
+          if (!clienteId) throw new Error('Se requiere un cliente registrado para usar puntos.');
+          
+          const client = await tx.user.findUnique({ where: { id: clienteId } });
+          if (!client || client.loyaltyPoints < pointsUsed) {
+              throw new Error('No tienes suficientes puntos para realizar este canje.');
+          }
+
+          // Descontar puntos
+          await tx.user.update({
+              where: { id: clienteId },
+              data: { loyaltyPoints: { decrement: pointsUsed } }
+          });
       }
 
       // --- PASO 1: Asegurar que tenemos un cliente ---
@@ -2094,6 +2112,19 @@ app.post('/api/pedidos', async (req, res) => {
           store: { connect: { id: storeId } },
         },
       });
+
+      // --- PASO 2.5: Registrar transacción de puntos (Si aplica) ---
+      if (pointsUsed && pointsUsed > 0) {
+          await tx.loyaltyTransaction.create({
+              data: {
+                  amount: -pointsUsed, // Negativo porque se gastaron
+                  type: 'REDEEMED',
+                  description: `Canje en pedido ${customId}`,
+                  orderId: newPedido.id,
+                  user: { connect: { id: clienteId } }
+              }
+          });
+      }
 
       // --- PASO 3: Crear los Ítems del Pedido ---
       const pedidoItemsData = items.map(item => ({
