@@ -1,3 +1,5 @@
+import useHaptic from "../../hooks/useHaptic";
+
 const QuantityCard = ({
   name,
   imageUrl,
@@ -7,17 +9,22 @@ const QuantityCard = ({
   onDecrease,
   onCardClick,
 }) => {
+  const { triggerSelection } = useHaptic();
+
   const handleCardClick = () => {
+    triggerSelection();
     if (onCardClick) onCardClick();
   };
 
   const handleDecrease = (e) => {
     e.stopPropagation();
+    triggerSelection();
     if (onDecrease) onDecrease();
   };
 
   const handleIncrease = (e) => {
     e.stopPropagation();
+    triggerSelection();
     if (onIncrease) onIncrease();
   };
 

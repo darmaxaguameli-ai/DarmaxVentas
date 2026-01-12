@@ -12,6 +12,7 @@ import {
 import OrderLayout from "../../../layouts/OrderLayout";
 import { useConfig } from "../../../context/ConfigContext";
 import { useAuth } from "../../../context/AuthContext";
+import useHaptic from "../../../hooks/useHaptic";
 import "../../../animations.css";
 
 // ====================================================================
@@ -40,11 +41,11 @@ const WaterInfoModal = ({ waterName, onClose }) => {
   const info = WATER_INFO[infoKey];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-white dark:bg-gray-800 w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 relative">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="bg-white dark:bg-gray-800 w-full max-w-sm rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom-10 sm:zoom-in-95 duration-200 relative pb-6 sm:pb-0">
         <button 
           onClick={onClose}
-          className="absolute top-3 right-3 p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+          className="absolute top-3 right-3 p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors z-10"
         >
           <span className="material-symbols-outlined">close</span>
         </button>
@@ -84,9 +85,11 @@ const DraggableJug = ({ jug, children }) => {
 
   const style = {
     position: "relative",
-    touchAction: "none",
+    // touchAction: "none" eliminado para permitir scroll en móviles
+    touchAction: "manipulation", 
     transform: transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined,
     zIndex: isDragging ? 9999 : "auto",
+    cursor: isDragging ? "grabbing" : "grab",
   };
 
   return (
@@ -233,6 +236,7 @@ const RefillAssignStepTwo = () => {
   const [state, dispatch] = useReducer(assignmentReducer, initialState);
   const { sourceJugs, targetWater } = state;
   const [infoModalOpen, setInfoModalOpen] = useState(null);
+  const { triggerSelection, triggerImpact } = useHaptic();
 
   const [showAnimation, setShowAnimation] = useState(() => {
     if (user) {
@@ -246,8 +250,13 @@ const RefillAssignStepTwo = () => {
   const maxJugs = useMemo(() => sourceJugsFromState.reduce((sum, j) => sum + j.quantity, 0), [sourceJugsFromState]);
 
   const sensors = useSensors(
-    useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 120, tolerance: 5 } })
+    useSensor(MouseSensor, { activationConstraint: { distance: 10 } }),
+    useSensor(TouchSensor, { 
+      activationConstraint: { 
+        delay: 250, // Retraso de 250ms para diferenciar entre scroll y drag
+        tolerance: 5 // Tolerancia de movimiento durante el retraso
+      } 
+    })
   );
 
   useEffect(() => {
@@ -280,18 +289,25 @@ const RefillAssignStepTwo = () => {
 
   const totalJugsAssigned = useMemo(() => targetWater.reduce((sum, p) => sum + p.quantity, 0), [targetWater]);
 
+  const handleDragStart = () => {
+    triggerSelection();
+  };
+
   const handleDragEnd = ({ active, over }) => {
     if (!over || active.data.current?.type !== "jug" || over.data.current?.type !== "water") return;
+    triggerImpact('medium');
     dispatch({ type: 'ASSIGN_JUG', payload: { sourceJugId: active.id, targetWaterId: over.id } });
   };
 
   const handleManualAdd = (waterTypeId) => {
     const firstAvailableJug = sourceJugs.find((jug) => jug.quantity > 0);
     if (!firstAvailableJug) return;
+    triggerSelection();
     dispatch({ type: 'ASSIGN_JUG', payload: { sourceJugId: firstAvailableJug.id, targetWaterId: waterTypeId } });
   };
 
   const handleManualRemove = (waterTypeId) => {
+    triggerSelection();
     dispatch({ type: 'UNASSIGN_JUG', payload: { waterTypeId } });
   };
 
@@ -319,7 +335,7 @@ const RefillAssignStepTwo = () => {
     return (
       <>
         {showAnimation && <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-30 transition-opacity duration-500"></div>}
-        <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+        <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
           {showAnimation && (
             <>
               <div className="instruction-animation-container">

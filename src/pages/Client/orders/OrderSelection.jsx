@@ -4,12 +4,14 @@ import { useAuth } from "../../../context/AuthContext";
 import { useClient } from "../context/ClientContext"; // Import useClient
 import ClientOrderHeader from "../../../components/ClientOrderHeader";
 import PriceTable from "../../../components/PriceTable";
+import useHaptic from "../../../hooks/useHaptic";
 
 const OrderSelection = () => {
   const navigate = useNavigate();
   const { logout, user, isAuthenticated } = useAuth();
   const { selectedStore, allStores, selectStore, loadingLocation } = useClient(); // Use client context
   const [isStoreModalOpen, setIsStoreModalOpen] = useState(false);
+  const { triggerSelection } = useHaptic();
 
   return (
     <div className="font-display relative flex min-h-screen w-full flex-col bg-light dark:bg-dark text-dark dark:text-white overflow-x-hidden select-none">
@@ -32,7 +34,10 @@ const OrderSelection = () => {
                 ) : (
                     <div className="flex flex-col items-center gap-2">
                         <button 
-                            onClick={() => setIsStoreModalOpen(true)}
+                            onClick={() => {
+                                triggerSelection();
+                                setIsStoreModalOpen(true);
+                            }}
                             className="flex items-center gap-2 backdrop-blur-md bg-white/60 dark:bg-black/30 px-4 py-1.5 rounded-full border border-gray-200 dark:border-white/10 shadow-sm hover:scale-105 transition-transform active:scale-95"
                         >
                             <span className="material-symbols-outlined text-primary text-lg">storefront</span>
@@ -194,8 +199,8 @@ const OrderSelection = () => {
 
       {/* Store Selection Modal */}
       {isStoreModalOpen && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-              <div className="bg-white dark:bg-gray-800 w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+          <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center sm:p-4 bg-black/60 backdrop-blur-sm transition-all">
+              <div className="bg-white dark:bg-gray-800 w-full max-w-md rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom-10 sm:fade-in sm:zoom-in duration-300">
                   <div className="p-6 border-b dark:border-gray-700 flex justify-between items-center">
                       <h3 className="text-xl font-bold">Cambiar Sucursal</h3>
                       <button onClick={() => setIsStoreModalOpen(false)} className="text-gray-400 hover:text-gray-600">
@@ -207,6 +212,7 @@ const OrderSelection = () => {
                           <button
                             key={store.id}
                             onClick={() => {
+                                triggerSelection();
                                 selectStore(store.id);
                                 setIsStoreModalOpen(false);
                             }}
@@ -221,7 +227,7 @@ const OrderSelection = () => {
                           </button>
                       ))}
                   </div>
-                  <div className="p-6 bg-gray-50 dark:bg-gray-900/50">
+                  <div className="p-6 bg-gray-50 dark:bg-gray-900/50 pb-8 sm:pb-6">
                       <button 
                         onClick={() => setIsStoreModalOpen(false)}
                         className="w-full btn-primary"
