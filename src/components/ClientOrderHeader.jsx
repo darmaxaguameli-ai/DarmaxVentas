@@ -84,69 +84,55 @@ const ClientOrderHeader = ({ primaryLink, showOrderSelectionButton }) => {
       </Link>
 
       {/* --- MOBILE NAVIGATION BAR (Visible only on mobile) --- */}
-      <div className="flex sm:hidden w-full items-center justify-between px-1 gap-1">
-        {/* 1. Inicio */}
-        <Link 
-            to="/pedidos" 
-            className={`flex flex-col items-center gap-0.5 p-2 rounded-lg transition-colors ${isActive('/pedidos') ? 'text-primary' : 'text-text-secondary dark:text-white/60 hover:text-primary active:text-primary'}`}
-        >
-          <span className="material-symbols-outlined text-2xl">home</span>
-          <span className="text-[9px] font-semibold">Inicio</span>
-        </Link>
+      <div className="flex sm:hidden w-full items-center justify-around px-1 py-2">
+        {/* Helper for Nav Items */}
+        {[
+            { to: '/pedidos', icon: 'home', label: 'Inicio', active: currentPath === '/pedidos' },
+            { 
+                to: linkToShow.to, 
+                icon: linkToShow.to === '/mis-pedidos' ? 'receipt_long' : 'add_shopping_cart', 
+                label: 'Pedidos', 
+                active: currentPath === '/mis-pedidos' || (currentPath.startsWith('/pedidos/') && currentPath !== '/pedidos'), 
+                show: isAuthenticated 
+            },
+            { to: '/login', icon: 'login', label: 'Entrar', active: isActive('/login'), show: !isAuthenticated },
+            { to: '/profile', icon: 'person', label: 'Perfil', active: isActive('/profile'), show: isAuthenticated },
+            { action: toggleTheme, icon: theme === 'dark' ? 'light_mode' : 'dark_mode', label: 'Tema', active: false, show: isAuthenticated },
+            { action: handleLogout, icon: 'logout', label: 'Salir', active: false, isDanger: true, show: isAuthenticated }
+        ].filter(item => item.show !== false).map((item, index) => {
+            const activeClass = item.active 
+                ? 'bg-primary/10 text-primary' 
+                : 'text-text-secondary/70 dark:text-white/50 hover:bg-gray-50 dark:hover:bg-white/5';
+            
+            const iconClass = item.active ? 'text-primary' : 'text-current';
 
-        {/* 2. Action Button (Pedidos/Cart or Login) */}
-        {isAuthenticated ? (
-            <Link 
-                to={linkToShow.to} 
-                className={`flex flex-col items-center gap-0.5 p-2 rounded-lg transition-colors ${isActive(linkToShow.to) ? 'text-primary' : 'text-text-secondary dark:text-white/60 hover:text-primary active:text-primary'}`}
-            >
-              <span className="material-symbols-outlined text-2xl">
-                {linkToShow.to === '/mis-pedidos' ? 'receipt_long' : 'add_shopping_cart'}
-              </span>
-              <span className="text-[9px] font-semibold">Pedidos</span>
-            </Link>
-        ) : (
-            <Link 
-                to="/login" 
-                className={`flex flex-col items-center gap-0.5 p-2 rounded-lg transition-colors ${isActive('/login') ? 'text-primary' : 'text-text-secondary dark:text-white/60 hover:text-primary active:text-primary'}`}
-            >
-              <span className="material-symbols-outlined text-2xl">login</span>
-              <span className="text-[9px] font-semibold">Entrar</span>
-            </Link>
-        )}
+            // Common content for Link and Button
+            const Content = () => (
+                <>
+                    <div className={`
+                        flex items-center justify-center rounded-2xl px-5 py-1.5 mb-1 transition-all duration-300
+                        ${item.isDanger ? 'bg-red-50 text-red-500 dark:bg-red-900/20' : activeClass}
+                    `}>
+                        <span className="material-symbols-outlined text-2xl">
+                            {item.icon}
+                        </span>
+                    </div>
+                    <span className={`text-[10px] font-bold ${item.active ? 'text-primary' : (item.isDanger ? 'text-red-500' : 'text-text-secondary/70 dark:text-white/50')}`}>
+                        {item.label}
+                    </span>
+                </>
+            );
 
-        {/* 3. Perfil (Direct Link) */}
-        {isAuthenticated && (
-            <Link 
-                to="/profile"
-                className={`flex flex-col items-center gap-0.5 p-2 rounded-lg transition-colors ${isActive('/profile') ? 'text-primary' : 'text-text-secondary dark:text-white/60 hover:text-primary'}`}
-            >
-                <span className="material-symbols-outlined text-2xl">person</span>
-                <span className="text-[9px] font-semibold">Perfil</span>
-            </Link>
-        )}
-
-        {/* 4. Tema (Toggle) */}
-        {isAuthenticated && (
-            <button
-                onClick={toggleTheme}
-                className="flex flex-col items-center gap-0.5 p-2 rounded-lg transition-colors text-text-secondary dark:text-white/60 hover:text-primary"
-            >
-                <span className="material-symbols-outlined text-2xl">{theme === 'dark' ? 'light_mode' : 'dark_mode'}</span>
-                <span className="text-[9px] font-semibold">Tema</span>
-            </button>
-        )}
-
-        {/* 5. Salir (Logout) */}
-        {isAuthenticated && (
-            <button
-                onClick={handleLogout}
-                className="flex flex-col items-center gap-0.5 p-2 rounded-lg transition-colors text-red-500/80 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300"
-            >
-                <span className="material-symbols-outlined text-2xl">logout</span>
-                <span className="text-[9px] font-semibold">Salir</span>
-            </button>
-        )}
+            return item.to ? (
+                <Link key={index} to={item.to} className="flex flex-col items-center justify-center w-full">
+                    <Content />
+                </Link>
+            ) : (
+                <button key={index} onClick={item.action} className="flex flex-col items-center justify-center w-full">
+                    <Content />
+                </button>
+            );
+        })}
       </div>
 
       {/* --- DESKTOP RIGHT MENU (Hidden on mobile) --- */}
