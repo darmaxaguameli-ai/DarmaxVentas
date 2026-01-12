@@ -30,6 +30,7 @@ const CashMovementModal = ({ isOpen, onClose, onSubmitTransaction }) => {
     };
 
     const handleSubmit = (type) => {
+        if (navigator.vibrate) navigator.vibrate(50); // Feedback táctil
         const numericAmount = parseFloat(amount);
         if (isNaN(numericAmount) || numericAmount <= 0) {
             Swal.fire('Error', 'Por favor, introduce un monto válido.', 'error');
@@ -69,26 +70,27 @@ const CashMovementModal = ({ isOpen, onClose, onSubmitTransaction }) => {
         return (
             <div className="space-y-6">
                 <div>
-                    <label className="block text-sm font-medium mb-2 text-gray-600 dark:text-gray-300">Monto</label>
+                    <label className="block text-xs font-bold uppercase tracking-wider mb-2 text-gray-400 dark:text-gray-500">Monto</label>
                     <div className="relative">
-                        <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-xl text-gray-500">$</span>
+                        <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-2xl text-gray-400">$</span>
                         <input 
                             type="text" // Use text to manage custom validation
+                            inputMode="decimal"
                             value={amount}
                             onChange={handleAmountChange}
-                            className="w-full p-3 pl-10 text-xl font-semibold rounded-lg bg-gray-100 dark:bg-gray-700 border-2 border-transparent focus:border-primary focus:ring-0 transition"
+                            className="w-full p-4 pl-10 text-3xl font-black rounded-2xl bg-gray-50 dark:bg-gray-700/50 border-2 border-transparent focus:border-primary focus:bg-white dark:focus:bg-gray-700 focus:ring-0 transition-all text-gray-800 dark:text-white"
                             placeholder={placeholder}
                             autoFocus
                         />
                     </div>
                 </div>
                 <div>
-                    <label className="block text-sm font-medium mb-2 text-gray-600 dark:text-gray-300">Descripción / Motivo</label>
+                    <label className="block text-xs font-bold uppercase tracking-wider mb-2 text-gray-400 dark:text-gray-500">Motivo</label>
                     <input 
                         type="text"
                         value={description}
                         onChange={(e) => setDescription(e.target.value)}
-                        className="w-full p-3 rounded-lg bg-gray-100 dark:bg-gray-700 border-2 border-transparent focus:border-primary focus:ring-0 transition"
+                        className="w-full p-4 rounded-2xl bg-gray-50 dark:bg-gray-700/50 border-2 border-transparent focus:border-primary focus:bg-white dark:focus:bg-gray-700 focus:ring-0 transition-all text-gray-800 dark:text-white"
                         placeholder={descriptionPlaceholder}
                     />
                 </div>
@@ -116,28 +118,35 @@ const CashMovementModal = ({ isOpen, onClose, onSubmitTransaction }) => {
 
     return (
         <div 
-            className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4"
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex justify-center items-end sm:items-center p-0 sm:p-4"
             onClick={onClose}
         >
           <div 
-            className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-md transform transition-all animate-fade-in-up"
+            className="bg-white dark:bg-gray-800 w-full max-w-full sm:max-w-md rounded-t-3xl sm:rounded-2xl rounded-b-none sm:rounded-b-2xl shadow-2xl transform transition-all animate-slide-up sm:animate-fade-in-up"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-                <h3 className="text-xl font-bold text-center">Movimientos de Caja</h3>
+            {/* Mobile Drag Handle */}
+            <div className="w-12 h-1.5 bg-gray-300 dark:bg-gray-600 rounded-full mx-auto mt-3 mb-1 sm:hidden"></div>
+
+            <div className="p-4 sm:p-6 pb-0 border-b border-transparent dark:border-gray-700 flex justify-between items-center">
+                <h3 className="text-xl font-black text-gray-800 dark:text-white">Movimientos</h3>
+                <button onClick={onClose} className="p-2 bg-gray-100 dark:bg-gray-700 rounded-full text-gray-500 hover:bg-gray-200 transition-colors">
+                    <span className="material-symbols-outlined text-lg">close</span>
+                </button>
             </div>
             
-            <div className="p-2 bg-gray-100 dark:bg-gray-900 flex justify-center space-x-2">
-                <TabButton active={activeTab === 'ingreso'} onClick={() => setActiveTab('ingreso')}>Ingreso</TabButton>
-                <TabButton active={activeTab === 'retiro'} onClick={() => setActiveTab('retiro')}>Retiro</TabButton>
-                <TabButton active={activeTab === 'cambio'} onClick={() => setActiveTab('cambio')}>Cambio de Billete</TabButton>
+            <div className="px-4 sm:px-6 mt-4">
+                <div className="bg-gray-100 dark:bg-gray-900/50 p-1 rounded-xl flex">
+                    <button onClick={() => setActiveTab('ingreso')} className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'ingreso' ? 'bg-white dark:bg-gray-700 text-green-600 shadow-sm' : 'text-gray-500'}`}>Ingreso</button>
+                    <button onClick={() => setActiveTab('retiro')} className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'retiro' ? 'bg-white dark:bg-gray-700 text-red-500 shadow-sm' : 'text-gray-500'}`}>Retiro</button>
+                    <button onClick={() => setActiveTab('cambio')} className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'cambio' ? 'bg-white dark:bg-gray-700 text-blue-500 shadow-sm' : 'text-gray-500'}`}>Cambio</button>
+                </div>
             </div>
 
-            <div className="p-6">
+            <div className="p-4 sm:p-6">
                 {renderContent()}
-                <div className="flex justify-end gap-4 mt-8">
-                    <button onClick={onClose} className="px-6 py-3 font-semibold text-gray-700 dark:text-gray-300 bg-gray-200 dark:bg-gray-600 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors">Cancelar</button>
-                    <button onClick={getButtonAction()} className="px-6 py-3 font-semibold text-white bg-primary rounded-lg hover:bg-primary-dark transition-colors">
+                <div className="flex justify-end gap-3 mt-6">
+                    <button onClick={getButtonAction()} className="w-full py-4 text-lg font-bold text-white bg-primary rounded-xl shadow-lg shadow-primary/30 hover:bg-primary-dark transition-all active:scale-95">
                         {getButtonText()}
                     </button>
                 </div>

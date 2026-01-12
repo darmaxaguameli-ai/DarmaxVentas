@@ -28,6 +28,7 @@ const CloseRegisterModal = ({ isOpen, onClose, sessionData, onEndSession }) => {
   };
   
   const handleGenerateReportAndEnd = () => {
+    if (navigator.vibrate) navigator.vibrate([50, 50, 50]); // Success vibration pattern
     const realCashInDrawer = parseFloat(realCash) || 0;
     generateEndOfDayReport({
       ...sessionData,
@@ -41,39 +42,59 @@ const CloseRegisterModal = ({ isOpen, onClose, sessionData, onEndSession }) => {
 
   return (
     <div 
-        className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4"
+        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex justify-center items-end sm:items-center p-0 sm:p-4"
         onClick={onClose}
     >
       <div 
-        className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-lg transform transition-all animate-fade-in-up"
+        className="bg-white dark:bg-gray-800 w-full max-w-full sm:max-w-lg rounded-t-3xl sm:rounded-2xl rounded-b-none sm:rounded-b-2xl shadow-2xl transform transition-all animate-slide-up sm:animate-fade-in-up"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-            <h3 className="text-xl font-bold">Cierre de Caja</h3>
-            <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+        {/* Mobile Handle */}
+        <div className="w-12 h-1.5 bg-gray-300 dark:bg-gray-600 rounded-full mx-auto mt-3 mb-1 sm:hidden"></div>
+
+        <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-100 dark:border-gray-700">
+            <h3 className="text-2xl font-black text-gray-800 dark:text-white uppercase tracking-tight">Cierre de Caja</h3>
+            <button onClick={onClose} className="p-2 bg-gray-100 dark:bg-gray-700 rounded-full text-gray-500 hover:bg-gray-200 transition-colors">
+                <span className="material-symbols-outlined">close</span>
             </button>
         </div>
 
-        <div className="p-6">
-            <div className="space-y-3 text-lg mb-6">
-              <div className="flex justify-between"><span className="text-gray-500 dark:text-gray-400">Fondo Inicial:</span> <span className="font-semibold">${openingCash.toFixed(2)}</span></div>
-              <div className="flex justify-between"><span className="text-gray-500 dark:text-gray-400">Ventas en Efectivo:</span> <span className="font-semibold text-green-500">+${sales.toFixed(2)}</span></div>
-              <div className="flex justify-between"><span className="text-gray-500 dark:text-gray-400">Ingresos:</span> <span className="font-semibold text-blue-500">+${payIns.toFixed(2)}</span></div>
-              <div className="flex justify-between"><span className="text-gray-500 dark:text-gray-400">Retiros:</span> <span className="font-semibold text-yellow-500">-${payOuts.toFixed(2)}</span></div>
-              <hr className="my-2 border-gray-200 dark:border-gray-600"/>
-              <div className="flex justify-between font-bold text-xl"><span className="text-gray-800 dark:text-white">Total Esperado:</span> <span className="text-primary">${expectedInDrawer.toFixed(2)}</span></div>
+        <div className="p-4 sm:p-6 overflow-y-auto max-h-[80vh]">
+            {/* Summary Cards */}
+            <div className="grid grid-cols-2 gap-3 mb-6">
+                <div className="bg-gray-50 dark:bg-gray-700/50 p-3 rounded-xl border border-gray-100 dark:border-gray-600">
+                    <p className="text-xs text-gray-500 uppercase font-bold">Fondo Inicial</p>
+                    <p className="text-lg font-bold text-gray-800 dark:text-white">${openingCash.toFixed(2)}</p>
+                </div>
+                <div className="bg-green-50 dark:bg-green-900/20 p-3 rounded-xl border border-green-100 dark:border-green-800">
+                    <p className="text-xs text-green-600 uppercase font-bold">Ventas</p>
+                    <p className="text-lg font-bold text-green-700 dark:text-green-400">+${sales.toFixed(2)}</p>
+                </div>
+                <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-xl border border-blue-100 dark:border-blue-800">
+                    <p className="text-xs text-blue-600 uppercase font-bold">Ingresos</p>
+                    <p className="text-lg font-bold text-blue-700 dark:text-blue-400">+${payIns.toFixed(2)}</p>
+                </div>
+                <div className="bg-yellow-50 dark:bg-yellow-900/20 p-3 rounded-xl border border-yellow-100 dark:border-yellow-800">
+                    <p className="text-xs text-yellow-600 uppercase font-bold">Retiros</p>
+                    <p className="text-lg font-bold text-yellow-700 dark:text-yellow-400">-${payOuts.toFixed(2)}</p>
+                </div>
+            </div>
+
+            <div className="bg-gray-900 text-white p-4 rounded-xl shadow-lg mb-6 flex justify-between items-center">
+                <span className="text-sm font-bold uppercase tracking-wider opacity-80">Total Esperado</span>
+                <span className="text-2xl font-black">${expectedInDrawer.toFixed(2)}</span>
             </div>
             
             <div className="mb-6">
-                <label className="block text-sm font-medium mb-2 text-gray-600 dark:text-gray-300">Monto Contado Real</label>
+                <label className="block text-xs font-bold uppercase tracking-wider mb-2 text-gray-400 dark:text-gray-500">¿Cuánto hay en caja?</label>
                 <div className="relative">
-                    <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-2xl text-gray-500">$</span>
+                    <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-3xl text-gray-400">$</span>
                     <input 
                         type="number"
+                        inputMode="decimal"
                         value={realCash}
                         onChange={(e) => setRealCash(e.target.value)}
-                        className="w-full p-4 pl-10 text-center text-3xl font-bold rounded-lg bg-gray-100 dark:bg-gray-700 border-2 border-transparent focus:border-primary focus:ring-0 transition"
+                        className="w-full p-4 pl-10 text-center text-4xl font-black rounded-2xl bg-gray-50 dark:bg-gray-700/50 border-2 border-transparent focus:border-primary focus:bg-white dark:focus:bg-gray-700 focus:ring-0 transition-all text-gray-800 dark:text-white"
                         placeholder="0.00"
                         autoFocus
                     />
@@ -81,17 +102,27 @@ const CloseRegisterModal = ({ isOpen, onClose, sessionData, onEndSession }) => {
             </div>
 
             {realCash && (
-                 <div className={`flex justify-between font-bold text-xl p-4 rounded-lg bg-opacity-20 ${difference === 0 ? 'bg-green-100' : 'bg-red-100'} dark:${difference === 0 ? 'bg-green-900/50' : 'bg-red-900/50'}`}>
-                    <span className="text-gray-800 dark:text-white">Diferencia:</span> 
-                    <span className={getDifferenceStyling()}>
-                        {difference >= 0 ? '+' : '-'}${Math.abs(difference).toFixed(2)}
+                 <div className={`flex justify-between items-center p-4 rounded-xl border-2 mb-2 animate-fade-in ${
+                     difference === 0 
+                     ? 'bg-green-50 border-green-200 text-green-700 dark:bg-green-900/20 dark:border-green-800 dark:text-green-300' 
+                     : difference > 0
+                        ? 'bg-blue-50 border-blue-200 text-blue-700 dark:bg-blue-900/20 dark:border-blue-800 dark:text-blue-300'
+                        : 'bg-red-50 border-red-200 text-red-700 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300'
+                 }`}>
+                    <span className="font-bold text-sm uppercase">Diferencia</span> 
+                    <span className="text-2xl font-black">
+                        {difference >= 0 ? '+' : ''}${difference.toFixed(2)}
                     </span>
                 </div>
             )}
 
-            <div className="flex justify-end gap-4 mt-8">
-                <button onClick={onClose} className="px-6 py-3 font-semibold text-gray-700 dark:text-gray-300 bg-gray-200 dark:bg-gray-600 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors">Cancelar</button>
-                <button onClick={handleGenerateReportAndEnd} className="px-6 py-3 font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors">Generar Reporte y Cerrar</button>
+            <div className="mt-6">
+                <button 
+                    onClick={handleGenerateReportAndEnd} 
+                    className="w-full py-4 text-lg font-bold text-white bg-primary rounded-xl shadow-lg shadow-primary/30 hover:bg-primary-dark transition-all active:scale-95"
+                >
+                    Cerrar Turno
+                </button>
             </div>
         </div>
       </div>
