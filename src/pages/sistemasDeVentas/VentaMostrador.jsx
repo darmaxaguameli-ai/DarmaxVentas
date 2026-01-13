@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { fetchOrders, updateOrder, fetchActiveCashDrawerSession, startCashDrawerSession, closeCashDrawerSession, createCashTransaction } from '@/api/apiClient'; // Import new API functions
 import { formatDate, formatCurrency } from '@/utils/formatters';
 import PosHeader from './PosHeader';
@@ -72,7 +72,8 @@ const OrderItem = ({ item }) => {
 const OrderAccordion = ({ order, onUpdateStatus, onInitiatePayment }) => {
     const [isExpanded, setIsExpanded] = useState(false);
 
-    const handleFinalize = () => {
+    const handleFinalize = (e) => {
+        e.stopPropagation(); // Prevent accordion toggle
         Swal.fire({
             title: '¿Confirmar entrega?',
             text: `¿Estás seguro de que quieres marcar el pedido ${order.customId} como ENTREGADO?`,
@@ -96,31 +97,44 @@ const OrderAccordion = ({ order, onUpdateStatus, onInitiatePayment }) => {
     };
 
     return (
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm transition-shadow hover:shadow-md">
-            <button className="w-full p-4 text-left" onClick={() => setIsExpanded(!isExpanded)}>
-                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
+        <div className={`bg-white dark:bg-gray-800 rounded-xl shadow-sm transition-all border border-gray-100 dark:border-gray-700 overflow-hidden relative ${isExpanded ? 'ring-2 ring-primary/10' : 'hover:shadow-md'}`}>
+            <div className={`absolute left-0 top-0 bottom-0 w-1 ${order.status === 'PENDIENTE' ? 'bg-yellow-400' : order.status === 'EN_PROCESO' ? 'bg-blue-500' : 'bg-green-500'}`}></div>
+            
+            <button className="w-full p-4 pl-5 text-left" onClick={() => setIsExpanded(!isExpanded)}>
+                <div className="flex justify-between items-start">
                     <div className='flex-grow'>
-                        <p className="font-bold text-lg text-primary-dark dark:text-primary-light">{order.customId}</p>
-                        <p className="text-sm font-medium text-gray-600 dark:text-gray-300">{order.cliente.name}</p>
-                        <p className="text-xs text-gray-400">{formatDate(order.createdAt)}</p>
+                        <div className="flex items-center gap-2 mb-1">
+                            <span className="font-mono text-[10px] font-bold text-gray-400 uppercase tracking-widest">#{order.customId}</span>
+                            <span className="text-xs text-gray-400">• {formatDate(order.createdAt)}</span>
+                        </div>
+                        <p className="font-bold text-base text-gray-900 dark:text-white leading-tight">{order.cliente.name}</p>
                     </div>
-                    <div className="flex items-center gap-4 mt-2 sm:mt-0">
+                    <div className="flex flex-col items-end gap-1">
+                        <p className="font-black text-lg text-primary dark:text-primary-light">{formatCurrency(order.total)}</p>
                         <StatusBadge status={order.status} />
-                        <p className="font-bold text-lg text-gray-800 dark:text-white">{formatCurrency(order.total)}</p>
-                        <span className={`material-symbols-outlined transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}>
-                            expand_more
-                        </span>
                     </div>
                 </div>
+                {isExpanded && (
+                    <div className="mt-2 flex justify-center">
+                        <span className="material-symbols-outlined text-gray-300">expand_less</span>
+                    </div>
+                )}
             </button>
+
             {isExpanded && (
-                <div className="border-t border-gray-200 dark:border-gray-700 p-4">
-                    <div className="space-y-1 mb-4">
+                <div className="bg-gray-50 dark:bg-gray-900/30 border-t border-gray-100 dark:border-gray-700 p-4">
+                    <div className="space-y-2 mb-4">
                         {order.items.map(item => <OrderItem key={item.id} item={item} />)}
                     </div>
                     {order.status !== 'ENTREGADO' && order.status !== 'CANCELADO' && (
-                         <div className="mt-4 flex justify-end">
-                            <button onClick={handleFinalize} className="btn-primary">Finalizar Pedido</button>
+                         <div className="mt-4">
+                            <button 
+                                onClick={handleFinalize} 
+                                className="w-full py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold shadow-lg shadow-green-200 dark:shadow-none transition-all active:scale-95 flex items-center justify-center gap-2"
+                            >
+                                <span className="material-symbols-outlined">check_circle</span>
+                                Finalizar Pedido
+                            </button>
                         </div>
                     )}
                 </div>
@@ -158,11 +172,12 @@ const OrderList = ({ orders, onUpdateStatus, onInitiatePayment }) => {
 
 
 const PedidosDashboard = ({ orders, loading, error, onUpdateStatus, onInitiatePayment }) => {
+    const [activeTab, setActiveTab] = useState('mostrador');
 
     const columns = useMemo(() => [
-        { id: 'mostrador', title: 'En Mostrador', filter: order => order.deliveryMethod === 'pickup' && order.status !== 'ENTREGADO' && order.status !== 'CANCELADO' },
-        { id: 'recoleccion', title: 'Para Recolección', filter: order => order.deliveryMethod === 'home_collection' && order.status === 'PENDIENTE' },
-        { id: 'entrega', title: 'Para Entrega', filter: order => order.deliveryMethod === 'delivery' && order.status === 'EN_PROCESO' },
+        { id: 'mostrador', title: 'Mostrador', icon: 'storefront', filter: order => order.deliveryMethod === 'pickup' && order.status !== 'ENTREGADO' && order.status !== 'CANCELADO' },
+        { id: 'recoleccion', title: 'Recolección', icon: 'recycling', filter: order => order.deliveryMethod === 'home_collection' && order.status === 'PENDIENTE' },
+        { id: 'entrega', title: 'Entrega', icon: 'local_shipping', filter: order => order.deliveryMethod === 'delivery' && order.status === 'EN_PROCESO' },
     ], []);
 
     const filteredOrdersByColumn = useMemo(() => {
@@ -182,34 +197,72 @@ const PedidosDashboard = ({ orders, loading, error, onUpdateStatus, onInitiatePa
     if (error) return <div className="text-center p-8 text-red-500">Error al cargar pedidos: {error}</div>;
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 h-full">
-            {columns.map(col => (
-                <div key={col.id} className="bg-gray-100 dark:bg-gray-800/50 rounded-xl flex flex-col h-full">
-                    <h2 className="text-xl font-bold text-gray-800 dark:text-white p-4 border-b border-gray-200 dark:border-gray-700">
-                        {col.title}
-                        <span className="ml-2 text-sm font-semibold bg-primary text-white rounded-full px-2.5 py-1">
+        <div className="h-full flex flex-col">
+            {/* Mobile Tabs (Segmented Control - Ultra Optimized for 360px) */}
+            <div className="md:hidden flex bg-white dark:bg-gray-800 p-1 rounded-xl shadow-sm mb-4 border border-gray-100 dark:border-gray-700">
+                {columns.map(col => (
+                    <button
+                        key={col.id}
+                        onClick={() => setActiveTab(col.id)}
+                        className={`flex-1 py-2 px-1 rounded-lg text-[10px] font-black flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1.5 transition-all ${
+                            activeTab === col.id 
+                            ? 'bg-primary/10 text-primary shadow-sm' 
+                            : 'text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-400'
+                        }`}
+                    >
+                        <span className="material-symbols-outlined text-base sm:text-lg">{col.icon}</span>
+                        <span className="uppercase tracking-tighter truncate">{col.title}</span>
+                        <span className={`text-[8px] px-1 rounded-full font-bold ${
+                            activeTab === col.id ? 'bg-primary text-white' : 'bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
+                        }`}>
                             {filteredOrdersByColumn[col.id]?.length || 0}
                         </span>
-                    </h2>
-                    <div className="p-4 overflow-y-auto flex-grow">
-                        <OrderList
-                            orders={filteredOrdersByColumn[col.id]}
-                            onUpdateStatus={onUpdateStatus}
-                            onInitiatePayment={onInitiatePayment}
-                        />
+                    </button>
+                ))}
+            </div>
+
+            {/* Mobile Content (Active Tab) */}
+            <div className="md:hidden flex-1 overflow-y-auto pb-20">
+                <OrderList
+                    orders={filteredOrdersByColumn[activeTab]}
+                    onUpdateStatus={onUpdateStatus}
+                    onInitiatePayment={onInitiatePayment}
+                />
+            </div>
+
+            {/* Desktop Grid (Original Layout) */}
+            <div className="hidden md:grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 h-full">
+                {columns.map(col => (
+                    <div key={col.id} className="bg-gray-100 dark:bg-gray-800/50 rounded-xl flex flex-col h-full border border-gray-200 dark:border-gray-700">
+                        <h2 className="text-lg font-bold text-gray-800 dark:text-white p-4 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2">
+                            <span className="material-symbols-outlined text-gray-400">{col.icon}</span>
+                            {col.title}
+                            <span className="ml-auto text-xs font-bold bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-full px-2.5 py-1 shadow-sm border border-gray-200 dark:border-gray-600">
+                                {filteredOrdersByColumn[col.id]?.length || 0}
+                            </span>
+                        </h2>
+                        <div className="p-4 overflow-y-auto flex-grow custom-scrollbar">
+                            <OrderList
+                                orders={filteredOrdersByColumn[col.id]}
+                                onUpdateStatus={onUpdateStatus}
+                                onInitiatePayment={onInitiatePayment}
+                            />
+                        </div>
                     </div>
-                </div>
-            ))}
+                ))}
+            </div>
         </div>
     );
 };
 
 const VentaMostrador = () => {
-    const { logout } = useAuth(); // Get logout function from AuthContext
+    const navigate = useNavigate();
+    const { logout, user } = useAuth(); // Get logout and user from AuthContext
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [activeView, setActiveView] = useState('dashboard'); // 'dashboard' or 'new_order'
+    const prevOrderCount = useRef(0);
 
     // Cash Drawer State
     const [cashDrawerSession, setCashDrawerSession] = useState(null);
@@ -220,6 +273,17 @@ const VentaMostrador = () => {
     const [showCloseRegisterModal, setShowCloseRegisterModal] = useState(false);
     const [showCashMovementModal, setShowCashMovementModal] = useState(false);
 
+    // --- Notification Setup ---
+    useEffect(() => {
+        if ("Notification" in window && Notification.permission !== "granted") {
+            Notification.requestPermission();
+        }
+    }, []);
+
+    const playNotificationSound = () => {
+        const audio = new Audio('/sounds/notification.mp3');
+        audio.play().catch(e => console.log("Audio autoplay blocked until user interaction:", e));
+    };
 
     const loadOrders = useCallback(async () => {
         try {
@@ -227,6 +291,7 @@ const VentaMostrador = () => {
             setError(null);
             const fetchedOrders = await fetchOrders();
             setOrders(fetchedOrders);
+            prevOrderCount.current = fetchedOrders.length;
         } catch (err) {
             setError(err.message);
         } finally {
@@ -237,7 +302,19 @@ const VentaMostrador = () => {
     const pollOrders = useCallback(async () => {
         try {
             const fetchedOrders = await fetchOrders();
+            if (fetchedOrders.length > prevOrderCount.current) {
+                playNotificationSound();
+                showToast('¡Nuevo pedido recibido!', 'info');
+
+                if ("Notification" in window && Notification.permission === "granted") {
+                    new Notification("¡Nuevo Pedido!", {
+                        body: "Se ha registrado un nuevo pedido en el sistema.",
+                        icon: "/logo_nav.ico"
+                    });
+                }
+            }
             setOrders(fetchedOrders);
+            prevOrderCount.current = fetchedOrders.length;
         } catch (err) {
             console.error("Polling error:", err.message);
         }
@@ -325,13 +402,29 @@ const VentaMostrador = () => {
     }, [loadOrders]);
     
     // Function to handle logout, checking cash drawer session
-    const handleLogout = useCallback(() => {
+    const handleLogout = useCallback(async () => {
         if (cashDrawerSession && cashDrawerSession.estado === 'ABIERTA') {
             setShowCloseRegisterModal(true);
         } else {
-            logout(); // Perform actual logout
+            const result = await Swal.fire({
+                title: '¿Cerrar sesión?',
+                text: "Saldrás del sistema de ventas.",
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Sí, salir',
+                cancelButtonText: 'Cancelar'
+            });
+
+            if (result.isConfirmed) {
+                navigate('/logout-success', { state: { name: user?.name } });
+                setTimeout(() => {
+                    logout();
+                }, 100);
+            }
         }
-    }, [cashDrawerSession, logout]);
+    }, [cashDrawerSession, logout, navigate, user]);
 
     const handleEndSession = useCallback(async (closingBalance) => {
         try {
@@ -341,13 +434,18 @@ const VentaMostrador = () => {
             const closedSession = await closeCashDrawerSession(closingBalance);
             setCashDrawerSession(closedSession); // Update local state to closed
             setShowCloseRegisterModal(false);
-            showToast('Sesión de caja cerrada correctamente.');
-            logout(); // Now perform logout
+            
+            // Safe Logout Sequence
+            navigate('/logout-success', { state: { name: user?.name } });
+            setTimeout(() => {
+                logout();
+            }, 100);
+            
         } catch (err) {
             console.error('Error closing session:', err);
             Swal.fire('Error', `No se pudo cerrar la sesión de caja: ${err.message}`, 'error');
         }
-    }, [cashDrawerSession, logout]);
+    }, [cashDrawerSession, logout, navigate, user]);
 
     const handleCashMovementSubmit = useCallback(async (transactionData) => {
         try {
@@ -366,8 +464,6 @@ const VentaMostrador = () => {
                 isDashboard={activeView === 'dashboard'} 
                 onNewOrderClick={() => setActiveView('new_order')} 
                 onDashboardClick={() => setActiveView('dashboard')}
-                onRefresh={loadOrders}
-                isRefreshing={loading}
                 onLogout={handleLogout} // New prop for logout
                 isCashDrawerOpen={cashDrawerSession?.estado === 'ABIERTA'} // Pass cash drawer state
                 onCashMovementClick={() => setShowCashMovementModal(true)} // Pass handler to header

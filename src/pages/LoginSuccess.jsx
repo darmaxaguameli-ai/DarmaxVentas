@@ -8,7 +8,7 @@ const LoginSuccess = () => {
     const role = location.state?.role;
     const sexo = location.state?.sexo; // Obtener sexo del estado (si Login.jsx lo envía)
 
-    const greeting = sexo === 'HOMBRE' ? '¡Bienvenido' : sexo === 'MUJER' ? '¡Bienvenida' : '¡Bienvenid@';
+    const greeting = sexo === 'HOMBRE' ? '¡Bienvenido' : sexo === 'MUJER' ? '¡Bienvenida' : '¡Bienvenido';
 
     useEffect(() => {
         let redirectPath;

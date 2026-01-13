@@ -17,9 +17,9 @@ const LogoutSuccess = () => {
     }, [navigate]);
 
     return (
-        <div className="flex flex-col items-center justify-center h-screen bg-light dark:bg-dark text-dark dark:text-white">
+        <div className="flex flex-col items-center justify-center h-screen bg-light dark:bg-dark text-dark dark:text-white px-4">
             <div className="text-center animate-fade-in">
-                <h1 className="text-4xl font-bold text-primary">¡Hasta luego, {name}!</h1>
+                <h1 className="text-3xl sm:text-4xl font-bold text-primary">¡Hasta luego, {name}!</h1>
                 <p className="mt-2 text-lg text-gray-600 dark:text-gray-400">Redirigiendo a la página de inicio...</p>
                 <div className="mt-8">
                     <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mx-auto"></div>
