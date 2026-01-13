@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { fetchMyOrders } from '../../api/apiClient';
+import { fetchMyOrders, updateOrder } from '../../api/apiClient';
 import { useAuth } from '../../context/AuthContext';
-import ClientOrderHeader from '../../components/ClientOrderHeader'; // Importar ClientOrderHeader
+import ClientOrderHeader from '../../components/ClientOrderHeader';
 import { formatDate } from '@/utils/formatters';
+import useHaptic from '../../hooks/useHaptic';
 
 const statusStyles = {
   PENDIENTE: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300',
@@ -40,8 +41,27 @@ const OrderItemDetails = ({ item }) => {
   );
 };
 
-const OrderCard = ({ order }) => {
+const OrderCard = ({ order, onCancel }) => {
   const [isExpanded, setIsExpanded] = useState(false);
+  const { triggerImpact } = useHaptic();
+
+  // Calcular si es cancelable (Status PENDIENTE y creado hace menos de 3 mins)
+  const isCancellable = useMemo(() => {
+    if (order.status !== 'PENDIENTE') return false;
+    const created = new Date(order.createdAt);
+    const now = new Date();
+    const diffMinutes = (now - created) / 1000 / 60;
+    return diffMinutes <= 3;
+  }, [order.status, order.createdAt]);
+
+  const handleCancel = (e) => {
+    e.stopPropagation();
+    triggerImpact('heavy');
+    // Pequeña confirmación nativa por seguridad
+    if (window.confirm("¿Estás seguro de que quieres cancelar este pedido?")) {
+        onCancel(order.id);
+    }
+  };
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md transition-shadow hover:shadow-lg">
@@ -57,7 +77,15 @@ const OrderCard = ({ order }) => {
             <StatusBadge status={order.status} />
             <p className="font-bold text-xl text-gray-800 dark:text-white">${order.total.toFixed(2)}</p>
           </div>
-          <div className="flex items-center text-gray-500 dark:text-gray-400">
+          <div className="flex items-center gap-4 text-gray-500 dark:text-gray-400">
+             {isCancellable && (
+                <button
+                    onClick={handleCancel}
+                    className="px-3 py-1 text-xs font-bold text-red-600 bg-red-100 dark:bg-red-900/30 dark:text-red-400 rounded-full border border-red-200 dark:border-red-800 hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors z-10"
+                >
+                    Cancelar
+                </button>
+             )}
             <span className={`material-symbols-outlined transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}>
               expand_more
             </span>
@@ -81,6 +109,26 @@ const MisPedidos = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const { user } = useAuth();
+  const { triggerSuccess, triggerError } = useHaptic();
+
+  const handleCancelOrder = async (orderId) => {
+    try {
+        setLoading(true);
+        await updateOrder(orderId, { status: 'CANCELADO' });
+        triggerSuccess();
+        
+        // Actualizar lista localmente
+        setOrders(prev => prev.map(o => 
+            o.id === orderId ? { ...o, status: 'CANCELADO' } : o
+        ));
+    } catch (err) {
+        console.error("Error cancelando pedido:", err);
+        triggerError();
+        alert("No se pudo cancelar el pedido. Intenta de nuevo o contacta a soporte.");
+    } finally {
+        setLoading(false);
+    }
+  };
 
   const completedOrders = useMemo(() => orders.filter(order => 
     order.status === 'ENTREGADO' || order.status === 'CANCELADO'
@@ -95,7 +143,9 @@ const MisPedidos = () => {
       try {
         setLoading(true);
         const data = await fetchMyOrders();
-        setOrders(data);
+        // Ordenar por fecha descendente (más reciente primero) para facilitar la cancelación
+        const sortedData = data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        setOrders(sortedData);
       } catch (err) {
         setError(err.message || 'No se pudieron cargar los pedidos.');
       } finally {
@@ -134,7 +184,13 @@ const MisPedidos = () => {
             </div>
           ) : (
             <div className="space-y-4">
-              {pendingOrders.map(order => <OrderCard key={order.id} order={order} />)}
+              {pendingOrders.map(order => (
+                <OrderCard 
+                    key={order.id} 
+                    order={order} 
+                    onCancel={handleCancelOrder} 
+                />
+              ))}
             </div>
           )}
         </section>
@@ -148,7 +204,13 @@ const MisPedidos = () => {
             </div>
           ) : (
             <div className="space-y-4">
-              {completedOrders.map(order => <OrderCard key={order.id} order={order} />)}
+              {completedOrders.map(order => (
+                <OrderCard 
+                    key={order.id} 
+                    order={order} 
+                    onCancel={handleCancelOrder} // Pasar handler aunque rara vez se use aquí (status ya finalizado)
+                />
+              ))}
             </div>
           )}
         </section>

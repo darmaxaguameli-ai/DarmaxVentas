@@ -384,10 +384,74 @@ const ManageClients = ({ selectedStoreFilter }) => {
 
   const handleOpenModal = (user = null) => { setUserToEdit(user); setIsModalOpen(true); };
   const handleCloseModal = () => { setUserToEdit(null); setIsModalOpen(false); };
-  const handleSaveUser = (user) => { user.id ? updateUser(user.id, user) : addUser(user); };
+  const handleSaveUser = (user) => { 
+      // Ensure empty strings are null to prevent DB errors (like unique constraint on empty string)
+      const cleanUser = { ...user };
+      Object.keys(cleanUser).forEach(key => {
+          if (cleanUser[key] === "") cleanUser[key] = null;
+      });
+      
+      user.id ? updateUser(user.id, cleanUser) : addUser(cleanUser); 
+  };
+
   const handleDelete = async (id) => {
     const result = await Swal.fire({ title: '¿Estás seguro?', text: '¡No podrás revertir esto!', icon: 'warning', showCancelButton: true, confirmButtonColor: '#3085d6', cancelButtonColor: '#d33', confirmButtonText: 'Sí, eliminar', cancelButtonText: 'Cancelar' });
     if (result.isConfirmed) deleteUser(id);
+  };
+
+  const showOrderHistory = async (client) => {
+    try {
+        Swal.fire({ title: 'Cargando historial...', didOpen: () => Swal.showLoading() });
+        
+        // Fetch specific user orders directly
+        const response = await apiClient.get('/pedidos'); 
+        const allOrders = response.data;
+        
+        // Filter and sort client orders
+        const clientOrders = allOrders
+            .filter(o => o.clienteId === client.id)
+            .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+            .slice(0, 5); // Last 5 orders
+
+        if (clientOrders.length === 0) {
+            Swal.fire('Historial vacío', 'Este cliente no tiene pedidos registrados.', 'info');
+            return;
+        }
+
+        const htmlContent = `
+            <div class="text-left text-sm max-h-[60vh] overflow-y-auto pr-2">
+                ${clientOrders.map(order => `
+                    <div class="mb-3 border-b border-gray-200 dark:border-gray-700 pb-3 last:border-0">
+                        <div class="flex justify-between items-center mb-1">
+                            <span class="font-bold text-gray-800 dark:text-gray-200">${new Date(order.createdAt).toLocaleDateString()}</span>
+                            <span class="px-2 py-0.5 rounded text-xs font-semibold ${
+                                order.status === 'ENTREGADO' ? 'bg-green-100 text-green-800' : 
+                                order.status === 'CANCELADO' ? 'bg-red-100 text-red-800' : 
+                                'bg-blue-100 text-blue-800'
+                            }">${order.status}</span>
+                        </div>
+                        <div class="text-gray-600 dark:text-gray-400 font-medium">Total: $${order.total.toFixed(2)}</div>
+                        <div class="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                            ${order.items.map(i => `${i.quantity}x ${i.jugBrandName || 'Producto'}`).join(', ')}
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+
+        Swal.fire({
+            title: `Últimos pedidos de ${client.name}`,
+            html: htmlContent,
+            width: 500,
+            showCloseButton: true,
+            confirmButtonText: 'Cerrar',
+            confirmButtonColor: '#3085d6'
+        });
+
+    } catch (error) {
+        console.error("Error loading history:", error);
+        Swal.fire('Error', 'No se pudo cargar el historial.', 'error');
+    }
   };
 
   const getStoreName = (storeId) => {
@@ -430,7 +494,14 @@ const ManageClients = ({ selectedStoreFilter }) => {
                     <td className="td-style">{getStoreName(user.storeId)}</td>
                     <td className="td-style text-center font-bold text-primary">{user.loyaltyPoints || 0}</td>
                     <td className="td-style text-right">
-                        <div className="flex flex-col sm:flex-row gap-2 justify-end">
+                        <div className="flex flex-col sm:flex-row gap-2 justify-end items-center">
+                            <button 
+                                onClick={() => showOrderHistory(user)} 
+                                className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 font-medium p-1 rounded-full hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors" 
+                                title="Ver Historial"
+                            >
+                                <span className="material-symbols-outlined text-xl align-middle">history</span>
+                            </button>
                             <button onClick={() => handleOpenModal(user)} className="text-primary hover:text-primary/90 font-medium">Editar</button>
                             <button onClick={() => handleDelete(user.id)} className="text-red-500 hover:text-red-700 font-medium">Eliminar</button>
                         </div>

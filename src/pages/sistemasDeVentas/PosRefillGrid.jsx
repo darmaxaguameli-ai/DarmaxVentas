@@ -30,7 +30,7 @@ const POS_REFILL_PRODUCTS = [
 
 const PosRefillGrid = ({ onProductSelect }) => {
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-5 p-1">
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 sm:gap-4 p-1">
       {POS_REFILL_PRODUCTS.map((product) => (
         <ProductCard key={product.id} product={product} onProductSelect={onProductSelect} />
       ))}

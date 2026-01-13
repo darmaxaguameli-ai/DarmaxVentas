@@ -118,14 +118,24 @@ const OrderSummaryStepFour = () => {
       
       // Lógica Inteligente de Recompensas: Buscar el item más caro que se pueda pagar con puntos
       if (isAuthenticated && user && user.loyaltyPoints > 0) {
-          // Ordenar items por precio descendente para encontrar el mejor valor
-          const sortedItems = [...finalOrderItems].sort((a, b) => Number(b.price) - Number(a.price));
-          // Encontrar el primero que cueste menos o igual a los puntos
-          const bestReward = sortedItems.find(item => Number(item.price) <= Number(user.loyaltyPoints));
+          // VALIDACIÓN DE SEGURIDAD: Calcular saldo real desde transacciones
+          const realBalance = user.loyaltyTransactions?.reduce((sum, tx) => sum + tx.amount, 0) || 0;
           
-          if (bestReward) {
-              setRedeemableItem(bestReward);
+          // Solo permitir si el saldo real coincide con los puntos mostrados (o es suficiente)
+          // Esto previene que alguien manipule 'loyaltyPoints' en el frontend sin tener las transacciones que lo respalden.
+          if (realBalance >= user.loyaltyPoints) {
+              // Ordenar items por precio descendente para encontrar el mejor valor
+              const sortedItems = [...finalOrderItems].sort((a, b) => Number(b.price) - Number(a.price));
+              // Encontrar el primero que cueste menos o igual a los puntos
+              const bestReward = sortedItems.find(item => Number(item.price) <= Number(user.loyaltyPoints));
+              
+              if (bestReward) {
+                  setRedeemableItem(bestReward);
+              } else {
+                  setRedeemableItem(null);
+              }
           } else {
+              console.warn("Discrepancia en puntos de lealtad detectada. Canje deshabilitado.");
               setRedeemableItem(null);
           }
       }
@@ -356,6 +366,9 @@ const OrderSummaryStepFour = () => {
             >
               {isSubmitting ? "Confirmando..." : "Confirmar pedido"}
             </button>
+            <p className="text-[10px] sm:text-xs text-text-secondary dark:text-white/60 text-center sm:text-right mt-1 max-w-[200px] sm:max-w-none mx-auto sm:mx-0">
+                Tendrás 3 minutos para cancelar tu pedido si cambias de opinión.
+            </p>
           </div>
         </div>
       </footer>

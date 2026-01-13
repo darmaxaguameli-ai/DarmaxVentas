@@ -8,8 +8,11 @@ import PaymentModal from "./PaymentModal";
 import DeliveryModal from "./DeliveryModal";
 import Swal from 'sweetalert2';
 import { createOrder, createUser } from '../../api/apiClient';
+import { MdShoppingCart, MdClose, MdExpandLess } from 'react-icons/md';
+import useHaptic from '../../hooks/useHaptic';
 
 const NewOrderFlow = ({ onExit }) => {
+    const { triggerSelection, triggerImpact } = useHaptic();
     // Re-introduce states from the old VentaMostrador for new order creation
     const [orderItems, setOrderItems] = useState([]);
     const [customer, setCustomer] = useState(null);
@@ -23,12 +26,14 @@ const NewOrderFlow = ({ onExit }) => {
     const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
     const [isDeliveryModalOpen, setIsDeliveryModalOpen] = useState(false);
+    const [isMobileSummaryOpen, setIsMobileSummaryOpen] = useState(false); // New Mobile State
     const [activeTab, setActiveTab] = useState('refill'); // Tab for product selection
 
     // Memoized calculations (from old VentaMostrador)
     const subtotal = useMemo(() => orderItems.reduce((sum, item) => sum + item.price * item.quantity, 0), [orderItems]);
     const shippingCost = useMemo(() => (deliveryInfo.method === 'domicilio' && deliveryInfo.collectEmptyJugs) ? 10 : 0, [deliveryInfo]);
     const total = useMemo(() => subtotal + shippingCost, [subtotal, shippingCost]);
+    const totalItems = useMemo(() => orderItems.reduce((sum, item) => sum + item.quantity, 0), [orderItems]);
 
     // Handlers for order items (from old VentaMostrador)
     const handleProductSelect = (product) => {
@@ -49,6 +54,9 @@ const NewOrderFlow = ({ onExit }) => {
     };
     const handleRemoveItem = (productId) => {
         setOrderItems(prevItems => prevItems.filter(item => item.id !== productId));
+        if (orderItems.length <= 1) {
+            setIsMobileSummaryOpen(false); // Close mobile summary if empty
+        }
     };
     const handleCustomerAdd = (customerData) => {
         setCustomer(customerData);
@@ -124,6 +132,7 @@ const NewOrderFlow = ({ onExit }) => {
             await createOrder(orderPayload);
 
             // 4. Success
+            triggerImpact('heavy');
             Swal.fire('Pedido Creado', `Pedido registrado exitosamente.`, 'success');
             
             // Reset state and go back to dashboard
@@ -139,29 +148,29 @@ const NewOrderFlow = ({ onExit }) => {
         }
     };
 
-    const getTabClassName = (tabName) => `px-4 sm:px-6 py-3 font-semibold rounded-t-md transition-colors text-sm sm:text-base focus:outline-none ${activeTab === tabName ? 'bg-white dark:bg-gray-800 text-primary' : 'bg-transparent text-gray-500 hover:text-primary dark:hover:text-gray-300'}`;
+    const getTabClassName = (tabName) => `flex-1 py-3 text-sm font-bold text-center border-b-2 transition-colors ${activeTab === tabName ? 'border-primary text-primary bg-primary/5' : 'border-transparent text-gray-500 hover:text-gray-700'}`;
 
     return (
-        <div className="animate-fade-in">
-             <main className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="animate-fade-in pb-24 lg:pb-0 h-full flex flex-col">
+             <main className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full">
                 {/* Product Selection Area */}
-                <div className="lg:col-span-2 flex flex-col">
-                    <div className="flex-shrink-0 border-b border-gray-200 dark:border-gray-700">
-                        <nav className="-mb-px flex gap-2">
-                            <button onClick={() => setActiveTab('refill')} className={getTabClassName('refill')}>Recargas</button>
-                            <button onClick={() => setActiveTab('buyNew')} className={getTabClassName('buyNew')}>Garrafones Nuevos</button>
-                            <button onClick={() => setActiveTab('directSale')} className={getTabClassName('directSale')}>Otros Productos</button>
+                <div className="lg:col-span-2 flex flex-col h-full">
+                    <div className="flex-shrink-0 bg-white dark:bg-gray-800 shadow-sm sticky top-0 z-10">
+                        <nav className="flex">
+                            <button onClick={() => { triggerSelection(); setActiveTab('refill'); }} className={getTabClassName('refill')}>Recargas</button>
+                            <button onClick={() => { triggerSelection(); setActiveTab('buyNew'); }} className={getTabClassName('buyNew')}>Nuevos</button>
+                            <button onClick={() => { triggerSelection(); setActiveTab('directSale'); }} className={getTabClassName('directSale')}>Otros</button>
                         </nav>
                     </div>
-                    <div className="flex-1 py-4">
+                    <div className="flex-1 py-4 overflow-y-auto">
                         {activeTab === 'directSale' && <ProductGrid onProductSelect={handleProductSelect} />}
                         {activeTab === 'refill' && <PosRefillGrid onProductSelect={handleProductSelect} />}
                         {activeTab === 'buyNew' && <PosBuyGrid onProductSelect={handleProductSelect} />}
                     </div>
                 </div>
 
-                {/* Order Summary Area */}
-                <div className="lg:col-span-1 h-full">
+                {/* Desktop Order Summary (Sidebar) */}
+                <div className="hidden lg:block lg:col-span-1 h-full">
                     <OrderSummary 
                         orderItems={orderItems}
                         customer={customer}
@@ -178,6 +187,59 @@ const NewOrderFlow = ({ onExit }) => {
                     />
                 </div>
             </main>
+
+            {/* Mobile Floating Cart Bar */}
+            {orderItems.length > 0 && (
+                <div className="fixed bottom-0 left-0 right-0 z-40 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 p-4 shadow-[0_-4px_20px_rgba(0,0,0,0.1)] lg:hidden animate-slide-up">
+                    <button 
+                        onClick={() => { triggerSelection(); setIsMobileSummaryOpen(true); }}
+                        className="w-full bg-primary text-white h-14 rounded-xl flex items-center justify-between px-6 shadow-lg active:scale-95 transition-transform"
+                    >
+                        <div className="flex items-center gap-3">
+                            <div className="bg-white/20 px-2.5 py-1 rounded-lg text-sm font-bold">
+                                {totalItems}
+                            </div>
+                            <span className="font-bold text-lg">Ver Carrito</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <span className="text-xl font-black">${total.toFixed(2)}</span>
+                            <MdExpandLess className="text-2xl" />
+                        </div>
+                    </button>
+                </div>
+            )}
+
+            {/* Mobile Summary Modal (Full Screen Sheet) */}
+            {isMobileSummaryOpen && (
+                <div className="fixed inset-0 z-50 bg-gray-50 dark:bg-gray-900 flex flex-col animate-fade-in lg:hidden">
+                    <div className="flex-shrink-0 bg-white dark:bg-gray-800 p-4 shadow-sm border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+                        <h2 className="text-xl font-black text-gray-800 dark:text-white">Resumen</h2>
+                        <button 
+                            onClick={() => setIsMobileSummaryOpen(false)}
+                            className="p-2 bg-gray-100 dark:bg-gray-700 rounded-full text-gray-500 hover:bg-gray-200"
+                        >
+                            <MdClose className="text-2xl" />
+                        </button>
+                    </div>
+                    <div className="flex-grow overflow-y-auto">
+                        <OrderSummary 
+                            orderItems={orderItems}
+                            customer={customer}
+                            deliveryMethod={deliveryInfo.method}
+                            onQuantityChange={handleQuantityChange}
+                            onRemoveItem={handleRemoveItem}
+                            subtotal={subtotal}
+                            shippingCost={shippingCost}
+                            total={total}
+                            onCheckout={() => setIsPaymentModalOpen(true)}
+                            onCustomerSelect={() => setIsCustomerModalOpen(true)}
+                            onDeliverySelect={() => setIsDeliveryModalOpen(true)}
+                            onRemoveCustomer={() => setCustomer(null)}
+                            isMobileView={true} // Prop to remove duplicate headers inside component if needed
+                        />
+                    </div>
+                </div>
+            )}
 
             {/* Modals for new order flow */}
             <CustomerModal isOpen={isCustomerModalOpen} onClose={() => setIsCustomerModalOpen(false)} onCustomerAdd={handleCustomerAdd} />

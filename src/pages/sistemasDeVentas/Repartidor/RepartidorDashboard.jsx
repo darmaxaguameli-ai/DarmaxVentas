@@ -324,7 +324,18 @@ const RepartidorDashboard = () => {
     
     // --- Handlers ---
     const handleLogout = useCallback(async () => {
-        if (cashDrawerSession && cashDrawerSession.estado === 'ABIERTA') {
+        // 1. Obtener datos frescos de la sesión antes de decidir
+        let currentSession = cashDrawerSession;
+        try {
+            const freshSession = await fetchActiveCashDrawerSession();
+            setCashDrawerSession(freshSession);
+            currentSession = freshSession;
+        } catch (err) {
+            console.error("Error refreshing session on logout:", err);
+        }
+
+        // 2. Si hay sesión abierta, mostrar modal de cierre con datos actualizados
+        if (currentSession && currentSession.estado === 'ABIERTA') {
             setShowCloseRegisterModal(true);
         } else {
             const result = await Swal.fire({
@@ -392,15 +403,17 @@ const RepartidorDashboard = () => {
             await updateOrder(orderId, updateData);
             showToast(`Pedido actualizado`);
             setOrders(prevOrders => prevOrders.map(o => (o.id === orderId ? { ...o, ...updateData } : o)));
-            // If completed, go back to list on mobile
+            
+            // Si se completa la entrega, actualizamos la sesión de caja para reflejar la venta
             if (updateData.status === 'ENTREGADO') {
+                fetchSession(); 
                 setShowMobileDetail(false);
                 setSelectedOrder(null);
             }
         } catch (err) {
             Swal.fire('Error', `No se pudo actualizar el pedido: ${err.message}`, 'error');
         }
-    }, []);
+    }, [fetchSession]);
 
     const handleOrderLocationUpdate = useCallback(async (orderId, lat, lng) => {
         const result = await Swal.fire({

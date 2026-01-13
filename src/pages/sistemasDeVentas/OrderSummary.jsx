@@ -30,42 +30,45 @@ const OrderSummary = ({
     onCustomerSelect,
     onDeliverySelect,
     onRemoveCustomer,
+    isMobileView = false
 }) => {
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg flex flex-col h-full">
-      {/* Header */}
-      <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-          <h2 className="text-xl font-bold text-gray-800 dark:text-white">Resumen de Orden</h2>
-      </div>
+    <div className={`bg-white dark:bg-gray-800 flex flex-col h-full ${isMobileView ? '' : 'rounded-2xl shadow-lg'}`}>
+      {/* Header (Hidden on Mobile View as parent handles it, or adapted) */}
+      {!isMobileView && (
+        <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+            <h2 className="text-xl font-bold text-gray-800 dark:text-white">Resumen de Orden</h2>
+        </div>
+      )}
 
       {/* Customer & Delivery */}
-      <div className="p-4 grid grid-cols-2 gap-4 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+      <div className="p-4 grid grid-cols-2 gap-3 sm:gap-4 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
           {customer ? (
               <div className="bg-blue-50 dark:bg-blue-900/50 p-3 rounded-lg relative group">
-                <p className="text-xs text-blue-800 dark:text-blue-300 font-bold uppercase">CLIENTE</p>
+                <p className="text-[10px] sm:text-xs text-blue-800 dark:text-blue-300 font-bold uppercase">CLIENTE</p>
                 <div className="pr-5">
-                    <p className="font-bold text-gray-800 dark:text-white truncate">{customer.name || 'Cliente'}</p>
-                    <p className="text-sm text-primary font-semibold">{customer.phone}</p>
+                    <p className="font-bold text-sm sm:text-base text-gray-800 dark:text-white truncate">{customer.name || 'Cliente'}</p>
+                    <p className="text-xs sm:text-sm text-primary font-semibold truncate">{customer.phone}</p>
                 </div>
-                <button onClick={onRemoveCustomer} className="absolute top-2 right-2 text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" /></svg>
+                <button onClick={onRemoveCustomer} className="absolute top-2 right-2 text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition-colors">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 sm:h-5 sm:w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" /></svg>
                 </button>
               </div>
           ) : (
-            <button onClick={onCustomerSelect} className="w-full text-left flex items-center gap-3 p-3 rounded-lg bg-gray-50 hover:bg-gray-100 dark:bg-gray-700/50 dark:hover:bg-gray-700 transition-colors">
+            <button onClick={onCustomerSelect} className="w-full text-left flex items-center gap-2 sm:gap-3 p-2 sm:p-3 rounded-lg bg-gray-50 hover:bg-gray-100 dark:bg-gray-700/50 dark:hover:bg-gray-700 transition-colors">
                 <UserPlusIcon />
-                <div>
-                    <p className="font-semibold text-gray-700 dark:text-gray-200">Agregar Cliente</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">Opcional</p>
+                <div className="min-w-0">
+                    <p className="font-semibold text-sm sm:text-base text-gray-700 dark:text-gray-200 truncate">Cliente</p>
+                    <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400">Agregar</p>
                 </div>
             </button>
           )}
 
-          <button onClick={onDeliverySelect} className="w-full text-left flex items-center gap-3 p-3 rounded-lg bg-gray-50 hover:bg-gray-100 dark:bg-gray-700/50 dark:hover:bg-gray-700 transition-colors">
+          <button onClick={onDeliverySelect} className="w-full text-left flex items-center gap-2 sm:gap-3 p-2 sm:p-3 rounded-lg bg-gray-50 hover:bg-gray-100 dark:bg-gray-700/50 dark:hover:bg-gray-700 transition-colors">
             <TruckIconSvg />
-            <div>
-                <p className="font-semibold text-gray-700 dark:text-gray-200">Entrega</p>
-                <p className="text-sm text-primary capitalize font-bold">{deliveryMethod}</p>
+            <div className="min-w-0">
+                <p className="font-semibold text-sm sm:text-base text-gray-700 dark:text-gray-200 truncate">Entrega</p>
+                <p className="text-[10px] sm:text-sm text-primary capitalize font-bold truncate">{deliveryMethod}</p>
             </div>
         </button>
       </div>
