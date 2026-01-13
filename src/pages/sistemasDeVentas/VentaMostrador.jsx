@@ -351,7 +351,7 @@ const VentaMostrador = () => {
     // Polling effect
     useEffect(() => {
         if (activeView === 'dashboard') {
-            const intervalId = setInterval(pollOrders, 30000); // Poll every 30 seconds
+            const intervalId = setInterval(pollOrders, 4000); // Poll every 4 seconds
             return () => clearInterval(intervalId); // Cleanup on view change or unmount
         }
     }, [activeView, pollOrders]);

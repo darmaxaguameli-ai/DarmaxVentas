@@ -36,13 +36,13 @@ const NewOrderFlow = ({ onExit }) => {
     const totalItems = useMemo(() => orderItems.reduce((sum, item) => sum + item.quantity, 0), [orderItems]);
 
     // Handlers for order items (from old VentaMostrador)
-    const handleProductSelect = (product) => {
+    const handleProductSelect = (product, quantity = 1) => {
         setOrderItems(prevItems => {
             const existingItem = prevItems.find(item => item.id === product.id);
             if (existingItem) {
-                return prevItems.map(item => item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item);
+                return prevItems.map(item => item.id === product.id ? { ...item, quantity: item.quantity + quantity } : item);
             }
-            return [...prevItems, { ...product, quantity: 1 }];
+            return [...prevItems, { ...product, quantity: quantity }];
         });
     };
     const handleQuantityChange = (productId, newQuantity) => {
@@ -164,7 +164,7 @@ const NewOrderFlow = ({ onExit }) => {
                     </div>
                     <div className="flex-1 py-4 overflow-y-auto">
                         {activeTab === 'directSale' && <ProductGrid onProductSelect={handleProductSelect} />}
-                        {activeTab === 'refill' && <PosRefillGrid onProductSelect={handleProductSelect} />}
+                        {activeTab === 'refill' && <PosRefillGrid onProductSelect={handleProductSelect} defaultDeliveryMethod={deliveryInfo.method} />}
                         {activeTab === 'buyNew' && <PosBuyGrid onProductSelect={handleProductSelect} />}
                     </div>
                 </div>

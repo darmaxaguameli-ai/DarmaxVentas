@@ -294,7 +294,7 @@ const RepartidorDashboard = () => {
 
     useEffect(() => {
         if (user) {
-            const intervalId = setInterval(pollOrders, 30000);
+            const intervalId = setInterval(pollOrders, 4000);
             return () => clearInterval(intervalId);
         }
     }, [user, pollOrders]);

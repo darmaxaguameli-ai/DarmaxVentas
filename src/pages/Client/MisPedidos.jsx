@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { fetchMyOrders, updateOrder } from '../../api/apiClient';
 import { useAuth } from '../../context/AuthContext';
@@ -107,6 +107,7 @@ const OrderCard = ({ order, onCancel }) => {
 const MisPedidos = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState(null);
   const { user } = useAuth();
   const { triggerSuccess, triggerError } = useHaptic();
@@ -138,22 +139,35 @@ const MisPedidos = () => {
     order.status === 'PENDIENTE' || order.status === 'EN_PROCESO' || order.status === 'EN_RUTA'
   ), [orders]);
 
-  useEffect(() => {
-    const fetchOrders = async () => {
-      try {
-        setLoading(true);
-        const data = await fetchMyOrders();
-        // Ordenar por fecha descendente (más reciente primero) para facilitar la cancelación
-        const sortedData = data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-        setOrders(sortedData);
-      } catch (err) {
-        setError(err.message || 'No se pudieron cargar los pedidos.');
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchOrders();
+  const loadOrders = useCallback(async (background = false) => {
+    try {
+      if (!background) setLoading(true);
+      else setIsRefreshing(true);
+      
+      const data = await fetchMyOrders();
+      // Ordenar por fecha descendente (más reciente primero)
+      const sortedData = data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      setOrders(sortedData);
+      setError(null);
+    } catch (err) {
+      if (!background) setError(err.message || 'No se pudieron cargar los pedidos.');
+      console.error("Error fetching orders:", err);
+    } finally {
+      setLoading(false);
+      setIsRefreshing(false);
+    }
   }, []);
+
+  useEffect(() => {
+    loadOrders(); // Initial load
+
+    // Poll every 4 seconds
+    const intervalId = setInterval(() => {
+        loadOrders(true);
+    }, 4000);
+
+    return () => clearInterval(intervalId);
+  }, [loadOrders]);
 
   const renderContent = () => {
     if (loading) {
@@ -226,10 +240,10 @@ const MisPedidos = () => {
 
           <main className="w-full flex flex-col mt-4">
             <div className="mb-6 w-full text-center sm:mb-8 sm:text-left">
-              <h1 className="text-2xl sm:text-3xl md:text-4xl font-black leading-tight tracking-[-0.03em]">Mis Pedidos</h1>
-              <p className="text-text-secondary dark:text-white/70 text-base leading-normal">
-                Aquí puedes ver el historial y el estado de todos tus pedidos, {user?.name}.
-              </p>
+               <h1 className="text-2xl sm:text-3xl md:text-4xl font-black leading-tight tracking-[-0.03em]">Mis Pedidos</h1>
+               <p className="text-text-secondary dark:text-white/70 text-base leading-normal">
+                 Aquí puedes ver el historial y el estado de todos tus pedidos, {user?.name}.
+               </p>
             </div>
             {renderContent()}
           </main>
