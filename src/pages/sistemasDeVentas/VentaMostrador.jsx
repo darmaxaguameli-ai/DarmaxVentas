@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { fetchOrders, updateOrder, fetchActiveCashDrawerSession, startCashDrawerSession, closeCashDrawerSession, createCashTransaction } from '@/api/apiClient'; // Import new API functions
 import { formatDate, formatCurrency } from '@/utils/formatters';
 import PosHeader from './PosHeader';
