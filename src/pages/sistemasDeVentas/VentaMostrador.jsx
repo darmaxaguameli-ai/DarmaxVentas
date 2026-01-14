@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { fetchOrders, updateOrder, fetchActiveCashDrawerSession, startCashDrawerSession, closeCashDrawerSession, createCashTransaction } from '@/api/apiClient'; // Import new API functions
+import { fetchOrders, updateOrder, fetchActiveCashDrawerSession, startCashDrawerSession, closeCashDrawerSession, createCashTransaction, reportDamagedTags } from '@/api/apiClient'; // Import new API functions
 import { formatDate, formatCurrency } from '@/utils/formatters';
 import PosHeader from './PosHeader';
 import Swal from 'sweetalert2';
@@ -356,9 +356,9 @@ const VentaMostrador = () => {
         }
     }, [activeView, pollOrders]);
 
-    const handleStartSession = useCallback(async (amount) => {
+    const handleStartSession = useCallback(async (amount, initialTags) => {
         try {
-            const newSession = await startCashDrawerSession(amount);
+            const newSession = await startCashDrawerSession(amount, initialTags);
             setCashDrawerSession(newSession);
             setShowStartDayModal(false);
             showToast('Sesión de caja iniciada');
@@ -459,6 +459,39 @@ const VentaMostrador = () => {
         }
     }, [fetchSession]);
 
+    const handleReportDamagedTags = useCallback(async () => {
+        const { value: quantity } = await Swal.fire({
+            title: 'Reportar Etiquetas Rotas/Perdidas',
+            input: 'number',
+            inputLabel: 'Cantidad',
+            inputPlaceholder: 'Ingrese la cantidad',
+            inputAttributes: {
+                min: 1,
+                step: 1
+            },
+            showCancelButton: true,
+            confirmButtonText: 'Reportar',
+            cancelButtonText: 'Cancelar',
+            showLoaderOnConfirm: true,
+            preConfirm: (value) => {
+                if (!value || value < 1) {
+                    Swal.showValidationMessage('Por favor ingrese una cantidad válida mayor a 0');
+                }
+                return value;
+            }
+        });
+
+        if (quantity) {
+            try {
+                await reportDamagedTags(parseInt(quantity));
+                showToast('Reporte de etiquetas guardado', 'warning');
+            } catch (err) {
+                console.error("Error reporting tags:", err);
+                Swal.fire('Error', 'No se pudo guardar el reporte.', 'error');
+            }
+        }
+    }, []);
+
     return (
         <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-900 font-display text-gray-800 dark:text-gray-200">
             <PosHeader 
@@ -468,6 +501,7 @@ const VentaMostrador = () => {
                 onLogout={handleLogout} // New prop for logout
                 isCashDrawerOpen={cashDrawerSession?.estado === 'ABIERTA'} // Pass cash drawer state
                 onCashMovementClick={() => setShowCashMovementModal(true)} // Pass handler to header
+                onReportDamagedTags={handleReportDamagedTags}
             />
             
             <main className="flex-grow p-4 sm:p-6 overflow-y-auto">
@@ -509,6 +543,8 @@ const VentaMostrador = () => {
                     onClose={() => setShowCloseRegisterModal(false)}
                     sessionData={{
                         openingCash: cashDrawerSession.openingBalance,
+                        initialTags: cashDrawerSession.initialTags,
+                        damagedTags: cashDrawerSession.damagedTags,
                         transactions: cashDrawerSession.transacciones || [], 
                     }}
                     onEndSession={handleEndSession}

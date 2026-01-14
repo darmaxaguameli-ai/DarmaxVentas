@@ -2,9 +2,9 @@ import { useState, useEffect } from 'react';
 import { formatDate } from '@/utils/formatters';
 import useHaptic from '../../hooks/useHaptic';
 import { useTheme } from '../../context/ThemeContext'; // Import Theme Context
-import { MdDarkMode, MdLightMode } from 'react-icons/md'; // Import Icons
+import { MdDarkMode, MdLightMode, MdLabelOff } from 'react-icons/md'; // Import Icons
 
-const PosHeader = ({ isDashboard, onNewOrderClick, onDashboardClick, onLogout, isCashDrawerOpen, onCashMovementClick }) => {
+const PosHeader = ({ isDashboard, onNewOrderClick, onDashboardClick, onLogout, isCashDrawerOpen, onCashMovementClick, onReportDamagedTags }) => {
   const [currentTime, setCurrentTime] = useState(new Date());
   const { triggerSelection } = useHaptic();
   const { theme, toggleTheme } = useTheme(); // Use Theme
@@ -47,15 +47,30 @@ const PosHeader = ({ isDashboard, onNewOrderClick, onDashboardClick, onLogout, i
             {theme === 'dark' ? <MdLightMode className="text-xl sm:text-2xl" /> : <MdDarkMode className="text-xl sm:text-2xl" />}
         </button>
 
-        {isDashboard && isCashDrawerOpen && onCashMovementClick && (
-            <button 
-                onClick={() => { triggerSelection(); onCashMovementClick(); }}
-                className="h-10 md:h-12 px-2 md:px-4 bg-green-50 text-green-600 dark:bg-green-900/30 dark:text-green-400 rounded-xl hover:bg-green-100 dark:hover:bg-green-900/50 transition-all active:scale-95 flex items-center justify-center gap-2 border border-green-200/50 dark:border-green-800/50"
-                title="Movimientos de Caja"
-            >
-                <span className="material-symbols-outlined text-xl sm:text-2xl">swap_horiz</span>
-                <span className="hidden lg:inline font-bold text-sm">Caja</span>
-            </button>
+        {isDashboard && isCashDrawerOpen && (
+            <>
+                {onReportDamagedTags && (
+                    <button
+                        onClick={() => { triggerSelection(); onReportDamagedTags(); }}
+                        className="h-10 md:h-12 px-2 md:px-4 bg-orange-50 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400 rounded-xl hover:bg-orange-100 dark:hover:bg-orange-900/50 transition-all active:scale-95 flex items-center justify-center gap-2 border border-orange-200/50 dark:border-orange-800/50"
+                        title="Reportar Etiquetas Rotas"
+                    >
+                        <MdLabelOff className="text-xl sm:text-2xl" />
+                        <span className="hidden lg:inline font-bold text-sm">Etiquetas</span>
+                    </button>
+                )}
+                
+                {onCashMovementClick && (
+                    <button 
+                        onClick={() => { triggerSelection(); onCashMovementClick(); }}
+                        className="h-10 md:h-12 px-2 md:px-4 bg-green-50 text-green-600 dark:bg-green-900/30 dark:text-green-400 rounded-xl hover:bg-green-100 dark:hover:bg-green-900/50 transition-all active:scale-95 flex items-center justify-center gap-2 border border-green-200/50 dark:border-green-800/50"
+                        title="Movimientos de Caja"
+                    >
+                        <span className="material-symbols-outlined text-xl sm:text-2xl">swap_horiz</span>
+                        <span className="hidden lg:inline font-bold text-sm">Caja</span>
+                    </button>
+                )}
+            </>
         )}
 
         {isDashboard ? (

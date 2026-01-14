@@ -144,9 +144,10 @@ export const fetchMyOrders = () => apiClient.get('/my-orders').then(res => res.d
 //  CASH DRAWER
 // ====================================================================
 export const fetchActiveCashDrawerSession = () => apiClient.get('/cash-drawer/active').then(res => res.data);
-export const startCashDrawerSession = (openingBalance) => apiClient.post('/cash-drawer/start', { openingBalance }).then(res => res.data);
+export const startCashDrawerSession = (openingBalance, initialTags) => apiClient.post('/cash-drawer/start', { openingBalance, initialTags }).then(res => res.data);
 export const closeCashDrawerSession = (closingBalance) => apiClient.post('/cash-drawer/close', { closingBalance }).then(res => res.data);
 export const createCashTransaction = (transactionData) => apiClient.post('/cash-drawer/transaction', transactionData).then(res => res.data);
+export const reportDamagedTags = (quantity) => apiClient.post('/cash-drawer/report-tags', { quantity }).then(res => res.data);
 
 // ====================================================================
 //  EXTERNAL SERVICES

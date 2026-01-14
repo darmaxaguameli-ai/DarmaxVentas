@@ -285,6 +285,10 @@ model SesionCaja {
   expectedBalance Float?
   estado          EstadoSesionCaja @default(ABIERTA)
   
+  // Tag tracking
+  initialTags     Int              @default(0)
+  damagedTags     Int              @default(0)
+  
   vendedor        User             @relation(fields: [vendedorId], references: [id])
   vendedorId      String
   

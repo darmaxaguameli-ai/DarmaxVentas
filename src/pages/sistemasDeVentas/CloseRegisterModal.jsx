@@ -12,12 +12,13 @@ const CloseRegisterModal = ({ isOpen, onClose, sessionData, onEndSession }) => {
 
   if (!isOpen) return null;
 
-  const { openingCash, transactions } = sessionData;
+  const { openingCash, transactions, initialTags, damagedTags } = sessionData;
   const sales = transactions.filter(t=>t.tipo === 'VENTA').reduce((s,t)=>s+t.amount, 0);
   const payIns = transactions.filter(t=>t.tipo === 'INGRESO').reduce((s,t)=>s+t.amount, 0);
   const payOuts = transactions.filter(t=>t.tipo === 'RETIRO').reduce((s,t)=>s+t.amount, 0);
   
   const expectedInDrawer = openingCash + sales + payIns - payOuts;
+  const expectedFinalTags = (initialTags || 0) - (damagedTags || 0);
 
   const difference = parseFloat(realCash) - expectedInDrawer;
 
@@ -35,6 +36,7 @@ const CloseRegisterModal = ({ isOpen, onClose, sessionData, onEndSession }) => {
       expectedInDrawer,
       realCashInDrawer,
       difference: isNaN(difference) ? 0 : difference,
+      finalTags: expectedFinalTags
     });
     onEndSession(realCashInDrawer);
     onClose();
@@ -60,8 +62,8 @@ const CloseRegisterModal = ({ isOpen, onClose, sessionData, onEndSession }) => {
         </div>
 
         <div className="p-4 sm:p-6 overflow-y-auto max-h-[80vh]">
-            {/* Summary Cards */}
-            <div className="grid grid-cols-2 gap-3 mb-6">
+            {/* Cash Summary Cards */}
+            <div className="grid grid-cols-2 gap-3 mb-4">
                 <div className="bg-gray-50 dark:bg-gray-700/50 p-3 rounded-xl border border-gray-100 dark:border-gray-600">
                     <p className="text-xs text-gray-500 uppercase font-bold">Fondo Inicial</p>
                     <p className="text-lg font-bold text-gray-800 dark:text-white">${openingCash.toFixed(2)}</p>
@@ -75,8 +77,23 @@ const CloseRegisterModal = ({ isOpen, onClose, sessionData, onEndSession }) => {
                     <p className="text-lg font-bold text-blue-700 dark:text-blue-400">+${payIns.toFixed(2)}</p>
                 </div>
                 <div className="bg-yellow-50 dark:bg-yellow-900/20 p-3 rounded-xl border border-yellow-100 dark:border-yellow-800">
-                    <p className="text-xs text-yellow-600 uppercase font-bold">Retiros</p>
+                    <p className="text-xs text-yellow-600 uppercase font-bold">Gastos/Retiros</p>
                     <p className="text-lg font-bold text-yellow-700 dark:text-yellow-400">-${payOuts.toFixed(2)}</p>
+                </div>
+            </div>
+
+            {/* Tag Inventory Summary */}
+            <div className="bg-orange-50 dark:bg-orange-900/10 p-3 rounded-xl border border-orange-100 dark:border-orange-800/30 mb-6 flex justify-between items-center">
+                <div>
+                    <p className="text-xs text-orange-600 dark:text-orange-400 uppercase font-bold mb-1">Inventario Etiquetas</p>
+                    <div className="flex gap-3 text-sm text-gray-600 dark:text-gray-400">
+                        <span>Inicio: <strong>{initialTags || 0}</strong></span>
+                        <span>Dañadas: <strong>{damagedTags || 0}</strong></span>
+                    </div>
+                </div>
+                <div className="text-right">
+                    <p className="text-xs text-gray-400 uppercase font-bold">Restantes</p>
+                    <p className="text-xl font-black text-orange-600 dark:text-orange-400">{expectedFinalTags}</p>
                 </div>
             </div>
 

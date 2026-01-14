@@ -8,6 +8,9 @@ export const generateEndOfDayReport = (sessionData) => {
     expectedInDrawer,
     realCashInDrawer,
     difference,
+    initialTags,
+    damagedTags,
+    finalTags
   } = sessionData;
 
   const doc = new jsPDF();
@@ -28,7 +31,7 @@ export const generateEndOfDayReport = (sessionData) => {
       ['Fondo de Caja Inicial', `$${openingCash.toFixed(2)}`],
       ['Ventas en Efectivo', `+ $${transactions.filter(t => t.tipo === 'VENTA').reduce((sum, t) => sum + t.amount, 0).toFixed(2)}`],
       ['Ingresos de Dinero', `+ $${transactions.filter(t => t.tipo === 'INGRESO').reduce((sum, t) => sum + t.amount, 0).toFixed(2)}`],
-      ['Retiros de Dinero', `- $${transactions.filter(t => t.tipo === 'RETIRO').reduce((sum, t) => sum + t.amount, 0).toFixed(2)}`],
+      ['Retiros / Gastos', `- $${transactions.filter(t => t.tipo === 'RETIRO').reduce((sum, t) => sum + t.amount, 0).toFixed(2)}`],
       { content: 'Total Esperado en Caja', styles: { fontStyle: 'bold' } },
       { content: `$${expectedInDrawer.toFixed(2)}`, styles: { fontStyle: 'bold', halign: 'right' } },
       ['Monto Real en Caja', `$${realCashInDrawer.toFixed(2)}`],
@@ -43,22 +46,33 @@ export const generateEndOfDayReport = (sessionData) => {
       },
     ],
     theme: 'striped',
-    didParseCell: function (data) {
-        if (data.row.index > 3 && data.row.index % 2 !== 0) {
-            data.cell.styles.fillColor = '#f2f2f2';
-        }
-        if (data.row.section === 'body' && (data.row.index === 4 || data.row.index === 6)) {
-            data.cell.styles.fontStyle = 'bold';
-        }
-    }
+  });
+
+  // Tag Inventory Section
+  let finalY = doc.lastAutoTable.finalY || 10;
+  doc.setFontSize(14);
+  doc.text("Inventario de Etiquetas", 14, finalY + 15);
+  autoTable(doc, {
+    startY: finalY + 20,
+    head: [['Concepto', 'Cantidad']],
+    body: [
+        ['Etiquetas Iniciales', initialTags || 0],
+        ['Etiquetas Dañadas / Perdidas', damagedTags || 0],
+        { content: 'Etiquetas Restantes (Esperadas)', styles: { fontStyle: 'bold' } },
+        { content: finalTags || 0, styles: { fontStyle: 'bold' } },
+    ],
+    theme: 'striped',
+    styles: { halign: 'left' },
+    columnStyles: { 1: { halign: 'right' } }
   });
 
   // Transaction Details
-  let finalY = doc.lastAutoTable.finalY || 10;
+  finalY = doc.lastAutoTable.finalY || 10;
+  doc.setFontSize(14);
   doc.text("Detalle de Transacciones", 14, finalY + 15);
   autoTable(doc, {
     startY: finalY + 20,
-    head: [['Fecha', 'Tipo', 'Descripción/Motivo', 'Monto']],
+    head: [['Hora', 'Tipo', 'Descripción/Motivo', 'Monto']],
     body: transactions.map(t => [
         new Date(t.createdAt).toLocaleTimeString('es-MX'),
         t.tipo,

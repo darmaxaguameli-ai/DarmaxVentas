@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom'; // Importar useNavigate
-import { fetchOrders, updateOrder, fetchActiveCashDrawerSession, startCashDrawerSession, closeCashDrawerSession, createCashTransaction } from '../../../api/apiClient';
+import { fetchOrders, updateOrder, fetchActiveCashDrawerSession, startCashDrawerSession, closeCashDrawerSession, createCashTransaction, reportDamagedTags } from '../../../api/apiClient';
 import { useAuth } from '../../../context/AuthContext';
 import Swal from 'sweetalert2';
 import { formatCurrency } from '../../../utils/formatters';
@@ -356,9 +356,9 @@ const RepartidorDashboard = () => {
         }
     }, [cashDrawerSession, logout, navigate, user]);
 
-    const handleStartSession = useCallback(async (amount) => {
+    const handleStartSession = useCallback(async (amount, initialTags) => {
         try {
-            const newSession = await startCashDrawerSession(amount);
+            const newSession = await startCashDrawerSession(amount, initialTags);
             setCashDrawerSession(newSession);
             setShowStartDayModal(false);
             showToast('Sesión de caja iniciada');
@@ -389,7 +389,13 @@ const RepartidorDashboard = () => {
 
     const handleCashMovementSubmit = useCallback(async (transactionData) => {
         try {
-            await createCashTransaction(transactionData);
+            // Enforce "Gasolina" context for drivers on withdrawals/expenses
+            let finalTransactionData = { ...transactionData };
+            if (transactionData.type === 'RETIRO') {
+                finalTransactionData.description = `Pago de gasolina: ${transactionData.description}`;
+            }
+
+            await createCashTransaction(finalTransactionData);
             showToast('Movimiento de caja registrado exitosamente.');
             fetchSession();
         } catch (err) {
@@ -517,6 +523,40 @@ const RepartidorDashboard = () => {
         );
     }
 
+    const handleReportDamagedTags = useCallback(async () => {
+        const { value: quantity } = await Swal.fire({
+            title: 'Reportar Etiquetas Rotas/Perdidas',
+            input: 'number',
+            inputLabel: 'Cantidad',
+            inputPlaceholder: 'Ingrese la cantidad',
+            inputAttributes: {
+                min: 1,
+                step: 1
+            },
+            showCancelButton: true,
+            confirmButtonText: 'Reportar',
+            cancelButtonText: 'Cancelar',
+            showLoaderOnConfirm: true,
+            preConfirm: (value) => {
+                if (!value || value < 1) {
+                    Swal.showValidationMessage('Por favor ingrese una cantidad válida mayor a 0');
+                }
+                return value;
+            }
+        });
+
+        if (quantity) {
+            try {
+                await reportDamagedTags(parseInt(quantity));
+                showToast('Reporte de etiquetas guardado', 'warning');
+                fetchSession(); // Refresh session data to update counts
+            } catch (err) {
+                console.error("Error reporting tags:", err);
+                Swal.fire('Error', 'No se pudo guardar el reporte.', 'error');
+            }
+        }
+    }, [fetchSession]);
+
     return (
         <div className="flex h-screen flex-col bg-[#f8fafc] dark:bg-gray-950 font-display text-gray-800 dark:text-gray-200 overflow-hidden">
             <div className={showMobileDetail ? 'hidden lg:block' : ''}>
@@ -527,6 +567,7 @@ const RepartidorDashboard = () => {
                     isRefreshing={loading}
                     onRefresh={loadOrders}
                     locationAccuracy={locationAccuracy}
+                    onReportDamagedTags={handleReportDamagedTags}
                 />
             </div>
 
@@ -707,6 +748,8 @@ const RepartidorDashboard = () => {
                     onClose={() => setShowCloseRegisterModal(false)}
                     sessionData={{
                         openingCash: cashDrawerSession.openingBalance,
+                        initialTags: cashDrawerSession.initialTags,
+                        damagedTags: cashDrawerSession.damagedTags,
                         transactions: cashDrawerSession.transacciones || [], 
                     }}
                     onEndSession={handleEndSession}

@@ -15,7 +15,7 @@ const TabButton = ({ active, onClick, children }) => (
 );
 
 const CashMovementModal = ({ isOpen, onClose, onSubmitTransaction }) => {
-    const [activeTab, setActiveTab] = useState('ingreso'); // 'ingreso', 'retiro', 'cambio'
+    const [activeTab, setActiveTab] = useState('retiro'); // 'retiro', 'cambio' ('ingreso' removed)
     const [amount, setAmount] = useState('');
     const [description, setDescription] = useState('');
 
@@ -53,6 +53,8 @@ const CashMovementModal = ({ isOpen, onClose, onSubmitTransaction }) => {
                 type: 'INGRESO'
             });
         } else {
+            // For 'retiro', we treat it as GASTO/RETIRO. 
+            // The backend/handler expects 'RETIRO' for cash drawer reduction.
             onSubmitTransaction({ amount: numericAmount, description, type });
         }
         
@@ -64,8 +66,8 @@ const CashMovementModal = ({ isOpen, onClose, onSubmitTransaction }) => {
     
     const renderContent = () => {
         const isCambio = activeTab === 'cambio';
-        const placeholder = isCambio ? "Monto del billete a cambiar" : "Monto";
-        const descriptionPlaceholder = isCambio ? "Ej: Cambio de billete de $200" : "Ej: Compra de garrafón de agua";
+        const placeholder = isCambio ? "Monto del billete a cambiar" : "Monto del gasto";
+        const descriptionPlaceholder = isCambio ? "Ej: Cambio de billete de $200" : "Ej: Compra de gasolina, Suministros...";
 
         return (
             <div className="space-y-6">
@@ -100,8 +102,7 @@ const CashMovementModal = ({ isOpen, onClose, onSubmitTransaction }) => {
 
     const getButtonText = () => {
         switch(activeTab) {
-            case 'ingreso': return 'Registrar Ingreso';
-            case 'retiro': return 'Registrar Retiro';
+            case 'retiro': return 'Registrar Gasto';
             case 'cambio': return 'Registrar Cambio';
             default: return 'Confirmar';
         }
@@ -109,7 +110,6 @@ const CashMovementModal = ({ isOpen, onClose, onSubmitTransaction }) => {
 
     const getButtonAction = () => {
         switch(activeTab) {
-            case 'ingreso': return () => handleSubmit('INGRESO');
             case 'retiro': return () => handleSubmit('RETIRO');
             case 'cambio': return () => handleSubmit('cambio');
             default: return () => {};
@@ -129,7 +129,7 @@ const CashMovementModal = ({ isOpen, onClose, onSubmitTransaction }) => {
             <div className="w-12 h-1.5 bg-gray-300 dark:bg-gray-600 rounded-full mx-auto mt-3 mb-1 sm:hidden"></div>
 
             <div className="p-4 sm:p-6 pb-0 border-b border-transparent dark:border-gray-700 flex justify-between items-center">
-                <h3 className="text-xl font-black text-gray-800 dark:text-white">Movimientos</h3>
+                <h3 className="text-xl font-black text-gray-800 dark:text-white">Movimientos de Caja</h3>
                 <button onClick={onClose} className="p-2 bg-gray-100 dark:bg-gray-700 rounded-full text-gray-500 hover:bg-gray-200 transition-colors">
                     <span className="material-symbols-outlined text-lg">close</span>
                 </button>
@@ -137,8 +137,7 @@ const CashMovementModal = ({ isOpen, onClose, onSubmitTransaction }) => {
             
             <div className="px-4 sm:px-6 mt-4">
                 <div className="bg-gray-100 dark:bg-gray-900/50 p-1 rounded-xl flex">
-                    <button onClick={() => setActiveTab('ingreso')} className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'ingreso' ? 'bg-white dark:bg-gray-700 text-green-600 shadow-sm' : 'text-gray-500'}`}>Ingreso</button>
-                    <button onClick={() => setActiveTab('retiro')} className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'retiro' ? 'bg-white dark:bg-gray-700 text-red-500 shadow-sm' : 'text-gray-500'}`}>Retiro</button>
+                    <button onClick={() => setActiveTab('retiro')} className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'retiro' ? 'bg-white dark:bg-gray-700 text-red-500 shadow-sm' : 'text-gray-500'}`}>Gasto</button>
                     <button onClick={() => setActiveTab('cambio')} className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'cambio' ? 'bg-white dark:bg-gray-700 text-blue-500 shadow-sm' : 'text-gray-500'}`}>Cambio</button>
                 </div>
             </div>
@@ -146,7 +145,7 @@ const CashMovementModal = ({ isOpen, onClose, onSubmitTransaction }) => {
             <div className="p-4 sm:p-6">
                 {renderContent()}
                 <div className="flex justify-end gap-3 mt-6">
-                    <button onClick={getButtonAction()} className="w-full py-4 text-lg font-bold text-white bg-primary rounded-xl shadow-lg shadow-primary/30 hover:bg-primary-dark transition-all active:scale-95">
+                    <button onClick={getButtonAction()} className={`w-full py-4 text-lg font-bold text-white rounded-xl shadow-lg transition-all active:scale-95 ${activeTab === 'retiro' ? 'bg-red-600 shadow-red-500/30 hover:bg-red-700' : 'bg-primary shadow-primary/30 hover:bg-primary-dark'}`}>
                         {getButtonText()}
                     </button>
                 </div>

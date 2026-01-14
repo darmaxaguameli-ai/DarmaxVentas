@@ -6,7 +6,7 @@ const PriceTable = () => {
     const [isExpanded, setIsExpanded] = useState(false);
 
     // Procesar los precios para agruparlos de forma más útil en la tabla
-    const groupedPrices = useMemo(() => {
+    const tableData = useMemo(() => {
         if (loading || error || waterTypes.length === 0 || servicePrices.length === 0) {
             return [];
         }
@@ -22,7 +22,7 @@ const PriceTable = () => {
             pricesByWaterType[waterTypeName].push(sp);
         });
 
-        const tableData = [];
+        const data = [];
         Object.entries(pricesByWaterType).forEach(([waterTypeName, prices]) => {
             // Asumimos que el "tamaño" está implícito en el nombre del servicio o se estandariza a 20L
             // Si el nombre del servicio incluye "10L" o "20L", lo extraemos
@@ -32,47 +32,67 @@ const PriceTable = () => {
             const pricesByServiceAndSize = {};
 
             prices.forEach(sp => {
-                const serviceName = sp.name; // Ej. "Recarga", "Garrafón 10L"
+                let serviceName = sp.name;
+                // Clean up service name for grouping if needed, but for now exact match is safer
+                // or strip size from name to group "Recarga 20L" and "Recarga 10L" under "Recarga" if desired
+                // But keeping full name is fine if we sort by it.
+                
+                // Let's normalize service name to group "Recarga" vs "Garrafón Nuevo"
+                let baseService = "Otro";
+                if (serviceName.toLowerCase().includes("recarga")) baseService = "Recarga";
+                else if (serviceName.toLowerCase().includes("nuevo") || serviceName.toLowerCase().includes("garrafón")) baseService = "Envase Nuevo";
+
                 const match = serviceName.match(sizeRegex);
                 const size = match ? `${match[1]}L` : '20L'; // Si no hay match, asumimos 20L
 
-                if (!pricesByServiceAndSize[serviceName]) {
-                    pricesByServiceAndSize[serviceName] = { sizes: {} };
+                // Use baseService for high-level grouping, or keep distinct names
+                // Let's stick to the specific item name but sorting helps grouping
+                
+                // We create a unique key for grouping rows: ServiceName + Size + WaterType
+                // Actually we want to combine methods (Mostrador/Domicilio) into one row
+                
+                // Simplified key for merging methods
+                const rowKey = `${serviceName}-${waterTypeName}-${size}`; 
+                
+                if (!pricesByServiceAndSize[rowKey]) {
+                    pricesByServiceAndSize[rowKey] = {
+                        waterType: waterTypeName,
+                        service: serviceName, // e.g., "Recarga 20L"
+                        baseCategory: baseService, // For sorting
+                        size: size,
+                        mostrador: null,
+                        domicilio: null
+                    };
                 }
-                if (!pricesByServiceAndSize[serviceName].sizes[size]) {
-                    pricesByServiceAndSize[serviceName].sizes[size] = { 'Mostrador': null, 'Domicilio': null };
-                }
-                pricesByServiceAndSize[serviceName].sizes[size][sp.method] = sp.price;
+                
+                if (sp.method === 'Mostrador') pricesByServiceAndSize[rowKey].mostrador = sp.price;
+                if (sp.method === 'Domicilio') pricesByServiceAndSize[rowKey].domicilio = sp.price;
             });
 
-            Object.entries(pricesByServiceAndSize).forEach(([serviceName, serviceData]) => {
-                Object.entries(serviceData.sizes).forEach(([size, methods]) => {
-                    tableData.push({
-                        waterType: waterTypeName,
-                        service: serviceName,
-                        size: size,
-                        mostrador: methods['Mostrador'],
-                        domicilio: methods['Domicilio'],
-                    });
-                });
-            });
+            // Push processed rows
+            Object.values(pricesByServiceAndSize).forEach(row => data.push(row));
         });
         
-        // Ordenar la tabla para mejor lectura: por tipo de agua, luego por tamaño (descendente), luego por servicio
-        tableData.sort((a, b) => {
-            // 1. Tipo de Agua
+        // Sort logic:
+        // 1. Category: Recarga first
+        // 2. Water Type: Alphabetical
+        // 3. Size: Descending (20 > 10 > 4)
+        data.sort((a, b) => {
+            // 1. Category
+            if (a.baseCategory !== b.baseCategory) {
+                return a.baseCategory === "Recarga" ? -1 : 1;
+            }
+            
+            // 2. Water Type
             if (a.waterType !== b.waterType) return a.waterType.localeCompare(b.waterType);
             
-            // 2. Tamaño numérico (20L > 10L > 4L > 1L)
+            // 3. Size numérico
             const numA = parseInt(a.size) || 0;
             const numB = parseInt(b.size) || 0;
-            if (numA !== numB) return numB - numA;
-
-            // 3. Nombre del servicio (ej. Recarga vs Nuevo)
-            return a.service.localeCompare(b.service);
+            return numB - numA;
         });
 
-        return tableData;
+        return data;
     }, [waterTypes, servicePrices, loading, error]);
 
     if (loading) {
@@ -109,7 +129,7 @@ const PriceTable = () => {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-light/60 dark:divide-white/10">
-                                {groupedPrices.map((item, index) => (
+                                {tableData.map((item, index) => (
                                     <tr key={index} className="bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
                                         <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900 dark:text-white">{item.service}</td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">{item.waterType}</td>
@@ -124,7 +144,7 @@ const PriceTable = () => {
 
                     {/* --- Mobile Card View (Visible only on Mobile) --- */}
                     <div className="md:hidden flex flex-col divide-y divide-gray-100 dark:divide-gray-700">
-                        {groupedPrices.map((item, index) => (
+                        {tableData.map((item, index) => (
                             <div key={index} className="p-4 bg-white dark:bg-gray-800 flex flex-col gap-3">
                                 <div className="flex justify-between items-start">
                                     <div className="flex flex-col gap-1">

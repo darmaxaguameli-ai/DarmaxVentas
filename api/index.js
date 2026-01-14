@@ -1230,7 +1230,7 @@ app.get('/api/cash-drawer/active', verifyToken, async (req, res) => {
 app.post('/api/cash-drawer/start', verifyToken, async (req, res) => {
   try {
     const userId = req.user.id;
-    const { openingBalance } = req.body;
+    const { openingBalance, initialTags } = req.body;
 
     if (openingBalance === undefined || isNaN(parseFloat(openingBalance))) {
       return res.status(400).json({ error: 'El saldo inicial (openingBalance) es requerido y debe ser un número.' });
@@ -1268,6 +1268,7 @@ app.post('/api/cash-drawer/start', verifyToken, async (req, res) => {
         vendedor: { connect: { id: userId } },
         store: { connect: { id: storeId } },
         openingBalance: parseFloat(openingBalance),
+        initialTags: parseInt(initialTags) || 0,
         estado: 'ABIERTA',
       },
     });
@@ -1381,6 +1382,44 @@ app.post('/api/cash-drawer/transaction', verifyToken, async (req, res) => {
   } catch (error) {
     console.error('Error creating cash transaction:', error);
     res.status(500).json({ error: 'Ocurrió un error en el servidor al registrar la transacción de caja.' });
+  }
+});
+
+// POST to report damaged or lost tags
+app.post('/api/cash-drawer/report-tags', verifyToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { quantity } = req.body;
+
+    if (quantity === undefined || isNaN(parseInt(quantity)) || parseInt(quantity) < 1) {
+      return res.status(400).json({ error: 'La cantidad de etiquetas es requerida y debe ser un número positivo.' });
+    }
+
+    // Find the active session for the user
+    const activeSession = await prisma.sesionCaja.findFirst({
+      where: {
+        vendedorId: userId,
+        estado: 'ABIERTA',
+      },
+    });
+
+    if (!activeSession) {
+      return res.status(404).json({ error: 'No hay una sesión de caja abierta para reportar etiquetas.' });
+    }
+
+    // Update the session to increment damagedTags
+    const updatedSession = await prisma.sesionCaja.update({
+      where: { id: activeSession.id },
+      data: {
+        damagedTags: { increment: parseInt(quantity) }
+      }
+    });
+
+    res.json(updatedSession);
+
+  } catch (error) {
+    console.error('Error reporting damaged tags:', error);
+    res.status(500).json({ error: 'Ocurrió un error en el servidor al reportar las etiquetas.' });
   }
 });
 
@@ -2763,3 +2802,5 @@ app.get('/api/cotizaciones/:id', verifyToken, async (req, res) => {
 app.listen(port, () => {
   console.log(`Server listening at http://localhost:${port}`);
 });
+
+// Forced restart trigger for Prisma Client update

@@ -1,17 +1,27 @@
 import { useState } from 'react';
+import Swal from 'sweetalert2';
 
 const StartDayModal = ({ onStartSession }) => {
   const [amount, setAmount] = useState('');
+  const [initialTags, setInitialTags] = useState('');
 
   const handleStart = () => {
     if (navigator.vibrate) navigator.vibrate(50); // Feedback táctil
-    onStartSession(parseFloat(amount) || 0);
-  };
+    
+    const parsedAmount = parseFloat(amount);
+    const parsedTags = parseInt(initialTags, 10);
 
-  const handleKeyPress = (event) => {
-    if (event.key === 'Enter') {
-      handleStart();
+    if (!amount || isNaN(parsedAmount) || parsedAmount <= 0) {
+        Swal.fire('Error', 'Debes ingresar un monto inicial mayor a 0.', 'error');
+        return;
     }
+
+    if (initialTags === '' || isNaN(parsedTags) || parsedTags < 0) {
+        Swal.fire('Error', 'Debes ingresar la cantidad de etiquetas iniciales.', 'error');
+        return;
+    }
+
+    onStartSession(parsedAmount, parsedTags);
   };
 
   return (
@@ -20,22 +30,38 @@ const StartDayModal = ({ onStartSession }) => {
         <div className="w-12 h-1.5 bg-gray-300 dark:bg-gray-600 rounded-full mx-auto mb-6 sm:hidden"></div> {/* Mobile Handle */}
         
         <h2 className="text-3xl font-black mb-2 text-gray-800 dark:text-white">Iniciar Turno</h2>
-        <p className="mb-8 text-gray-500 dark:text-gray-400 font-medium">Ingresa el fondo de caja inicial.</p>
+        <p className="mb-8 text-gray-500 dark:text-gray-400 font-medium">Ingresa los datos iniciales para abrir caja.</p>
         
-        <div className="mb-6">
-            <label className="block text-xs font-bold uppercase tracking-wider mb-2 text-gray-400 dark:text-gray-500">Monto Inicial</label>
-            <div className="relative">
-                <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-2xl text-gray-400">$</span>
-                <input 
-                    type="number"
-                    inputMode="decimal"
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                    onKeyPress={handleKeyPress}
-                    className="w-full p-4 pl-10 text-center text-4xl font-black rounded-2xl bg-gray-50 dark:bg-gray-700/50 border-2 border-transparent focus:border-primary focus:bg-white dark:focus:bg-gray-700 focus:ring-0 transition-all text-primary"
-                    placeholder="0.00"
-                    autoFocus
-                />
+        <div className="space-y-4 mb-6">
+            <div>
+                <label className="block text-xs font-bold uppercase tracking-wider mb-2 text-gray-400 dark:text-gray-500">Monto Inicial en Caja</label>
+                <div className="relative">
+                    <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-2xl text-gray-400">$</span>
+                    <input 
+                        type="number"
+                        inputMode="decimal"
+                        value={amount}
+                        onChange={(e) => setAmount(e.target.value)}
+                        className="w-full p-4 pl-10 text-center text-3xl font-black rounded-2xl bg-gray-50 dark:bg-gray-700/50 border-2 border-transparent focus:border-primary focus:bg-white dark:focus:bg-gray-700 focus:ring-0 transition-all text-primary"
+                        placeholder="0.00"
+                        autoFocus
+                    />
+                </div>
+            </div>
+
+            <div>
+                <label className="block text-xs font-bold uppercase tracking-wider mb-2 text-gray-400 dark:text-gray-500">Etiquetas Iniciales</label>
+                <div className="relative">
+                    <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-2xl text-gray-400">#</span>
+                    <input 
+                        type="number"
+                        inputMode="numeric"
+                        value={initialTags}
+                        onChange={(e) => setInitialTags(e.target.value)}
+                        className="w-full p-4 pl-10 text-center text-3xl font-black rounded-2xl bg-gray-50 dark:bg-gray-700/50 border-2 border-transparent focus:border-primary focus:bg-white dark:focus:bg-gray-700 focus:ring-0 transition-all text-gray-800 dark:text-white"
+                        placeholder="0"
+                    />
+                </div>
             </div>
         </div>
 
