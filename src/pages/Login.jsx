@@ -6,6 +6,25 @@ import { useAuth } from "../context/AuthContext";
 import Button from "../components/common/Button";
 import { MdVisibility, MdVisibilityOff, MdEmail, MdLock } from 'react-icons/md';
 
+const InputField = ({ label, type, value, onChange, placeholder, icon, required = true }) => (
+  <div className="mb-5">
+    <label className="block text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider mb-1.5 ml-1">
+      {label}
+    </label>
+    <div className="relative flex items-center bg-gray-50 dark:bg-gray-700 rounded-xl border border-gray-300 dark:border-gray-600 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all">
+      {icon && <div className="pl-4 text-gray-400 dark:text-gray-500 text-xl">{icon}</div>}
+      <input
+        type={type}
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        required={required}
+        className="w-full py-3.5 px-4 bg-transparent outline-none text-gray-800 dark:text-white placeholder:text-gray-400 text-base"
+      />
+    </div>
+  </div>
+);
+
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -38,25 +57,6 @@ const Login = () => {
       setIsSubmitting(false);
     }
   };
-
-  const InputField = ({ label, type, value, onChange, placeholder, icon, required = true }) => (
-    <div className="mb-5">
-      <label className="block text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider mb-1.5 ml-1">
-        {label}
-      </label>
-      <div className="relative flex items-center bg-gray-50 dark:bg-gray-700 rounded-xl border border-gray-300 dark:border-gray-600 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all">
-        {icon && <div className="pl-4 text-gray-400 dark:text-gray-500 text-xl">{icon}</div>}
-        <input
-          type={type}
-          value={value}
-          onChange={onChange}
-          placeholder={placeholder}
-          required={required}
-          className="w-full py-3.5 px-4 bg-transparent outline-none text-gray-800 dark:text-white placeholder:text-gray-400 text-base"
-        />
-      </div>
-    </div>
-  );
 
   return (
     <MainLayout>

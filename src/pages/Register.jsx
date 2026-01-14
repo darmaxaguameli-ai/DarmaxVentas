@@ -7,6 +7,54 @@ import Button from "../components/common/Button";
 import Swal from 'sweetalert2';
 import { MdArrowBack, MdPersonAdd, MdHowToReg, MdVisibility, MdVisibilityOff, MdPhone, MdBadge, MdEmail, MdPerson } from 'react-icons/md';
 
+// --- Sub-Componentes Visuales ---
+
+const InputField = ({ label, type, name, value, onChange, placeholder, icon, readOnly = false, required = true }) => (
+  <div className="mb-5 text-left">
+    <label className="block text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider mb-1.5 ml-1">
+      {label}
+    </label>
+    <div className={`relative flex items-center bg-gray-50 dark:bg-gray-700 rounded-xl border ${readOnly ? 'border-gray-200 dark:border-gray-600 opacity-70' : 'border-gray-300 dark:border-gray-600 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20'} transition-all`}>
+      {icon && <div className="pl-4 text-gray-400 dark:text-gray-500 text-xl">{icon}</div>}
+      <input
+        type={type}
+        name={name}
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        readOnly={readOnly}
+        required={required}
+        className="w-full py-3.5 px-4 bg-transparent outline-none text-gray-800 dark:text-white placeholder:text-gray-400 text-base"
+      />
+    </div>
+  </div>
+);
+
+const PasswordField = ({ label, name, value, onChange, show, toggle }) => (
+  <div className="mb-5 text-left">
+    <label className="block text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider mb-1.5 ml-1">
+      {label}
+    </label>
+    <div className="relative flex items-center bg-gray-50 dark:bg-gray-700 rounded-xl border border-gray-300 dark:border-gray-600 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all">
+      <input
+        type={show ? "text" : "password"}
+        name={name}
+        value={value}
+        onChange={onChange}
+        placeholder="••••••••"
+        className="w-full py-3.5 px-4 bg-transparent outline-none text-gray-800 dark:text-white text-base"
+      />
+      <button
+        type="button"
+        onClick={toggle}
+        className="p-3 pr-4 text-gray-400 hover:text-primary transition-colors"
+      >
+        {show ? <MdVisibilityOff size={22}/> : <MdVisibility size={22}/>}
+      </button>
+    </div>
+  </div>
+);
+
 const Register = () => {
   // Estados de vista: 'menu' | 'register' | 'activate'
   const [viewMode, setViewMode] = useState('menu');
@@ -154,54 +202,6 @@ const Register = () => {
       setLoading(false);
     }
   };
-
-  // --- Sub-Componentes Visuales (Matching Login.jsx) ---
-
-  const InputField = ({ label, type, name, value, onChange, placeholder, icon, readOnly = false, required = true }) => (
-    <div className="mb-5 text-left">
-      <label className="block text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider mb-1.5 ml-1">
-        {label}
-      </label>
-      <div className={`relative flex items-center bg-gray-50 dark:bg-gray-700 rounded-xl border ${readOnly ? 'border-gray-200 dark:border-gray-600 opacity-70' : 'border-gray-300 dark:border-gray-600 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20'} transition-all`}>
-        {icon && <div className="pl-4 text-gray-400 dark:text-gray-500 text-xl">{icon}</div>}
-        <input
-          type={type}
-          name={name}
-          value={value}
-          onChange={onChange}
-          placeholder={placeholder}
-          readOnly={readOnly}
-          required={required}
-          className="w-full py-3.5 px-4 bg-transparent outline-none text-gray-800 dark:text-white placeholder:text-gray-400 text-base"
-        />
-      </div>
-    </div>
-  );
-
-  const PasswordField = ({ label, name, value, onChange, show, toggle }) => (
-    <div className="mb-5 text-left">
-      <label className="block text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider mb-1.5 ml-1">
-        {label}
-      </label>
-      <div className="relative flex items-center bg-gray-50 dark:bg-gray-700 rounded-xl border border-gray-300 dark:border-gray-600 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all">
-        <input
-          type={show ? "text" : "password"}
-          name={name}
-          value={value}
-          onChange={onChange}
-          placeholder="••••••••"
-          className="w-full py-3.5 px-4 bg-transparent outline-none text-gray-800 dark:text-white text-base"
-        />
-        <button
-          type="button"
-          onClick={toggle}
-          className="p-3 pr-4 text-gray-400 hover:text-primary transition-colors"
-        >
-          {show ? <MdVisibilityOff size={22}/> : <MdVisibility size={22}/>}
-        </button>
-      </div>
-    </div>
-  );
 
   // --- VISTAS ---
 
