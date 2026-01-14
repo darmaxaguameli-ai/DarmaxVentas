@@ -5,11 +5,11 @@ const MainLayout = ({ children }) => {
                  flex flex-col items-center transition-colors" // Removed justify-center
       style={{ fontFamily: 'Inter, "Noto Sans", sans-serif' }}
     >
-      <main className="flex w-full max-w-5xl px-6 py-10 justify-center items-center flex-grow"> {/* Added flex-grow */}
+      <main className="flex w-full max-w-none sm:px-6 px-0 sm:py-4 py-0 justify-center items-center flex-grow"> {/* Increased max-width */}
         {children}
       </main>
 
-      <footer className="py-4 text-xs text-text-secondary dark:text-white/50"> {/* Removed absolute bottom-4, added py-4 for spacing */}
+      <footer className="hidden sm:block py-3 text-xs text-text-secondary dark:text-white/50"> {/* Reduced padding */}
         © {new Date().getFullYear()} Darmax — Todos los derechos reservados
       </footer>
     </div>

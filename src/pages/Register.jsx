@@ -4,14 +4,21 @@ import { Link, useNavigate } from "react-router-dom";
 import MainLayout from "../layouts/MainLayout";
 import axios from "axios";
 import Button from "../components/common/Button";
-import Swal from 'sweetalert2'; // Import SweetAlert2
+import Swal from 'sweetalert2';
+import { MdArrowBack, MdPersonAdd, MdHowToReg, MdVisibility, MdVisibilityOff, MdPhone, MdBadge, MdEmail, MdPerson } from 'react-icons/md';
 
 const Register = () => {
+  // Estados de vista: 'menu' | 'register' | 'activate'
+  const [viewMode, setViewMode] = useState('menu');
+  const navigate = useNavigate();
+
+  // Estado general
+  const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
-  const navigate = useNavigate(); // Initialize useNavigate
+  const [error, setError] = useState("");
 
-  // Form data state
+  // Datos del formulario
   const [formData, setFormData] = useState({
     name: "",
     sexo: "",
@@ -20,467 +27,432 @@ const Register = () => {
     confirmPassword: "",
   });
 
-  // State for existing user check
-  const [searchIdentifier, setSearchIdentifier] = useState(""); // Can be customId or phone
-  const [searchType, setSearchType] = useState("customId"); // 'customId' or 'phone'
-  const [existingUserFound, setExistingUserFound] = useState(false);
-  const [existingUserData, setExistingUserData] = useState(null);
-  const [foundUserHasPassword, setFoundUserHasPassword] = useState(false); // New state
-  const [searchError, setSearchError] = useState("");
-  const [registrationError, setRegistrationError] = useState(""); // New state for registration errors
+  // Estado específico para Activación (Usuarios existentes)
+  const [searchIdentifier, setSearchIdentifier] = useState("");
+  const [searchType, setSearchType] = useState("phone"); // 'phone' | 'customId'
+  const [foundUser, setFoundUser] = useState(null);
+
+  // --- Handlers ---
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleCustomIdChange = (e) => {
-    const value = e.target.value.replace(/[^0-9]/g, ""); // Only allow numbers
-    setSearchIdentifier(value);
+  const resetForm = () => {
+    setFormData({ name: "", sexo: "", email: "", password: "", confirmPassword: "" });
+    setFoundUser(null);
+    setSearchIdentifier("");
+    setError("");
+    setLoading(false);
   };
 
-  const handlePhoneChange = (e) => {
-    setSearchIdentifier(e.target.value.replace(/[^0-9]/g, "")); // Only allow numbers
-  };
-
-  const checkExistingUser = async () => {
-    setSearchError("");
-    setExistingUserFound(false);
-    setExistingUserData(null);
-    setFoundUserHasPassword(false); // Reset new state
-    setRegistrationError(""); // Clear registration errors
-
-    if (!searchIdentifier) {
-      setSearchError("Por favor, introduce un identificador.");
-      return;
-    }
+  // Buscar usuario existente
+  const handleSearchUser = async (e) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
 
     let identifierForApi = searchIdentifier;
     if (searchType === "customId") {
-      identifierForApi = "CLI-" + searchIdentifier;
+      identifierForApi = searchIdentifier.toUpperCase().startsWith('CLI-') 
+        ? searchIdentifier 
+        : "CLI-" + searchIdentifier;
     }
 
     try {
       const response = await axios.get(`/api/users/check`, {
-        params: {
-          identifier: identifierForApi,
-          type: searchType,
-        },
+        params: { identifier: identifierForApi, type: searchType },
       });
 
-      const foundUser = response.data;
-      setExistingUserFound(true);
-      setExistingUserData(foundUser);
-      setFoundUserHasPassword(foundUser.hasPassword); // Set new state
-      setFormData((prev) => ({
-        ...prev,
-        name: foundUser.name,
-        email: foundUser.email,
-      }));
-    } catch (error) {
-      console.error("Error checking user:", error);
-      if (error.response && error.response.status === 404) {
-        setSearchError("No se encontró ningún usuario con ese identificador.");
-      } else {
-        setSearchError("Ocurrió un error al verificar el usuario. Intenta de nuevo.");
+      const user = response.data;
+      
+      if (user.hasPassword) {
+        Swal.fire({
+            icon: 'info',
+            title: 'Cuenta ya activa',
+            text: 'Este usuario ya tiene una contraseña. Por favor inicia sesión.',
+            confirmButtonText: 'Ir al Login',
+            confirmButtonColor: '#3b82f6'
+        }).then(() => navigate('/login'));
+        return;
       }
+
+      setFoundUser(user);
+      setFormData(prev => ({ ...prev, name: user.name, email: user.email || "" }));
+
+    } catch (err) {
+      console.error(err);
+      if (err.response?.status === 404) {
+        setError("No encontramos un cliente con esos datos. Verifica o regístrate como nuevo.");
+      } else {
+        setError("Error al buscar. Intenta de nuevo.");
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
+  // Enviar Registro (Nuevo o Activación)
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setRegistrationError(""); // Clear previous errors
+    setError("");
 
-    // Client-side validation
-    if (!formData.name || !formData.email || !formData.password || !formData.confirmPassword) {
-      setRegistrationError("Por favor, completa todos los campos obligatorios.");
+    // Validaciones
+    if (!formData.name || !formData.password || !formData.confirmPassword) {
+      setError("Por favor completa los campos requeridos.");
       return;
     }
-
     if (formData.password !== formData.confirmPassword) {
-      setRegistrationError("Las contraseñas no coinciden.");
+      setError("Las contraseñas no coinciden.");
+      return;
+    }
+    if (formData.password.length < 6) {
+      setError("La contraseña debe tener al menos 6 caracteres.");
       return;
     }
 
-    if (formData.password.length < 6) { // Example minimum length
-      setRegistrationError("La contraseña debe tener al menos 6 caracteres.");
-      return;
-    }
+    setLoading(true);
 
-          try {
-            // Si el usuario ya existe, actualizamos su registro (completar perfil)
-            if (existingUserFound) {
-                if (!existingUserData || !existingUserData.id) {
-                    setRegistrationError("Error interno: No se pudo identificar al usuario para actualizar.");
-                    return;
-                }
-
-                // Usamos el endpoint especial para completar registro sin token
-                const updateResponse = await axios.post(`/api/complete-registration`, {
-                    userId: existingUserData.id,
-                    name: formData.name,
-                    sexo: formData.sexo,
-                    email: formData.email,
-                    password: formData.password, 
-                });
-
-                console.log("Registro completado:", updateResponse.data);
-                Swal.fire({
-                    title: '¡Éxito!',
-                    text: 'Registro completado con éxito. Ahora puedes iniciar sesión.',
-                    icon: 'success',
-                    confirmButtonColor: '#3085d6',
-                    confirmButtonText: 'Ir al Login'
-                });
-                navigate("/login");
-                return;
-            }
-
-            // Si es un usuario totalmente nuevo, usamos POST
-            const dataToSend = {
-              name: formData.name,
-              sexo: formData.sexo,
-              email: formData.email,
-              password: formData.password,
-              role: "CLIENTE",
-            };
-    
-            const response = await axios.post("/api/users", dataToSend);
-            console.log("Registro exitoso:", response.data);
-            Swal.fire({
-                title: '¡Bienvenido!',
-                text: 'Registro exitoso. Ahora puedes iniciar sesión.',
-                icon: 'success',
-                confirmButtonColor: '#3085d6',
-                confirmButtonText: 'Ir al Login'
-            });
-            navigate("/login"); 
-          } catch (error) {      console.error("Error en el registro:", error);
-      if (error.response && error.response.data && error.response.data.message) {
-        setRegistrationError(error.response.data.message);
+    try {
+      if (viewMode === 'activate' && foundUser) {
+        // Completar registro existente
+        await axios.post(`/api/complete-registration`, {
+            userId: foundUser.id,
+            name: formData.name,
+            sexo: formData.sexo,
+            email: formData.email,
+            password: formData.password, 
+        });
       } else {
-        setRegistrationError("Ocurrió un error inesperado durante el registro.");
+        // Crear nuevo usuario
+        if (!formData.email) {
+            setLoading(false);
+            setError("El correo es obligatorio para nuevos registros.");
+            return;
+        }
+        await axios.post("/api/users", {
+            ...formData,
+            role: "CLIENTE",
+        });
       }
+
+      // Éxito
+      await Swal.fire({
+        title: '¡Casi listo!',
+        text: 'Te hemos enviado un correo de verificación. Por favor, revísalo para activar tu cuenta y poder iniciar sesión.',
+        icon: 'info',
+        confirmButtonColor: '#3085d6',
+        confirmButtonText: 'Entendido'
+      });
+      navigate("/login");
+
+    } catch (err) {
+      console.error(err);
+      setError(err.response?.data?.message || err.response?.data?.error || "Error al procesar el registro.");
+    } finally {
+      setLoading(false);
     }
   };
 
-  return (
-    <MainLayout>
-      <div className="w-full max-w-md mx-auto">
-        {/* Header */}
-        <div className="mb-8 text-center">
-          <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-primary/15 text-primary mb-4">
-            <span className="material-symbols-outlined text-3xl">
-              water_drop
-            </span>
-          </div>
-          <h1 className="text-3xl font-black text-dark dark:text-white tracking-tight">
-            Crea tu cuenta para empezar
-          </h1>
-          <p className="mt-2 text-base text-text-secondary dark:text-white/70">
-            Regístrate para pedir agua de forma rápida y sencilla.
-          </p>
+  // --- Sub-Componentes Visuales (Matching Login.jsx) ---
+
+  const InputField = ({ label, type, name, value, onChange, placeholder, icon, readOnly = false, required = true }) => (
+    <div className="mb-5 text-left">
+      <label className="block text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider mb-1.5 ml-1">
+        {label}
+      </label>
+      <div className={`relative flex items-center bg-gray-50 dark:bg-gray-700 rounded-xl border ${readOnly ? 'border-gray-200 dark:border-gray-600 opacity-70' : 'border-gray-300 dark:border-gray-600 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20'} transition-all`}>
+        {icon && <div className="pl-4 text-gray-400 dark:text-gray-500 text-xl">{icon}</div>}
+        <input
+          type={type}
+          name={name}
+          value={value}
+          onChange={onChange}
+          placeholder={placeholder}
+          readOnly={readOnly}
+          required={required}
+          className="w-full py-3.5 px-4 bg-transparent outline-none text-gray-800 dark:text-white placeholder:text-gray-400 text-base"
+        />
+      </div>
+    </div>
+  );
+
+  const PasswordField = ({ label, name, value, onChange, show, toggle }) => (
+    <div className="mb-5 text-left">
+      <label className="block text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider mb-1.5 ml-1">
+        {label}
+      </label>
+      <div className="relative flex items-center bg-gray-50 dark:bg-gray-700 rounded-xl border border-gray-300 dark:border-gray-600 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all">
+        <input
+          type={show ? "text" : "password"}
+          name={name}
+          value={value}
+          onChange={onChange}
+          placeholder="••••••••"
+          className="w-full py-3.5 px-4 bg-transparent outline-none text-gray-800 dark:text-white text-base"
+        />
+        <button
+          type="button"
+          onClick={toggle}
+          className="p-3 pr-4 text-gray-400 hover:text-primary transition-colors"
+        >
+          {show ? <MdVisibilityOff size={22}/> : <MdVisibility size={22}/>}
+        </button>
+      </div>
+    </div>
+  );
+
+  // --- VISTAS ---
+
+  const renderMenu = () => (
+    <div className="animate-fade-in">
+      <div className="text-center mb-10">
+        <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4 text-primary animate-fade-in">
+            <span className="material-symbols-outlined text-4xl">water_drop</span>
         </div>
+        <h1 className="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white tracking-tight">Bienvenido a Darmax</h1>
+        <p className="mt-2 text-gray-500 dark:text-gray-400 text-sm sm:text-base">Elige cómo quieres comenzar</p>
+      </div>
 
-        {/* Card del formulario */}
-        <div className="rounded-2xl border border-light/60 dark:border-white/10 bg-white/90 dark:bg-dark/40 p-6 sm:p-8 shadow-xl backdrop-blur-xl">
-          <form className="space-y-5" onSubmit={handleSubmit}>
-            {/* Existing User Check Section */}
-            {!existingUserFound && (
-              <div className="space-y-4 p-4 border border-dashed border-gray-300 dark:border-gray-600 rounded-lg">
-                <p className="text-sm font-medium text-dark dark:text-white">
-                  ¿Ya eres cliente? Ingresa tu identificador o teléfono para autocompletar tus datos.
-                </p>
-                <div className="flex gap-2 mb-3">
-                  <button
-                    type="button"
-                    onClick={() => setSearchType("customId")}
-                    className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${
-                      searchType === "customId"
-                        ? "bg-primary text-white"
-                        : "bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
-                    }`}
-                  >
-                    ID Cliente
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setSearchType("phone")}
-                    className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${
-                      searchType === "phone"
-                        ? "bg-primary text-white"
-                        : "bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
-                    }`}
-                  >
-                    Teléfono
-                  </button>
-                </div>
+      <div className="space-y-4 animate-slide-up">
+          <button
+            onClick={() => { setViewMode('register'); resetForm(); }}
+            className="w-full group flex items-center p-5 bg-gray-50 dark:bg-gray-700/50 border-2 border-transparent hover:border-primary/30 hover:bg-white dark:hover:bg-gray-700 rounded-2xl transition-all text-left shadow-sm hover:shadow-md"
+          >
+            <div className="w-12 h-12 bg-primary text-white rounded-xl flex items-center justify-center mr-4 group-hover:scale-110 transition-transform">
+                <MdPersonAdd size={24} />
+            </div>
+            <div className="min-w-0 flex-1">
+                <h3 className="font-bold text-gray-900 dark:text-white text-lg leading-tight">Soy nuevo cliente</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5 truncate">Quiero crear una cuenta desde cero.</p>
+            </div>
+          </button>
 
-                {searchType === "customId" && (
-                  <label className="flex flex-col">
-                    <p className="pb-2 text-sm font-medium text-dark dark:text-white">
-                      Identificador de Cliente
-                    </p>
-                    <div className="flex items-center h-12 w-full rounded-lg border border-light bg-white px-3 text-base text-dark
-                                  focus-within:border-primary focus-within:outline-0 focus-within:ring-2 focus-within:ring-primary/20
-                                  dark:border-white/10 dark:bg-dark dark:text-white">
-                      <span className="text-text-secondary dark:text-white/50 mr-1">CLI-</span>
-                      <input
-                        type="text"
-                        value={searchIdentifier}
-                        onChange={handleCustomIdChange}
-                        placeholder="12345"
-                        className="flex-1 bg-transparent outline-none text-dark dark:text-white placeholder:text-text-secondary dark:placeholder:text-white/50"
-                      />
-                    </div>
-                  </label>
-                )}
+          <button
+            onClick={() => { setViewMode('activate'); resetForm(); }}
+            className="w-full group flex items-center p-5 bg-gray-50 dark:bg-gray-700/50 border-2 border-transparent hover:border-green-500/30 hover:bg-white dark:hover:bg-gray-700 rounded-2xl transition-all text-left shadow-sm hover:shadow-md"
+          >
+            <div className="w-12 h-12 bg-green-600 text-white rounded-xl flex items-center justify-center mr-4 group-hover:scale-110 transition-transform">
+                <MdHowToReg size={24} />
+            </div>
+            <div className="min-w-0 flex-1">
+                <h3 className="font-bold text-gray-900 dark:text-white text-lg leading-tight">Ya soy cliente</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5 truncate">Activar acceso con mi Teléfono o ID.</p>
+            </div>
+          </button>
+      </div>
 
-                {searchType === "phone" && (
-                  <label className="flex flex-col">
-                    <p className="pb-2 text-sm font-medium text-dark dark:text-white">
-                      Número de Teléfono
-                    </p>
-                    <input
-                      type="tel"
-                      value={searchIdentifier}
-                      onChange={handlePhoneChange}
-                      placeholder="Ej. 5512345678"
-                      className="h-12 w-full rounded-lg border border-light bg-white px-3 text-base text-dark
-                                 placeholder:text-text-secondary
-                                 focus:border-primary focus:outline-0 focus:ring-2 focus:ring-primary/20
-                                 dark:border-white/10 dark:bg-dark dark:text-white dark:placeholder:text-white/50"
-                    />
-                  </label>
-                )}
-                {searchError && <p className="text-red-500 text-sm">{searchError}</p>}
-                <Button
-                  type="button"
-                  onClick={checkExistingUser}
-                  variant="secondary"
-                >
-                  Buscar Cliente
-                </Button>
+      <div className="mt-10 pt-6 border-t border-gray-100 dark:border-gray-700 text-center animate-fade-in">
+        <p className="text-sm text-gray-500 dark:text-gray-400">¿Ya tienes acceso web?</p>
+        <Link to="/login" className="font-bold text-primary hover:text-primary-dark hover:underline mt-1 inline-block">
+            Inicia Sesión aquí
+        </Link>
+      </div>
+    </div>
+  );
+
+  const renderRegisterForm = () => (
+    <div className="animate-slide-up">
+        <button 
+            onClick={() => setViewMode('menu')}
+            className="flex items-center text-gray-500 hover:text-primary dark:text-gray-400 dark:hover:text-white mb-8 transition-colors font-bold text-sm"
+        >
+            <MdArrowBack className="mr-1" size={18} /> VOLVER AL MENÚ
+        </button>
+        
+        <div className="mb-8 text-left">
+            <h2 className="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white tracking-tight">Registro Nuevo</h2>
+            <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Crea tu cuenta de cliente en Darmax</p>
+        </div>
+        
+        <form onSubmit={handleSubmit}>
+            <InputField 
+                label="Nombre Completo" 
+                type="text" 
+                name="name" 
+                value={formData.name} 
+                onChange={handleChange} 
+                placeholder="Ej. Juan Pérez" 
+                icon={<MdPerson />}
+            />
+            
+            <div className="mb-5 text-left">
+                <label className="block text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider mb-1.5 ml-1">Sexo</label>
+                <select name="sexo" value={formData.sexo} onChange={handleChange} className="w-full py-3.5 px-4 bg-gray-50 dark:bg-gray-700 rounded-xl border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none text-gray-800 dark:text-white text-base transition-all" required>
+                    <option value="">Selecciona...</option>
+                    <option value="HOMBRE">Hombre</option>
+                    <option value="MUJER">Mujer</option>
+                    <option value="OTRO">Otro</option>
+                </select>
+            </div>
+
+            <InputField 
+                label="Correo Electrónico" 
+                type="email" 
+                name="email" 
+                value={formData.email} 
+                onChange={handleChange} 
+                placeholder="tu@correo.com" 
+                icon={<MdEmail />}
+            />
+            
+            <PasswordField label="Contraseña" name="password" value={formData.password} onChange={handleChange} show={showPassword} toggle={() => setShowPassword(!showPassword)} />
+            <PasswordField label="Confirmar Contraseña" name="confirmPassword" value={formData.confirmPassword} onChange={handleChange} show={showConfirm} toggle={() => setShowConfirm(!showConfirm)} />
+
+            {error && (
+              <div className="mb-6 p-3 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 rounded-xl text-red-600 dark:text-red-400 text-sm text-center font-medium">
+                {error}
               </div>
             )}
 
-            {/* Full Registration Form (conditionally rendered) */}
-            {(existingUserFound || !searchIdentifier) && (
-              <>
-                {existingUserFound && foundUserHasPassword ? (
-                  <div className="text-center space-y-4">
-                    <p className="text-lg font-medium text-dark dark:text-white">
-                      ¡Ya estás registrado!
-                    </p>
-                    <p className="text-base text-text-secondary dark:text-white/70">
-                      Por favor,{" "}
-                      <Link
-                        to="/login"
-                        className="font-semibold text-primary hover:underline"
-                      >
-                        inicia sesión
-                      </Link>{" "}
-                      con tu correo electrónico y contraseña.
-                    </p>
-                    <Button
-                      type="button"
-                      onClick={() => {
-                        setExistingUserFound(false);
-                        setExistingUserData(null);
-                        setFoundUserHasPassword(false);
-                        setSearchIdentifier("");
-                        setSearchError("");
-                        setRegistrationError("");
-                        setFormData({ name: "", sexo: "", email: "", password: "", confirmPassword: "" });
-                      }}
-                      variant="secondary"
-                      className="mt-4"
+            <div className="mt-8">
+                <Button type="submit" disabled={loading} className="w-full py-4 text-lg">
+                    {loading ? 'Procesando...' : 'Crear mi Cuenta'}
+                </Button>
+            </div>
+        </form>
+    </div>
+  );
+
+  const renderActivationForm = () => (
+    <div className="animate-slide-up">
+        <button 
+            onClick={() => foundUser ? setFoundUser(null) : setViewMode('menu')}
+            className="flex items-center text-gray-500 hover:text-primary dark:text-gray-400 dark:hover:text-white mb-8 transition-colors font-bold text-sm"
+        >
+            <MdArrowBack className="mr-1" size={18} /> {foundUser ? 'BUSCAR OTRO' : 'VOLVER AL MENÚ'}
+        </button>
+
+        {!foundUser ? (
+            // PASO 1: BUSCAR
+            <>
+                <div className="mb-8 text-left">
+                    <h2 className="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white tracking-tight">Activar Cuenta</h2>
+                    <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Ingresa tus datos registrados previamente</p>
+                </div>
+
+                <div className="flex bg-gray-100 dark:bg-gray-900/50 p-1 rounded-xl mb-8">
+                    <button 
+                        onClick={() => { setSearchType('phone'); setSearchIdentifier(''); }} 
+                        className={`flex-1 py-2.5 rounded-lg text-sm font-bold transition-all ${searchType === 'phone' ? 'bg-white dark:bg-gray-700 shadow text-primary' : 'text-gray-500'}`}
                     >
-                      Registrar un nuevo usuario
-                    </Button>
-                  </div>
-                ) : (
-                  <>
-                    {existingUserFound && !foundUserHasPassword && (
-                      <p className="text-center text-lg font-medium text-dark dark:text-white mb-4">
-                        Hemos encontrado tu cuenta. Por favor, crea una contraseña para completar tu registro.
-                      </p>
-                    )}
+                        Teléfono
+                    </button>
+                    <button 
+                        onClick={() => { setSearchType('customId'); setSearchIdentifier(''); }} 
+                        className={`flex-1 py-2.5 rounded-lg text-sm font-bold transition-all ${searchType === 'customId' ? 'bg-white dark:bg-gray-700 shadow text-primary' : 'text-gray-500'}`}
+                    >
+                        ID Cliente
+                    </button>
+                </div>
 
-                    {/* Nombre */}
-                    <label className="flex flex-col">
-                      <p className="pb-2 text-sm font-medium text-dark dark:text-white">
-                        Nombre Completo
-                      </p>
-                      <input
-                        type="text"
-                        name="name"
-                        value={formData.name || ""}
-                        onChange={handleChange}
-                        placeholder="Introduce tu nombre completo"
-                        className="h-12 w-full rounded-lg border border-light bg-white px-3 text-base text-dark
-                                   placeholder:text-text-secondary
-                                   focus:border-primary focus:outline-0 focus:ring-2 focus:ring-primary/20
-                                   dark:border-white/10 dark:bg-dark dark:text-white dark:placeholder:text-white/50"
-                        required
-                        readOnly={!!existingUserData && !!existingUserData.name} // Only read-only if name is already present
-                      />
-                    </label>
-
-                    {/* Sexo */}
-                    <label className="flex flex-col">
-                      <p className="pb-2 text-sm font-medium text-dark dark:text-white">
-                        Sexo
-                      </p>
-                      <select
-                        name="sexo"
-                        value={formData.sexo || ""}
-                        onChange={handleChange}
-                        className="h-12 w-full rounded-lg border border-light bg-white px-3 text-base text-dark
-                                   focus:border-primary focus:outline-0 focus:ring-2 focus:ring-primary/20
-                                   dark:border-white/10 dark:bg-dark dark:text-white"
-                        required
-                      >
-                        <option value="">Selecciona...</option>
-                        <option value="HOMBRE">Hombre</option>
-                        <option value="MUJER">Mujer</option>
-                        <option value="OTRO">Prefiero no decirlo</option>
-                      </select>
-                    </label>
-
-                    {/* Correo */}
-                    <label className="flex flex-col">
-                      <p className="pb-2 text-sm font-medium text-dark dark:text-white">
-                        Correo electrónico
-                      </p>
-                      <input
-                        type="email"
-                        name="email"
-                        value={formData.email || ""}
-                        onChange={handleChange}
-                        placeholder="tu@correo.com"
-                        className="h-12 w-full rounded-lg border border-light bg-white px-3 text-base text-dark
-                                   placeholder:text-text-secondary
-                                   focus:border-primary focus:outline-0 focus:ring-2 focus:ring-primary/20
-                                   dark:border-white/10 dark:bg-dark dark:text-white dark:placeholder:text-white/50"
-                        required
-                        readOnly={!!existingUserData && !!existingUserData.email} // Only read-only if email is already present
-                      />
-                    </label>
-
-                    {/* Contraseña */}
-                    <label className="flex flex-col">
-                      <p className="pb-2 text-sm font-medium text-dark dark:text-white">
-                        Contraseña
-                      </p>
-                      <div className="relative flex w-full items-center">
-                        <input
-                          type={showPassword ? "text" : "password"}
-                          name="password"
-                          value={formData.password}
-                          onChange={handleChange}
-                          placeholder="Crea una contraseña segura"
-                          className="h-12 w-full rounded-lg border border-light bg-white px-3 pr-10 text-base text-dark
-                                     placeholder:text-text-secondary
-                                     focus:border-primary focus:outline-0 focus:ring-2 focus:ring-primary/20
-                                     dark:border-white/10 dark:bg-dark dark:text-white dark:placeholder:text-white/50"
-                          required
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowPassword((prev) => !prev)}
-                          className="absolute right-3 text-text-secondary dark:text-white/60"
-                        >
-                          <span className="material-symbols-outlined">
-                            {showPassword ? "visibility_off" : "visibility"}
-                          </span>
-                        </button>
-                      </div>
-                    </label>
-
-                    {/* Confirmar contraseña */}
-                    <label className="flex flex-col">
-                      <p className="pb-2 text-sm font-medium text-dark dark:text-white">
-                        Confirmar contraseña
-                      </p>
-                      <div className="relative flex w-full items-center">
-                        <input
-                          type={showConfirm ? "text" : "password"}
-                          name="confirmPassword"
-                          value={formData.confirmPassword}
-                          onChange={handleChange}
-                          placeholder="Confirma tu contraseña"
-                          className="h-12 w-full rounded-lg border border-light bg-white px-3 pr-10 text-base text-dark
-                                     placeholder:text-text-secondary
-                                     focus:border-primary focus:outline-0 focus:ring-2 focus:ring-primary/20
-                                     dark:border-white/10 dark:bg-dark dark:text-white dark:placeholder:text-white/50"
-                          required
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowConfirm((prev) => !prev)}
-                          className="absolute right-3 text-text-secondary dark:text-white/60"
-                        >
-                          <span className="material-symbols-outlined">
-                            {showConfirm ? "visibility_off" : "visibility"}
-                          </span>
-                        </button>
-                      </div>
-                    </label>
-
-                    {registrationError && (
-                      <p className="text-red-500 text-sm text-center">{registrationError}</p>
-                    )}
-
-                    {/* Términos */}
-                    <div className="flex items-start">
-                      <input
-                        id="terms"
-                        type="checkbox"
-                        className="form-checkbox mt-0.5 h-4 w-4 rounded border-light text-primary
-                                   focus:ring-primary dark:border-white/30 dark:bg-dark"
-                        required
-                      />
-                      <label
-                        htmlFor="terms"
-                        className="ml-2 text-sm text-text-secondary dark:text-white/70"
-                      >
-                        Acepto los{" "}
-                        <a href="#" className="font-medium text-primary hover:underline">
-                          Términos y Condiciones
-                        </a>{" "}
-                        y la{" "}
-                        <a href="#" className="font-medium text-primary hover:underline">
-                          Política de Privacidad
-                        </a>
-                        .
-                      </label>
+                <form onSubmit={handleSearchUser}>
+                    <div className="mb-8">
+                        <label className="block text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider mb-1.5 ml-1">
+                            {searchType === 'phone' ? 'Número de Teléfono' : 'ID de Cliente'}
+                        </label>
+                        <div className="relative flex items-center bg-gray-50 dark:bg-gray-700 rounded-xl border border-gray-300 dark:border-gray-600 focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary transition-all">
+                            <div className="pl-4 text-gray-400 dark:text-gray-500 text-xl">
+                                {searchType === 'phone' ? <MdPhone /> : <MdBadge />}
+                            </div>
+                            <input
+                                type={searchType === 'phone' ? 'tel' : 'text'}
+                                value={searchIdentifier}
+                                onChange={(e) => setSearchIdentifier(e.target.value)}
+                                className="w-full py-4 pl-4 pr-4 bg-transparent outline-none text-gray-800 dark:text-white text-lg font-bold"
+                                placeholder={searchType === 'phone' ? '5512345678' : 'CLI-1234'}
+                                autoFocus
+                            />
+                        </div>
                     </div>
 
-                    {/* Botón submit */}
-                    <Button
-                      type="submit"
-                    >
-                      Registrarse
-                    </Button>
-                  </>
-                )}
-              </>
-            )}
-          </form>
-        </div>
+                    {error && (
+                      <div className="mb-6 p-3 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 rounded-xl text-red-600 dark:text-red-400 text-sm text-center font-medium">
+                        {error}
+                      </div>
+                    )}
 
-        {/* Link secundario */}
-        <div className="mt-6 text-center">
-          <p className="text-sm text-text-secondary dark:text-white/70">
-            ¿Ya tienes una cuenta?{" "}
-            <Link
-              to="/login"
-              className="font-semibold text-primary hover:underline"
-            >
-              Inicia sesión
-            </Link>
-          </p>
+                    <Button type="submit" disabled={loading} variant="secondary" className="w-full py-4 text-lg">
+                        {loading ? 'Buscando...' : 'Buscar mi cuenta'}
+                    </Button>
+                </form>
+            </>
+        ) : (
+            // PASO 2: COMPLETAR PERFIL
+            <>
+                <div className="bg-green-50 dark:bg-green-900/20 p-5 rounded-2xl border border-green-100 dark:border-green-800 mb-8 flex items-center gap-4">
+                    <div className="w-12 h-12 bg-green-600 text-white rounded-full flex items-center justify-center flex-shrink-0">
+                        <MdHowToReg size={24} />
+                    </div>
+                    <div>
+                        <p className="text-green-700 dark:text-green-400 font-black text-lg leading-tight">¡Te encontramos!</p>
+                        <p className="text-gray-600 dark:text-gray-300 text-sm">Hola, <strong>{foundUser.name}</strong></p>
+                    </div>
+                </div>
+
+                <form onSubmit={handleSubmit}>
+                    <InputField 
+                        label="Confirma tu Nombre" 
+                        type="text" 
+                        name="name" 
+                        value={formData.name} 
+                        onChange={handleChange} 
+                        placeholder="Tu nombre" 
+                        icon={<MdPerson />}
+                    />
+                    
+                    <div className="mb-5 text-left">
+                        <label className="block text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider mb-1.5 ml-1">Sexo</label>
+                        <select name="sexo" value={formData.sexo} onChange={handleChange} className="w-full py-3.5 px-4 bg-gray-50 dark:bg-gray-700 rounded-xl border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none text-gray-800 dark:text-white text-base transition-all" required>
+                            <option value="">Selecciona...</option>
+                            <option value="HOMBRE">Hombre</option>
+                            <option value="MUJER">Mujer</option>
+                            <option value="OTRO">Otro</option>
+                        </select>
+                    </div>
+
+                    <InputField 
+                        label="Correo Electrónico" 
+                        type="email" 
+                        name="email" 
+                        value={formData.email} 
+                        onChange={handleChange} 
+                        placeholder="tu@correo.com" 
+                        icon={<MdEmail />}
+                    />
+                    
+                    <div className="my-8 border-t border-gray-100 dark:border-gray-700 pt-8">
+                        <div className="mb-6 text-center">
+                            <p className="text-sm font-black text-primary uppercase tracking-widest">Seguridad de Acceso</p>
+                            <p className="text-xs text-gray-500 mt-1">Crea tu contraseña para entrar al sistema</p>
+                        </div>
+                        <PasswordField label="Nueva Contraseña" name="password" value={formData.password} onChange={handleChange} show={showPassword} toggle={() => setShowPassword(!showPassword)} />
+                        <PasswordField label="Confirmar Contraseña" name="confirmPassword" value={formData.confirmPassword} onChange={handleChange} show={showConfirm} toggle={() => setShowConfirm(!showConfirm)} />
+                    </div>
+
+                    {error && (
+                      <div className="mb-6 p-3 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 rounded-xl text-red-600 dark:text-red-400 text-sm text-center font-medium">
+                        {error}
+                      </div>
+                    )}
+
+                    <Button type="submit" disabled={loading} className="w-full py-4 text-lg">
+                        {loading ? 'Activando...' : 'Activar mi Cuenta'}
+                    </Button>
+                </form>
+            </>
+        )}
+    </div>
+  );
+
+  return (
+    <MainLayout>
+      <div className="min-h-[80vh] flex flex-col justify-center items-center px-4 py-8 w-full font-display">
+        <div className="w-full max-w-md mx-auto bg-white dark:bg-gray-800 rounded-[2.5rem] shadow-xl border border-gray-100 dark:border-gray-700 p-8 sm:p-10 transition-all overflow-hidden flex flex-col justify-center">
+            {viewMode === 'menu' && renderMenu()}
+            {viewMode === 'register' && renderRegisterForm()}
+            {viewMode === 'activate' && renderActivationForm()}
         </div>
       </div>
     </MainLayout>

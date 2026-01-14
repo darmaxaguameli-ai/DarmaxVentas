@@ -69,8 +69,9 @@ export const AuthProvider = ({ children }) => {
 
             return loggedInUser;
         } catch (error) {
-            console.error("Error en el login:", error.response?.data?.error || error.message);
-            throw new Error(error.response?.data?.error || 'Error al iniciar sesión');
+            const errorMessage = error.response?.data?.error || error.message || 'Error al iniciar sesión';
+            console.error("Error en el login:", errorMessage);
+            throw new Error(errorMessage);
         }
     };
 

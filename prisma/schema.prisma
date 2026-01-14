@@ -180,6 +180,14 @@ model User {
 
   // Relación inversa para pedidos asignados como repartidor
   pedidosReparto     Pedido[]          @relation("RepartidorPedidos")
+
+  // Recuperación de contraseña
+  resetPasswordToken   String?
+  resetPasswordExpires DateTime?
+
+  // Verificación de correo
+  emailVerified        DateTime?
+  verificationToken    String?
 }
 
 // Historial de puntos de fidelidad

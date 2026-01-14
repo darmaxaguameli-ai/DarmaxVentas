@@ -8,6 +8,9 @@ import Register from "./pages/Register";
 import Login from "./pages/Login";
 import LoginSuccess from "./pages/LoginSuccess.jsx";
 import LogoutSuccess from "./pages/LogoutSuccess.jsx";
+import ForgotPassword from "./pages/ForgotPassword.jsx";
+import ResetPassword from "./pages/ResetPassword.jsx";
+import VerifyEmail from "./pages/VerifyEmail.jsx";
 
 // Sistema de Ventas
 import ProductGrid from "./pages/sistemasDeVentas/ProductGrid.jsx";
@@ -58,6 +61,9 @@ function App() {
         {/* Público / Auth */}
         <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/verify-email" element={<VerifyEmail />} />
         <Route path="/login-success" element={<ProtectedRoute><LoginSuccess /></ProtectedRoute>} />
         <Route path="/logout-success" element={<LogoutSuccess />} />
         <Route path="/registro" element={<Register />} />

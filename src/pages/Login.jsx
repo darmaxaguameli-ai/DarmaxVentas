@@ -1,9 +1,10 @@
 // src/pages/Login.jsx
-import { useState, useEffect } from "react"; // Importar useEffect
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import MainLayout from "../layouts/MainLayout";
 import { useAuth } from "../context/AuthContext";
 import Button from "../components/common/Button";
+import { MdVisibility, MdVisibilityOff, MdEmail, MdLock } from 'react-icons/md';
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -28,8 +29,6 @@ const Login = () => {
 
       const user = await login(email, password, rememberMe);
       
-      // Si el login es exitoso, redirigir a la pantalla de bienvenida
-      // LoginSuccess se encargará de la redirección basada en el rol
       navigate("/login-success", { state: { name: user.name, role: user.role, sexo: user.sexo }, replace: true });
 
     } catch (err) {
@@ -39,122 +38,127 @@ const Login = () => {
       setIsSubmitting(false);
     }
   };
-    // ... (el resto del componente se mantiene igual)
+
+  const InputField = ({ label, type, value, onChange, placeholder, icon, required = true }) => (
+    <div className="mb-5">
+      <label className="block text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider mb-1.5 ml-1">
+        {label}
+      </label>
+      <div className="relative flex items-center bg-gray-50 dark:bg-gray-700 rounded-xl border border-gray-300 dark:border-gray-600 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all">
+        {icon && <div className="pl-4 text-gray-400 dark:text-gray-500 text-xl">{icon}</div>}
+        <input
+          type={type}
+          value={value}
+          onChange={onChange}
+          placeholder={placeholder}
+          required={required}
+          className="w-full py-3.5 px-4 bg-transparent outline-none text-gray-800 dark:text-white placeholder:text-gray-400 text-base"
+        />
+      </div>
+    </div>
+  );
+
   return (
     <MainLayout>
-      <div className="w-full max-w-md mx-auto">
-        {/* Header */}
-        <div className="mb-8 text-center">
-          <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-primary/15 text-primary mb-4">
-            <span className="material-symbols-outlined text-3xl">
-              login
-            </span>
+      <div className="min-h-[80vh] flex flex-col justify-center items-center px-4 py-8 w-full font-display">
+        <div className="w-full max-w-md bg-white dark:bg-gray-800 rounded-[2.5rem] shadow-xl border border-gray-100 dark:border-gray-700 p-8 sm:p-10 transition-all overflow-hidden flex flex-col justify-center">
+          
+          {/* Header */}
+          <div className="mb-10 text-center">
+            <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4 text-primary animate-fade-in">
+                <span className="material-symbols-outlined text-4xl">login</span>
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white tracking-tight">
+              Bienvenido de nuevo
+            </h1>
+            <p className="mt-2 text-gray-500 dark:text-gray-400 text-sm sm:text-base">
+              Accede a tu cuenta Darmax
+            </p>
           </div>
-          <h1 className="text-3xl font-black text-dark dark:text-white tracking-tight">
-            Inicia sesión en DARMAX
-          </h1>
-          <p className="mt-2 text-base text-text-secondary dark:text-white/70">
-            Accede para gestionar tus pedidos de agua de forma rápida y sencilla.
-          </p>
-        </div>
 
-        {/* Card del formulario */}
-        <div className="rounded-2xl border border-light/60 dark:border-white/10 bg-white/90 dark:bg-dark/40 p-6 sm:p-8 shadow-xl backdrop-blur-xl">
-          <form className="space-y-5" onSubmit={handleSubmit}>
-            {/* Correo */}
-            <label className="flex flex-col">
-              <p className="pb-2 text-sm font-medium text-dark dark:text-white">
-                Correo electrónico
-              </p>
-              <input
-                type="email"
+          <form onSubmit={handleSubmit} className="animate-slide-up">
+            
+            <InputField 
+                label="Correo Electrónico" 
+                type="email" 
+                value={email} 
+                onChange={(e) => setEmail(e.target.value)} 
                 placeholder="tu@correo.com"
-                className="h-12 w-full rounded-lg border border-light bg-white px-3 text-base text-dark 
-                           placeholder:text-text-secondary
-                           focus:border-primary focus:outline-0 focus:ring-2 focus:ring-primary/20
-                           dark:border-white/10 dark:bg-dark dark:text-white dark:placeholder:text-white/50"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </label>
+                icon={<MdEmail />}
+            />
 
-            {/* Contraseña */}
-            <label className="flex flex-col">
-              <p className="pb-2 text-sm font-medium text-dark dark:text-white">
+            <div className="mb-6">
+              <label className="block text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider mb-1.5 ml-1">
                 Contraseña
-              </p>
-              <div className="relative flex w-full items-center">
+              </label>
+              <div className="relative flex items-center bg-gray-50 dark:bg-gray-700 rounded-xl border border-gray-300 dark:border-gray-600 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all">
+                <div className="pl-4 text-gray-400 dark:text-gray-500 text-xl"><MdLock /></div>
                 <input
                   type={showPassword ? "text" : "password"}
-                  placeholder="Introduce tu contraseña"
-                  className="h-12 w-full rounded-lg border border-light bg-white px-3 pr-10 text-base text-dark 
-                             placeholder:text-text-secondary
-                             focus:border-primary focus:outline-0 focus:ring-2 focus:ring-primary/20
-                             dark:border-white/10 dark:bg-dark dark:text-white dark:placeholder:text-white/50"
-                  required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full py-3.5 px-4 bg-transparent outline-none text-gray-800 dark:text-white placeholder:text-gray-400 text-base"
+                  required
                 />
                 <button
                   type="button"
-                  onClick={() => setShowPassword((prev) => !prev)}
-                  className="absolute right-3 text-text-secondary dark:text-white/60"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="p-3 pr-4 text-gray-400 hover:text-primary transition-colors"
                 >
-                  <span className="material-symbols-outlined">
-                    {showPassword ? "visibility_off" : "visibility"}
-                  </span>
+                  {showPassword ? <MdVisibilityOff size={22}/> : <MdVisibility size={22}/>}
                 </button>
               </div>
-            </label>
+            </div>
 
-            {/* Error */}
             {error && (
-              <div className="text-red-500 text-sm text-center p-2 bg-red-500/10 rounded-md">
+              <div className="mb-6 p-3 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 rounded-xl text-red-600 dark:text-red-400 text-sm text-center font-medium animate-shake">
                 {error}
               </div>
             )}
 
-            {/* Recordarme */}
-            <div className="flex items-center">
-              <input
-                type="checkbox"
-                className="form-checkbox h-4 w-4 rounded border-light text-primary 
-                           focus:ring-primary dark:border-white/20 dark:bg-dark"
-                checked={rememberMe}
-                onChange={(e) => setRememberMe(e.target.checked)}
-              />
-              <span className="ml-2 text-sm text-text-secondary dark:text-white/70">
-                Recuérdame
-              </span>
+            <div className="flex items-center justify-between mb-8">
+              <label className="flex items-center cursor-pointer group">
+                <input
+                  type="checkbox"
+                  className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                />
+                <span className="ml-2 text-sm text-gray-600 dark:text-gray-400 group-hover:text-primary transition-colors select-none">
+                  Recuérdame
+                </span>
+              </label>
+              
+              <Link 
+                to="/forgot-password"
+                className="text-sm font-bold text-primary hover:text-primary-dark hover:underline transition-colors"
+              >
+                ¿Olvidaste tu contraseña?
+              </Link>
             </div>
 
-            {/* Botón de login */}
             <Button
               type="submit"
               disabled={isSubmitting}
+              className="w-full py-4 text-lg shadow-lg shadow-primary/25"
             >
-              {isSubmitting ? 'Iniciando sesión...' : 'Iniciar sesión'}
+              {isSubmitting ? 'Iniciando...' : 'Iniciar Sesión'}
             </Button>
           </form>
-        </div>
 
-        {/* Olvidé contraseña */}
-        <p className="mt-8 text-center text-sm text-text-secondary dark:text-white/70 font-medium cursor-pointer hover:text-dark dark:hover:text-white hover:underline transition-colors">
-          ¿Olvidaste tu contraseña?
-        </p>
+          <div className="mt-8 pt-6 border-t border-gray-100 dark:border-gray-700 text-center animate-fade-in">
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              ¿No tienes una cuenta?{" "}
+              <Link
+                to="/registro"
+                className="font-bold text-primary hover:text-primary-dark hover:underline ml-1"
+              >
+                Regístrate gratis
+              </Link>
+            </p>
+          </div>
 
-        {/* Link a registro */}
-        <div className="mt-10 text-center">
-          <p className="text-sm text-text-secondary dark:text-white/70">
-            ¿Aún no tienes cuenta?{" "}
-            <Link
-              to="/registro"
-              className="font-semibold text-text-secondary dark:text-white/70 hover:text-dark dark:hover:text-white hover:underline hover:underline-offset-4 transition-colors"
-            >
-              Regístrate aquí
-            </Link>
-          </p>
         </div>
       </div>
     </MainLayout>

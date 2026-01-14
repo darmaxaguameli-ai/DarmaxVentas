@@ -3,6 +3,9 @@ const prisma = require('./lib/prisma');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const axios = require('axios'); // <-- Importar axios
+const crypto = require('crypto'); // <-- Importar crypto
+const { sendEmail } = require('./utils/emailService'); // <-- Importar servicio de email
+const { getResetPasswordEmailTemplate, getVerificationEmailTemplate } = require('./utils/templates/authEmailTemplates'); // <-- Importar plantilla
 require('dotenv').config();
 
 const app = express();
@@ -48,6 +51,14 @@ app.post('/api/login', async (req, res) => {
       return res.status(401).json({ error: 'Credenciales inválidas.' });
     }
 
+    // --- Verificar Correo (opcional según requerimiento, pero recomendado) ---
+    if (user.role === 'CLIENTE' && !user.emailVerified) {
+        return res.status(403).json({ 
+            error: 'Correo no verificado.', 
+            message: 'Por favor, verifica tu correo electrónico para activar tu cuenta.' 
+        });
+    }
+
     // --- Generar JWT ---
     const token = jwt.sign(
       { id: user.id, name: user.name, role: user.role },
@@ -64,6 +75,124 @@ app.post('/api/login', async (req, res) => {
   } catch (error) {
     console.error('Error en el login:', error);
     res.status(500).json({ error: 'Ocurrió un error en el servidor.' });
+  }
+});
+
+// =====================================================
+// PASSWORD RESET API
+// =====================================================
+
+app.post('/api/forgot-password', async (req, res) => {
+  const { email } = req.body;
+
+  if (!email) {
+    return res.status(400).json({ error: 'El email es requerido.' });
+  }
+
+  try {
+    const user = await prisma.user.findUnique({ where: { email } });
+
+    if (!user) {
+      // Por seguridad, no indicamos si el usuario no existe
+      return res.json({ message: 'Si el correo existe, se enviará un enlace de recuperación.' });
+    }
+
+    // Generar token
+    const token = crypto.randomBytes(20).toString('hex');
+    const expires = new Date(Date.now() + 3600000); // 1 hora
+
+    // Guardar token en BD
+    await prisma.user.update({
+      where: { email },
+      data: {
+        resetPasswordToken: token,
+        resetPasswordExpires: expires,
+      },
+    });
+
+    // Enviar correo
+    const resetLink = `https://ventas-darmax-gestion.vercel.app/reset-password?token=${token}`; // Ajustar URL frontend
+    const html = getResetPasswordEmailTemplate({ name: user.name, resetLink });
+
+    await sendEmail(email, 'Recuperación de contraseña de Darmax', html);
+
+    res.json({ message: 'Si el correo existe, se enviará un enlace de recuperación.' });
+
+  } catch (error) {
+    console.error('Error en forgot-password:', error);
+    res.status(500).json({ error: 'Error al procesar la solicitud.' });
+  }
+});
+
+app.post('/api/reset-password', async (req, res) => {
+  const { token, newPassword } = req.body;
+
+  if (!token || !newPassword) {
+    return res.status(400).json({ error: 'Token y nueva contraseña son requeridos.' });
+  }
+
+  try {
+    const user = await prisma.user.findFirst({
+      where: {
+        resetPasswordToken: token,
+        resetPasswordExpires: { gt: new Date() }, // Token no expirado
+      },
+    });
+
+    if (!user) {
+      return res.status(400).json({ error: 'Token inválido o expirado.' });
+    }
+
+    // Hash nueva contraseña
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    // Actualizar usuario
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        password: hashedPassword,
+        resetPasswordToken: null,
+        resetPasswordExpires: null,
+      },
+    });
+
+    res.json({ message: 'Contraseña restablecida exitosamente.' });
+
+  } catch (error) {
+    console.error('Error en reset-password:', error);
+    res.status(500).json({ error: 'Error al restablecer la contraseña.' });
+  }
+});
+
+app.post('/api/verify-email', async (req, res) => {
+  const { token } = req.body;
+
+  if (!token) {
+    return res.status(400).json({ error: 'El token es requerido.' });
+  }
+
+  try {
+    const user = await prisma.user.findFirst({
+      where: { verificationToken: token },
+    });
+
+    if (!user) {
+      return res.status(400).json({ error: 'Token inválido o ya utilizado.' });
+    }
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        emailVerified: new Date(),
+        verificationToken: null,
+      },
+    });
+
+    res.json({ message: 'Correo verificado exitosamente.' });
+
+  } catch (error) {
+    console.error('Error verifying email:', error);
+    res.status(500).json({ error: 'Error al verificar el correo.' });
   }
 });
 
@@ -189,6 +318,9 @@ app.post('/api/complete-registration', async (req, res) => {
     // Hashear la contraseña
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    // Generar Token de Verificación
+    const verificationToken = crypto.randomBytes(32).toString('hex');
+
     // Actualizar usuario
     const updatedUser = await prisma.user.update({
       where: { id: userId },
@@ -197,10 +329,24 @@ app.post('/api/complete-registration', async (req, res) => {
         name: name || user.name,    // Actualizar nombre si se provee
         sexo: sexo || user.sexo,    // Actualizar sexo si se provee
         password: hashedPassword,
+        verificationToken,
+        emailVerified: null, // Marcar como no verificado hasta que use el link
       },
     });
 
-    // Opcional: Generar token para autologin inmediato
+    // Enviar Correo de Verificación
+    const targetEmail = email || user.email;
+    if (targetEmail) {
+        try {
+            const verifyLink = `https://ventas-darmax-gestion.vercel.app/verify-email?token=${verificationToken}`;
+            const html = getVerificationEmailTemplate({ name: updatedUser.name, verificationLink: verifyLink });
+            await sendEmail(targetEmail, 'Verifica tu cuenta en Darmax', html);
+        } catch (emailErr) {
+            console.error("Error sending verification email during completion:", emailErr);
+        }
+    }
+
+    // Opcional: Generar token para autologin inmediato (QUITADO porque ahora requiere verificación)
     const { password: _, ...userWithoutPassword } = updatedUser;
     res.json(userWithoutPassword);
 
@@ -1521,12 +1667,30 @@ app.post('/api/users', async (req, res) => {
       customId = `${rolePrefix}-${random}`; 
     }
 
+    // Generate Verification Token
+    const verificationToken = crypto.randomBytes(32).toString('hex');
+
     const newUser = await prisma.user.create({
       data: {
         ...userData,
         customId,
+        verificationToken, // Save token
+        emailVerified: null // Explicitly null initially
       },
     });
+
+    // Send Verification Email if email exists
+    if (userData.email) {
+        try {
+            const verifyLink = `https://ventas-darmax-gestion.vercel.app/verify-email?token=${verificationToken}`;
+            const html = getVerificationEmailTemplate({ name: userData.name, verificationLink: verifyLink });
+            await sendEmail(userData.email, 'Verifica tu cuenta en Darmax', html);
+        } catch (emailErr) {
+            console.error("Error sending verification email:", emailErr);
+            // Don't fail the registration, but log it. 
+            // Client will have to request resend or contact support.
+        }
+    }
     
     // Exclude password from the response
     const { password, ...userWithoutPassword } = newUser;
