@@ -514,15 +514,6 @@ const RepartidorDashboard = () => {
         { id: 'en_ruta', label: 'En Ruta', icon: MdDirectionsBike, count: inRouteOrders.length, data: inRouteOrders, color: 'border-indigo-500' },
     ];
 
-    if (loading || isCashDrawerLoading) {
-        return (
-            <div className="h-screen w-full flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-900 gap-4">
-                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-                <p className="text-gray-500 font-medium">Cargando tablero...</p>
-            </div>
-        );
-    }
-
     const handleReportDamagedTags = useCallback(async () => {
         const { value: quantity } = await Swal.fire({
             title: 'Reportar Etiquetas Rotas/Perdidas',
@@ -556,6 +547,15 @@ const RepartidorDashboard = () => {
             }
         }
     }, [fetchSession]);
+
+    if (loading || isCashDrawerLoading) {
+        return (
+            <div className="h-screen w-full flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-900 gap-4">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+                <p className="text-gray-500 font-medium">Cargando tablero...</p>
+            </div>
+        );
+    }
 
     return (
         <div className="flex h-screen flex-col bg-[#f8fafc] dark:bg-gray-950 font-display text-gray-800 dark:text-gray-200 overflow-hidden">

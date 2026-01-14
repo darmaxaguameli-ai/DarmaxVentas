@@ -25,7 +25,7 @@ const StartDayModal = ({ onStartSession }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[2000] flex items-end sm:items-center justify-center p-0 sm:p-4">
       <div className="bg-white dark:bg-gray-800 p-6 sm:p-8 rounded-t-3xl sm:rounded-2xl shadow-2xl w-full max-w-sm text-center transform transition-all animate-slide-up sm:animate-fade-in-up">
         <div className="w-12 h-1.5 bg-gray-300 dark:bg-gray-600 rounded-full mx-auto mb-6 sm:hidden"></div> {/* Mobile Handle */}
         
