@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { generateEndOfDayReport } from './reportGenerator';
 
-const CloseRegisterModal = ({ isOpen, onClose, sessionData, onEndSession }) => {
+const CloseRegisterModal = ({ isOpen, onClose, sessionData, onEndSession, hideTags = false }) => {
   const [realCash, setRealCash] = useState('');
 
   useEffect(() => {
@@ -83,19 +83,21 @@ const CloseRegisterModal = ({ isOpen, onClose, sessionData, onEndSession }) => {
             </div>
 
             {/* Tag Inventory Summary */}
-            <div className="bg-orange-50 dark:bg-orange-900/10 p-3 rounded-xl border border-orange-100 dark:border-orange-800/30 mb-6 flex justify-between items-center">
-                <div>
-                    <p className="text-xs text-orange-600 dark:text-orange-400 uppercase font-bold mb-1">Inventario Etiquetas</p>
-                    <div className="flex gap-3 text-sm text-gray-600 dark:text-gray-400">
-                        <span>Inicio: <strong>{initialTags || 0}</strong></span>
-                        <span>Dañadas: <strong>{damagedTags || 0}</strong></span>
+            {!hideTags && (
+                <div className="bg-orange-50 dark:bg-orange-900/10 p-3 rounded-xl border border-orange-100 dark:border-orange-800/30 mb-6 flex justify-between items-center">
+                    <div>
+                        <p className="text-xs text-orange-600 dark:text-orange-400 uppercase font-bold mb-1">Inventario Etiquetas</p>
+                        <div className="flex gap-3 text-sm text-gray-600 dark:text-gray-400">
+                            <span>Inicio: <strong>{initialTags || 0}</strong></span>
+                            <span>Dañadas: <strong>{damagedTags || 0}</strong></span>
+                        </div>
+                    </div>
+                    <div className="text-right">
+                        <p className="text-xs text-gray-400 uppercase font-bold">Restantes</p>
+                        <p className="text-xl font-black text-orange-600 dark:text-orange-400">{expectedFinalTags}</p>
                     </div>
                 </div>
-                <div className="text-right">
-                    <p className="text-xs text-gray-400 uppercase font-bold">Restantes</p>
-                    <p className="text-xl font-black text-orange-600 dark:text-orange-400">{expectedFinalTags}</p>
-                </div>
-            </div>
+            )}
 
             <div className="bg-gray-900 text-white p-4 rounded-xl shadow-lg mb-6 flex justify-between items-center">
                 <span className="text-sm font-bold uppercase tracking-wider opacity-80">Total Esperado</span>

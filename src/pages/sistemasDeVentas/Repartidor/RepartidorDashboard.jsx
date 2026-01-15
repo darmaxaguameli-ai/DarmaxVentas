@@ -718,6 +718,7 @@ const RepartidorDashboard = () => {
                         transactions: cashDrawerSession.transacciones || [], 
                     }}
                     onEndSession={handleEndSession}
+                    hideTags={true}
                 />
             )}
             <CashMovementModal

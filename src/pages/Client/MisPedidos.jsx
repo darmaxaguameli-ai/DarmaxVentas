@@ -5,6 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import ClientOrderHeader from '../../components/ClientOrderHeader';
 import { formatDate } from '@/utils/formatters';
 import useHaptic from '../../hooks/useHaptic';
+import TrackingMap from './components/TrackingMap'; // Importar Mapa
 
 const statusStyles = {
   PENDIENTE: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300',
@@ -63,8 +64,20 @@ const OrderCard = ({ order, onCancel }) => {
     }
   };
 
+  // Extract driver position if available
+  const driverPosition = useMemo(() => {
+      // Assuming API returns driverCurrentLat/Lng or driver.lat/lng
+      // Adjust based on your actual API response structure
+      const lat = order.driverCurrentLat || order.driver?.lat;
+      const lng = order.driverCurrentLng || order.driver?.lng;
+      if (lat && lng) return [lat, lng];
+      return null;
+  }, [order]);
+
+  const showMap = order.status === 'EN_RUTA';
+
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md transition-shadow hover:shadow-lg">
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md transition-shadow hover:shadow-lg overflow-hidden">
       <div className="p-4 md:p-6 cursor-pointer" onClick={() => setIsExpanded(!isExpanded)}>
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div className="flex-grow">
@@ -92,8 +105,22 @@ const OrderCard = ({ order, onCancel }) => {
           </div>
         </div>
       </div>
+      
+      {/* Map Section (Always visible if expanded OR if status is EN_RUTA and expanded is default behavior for tracking) */}
+      {/* We'll keep it inside expansion for clean UI, but maybe default expand if EN_RUTA? */}
       {isExpanded && (
         <div className="border-t border-gray-200 dark:border-gray-700 p-4 md:p-6">
+          
+          {showMap && (
+              <div className="mb-6">
+                  <h4 className="font-bold mb-3 text-indigo-600 dark:text-indigo-400 flex items-center gap-2">
+                      <span className="material-symbols-outlined">local_shipping</span>
+                      Seguimiento en Tiempo Real
+                  </h4>
+                  <TrackingMap order={order} driverPosition={driverPosition} />
+              </div>
+          )}
+
           <h4 className="font-semibold mb-2 text-gray-700 dark:text-gray-300">Detalles del Pedido:</h4>
           <div className="space-y-2">
             {order.items.map(item => <OrderItemDetails key={item.id} item={item} />)}
