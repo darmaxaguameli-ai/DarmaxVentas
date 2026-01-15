@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import Swal from 'sweetalert2';
 
-const StartDayModal = ({ onStartSession }) => {
+const StartDayModal = ({ onStartSession, hideTags = false }) => {
   const [amount, setAmount] = useState('');
   const [initialTags, setInitialTags] = useState('');
 
@@ -9,14 +9,15 @@ const StartDayModal = ({ onStartSession }) => {
     if (navigator.vibrate) navigator.vibrate(50); // Feedback táctil
     
     const parsedAmount = parseFloat(amount);
-    const parsedTags = parseInt(initialTags, 10);
+    // If hiding tags, default to 0, otherwise parse input
+    const parsedTags = hideTags ? 0 : parseInt(initialTags, 10);
 
     if (!amount || isNaN(parsedAmount) || parsedAmount <= 0) {
         Swal.fire('Error', 'Debes ingresar un monto inicial mayor a 0.', 'error');
         return;
     }
 
-    if (initialTags === '' || isNaN(parsedTags) || parsedTags < 0) {
+    if (!hideTags && (initialTags === '' || isNaN(parsedTags) || parsedTags < 0)) {
         Swal.fire('Error', 'Debes ingresar la cantidad de etiquetas iniciales.', 'error');
         return;
     }
@@ -49,20 +50,22 @@ const StartDayModal = ({ onStartSession }) => {
                 </div>
             </div>
 
-            <div>
-                <label className="block text-xs font-bold uppercase tracking-wider mb-2 text-gray-400 dark:text-gray-500">Etiquetas Iniciales</label>
-                <div className="relative">
-                    <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-2xl text-gray-400">#</span>
-                    <input 
-                        type="number"
-                        inputMode="numeric"
-                        value={initialTags}
-                        onChange={(e) => setInitialTags(e.target.value)}
-                        className="w-full p-4 pl-10 text-center text-3xl font-black rounded-2xl bg-gray-50 dark:bg-gray-700/50 border-2 border-transparent focus:border-primary focus:bg-white dark:focus:bg-gray-700 focus:ring-0 transition-all text-gray-800 dark:text-white"
-                        placeholder="0"
-                    />
+            {!hideTags && (
+                <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider mb-2 text-gray-400 dark:text-gray-500">Etiquetas Iniciales</label>
+                    <div className="relative">
+                        <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-2xl text-gray-400">#</span>
+                        <input 
+                            type="number"
+                            inputMode="numeric"
+                            value={initialTags}
+                            onChange={(e) => setInitialTags(e.target.value)}
+                            className="w-full p-4 pl-10 text-center text-3xl font-black rounded-2xl bg-gray-50 dark:bg-gray-700/50 border-2 border-transparent focus:border-primary focus:bg-white dark:focus:bg-gray-700 focus:ring-0 transition-all text-gray-800 dark:text-white"
+                            placeholder="0"
+                        />
+                    </div>
                 </div>
-            </div>
+            )}
         </div>
 
         <button 

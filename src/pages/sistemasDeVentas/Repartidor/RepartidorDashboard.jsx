@@ -514,40 +514,6 @@ const RepartidorDashboard = () => {
         { id: 'en_ruta', label: 'En Ruta', icon: MdDirectionsBike, count: inRouteOrders.length, data: inRouteOrders, color: 'border-indigo-500' },
     ];
 
-    const handleReportDamagedTags = useCallback(async () => {
-        const { value: quantity } = await Swal.fire({
-            title: 'Reportar Etiquetas Rotas/Perdidas',
-            input: 'number',
-            inputLabel: 'Cantidad',
-            inputPlaceholder: 'Ingrese la cantidad',
-            inputAttributes: {
-                min: 1,
-                step: 1
-            },
-            showCancelButton: true,
-            confirmButtonText: 'Reportar',
-            cancelButtonText: 'Cancelar',
-            showLoaderOnConfirm: true,
-            preConfirm: (value) => {
-                if (!value || value < 1) {
-                    Swal.showValidationMessage('Por favor ingrese una cantidad válida mayor a 0');
-                }
-                return value;
-            }
-        });
-
-        if (quantity) {
-            try {
-                await reportDamagedTags(parseInt(quantity));
-                showToast('Reporte de etiquetas guardado', 'warning');
-                fetchSession(); // Refresh session data to update counts
-            } catch (err) {
-                console.error("Error reporting tags:", err);
-                Swal.fire('Error', 'No se pudo guardar el reporte.', 'error');
-            }
-        }
-    }, [fetchSession]);
-
     if (loading || isCashDrawerLoading) {
         return (
             <div className="h-screen w-full flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-900 gap-4">
@@ -567,7 +533,6 @@ const RepartidorDashboard = () => {
                     isRefreshing={loading}
                     onRefresh={loadOrders}
                     locationAccuracy={locationAccuracy}
-                    onReportDamagedTags={handleReportDamagedTags}
                 />
             </div>
 
@@ -740,7 +705,7 @@ const RepartidorDashboard = () => {
 
             {/* Modals for Cash Drawer */}
             {showStartDayModal && (
-                <StartDayModal onStartSession={handleStartSession} />
+                <StartDayModal onStartSession={handleStartSession} hideTags={true} />
             )}
             {showCloseRegisterModal && cashDrawerSession && (
                 <CloseRegisterModal
@@ -763,5 +728,7 @@ const RepartidorDashboard = () => {
         </div>
     );
 };
+
+export default RepartidorDashboard;
 
 export default RepartidorDashboard;

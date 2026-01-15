@@ -12,7 +12,6 @@ const RepartidorHeader = ({
   isRefreshing,
   onRefresh,
   locationAccuracy,
-  onReportDamagedTags,
 }) => {
   const { user } = useAuth();
   const { theme, toggleTheme } = useTheme();
@@ -73,17 +72,6 @@ const RepartidorHeader = ({
                 >
                     {theme === 'dark' ? <MdLightMode className="text-lg lg:text-xl" /> : <MdDarkMode className="text-lg lg:text-xl" />}
                 </button>
-
-                {isCashDrawerOpen && onReportDamagedTags && (
-                    <button
-                        onClick={onReportDamagedTags}
-                        className="p-2 lg:px-4 lg:py-2 flex items-center gap-2 bg-orange-50 text-orange-600 rounded-lg hover:bg-orange-100 dark:bg-orange-900/20 dark:text-orange-400 dark:hover:bg-orange-900/40 transition-colors"
-                        title="Reportar Etiquetas"
-                    >
-                        <MdLabelOff className="text-lg lg:text-xl" />
-                        <span className="hidden lg:inline text-sm font-bold">Etiquetas</span>
-                    </button>
-                )}
 
                 <button 
                     onClick={onCashMovementClick}
