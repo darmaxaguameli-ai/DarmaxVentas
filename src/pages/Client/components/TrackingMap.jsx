@@ -51,11 +51,11 @@ const TrackingMap = ({ driverPosition, order }) => {
 
   // Parse destination coordinates (Order Delivery or Client Default)
   const destinationPosition = useMemo(() => {
-      if (!order) return null;
+      if (!order) return [19.4326, -99.1332]; // Default default (CDMX)
       const lat = parseCoord(order.deliveryLat || order.cliente?.lat);
       const lng = parseCoord(order.deliveryLng || order.cliente?.lng);
       if (lat !== null && lng !== null) return [lat, lng];
-      return null;
+      return [19.4326, -99.1332]; // Fallback to CDMX center
   }, [order]);
 
   // Parse driver coordinates
@@ -68,12 +68,6 @@ const TrackingMap = ({ driverPosition, order }) => {
   }, [driverPosition]);
 
   const tileLayerUrl = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
-
-  if (!destinationPosition) return (
-      <div className="h-full w-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-400 text-sm">
-          Mapa no disponible
-      </div>
-  );
 
   return (
     <div className="w-full h-48 sm:h-64 rounded-xl overflow-hidden shadow-inner border border-gray-200 dark:border-gray-700 relative z-0">

@@ -2131,6 +2131,14 @@ app.get('/api/my-orders', verifyToken, async (req, res) => {
         clienteId: userId,
       },
       include: {
+        repartidor: { // Incluir datos del repartidor para el tracking
+            select: {
+                lat: true,
+                lng: true,
+                name: true,
+                phone: true
+            }
+        },
         items: {
           include: {
             product: true,

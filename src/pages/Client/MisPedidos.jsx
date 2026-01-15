@@ -66,10 +66,9 @@ const OrderCard = ({ order, onCancel }) => {
 
   // Extract driver position if available
   const driverPosition = useMemo(() => {
-      // Assuming API returns driverCurrentLat/Lng or driver.lat/lng
-      // Adjust based on your actual API response structure
-      const lat = order.driverCurrentLat || order.driver?.lat;
-      const lng = order.driverCurrentLng || order.driver?.lng;
+      // Accessing via the 'repartidor' relation populated by the API
+      const lat = order.repartidor?.lat;
+      const lng = order.repartidor?.lng;
       if (lat && lng) return [lat, lng];
       return null;
   }, [order]);

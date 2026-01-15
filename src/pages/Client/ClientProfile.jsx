@@ -316,12 +316,17 @@ const ClientProfile = () => {
             </div>
 
             {/* Location Picker Map */}
-            <div className="mt-4">
-                <label className="label-style mb-2 block flex items-center justify-between">
-                    <span>Ubicación Exacta <span className="text-primary">*</span></span>
-                    <span className="text-xs font-normal text-gray-500">Arrastra el marcador rojo</span>
+            <div className="mt-6 p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/30">
+                <label className="label-style mb-3 block flex items-center justify-between">
+                    <span className="flex items-center gap-2">
+                        <span className="material-symbols-outlined text-primary">pin_drop</span>
+                        Ubicación Exacta <span className="text-primary">*</span>
+                    </span>
+                    <span className="text-xs font-normal text-gray-500 bg-white dark:bg-gray-800 px-2 py-1 rounded-lg border border-gray-200 dark:border-gray-600 shadow-sm">
+                        Arrastra el marcador rojo
+                    </span>
                 </label>
-                <div className="h-[350px] sm:h-[400px] w-full rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
+                <div className="h-[350px] sm:h-[400px] w-full rounded-xl overflow-hidden shadow-inner border border-gray-300 dark:border-gray-600">
                     <LocationPicker 
                         lat={formData.lat} 
                         lng={formData.lng} 
@@ -329,8 +334,8 @@ const ClientProfile = () => {
                         addressToSearch={fullAddressSearch}
                     />
                 </div>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                    Si no aparece tu ubicación automáticamente, usa el botón "Buscar mi dirección" o arrastra el mapa manualmente.
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 text-center">
+                    Si no aparece tu ubicación automáticamente, usa el botón <strong>"Ubicar dirección"</strong> dentro del mapa o muévelo manualmente.
                 </p>
             </div>
           </section>
