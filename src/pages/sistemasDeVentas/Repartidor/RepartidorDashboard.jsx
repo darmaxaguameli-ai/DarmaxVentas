@@ -730,5 +730,3 @@ const RepartidorDashboard = () => {
 };
 
 export default RepartidorDashboard;
-
-export default RepartidorDashboard;
