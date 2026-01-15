@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom'; // Importar useNavigate
-import { fetchOrders, updateOrder, fetchActiveCashDrawerSession, startCashDrawerSession, closeCashDrawerSession, createCashTransaction, reportDamagedTags } from '../../../api/apiClient';
+import { fetchOrders, updateOrder, fetchActiveCashDrawerSession, startCashDrawerSession, closeCashDrawerSession, createCashTransaction } from '../../../api/apiClient';
 import { useAuth } from '../../../context/AuthContext';
 import Swal from 'sweetalert2';
 import { formatCurrency } from '../../../utils/formatters';
