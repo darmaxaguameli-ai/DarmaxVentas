@@ -427,9 +427,15 @@ const RepartidorDashboard = () => {
     
     const handleUpdateOrder = useCallback(async (orderId, updateData) => {
         try {
-            await updateOrder(orderId, updateData);
+            // Si se pone en ruta, asignarse como repartidor si no lo tiene
+            const finalUpdateData = { ...updateData };
+            if (updateData.status === 'EN_RUTA' && user?.id) {
+                finalUpdateData.repartidorId = user.id;
+            }
+
+            await updateOrder(orderId, finalUpdateData);
             showToast(`Pedido actualizado`);
-            setOrders(prevOrders => prevOrders.map(o => (o.id === orderId ? { ...o, ...updateData } : o)));
+            setOrders(prevOrders => prevOrders.map(o => (o.id === orderId ? { ...o, ...finalUpdateData } : o)));
             
             // Si se completa la entrega, actualizamos la sesión de caja para reflejar la venta
             if (updateData.status === 'ENTREGADO') {
@@ -440,7 +446,7 @@ const RepartidorDashboard = () => {
         } catch (err) {
             Swal.fire('Error', `No se pudo actualizar el pedido: ${err.message}`, 'error');
         }
-    }, [fetchSession]);
+    }, [fetchSession, user]);
 
     const handleOrderLocationUpdate = useCallback(async (orderId, lat, lng) => {
         const result = await Swal.fire({

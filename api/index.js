@@ -2391,97 +2391,119 @@ app.put('/api/pedidos/:id', verifyToken, async (req, res) => {
 
   const { id } = req.params;
 
-  const { status, paymentMethod } = req.body; // paymentMethod might be sent for cash, or we fetch it from existing order
+    const { status, paymentMethod, repartidorId } = req.body; // paymentMethod might be sent for cash, or we fetch it from existing order
 
+  
 
+    if (!status) {
 
-  if (!status) {
+      return res.status(400).json({ error: 'El estado (status) es requerido.' });
 
-    return res.status(400).json({ error: 'El estado (status) es requerido.' });
+    }
 
-  }
+  
 
+    // Validar que el status sea uno de los valores del enum PedidoStatus
 
+    const VALID_PEDIDO_STATUS = ['PENDIENTE', 'EN_PROCESO', 'EN_RUTA', 'ENTREGADO', 'CANCELADO'];
 
-  // Validar que el status sea uno de los valores del enum PedidoStatus
+  
 
-  const VALID_PEDIDO_STATUS = ['PENDIENTE', 'EN_PROCESO', 'EN_RUTA', 'ENTREGADO', 'CANCELADO'];
+    if (!VALID_PEDIDO_STATUS.includes(status)) {
 
-  if (!VALID_PEDIDO_STATUS.includes(status)) {
+      return res.status(400).json({ error: `Estado de pedido inválido. Valores permitidos: ${VALID_PEDIDO_STATUS.join(', ')}.` });
 
-    return res.status(400).json({ error: `Estado de pedido inválido. Valores permitidos: ${VALID_PEDIDO_STATUS.join(', ')}.` });
+    }
 
-  }
+  
 
+    try {
 
+      const updatedPedido = await prisma.$transaction(async (tx) => {
 
-  try {
+        // 1. Get the existing order to check current status and payment method
 
-    const updatedPedido = await prisma.$transaction(async (tx) => {
+        const existingPedido = await tx.pedido.findUnique({
 
-      // 1. Get the existing order to check current status and payment method
+          where: { id },
 
-      const existingPedido = await tx.pedido.findUnique({
+          select: {
 
-        where: { id },
+            status: true,
 
-        select: {
+            paymentMethod: true,
 
-          status: true,
+            total: true,
 
-          paymentMethod: true,
+            sesionCajaId: true,
 
-          total: true,
+            customId: true, // Need customId for transaction description
 
-          sesionCajaId: true,
+            clienteId: true, // Need clienteId for loyalty points
 
-          customId: true, // Need customId for transaction description
+          },
 
-          clienteId: true, // Need clienteId for loyalty points
+        });
 
-        },
+  
 
-      });
+        if (!existingPedido) {
 
+          throw new Error('Pedido no encontrado.'); // Throw to rollback transaction
 
+        }
 
-      if (!existingPedido) {
+        
 
-        throw new Error('Pedido no encontrado.'); // Throw to rollback transaction
+        // Determine the actual payment method. Prioritize what's sent in body, then what's in DB.
 
-      }
+        const actualPaymentMethod = paymentMethod || existingPedido.paymentMethod;
 
-      
+  
 
-      // Determine the actual payment method. Prioritize what's sent in body, then what's in DB.
+        // 2. Prepare update data
 
-      const actualPaymentMethod = paymentMethod || existingPedido.paymentMethod;
+        const dataToUpdate = { status };
 
+  
 
+        if (paymentMethod) {
 
-      // 2. Prepare update data
+          dataToUpdate.paymentMethod = paymentMethod;
 
-      const dataToUpdate = { status };
+        }
 
-      if (paymentMethod) {
+  
 
-        dataToUpdate.paymentMethod = paymentMethod;
+        // Handle Repartidor Assignment
 
-      }
+        if (repartidorId !== undefined) { // Check for undefined to allow null (unassign)
 
+            if (repartidorId) {
 
+                dataToUpdate.repartidor = { connect: { id: repartidorId } };
 
-      // If status is ENTREGADO, mark as PAGADO automatically (unless it's credit, but simplifying for now)
+            } else {
 
-      if (status === 'ENTREGADO') {
+                dataToUpdate.repartidor = { disconnect: true };
 
-        dataToUpdate.paymentStatus = 'PAGADO';
+            }
 
-      }
+        }
 
+  
 
+        // If status is ENTREGADO, mark as PAGADO automatically (unless it's credit, but simplifying for now)
 
-      // 3. Perform the update
+        if (status === 'ENTREGADO') {
+
+          dataToUpdate.paymentStatus = 'PAGADO';
+
+        }
+
+  
+
+        // 3. Perform the update
 
       const pedido = await tx.pedido.update({
 
