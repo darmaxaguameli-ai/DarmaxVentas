@@ -2131,6 +2131,14 @@ app.get('/api/my-orders', verifyToken, async (req, res) => {
         clienteId: userId,
       },
       include: {
+        cliente: { // Incluir datos del cliente para coordenadas por defecto
+            select: {
+                lat: true,
+                lng: true,
+                street: true, // Útil para mostrar dirección
+                neighborhood: true
+            }
+        },
         repartidor: { // Incluir datos del repartidor para el tracking
             select: {
                 lat: true,

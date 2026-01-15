@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom'; // Importar useNavigate
-import { fetchOrders, updateOrder, fetchActiveCashDrawerSession, startCashDrawerSession, closeCashDrawerSession, createCashTransaction } from '../../../api/apiClient';
+import { fetchOrders, updateOrder, fetchActiveCashDrawerSession, startCashDrawerSession, closeCashDrawerSession, createCashTransaction, updateUser } from '../../../api/apiClient';
 import { useAuth } from '../../../context/AuthContext';
 import Swal from 'sweetalert2';
 import { formatCurrency } from '../../../utils/formatters';
@@ -321,6 +321,27 @@ const RepartidorDashboard = () => {
             setError("La geolocalización no es soportada por este navegador.");
         }
     }, [error]);
+
+    // --- Sync Driver Location to Backend ---
+    useEffect(() => {
+        if (!user?.id || !driverPosition) return;
+
+        const syncLocation = async () => {
+            try {
+                await updateUser(user.id, {
+                    lat: driverPosition[0],
+                    lng: driverPosition[1]
+                });
+            } catch (err) {
+                console.error("Error syncing location:", err);
+            }
+        };
+
+        const intervalId = setInterval(syncLocation, 10000); // Sync every 10 seconds
+        syncLocation(); // Initial sync
+
+        return () => clearInterval(intervalId);
+    }, [user?.id, driverPosition]);
     
     // --- Handlers ---
     const handleLogout = useCallback(async () => {
