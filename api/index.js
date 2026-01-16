@@ -1641,8 +1641,12 @@ app.post('/api/users', async (req, res) => {
       postalCode: data.postalCode === '' ? null : data.postalCode,
       sexo: data.sexo === '' ? null : data.sexo, // Nuevo campo
       role: finalRole,
-      storeId: finalStoreId
     };
+
+    // Connect store if provided
+    if (finalStoreId) {
+        userData.store = { connect: { id: finalStoreId } };
+    }
 
     // Hash password if provided
     if (data.password) {
