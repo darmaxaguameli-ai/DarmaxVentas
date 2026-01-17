@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
+import { toast } from 'sonner';
 import { geocodeAddress } from '../../api/apiClient';
 import { useTheme } from '../../context/ThemeContext'; // Importar contexto de tema
 
@@ -136,7 +137,7 @@ const LocationPicker = ({ lat, lng, onLocationChange, addressToSearch }) => {
 
     const handleGetCurrentLocation = () => {
         if (!navigator.geolocation) {
-            alert("Tu navegador no soporta geolocalización.");
+            toast.error("Tu navegador no soporta geolocalización.");
             return;
         }
         setIsLoadingLocation(true);
@@ -150,7 +151,7 @@ const LocationPicker = ({ lat, lng, onLocationChange, addressToSearch }) => {
             },
             (error) => {
                 console.error("Error getting location:", error);
-                alert("No pudimos obtener tu ubicación. Verifica tus permisos.");
+                toast.error("No pudimos obtener tu ubicación. Verifica tus permisos.");
                 setIsLoadingLocation(false);
             }
         );

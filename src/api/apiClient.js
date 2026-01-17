@@ -3,7 +3,7 @@ import axios from 'axios';
 // Crea una instancia de axios con una configuración base.
 // El proxy de Vite se encargará de redirigir las peticiones de /api al backend en desarrollo.
 const apiClient = axios.create({
-  baseURL: '/api',
+  baseURL: import.meta.env.VITE_API_URL || '/api',
   headers: {
     'Content-Type': 'application/json',
   },

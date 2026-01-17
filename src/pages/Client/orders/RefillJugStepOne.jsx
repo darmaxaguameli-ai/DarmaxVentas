@@ -1,6 +1,7 @@
 // src/pages/cliente/orders/RefillJugStepOne.jsx
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { toast } from "sonner";
 import OrderLayout from "../../../layouts/OrderLayout";
 import QuantityCard from "../../../components/order/QuantityCard";
 import { useConfig } from "../../../context/ConfigContext";
@@ -73,7 +74,7 @@ const RefillJugStepOne = () => {
 
   const handleContinue = () => {
     if (totalJugs === 0) {
-      alert("Debes seleccionar al menos 1 garrafón.");
+      toast.warning("Debes seleccionar al menos 1 garrafón.");
       return;
     }
 

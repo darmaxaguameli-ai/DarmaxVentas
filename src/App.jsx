@@ -1,5 +1,6 @@
 // src/App.jsx
 import { Routes, Route } from "react-router-dom";
+import { Toaster } from "sonner";
 import { ClientProvider } from "./pages/Client/context/ClientContext";
 
 // Auth / landing
@@ -56,6 +57,7 @@ import ScrollToTop from "./components/common/ScrollToTop.jsx";
 function App() {
   return (
     <ClientProvider>
+      <Toaster richColors position="top-center" />
       <ScrollToTop />
       <Routes>
         {/* Público / Auth */}

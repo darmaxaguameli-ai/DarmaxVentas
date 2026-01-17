@@ -1,6 +1,7 @@
 // src/pages/cliente/orders/OrderSummaryStepFour.jsx
 import { useState, useEffect, useMemo } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import OrderLayout from "../../../layouts/OrderLayout";
 import { createOrder } from "../../../api/apiClient";
 import { useAuth } from "../../../context/AuthContext";
@@ -177,7 +178,7 @@ const OrderSummaryStepFour = () => {
       setIsSubmitting(true);
   
       if (isRefill && displayTotal === 0 && orderItems.length > 0 && pointsToRedeem === 0) { // Permitir total 0 si es por puntos
-        alert("El total del pedido no puede ser $0 sin canje de puntos.");
+        toast.error("El total del pedido no puede ser $0 sin canje de puntos.");
         setIsSubmitting(false);
         return;
       }
@@ -187,7 +188,7 @@ const OrderSummaryStepFour = () => {
       const finalStoreId = previousState.storeId || selectedStore?.id || user?.storeId;
 
       if (!finalStoreId) {
-          alert("No se pudo determinar la sucursal para este pedido. Por favor, selecciona una sucursal al inicio.");
+          toast.error("No se pudo determinar la sucursal para este pedido. Por favor, selecciona una sucursal al inicio.");
           setIsSubmitting(false);
           return;
       }
@@ -214,7 +215,7 @@ const OrderSummaryStepFour = () => {
         navigate("/pedidos/confirmado", { state: { orderId: newOrder.customId, orderType: mode } });
       } catch (error) {
         console.error("Error al crear el pedido:", error);
-        alert(`Error al crear el pedido: ${error.message || "Intenta de nuevo."}`);
+        toast.error(`Error al crear el pedido: ${error.message || "Intenta de nuevo."}`);
       } finally {
         setIsSubmitting(false);
       }

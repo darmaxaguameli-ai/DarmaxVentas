@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
+import { toast } from 'sonner';
 import { fetchMyOrders, updateOrder } from '../../api/apiClient';
 import { useAuth } from '../../context/AuthContext';
 import ClientOrderHeader from '../../components/ClientOrderHeader';
@@ -58,10 +59,13 @@ const OrderCard = ({ order, onCancel }) => {
   const handleCancel = (e) => {
     e.stopPropagation();
     triggerImpact('heavy');
-    // Pequeña confirmación nativa por seguridad
-    if (window.confirm("¿Estás seguro de que quieres cancelar este pedido?")) {
-        onCancel(order.id);
-    }
+    toast.warning("¿Estás seguro de que quieres cancelar este pedido?", {
+      action: {
+        label: "Confirmar cancelación",
+        onClick: () => onCancel(order.id),
+      },
+      duration: 5000,
+    });
   };
 
   // Extract driver position if available
@@ -143,6 +147,7 @@ const MisPedidos = () => {
         setLoading(true);
         await updateOrder(orderId, { status: 'CANCELADO' });
         triggerSuccess();
+        toast.success("Pedido cancelado exitosamente.");
         
         // Actualizar lista localmente
         setOrders(prev => prev.map(o => 
@@ -151,7 +156,7 @@ const MisPedidos = () => {
     } catch (err) {
         console.error("Error cancelando pedido:", err);
         triggerError();
-        alert("No se pudo cancelar el pedido. Intenta de nuevo o contacta a soporte.");
+        toast.error("No se pudo cancelar el pedido. Intenta de nuevo o contacta a soporte.");
     } finally {
         setLoading(false);
     }
