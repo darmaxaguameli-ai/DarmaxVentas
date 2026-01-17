@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from "react-router-dom";
 import MainLayout from "../layouts/MainLayout.jsx";
 import { MdLogin, MdPersonAdd } from 'react-icons/md';
+import RequestLocationButton from '../components/common/RequestLocationButton';
 
 const HomePage = () => {
   const [isExiting, setIsExiting] = useState(false);
@@ -91,41 +92,147 @@ const HomePage = () => {
 
     
 
-              {/* Action Buttons Container */}
+                            {/* Action Buttons Container */}
 
-              <div className={`w-full grid gap-4 sm:gap-6 transition-all duration-500 ${isExiting ? 'max-w-xs grid-cols-1 mx-auto' : 'max-w-2xl grid-cols-1 sm:grid-cols-2 mx-auto'}`}>
-        
-        
-            
-            {/* Botón Registrarse */}
-            <button
-              onClick={() => handleNavigation('/registro')}
-              className="group relative h-16 flex items-center justify-center gap-3 rounded-2xl bg-primary text-white hover:text-white font-bold text-lg shadow-xl shadow-primary/30 hover:bg-primary-dark transition-all active:scale-[0.98] hover:-translate-y-1"
-            >
-              <div className="absolute inset-0 bg-white/10 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
-              <MdPersonAdd className="text-2xl" />
-              <span>Registrarse</span>
-            </button>
+    
 
-            {/* Botón Iniciar Sesión */}
-            <button
-              onClick={() => handleNavigation('/login')}
-              className="group h-16 flex items-center justify-center gap-3 rounded-2xl bg-white dark:bg-gray-700 text-gray-700 dark:text-white hover:text-primary dark:hover:text-primary-light font-bold text-lg border-2 border-gray-100 dark:border-gray-600 hover:border-primary/30 transition-all active:scale-[0.98] hover:-translate-y-1 shadow-sm hover:shadow-md"
-            >
-              <MdLogin className="text-2xl text-gray-400 dark:text-gray-300 group-hover:text-primary transition-colors" />
-              <span>Iniciar Sesión</span>
-            </button>
+                            <div className={`w-full grid gap-4 sm:gap-6 transition-all duration-500 ${isExiting ? 'max-w-xs grid-cols-1 mx-auto' : 'max-w-2xl grid-cols-1 sm:grid-cols-2 mx-auto'}`}>
 
-          </div>
+    
 
-          {/* Footer Links */}
-          <div className={`mt-12 pt-8 border-t border-gray-100 dark:border-gray-700 w-full transition-opacity duration-300 ${isExiting ? 'opacity-0' : 'opacity-100'}`}>
-            <div className="flex flex-wrap justify-center gap-6 text-sm font-semibold text-gray-400 dark:text-gray-500">
-                <a href="#" className="hover:text-primary transition-colors">Términos de Servicio</a>
-                <a href="#" className="hover:text-primary transition-colors">Política de Privacidad</a>
-                <a href="#" className="hover:text-primary transition-colors">Ayuda</a>
-            </div>
-          </div>
+                      
+
+    
+
+                      
+
+    
+
+                          
+
+    
+
+                          {/* Botón Registrarse */}
+
+    
+
+                          <button
+
+    
+
+                            onClick={() => handleNavigation('/registro')}
+
+    
+
+                            className="group relative h-16 flex items-center justify-center gap-3 rounded-2xl bg-primary text-white hover:text-white font-bold text-lg shadow-xl shadow-primary/30 hover:bg-primary-dark transition-all active:scale-[0.98] hover:-translate-y-1"
+
+    
+
+                          >
+
+    
+
+                            <div className="absolute inset-0 bg-white/10 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
+
+    
+
+                            <MdPersonAdd className="text-2xl" />
+
+    
+
+                            <span>Registrarse</span>
+
+    
+
+                          </button>
+
+    
+
+              
+
+    
+
+                          {/* Botón Iniciar Sesión */}
+
+    
+
+                          <button
+
+    
+
+                            onClick={() => handleNavigation('/login')}
+
+    
+
+                            className="group h-16 flex items-center justify-center gap-3 rounded-2xl bg-white dark:bg-gray-700 text-gray-700 dark:text-white hover:text-primary dark:hover:text-primary-light font-bold text-lg border-2 border-gray-100 dark:border-gray-600 hover:border-primary/30 transition-all active:scale-[0.98] hover:-translate-y-1 shadow-sm hover:shadow-md"
+
+    
+
+                          >
+
+    
+
+                            <MdLogin className="text-2xl text-gray-400 dark:text-gray-300 group-hover:text-primary transition-colors" />
+
+    
+
+                            <span>Iniciar Sesión</span>
+
+    
+
+                          </button>
+
+    
+
+              
+
+    
+
+                        </div>
+
+    
+
+              
+
+    
+
+                        <RequestLocationButton />
+
+    
+
+              
+
+    
+
+                        {/* Footer Links */}
+
+    
+
+                        <div className={`mt-12 pt-8 border-t border-gray-100 dark:border-gray-700 w-full transition-opacity duration-300 ${isExiting ? 'opacity-0' : 'opacity-100'}`}>
+
+    
+
+                          <div className="flex flex-wrap justify-center gap-6 text-sm font-semibold text-gray-400 dark:text-gray-500">
+
+    
+
+                              <a href="#" className="hover:text-primary transition-colors">Términos de Servicio</a>
+
+    
+
+                              <a href="#" className="hover:text-primary transition-colors">Política de Privacidad</a>
+
+    
+
+                              <a href="#" className="hover:text-primary transition-colors">Ayuda</a>
+
+    
+
+                          </div>
+
+    
+
+                        </div>
 
         </div>
       </div>
