@@ -1,5 +1,10 @@
 {
   "appId": "com.darmax.svdarmax",
   "appName": "Purificadora Darmax",
-  "webDir": "dist"
+  "webDir": "dist",
+  "server": {
+    "url": "https://ventas-darmax-gestion.vercel.app/",
+    "cleartext": true,
+    "androidScheme": "http"
+  }
 }
