@@ -11,7 +11,7 @@ const OrderSelection = () => {
   const { logout, user, isAuthenticated } = useAuth();
   const { selectedStore, allStores, selectStore, loadingLocation } = useClient(); // Use client context
   const [isStoreModalOpen, setIsStoreModalOpen] = useState(false);
-  const { triggerSelection } = useHaptic();
+  const { selection } = useHaptic();
 
   return (
     <div className="font-display relative flex min-h-screen w-full flex-col bg-light dark:bg-dark text-dark dark:text-white overflow-x-hidden select-none">
@@ -35,7 +35,7 @@ const OrderSelection = () => {
                     <div className="flex flex-col items-center gap-2">
                         <button 
                             onClick={() => {
-                                triggerSelection();
+                                selection();
                                 setIsStoreModalOpen(true);
                             }}
                             className="flex items-center gap-2 backdrop-blur-md bg-white/60 dark:bg-black/30 px-4 py-1.5 rounded-full border border-gray-200 dark:border-white/10 shadow-sm hover:scale-105 transition-transform active:scale-95"
@@ -212,7 +212,7 @@ const OrderSelection = () => {
                           <button
                             key={store.id}
                             onClick={() => {
-                                triggerSelection();
+                                selection();
                                 selectStore(store.id);
                                 setIsStoreModalOpen(false);
                             }}

@@ -161,7 +161,7 @@ function assignmentReducer(state, action) {
 
 const PosRefillGrid = ({ onProductSelect, defaultDeliveryMethod = 'mostrador' }) => {
   const { jugBrands, waterTypes, servicePrices, loading, error } = useConfig();
-  const { triggerSelection, triggerImpact } = useHaptic();
+  const { selection, impact } = useHaptic();
   
   // Wizard State
   const [step, setStep] = useState(1);
@@ -237,7 +237,7 @@ const PosRefillGrid = ({ onProductSelect, defaultDeliveryMethod = 'mostrador' })
 
   const handleDragEnd = ({ active, over }) => {
     if (!over || active.data.current?.type !== "jug" || over.data.current?.type !== "water") return;
-    triggerImpact('medium');
+    impact('medium');
     dispatch({ type: 'ASSIGN_JUG', payload: { sourceJugId: active.id, targetWaterId: over.id } });
   };
 
@@ -354,7 +354,7 @@ const PosRefillGrid = ({ onProductSelect, defaultDeliveryMethod = 'mostrador' })
           onProductSelect(item, item.quantity);
       });
 
-      triggerImpact('heavy');
+      impact('heavy');
       Swal.fire({
           icon: 'success',
           title: 'Agregado',

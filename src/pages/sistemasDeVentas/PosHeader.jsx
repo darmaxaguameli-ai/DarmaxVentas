@@ -6,7 +6,7 @@ import { MdDarkMode, MdLightMode, MdLabelOff } from 'react-icons/md'; // Import 
 
 const PosHeader = ({ isDashboard, onNewOrderClick, onDashboardClick, onLogout, isCashDrawerOpen, onCashMovementClick, onReportDamagedTags }) => {
   const [currentTime, setCurrentTime] = useState(new Date());
-  const { triggerSelection } = useHaptic();
+  const { selection } = useHaptic();
   const { theme, toggleTheme } = useTheme(); // Use Theme
 
   useEffect(() => {
@@ -40,7 +40,7 @@ const PosHeader = ({ isDashboard, onNewOrderClick, onDashboardClick, onLogout, i
         
         {/* Theme Toggle */}
         <button
-            onClick={() => { triggerSelection(); toggleTheme(); }}
+            onClick={() => { selection(); toggleTheme(); }}
             className="w-10 h-10 sm:w-auto sm:h-12 px-0 sm:px-4 bg-gray-50 text-gray-600 dark:bg-gray-800 dark:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-all active:scale-95 flex items-center justify-center gap-2 border border-transparent"
             title="Cambiar Tema"
         >
@@ -51,7 +51,7 @@ const PosHeader = ({ isDashboard, onNewOrderClick, onDashboardClick, onLogout, i
             <>
                 {onReportDamagedTags && (
                     <button
-                        onClick={() => { triggerSelection(); onReportDamagedTags(); }}
+                        onClick={() => { selection(); onReportDamagedTags(); }}
                         className="h-10 md:h-12 px-2 md:px-4 bg-orange-50 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400 rounded-xl hover:bg-orange-100 dark:hover:bg-orange-900/50 transition-all active:scale-95 flex items-center justify-center gap-2 border border-orange-200/50 dark:border-orange-800/50"
                         title="Reportar Etiquetas Rotas"
                     >
@@ -62,7 +62,7 @@ const PosHeader = ({ isDashboard, onNewOrderClick, onDashboardClick, onLogout, i
                 
                 {onCashMovementClick && (
                     <button 
-                        onClick={() => { triggerSelection(); onCashMovementClick(); }}
+                        onClick={() => { selection(); onCashMovementClick(); }}
                         className="h-10 md:h-12 px-2 md:px-4 bg-green-50 text-green-600 dark:bg-green-900/30 dark:text-green-400 rounded-xl hover:bg-green-100 dark:hover:bg-green-900/50 transition-all active:scale-95 flex items-center justify-center gap-2 border border-green-200/50 dark:border-green-800/50"
                         title="Movimientos de Caja"
                     >
@@ -75,7 +75,7 @@ const PosHeader = ({ isDashboard, onNewOrderClick, onDashboardClick, onLogout, i
 
         {isDashboard ? (
             <button 
-                onClick={() => { triggerSelection(); onNewOrderClick(); }}
+                onClick={() => { selection(); onNewOrderClick(); }}
                 className="w-10 h-10 sm:w-auto sm:h-12 px-0 sm:px-4 bg-primary text-white rounded-xl shadow-md shadow-primary/20 hover:bg-primary-dark transition-all active:scale-95 flex items-center justify-center gap-2"
                 title="Nuevo Pedido"
             >
@@ -84,7 +84,7 @@ const PosHeader = ({ isDashboard, onNewOrderClick, onDashboardClick, onLogout, i
             </button>
         ) : (
             <button 
-                onClick={() => { triggerSelection(); onDashboardClick(); }}
+                onClick={() => { selection(); onDashboardClick(); }}
                 className="w-10 h-10 sm:w-auto sm:h-12 px-0 sm:px-4 bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-200 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-all active:scale-95 flex items-center justify-center gap-2"
             >
                 <span className="material-symbols-outlined text-xl sm:text-2xl">arrow_back</span>
@@ -95,7 +95,7 @@ const PosHeader = ({ isDashboard, onNewOrderClick, onDashboardClick, onLogout, i
         {/* Logout Button */}
         {onLogout && (
           <button
-              onClick={() => { triggerSelection(); onLogout(); }}
+              onClick={() => { selection(); onLogout(); }}
               className={`w-10 h-10 sm:w-auto sm:h-12 px-0 sm:px-4 rounded-xl transition-all active:scale-95 flex items-center justify-center gap-2
                   ${isCashDrawerOpen 
                       ? 'bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400 border border-red-100 dark:border-red-800 hover:bg-red-100' 

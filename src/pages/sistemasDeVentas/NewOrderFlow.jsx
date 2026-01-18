@@ -12,7 +12,7 @@ import { MdShoppingCart, MdClose, MdExpandLess } from 'react-icons/md';
 import { useHaptic } from '../../hooks/useHaptic';
 
 const NewOrderFlow = ({ onExit }) => {
-    const { triggerSelection, triggerImpact } = useHaptic();
+    const { selection, impact } = useHaptic();
     // Re-introduce states from the old VentaMostrador for new order creation
     const [orderItems, setOrderItems] = useState([]);
     const [customer, setCustomer] = useState(null);
@@ -157,9 +157,9 @@ const NewOrderFlow = ({ onExit }) => {
                 <div className="lg:col-span-2 flex flex-col h-full">
                     <div className="flex-shrink-0 bg-white dark:bg-gray-800 shadow-sm sticky top-0 z-10">
                         <nav className="flex">
-                            <button onClick={() => { triggerSelection(); setActiveTab('refill'); }} className={getTabClassName('refill')}>Recargas</button>
-                            <button onClick={() => { triggerSelection(); setActiveTab('buyNew'); }} className={getTabClassName('buyNew')}>Nuevos</button>
-                            <button onClick={() => { triggerSelection(); setActiveTab('directSale'); }} className={getTabClassName('directSale')}>Otros</button>
+                            <button onClick={() => { selection(); setActiveTab('refill'); }} className={getTabClassName('refill')}>Recargas</button>
+                            <button onClick={() => { selection(); setActiveTab('buyNew'); }} className={getTabClassName('buyNew')}>Nuevos</button>
+                            <button onClick={() => { selection(); setActiveTab('directSale'); }} className={getTabClassName('directSale')}>Otros</button>
                         </nav>
                     </div>
                     <div className="flex-1 py-4 overflow-y-auto">
@@ -192,7 +192,7 @@ const NewOrderFlow = ({ onExit }) => {
             {orderItems.length > 0 && (
                 <div className="fixed bottom-0 left-0 right-0 z-40 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 p-4 shadow-[0_-4px_20px_rgba(0,0,0,0.1)] lg:hidden animate-slide-up">
                     <button 
-                        onClick={() => { triggerSelection(); setIsMobileSummaryOpen(true); }}
+                        onClick={() => { selection(); setIsMobileSummaryOpen(true); }}
                         className="w-full bg-primary text-white h-14 rounded-xl flex items-center justify-between px-6 shadow-lg active:scale-95 transition-transform"
                     >
                         <div className="flex items-center gap-3">

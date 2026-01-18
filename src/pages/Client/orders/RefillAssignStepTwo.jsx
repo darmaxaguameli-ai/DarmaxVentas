@@ -236,7 +236,7 @@ const RefillAssignStepTwo = () => {
   const [state, dispatch] = useReducer(assignmentReducer, initialState);
   const { sourceJugs, targetWater } = state;
   const [infoModalOpen, setInfoModalOpen] = useState(null);
-  const { triggerSelection, triggerImpact } = useHaptic();
+  const { selection, impact } = useHaptic();
 
   const [showAnimation, setShowAnimation] = useState(() => {
     if (user) {
@@ -290,24 +290,24 @@ const RefillAssignStepTwo = () => {
   const totalJugsAssigned = useMemo(() => targetWater.reduce((sum, p) => sum + p.quantity, 0), [targetWater]);
 
   const handleDragStart = () => {
-    triggerSelection();
+    selection();
   };
 
   const handleDragEnd = ({ active, over }) => {
     if (!over || active.data.current?.type !== "jug" || over.data.current?.type !== "water") return;
-    triggerImpact('medium');
+    impact('medium');
     dispatch({ type: 'ASSIGN_JUG', payload: { sourceJugId: active.id, targetWaterId: over.id } });
   };
 
   const handleManualAdd = (waterTypeId) => {
     const firstAvailableJug = sourceJugs.find((jug) => jug.quantity > 0);
     if (!firstAvailableJug) return;
-    triggerSelection();
+    selection();
     dispatch({ type: 'ASSIGN_JUG', payload: { sourceJugId: firstAvailableJug.id, targetWaterId: waterTypeId } });
   };
 
   const handleManualRemove = (waterTypeId) => {
-    triggerSelection();
+    selection();
     dispatch({ type: 'UNASSIGN_JUG', payload: { waterTypeId } });
   };
 

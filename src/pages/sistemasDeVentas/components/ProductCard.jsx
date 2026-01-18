@@ -3,12 +3,13 @@ import { useHaptic } from '../../../hooks/useHaptic';
 
 const ProductCard = ({ product, onProductSelect }) => {
     const hasImage = product.imageUrl && product.imageUrl.length > 0;
-    const { triggerSelection } = useHaptic();
+  const { selection } = useHaptic();
 
-    const handleClick = () => {
-        triggerSelection();
-        onProductSelect(product);
-    };
+  const handleCardClick = () => {
+    selection();
+    onProductSelect(product);
+  };
+
 
     return (
         <button
