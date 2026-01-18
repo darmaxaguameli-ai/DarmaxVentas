@@ -17,6 +17,11 @@
   body {
     @apply font-sans;
     overscroll-behavior-y: contain;
+    /* Safe-area padding for mobile devices with notches */
+    padding-top: env(safe-area-inset-top);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+    padding-bottom: env(safe-area-inset-bottom);
   }
 
   /* Opcional: estilos por defecto para headings (según tu guía) */
