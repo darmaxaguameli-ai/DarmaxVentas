@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { generateEndOfDayReport } from './reportGenerator';
+import { useHaptic } from '../../hooks/useHaptic';
 
 const CloseRegisterModal = ({ isOpen, onClose, sessionData, onEndSession, hideTags = false }) => {
   const [realCash, setRealCash] = useState('');
+  const { notification } = useHaptic();
 
   useEffect(() => {
     if (!isOpen) {
@@ -29,7 +31,7 @@ const CloseRegisterModal = ({ isOpen, onClose, sessionData, onEndSession, hideTa
   };
   
   const handleGenerateReportAndEnd = () => {
-    if (navigator.vibrate) navigator.vibrate([50, 50, 50]); // Success vibration pattern
+    notification(); // Success vibration
     const realCashInDrawer = parseFloat(realCash) || 0;
     generateEndOfDayReport({
       ...sessionData,

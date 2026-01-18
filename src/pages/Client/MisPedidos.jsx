@@ -5,7 +5,7 @@ import { fetchMyOrders, updateOrder } from '../../api/apiClient';
 import { useAuth } from '../../context/AuthContext';
 import ClientOrderHeader from '../../components/ClientOrderHeader';
 import { formatDate } from '@/utils/formatters';
-import useHaptic from '../../hooks/useHaptic';
+import { useHaptic } from '../../hooks/useHaptic';
 import TrackingMap from './components/TrackingMap'; // Importar Mapa
 
 const statusStyles = {

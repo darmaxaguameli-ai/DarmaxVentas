@@ -9,7 +9,7 @@ import DeliveryModal from "./DeliveryModal";
 import Swal from 'sweetalert2';
 import { createOrder, createUser } from '../../api/apiClient';
 import { MdShoppingCart, MdClose, MdExpandLess } from 'react-icons/md';
-import useHaptic from '../../hooks/useHaptic';
+import { useHaptic } from '../../hooks/useHaptic';
 
 const NewOrderFlow = ({ onExit }) => {
     const { triggerSelection, triggerImpact } = useHaptic();

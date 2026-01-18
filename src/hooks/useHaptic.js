@@ -1,37 +1,62 @@
-import { useCallback } from 'react';
+// src/hooks/useHaptic.js
+import { Haptics, ImpactStyle } from '@capacitor/haptics';
+import { Capacitor } from '@capacitor/core';
 
-const useHaptic = () => {
-  const vibrate = useCallback((pattern = 10) => {
-    if (typeof navigator !== 'undefined' && navigator.vibrate) {
-      navigator.vibrate(pattern);
+// Hook personalizado para manejar la retroalimentación háptica
+export const useHaptic = () => {
+  
+  // Función para disparar una vibración de impacto
+  // style: 'HEAVY', 'MEDIUM', 'LIGHT'
+  const impact = async (style = ImpactStyle.Light) => {
+    // Solo intentar vibrar si la plataforma no es web (es decir, es una app nativa)
+    if (Capacitor.getPlatform() !== 'web') {
+      try {
+        await Haptics.impact({ style });
+      } catch (error) {
+        console.error('Haptic impact failed', error);
+      }
     }
-  }, []);
+  };
 
-  /**
-   * Ligera vibración para selección o tap.
-   */
-  const triggerSelection = useCallback(() => vibrate(10), [vibrate]);
+  // Función para disparar una vibración de notificación simple
+  const notification = async () => {
+    if (Capacitor.getPlatform() !== 'web') {
+        try {
+          await Haptics.notification();
+        } catch (error) {
+          console.error('Haptic notification failed', error);
+        }
+    }
+  };
 
-  /**
-   * Vibración para éxito o confirmación.
-   */
-  const triggerSuccess = useCallback(() => vibrate([10, 30, 10]), [vibrate]);
+  // Función para una vibración simple (buena para selecciones)
+  const selection = async () => {
+    if (Capacitor.getPlatform() !== 'web') {
+        try {
+          await Haptics.selectionStart();
+        } catch (error) {
+          console.error('Haptic selection failed', error);
+        }
+    }
+  };
 
-  /**
-   * Vibración para errores o advertencias.
-   */
-  const triggerError = useCallback(() => vibrate([50, 30, 50]), [vibrate]);
-
-  /**
-   * Vibración de impacto.
-   * @param {'light' | 'medium' | 'heavy'} style
-   */
-  const triggerImpact = useCallback((style = 'medium') => {
-      const duration = style === 'light' ? 10 : style === 'medium' ? 20 : 40;
-      vibrate(duration);
-  }, [vibrate]);
-
-  return { vibrate, triggerSelection, triggerSuccess, triggerError, triggerImpact };
+  return {
+    impact,
+    notification,
+    selection,
+  };
 };
 
-export default useHaptic;
+// Exportamos una instancia del hook para un uso rápido y sencillo
+// Esto es opcional, pero permite usarlo sin necesidad de instanciarlo en cada componente
+export const hapticFeedback = {
+    impact: (style = ImpactStyle.Light) => {
+        if (Capacitor.getPlatform() !== 'web') Haptics.impact({ style }).catch(e => console.error(e));
+    },
+    notification: () => {
+        if (Capacitor.getPlatform() !== 'web') Haptics.notification().catch(e => console.error(e));
+    },
+    selection: () => {
+        if (Capacitor.getPlatform() !== 'web') Haptics.selectionStart().catch(e => console.error(e));
+    }
+}

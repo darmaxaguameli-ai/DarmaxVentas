@@ -11,7 +11,7 @@ import {
   MouseSensor,
   TouchSensor,
 } from "@dnd-kit/core";
-import useHaptic from '../../hooks/useHaptic';
+import { useHaptic } from '../../hooks/useHaptic';
 
 // --- Components for Step 2 (DND) ---
 

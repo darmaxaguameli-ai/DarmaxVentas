@@ -1,4 +1,4 @@
-import useHaptic from "../../hooks/useHaptic";
+import { useHaptic } from "../../hooks/useHaptic";
 
 const QuantityCard = ({
   name,

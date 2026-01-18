@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import Swal from 'sweetalert2';
+import { useHaptic } from '../../hooks/useHaptic';
 
 const StartDayModal = ({ onStartSession, hideTags = false }) => {
   const [amount, setAmount] = useState('');
   const [initialTags, setInitialTags] = useState('');
+  const { impact } = useHaptic();
 
   const handleStart = () => {
-    if (navigator.vibrate) navigator.vibrate(50); // Feedback táctil
+    impact(); // Feedback táctil
     
     const parsedAmount = parseFloat(amount);
     // If hiding tags, default to 0, otherwise parse input

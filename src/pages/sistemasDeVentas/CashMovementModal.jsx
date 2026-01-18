@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import Swal from 'sweetalert2';
+import { useHaptic } from '../../hooks/useHaptic';
 
 const TabButton = ({ active, onClick, children }) => (
     <button
@@ -18,6 +19,7 @@ const CashMovementModal = ({ isOpen, onClose, onSubmitTransaction }) => {
     const [activeTab, setActiveTab] = useState('retiro'); // 'retiro', 'cambio' ('ingreso' removed)
     const [amount, setAmount] = useState('');
     const [description, setDescription] = useState('');
+    const { impact } = useHaptic();
 
     if (!isOpen) return null;
 
@@ -30,7 +32,7 @@ const CashMovementModal = ({ isOpen, onClose, onSubmitTransaction }) => {
     };
 
     const handleSubmit = (type) => {
-        if (navigator.vibrate) navigator.vibrate(50); // Feedback táctil
+        impact(); // Feedback táctil
         const numericAmount = parseFloat(amount);
         if (isNaN(numericAmount) || numericAmount <= 0) {
             Swal.fire('Error', 'Por favor, introduce un monto válido.', 'error');

@@ -1,7 +1,10 @@
 // src/App.jsx
+import { useEffect } from "react";
 import { Routes, Route } from "react-router-dom";
-import { Toaster } from "sonner";
+import { Toaster, toast } from "sonner";
 import { ClientProvider } from "./pages/Client/context/ClientContext";
+import { Capacitor } from '@capacitor/core';
+import { PushNotifications } from '@capacitor/push-notifications';
 
 // Auth / landing
 import HomePage from "./pages/HomePage.jsx";
@@ -55,6 +58,70 @@ import MisPedidos from "./pages/Client/MisPedidos.jsx";
 import ScrollToTop from "./components/common/ScrollToTop.jsx";
 
 function App() {
+
+  // --- Push Notification Setup ---
+  const registerPush = () => {
+    // Solo se ejecuta en plataformas nativas (iOS/Android)
+    if (Capacitor.getPlatform() === 'web') {
+      return;
+    }
+
+    // 1. Solicitar permiso para recibir notificaciones
+    PushNotifications.requestPermissions().then(result => {
+      if (result.receive === 'granted') {
+        // Si el permiso es concedido, registrarse para recibir notificaciones
+        PushNotifications.register();
+      } else {
+        // El usuario no concedió el permiso
+        console.warn('Permiso de notificaciones no concedido.');
+      }
+    });
+
+    // 2. Evento que se dispara al registrarse exitosamente
+    PushNotifications.addListener('registration', (token) => {
+      console.info('Token de registro Push:', token.value);
+      //
+      // --- TAREA CRÍTICA ---
+      // Aquí debes enviar este `token.value` a tu servidor backend y
+      // asociarlo con el usuario que ha iniciado sesión.
+      // Ejemplo:
+      // apiClient.post('/api/user/save-fcm-token', { token: token.value });
+      //
+    });
+
+    // 3. Evento que se dispara si hay un error en el registro
+    PushNotifications.addListener('registrationError', (error) => {
+      console.error('Error en el registro de notificaciones:', JSON.stringify(error));
+    });
+
+    // 4. Evento que se dispara cuando se recibe una notificación y la app está en primer plano
+    PushNotifications.addListener('pushNotificationReceived', (notification) => {
+        console.log('Notificación Push recibida:', notification);
+        // Usamos el toaster que ya tienes para mostrar una alerta amigable
+        toast.info(notification.title, {
+            description: notification.body,
+            duration: 6000,
+        });
+    });
+
+    // 5. Evento que se dispara cuando el usuario TOCA la notificación
+    PushNotifications.addListener('pushNotificationActionPerformed', (notification) => {
+        console.log('Acción de notificación Push realizada:', notification);
+        // Ejemplo de cómo podrías redirigir al usuario a una página específica
+        // const url = notification.notification.data.url;
+        // if (url) {
+        //   navigate(url);
+        // }
+      },
+    );
+  }
+  // --- Fin de Push Notification Setup ---
+
+  // Ejecutar el registro de notificaciones cuando el componente se monta
+  useEffect(() => {
+    registerPush();
+  }, []);
+
   return (
     <ClientProvider>
       <Toaster richColors position="top-center" />

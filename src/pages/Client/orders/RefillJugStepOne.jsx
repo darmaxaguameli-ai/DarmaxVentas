@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import OrderLayout from "../../../layouts/OrderLayout";
 import QuantityCard from "../../../components/order/QuantityCard";
 import { useConfig } from "../../../context/ConfigContext";
+import { useHaptic } from "../../../hooks/useHaptic";
 
 const brandImageMap = {
   'ciel': '/img/garrafones/ciel.png',
@@ -23,6 +24,7 @@ const RefillJugStepOne = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { jugBrands: fetchedJugBrands, loading: configLoading, error: configError } = useConfig();
+  const { impact } = useHaptic();
   
   const [selectedJugs, setSelectedJugs] = useState([]);
 
@@ -70,6 +72,10 @@ const RefillJugStepOne = () => {
         return { ...p, featured: false };
       })
     );
+    // Trigger haptic feedback on increase
+    if (delta > 0) {
+      impact();
+    }
   };
 
   const handleContinue = () => {

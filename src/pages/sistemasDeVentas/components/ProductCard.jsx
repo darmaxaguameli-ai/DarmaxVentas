@@ -1,5 +1,5 @@
 import React from 'react';
-import useHaptic from '../../../hooks/useHaptic';
+import { useHaptic } from '../../../hooks/useHaptic';
 
 const ProductCard = ({ product, onProductSelect }) => {
     const hasImage = product.imageUrl && product.imageUrl.length > 0;

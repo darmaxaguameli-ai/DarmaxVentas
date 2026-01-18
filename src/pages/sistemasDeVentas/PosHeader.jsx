@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { formatDate } from '@/utils/formatters';
-import useHaptic from '../../hooks/useHaptic';
+import { useHaptic } from '../../hooks/useHaptic';
 import { useTheme } from '../../context/ThemeContext'; // Import Theme Context
 import { MdDarkMode, MdLightMode, MdLabelOff } from 'react-icons/md'; // Import Icons
 

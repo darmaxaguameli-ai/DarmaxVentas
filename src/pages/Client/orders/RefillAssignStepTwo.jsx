@@ -12,7 +12,7 @@ import {
 import OrderLayout from "../../../layouts/OrderLayout";
 import { useConfig } from "../../../context/ConfigContext";
 import { useAuth } from "../../../context/AuthContext";
-import useHaptic from "../../../hooks/useHaptic";
+import { useHaptic } from "../../../hooks/useHaptic";
 import "../../../animations.css";
 
 // ====================================================================

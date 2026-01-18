@@ -4,7 +4,7 @@ import { useAuth } from "../../../context/AuthContext";
 import { useClient } from "../context/ClientContext"; // Import useClient
 import ClientOrderHeader from "../../../components/ClientOrderHeader";
 import PriceTable from "../../../components/PriceTable";
-import useHaptic from "../../../hooks/useHaptic";
+import { useHaptic } from "../../../hooks/useHaptic";
 
 const OrderSelection = () => {
   const navigate = useNavigate();
