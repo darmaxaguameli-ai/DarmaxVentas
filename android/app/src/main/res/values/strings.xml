@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">SVDARMAX</string>
-    <string name="title_activity_main">SVDARMAX</string>
+    <string name="app_name">Purificadora Darmax</string>
+    <string name="title_activity_main">Purificadora Darmax</string>
     <string name="package_name">com.darmax.svdarmax</string>
     <string name="custom_url_scheme">com.darmax.svdarmax</string>
 </resources>

@@ -9,22 +9,22 @@ const QuantityCard = ({
   onDecrease,
   onCardClick,
 }) => {
-  const { triggerSelection } = useHaptic();
+  const { selection } = useHaptic();
 
   const handleCardClick = () => {
-    triggerSelection();
+    selection();
     if (onCardClick) onCardClick();
   };
 
   const handleDecrease = (e) => {
     e.stopPropagation();
-    triggerSelection();
+    selection();
     if (onDecrease) onDecrease();
   };
 
   const handleIncrease = (e) => {
     e.stopPropagation();
-    triggerSelection();
+    selection();
     if (onIncrease) onIncrease();
   };
 
