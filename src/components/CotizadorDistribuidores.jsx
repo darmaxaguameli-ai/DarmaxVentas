@@ -48,6 +48,22 @@ function money(n) {
   return `$${num.toFixed(2)}`;
 }
 
+const SectionTitle = ({ children }) => (
+    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 border-b border-gray-200 dark:border-gray-700 pb-2">
+        {children}
+    </h3>
+);
+
+const InputGroup = ({ label, ...props }) => (
+    <div>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{label}</label>
+        <input
+            {...props}
+            className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all"
+        />
+    </div>
+);
+
 export default function CotizadorDistribuidores() {
   const [mode, setMode] = useState("cotizacion"); // cotizacion | pedido
   const [providerFilter, setProviderFilter] = useState("ferisa"); // ferisa | china
@@ -147,36 +163,70 @@ export default function CotizadorDistribuidores() {
         </div>
       </div>
 
-      {/* Datos generales */}
-      <div className="grid md:grid-cols-2 gap-4">
-        <div className="border rounded-2xl p-4 space-y-3">
-          <div className="font-semibold">Datos</div>
+      {/* Paneles de Configuración y Catálogo */}
+      <div className="grid md:grid-cols-2 gap-6">
+        <div className="space-y-6">
+          {/* Datos generales */}
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow p-6 border border-gray-200 dark:border-gray-700">
+            <SectionTitle>Datos Generales</SectionTitle>
+            <div className="space-y-4">
+              <InputGroup
+                label="Cliente"
+                value={cliente}
+                onChange={(e) => setCliente(e.target.value)}
+                placeholder="Ej: SOLUCIONES ESTRATEGICAS MAXDAR"
+              />
+              <InputGroup
+                label="Referencia / Folio interno"
+                value={referencia}
+                onChange={(e) => setReferencia(e.target.value)}
+                placeholder="Ej: Pedido #, proyecto, etc."
+              />
+            </div>
+          </div>
 
-          <label className="block">
-            <div className="text-sm text-black/70 mb-1">Cliente</div>
-            <input
-              className="w-full border rounded-lg px-3 py-2"
-              value={cliente}
-              onChange={(e) => setCliente(e.target.value)}
-              placeholder="Ej: SOLUCIONES ESTRATEGICAS MAXDAR"
-            />
-          </label>
-
-          <label className="block">
-            <div className="text-sm text-black/70 mb-1">Referencia / Folio interno</div>
-            <input
-              className="w-full border rounded-lg px-3 py-2"
-              value={referencia}
-              onChange={(e) => setReferencia(e.target.value)}
-              placeholder="Ej: Pedido #, proyecto, etc."
-            />
-          </label>
+          {/* Seleccionados */}
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow p-6 border border-gray-200 dark:border-gray-700">
+            <SectionTitle>Productos Seleccionados</SectionTitle>
+            {selectedExpanded.length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-gray-400 dark:text-gray-500">Aún no agregas productos.</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {selectedExpanded.map((s) => (
+                  <div key={s.productId} className="flex items-center justify-between gap-3 p-2 rounded-lg bg-gray-50 dark:bg-gray-900/50">
+                    <div className="min-w-0">
+                      <div className="font-medium truncate text-gray-800 dark:text-gray-100">{s.product.internoNombre}</div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400">{s.product.unidad}</div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        min={1}
+                        className="w-20 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1 text-sm text-center"
+                        value={s.qty}
+                        onChange={(e) => setQty(s.productId, e.target.value)}
+                      />
+                      <button
+                        className="flex items-center justify-center h-8 w-8 rounded-lg border border-red-300 dark:border-red-700 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
+                        onClick={() => removeProduct(s.productId)}
+                        title="Quitar"
+                      >
+                         <span className="material-symbols-outlined text-base">delete</span>
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
-
+        
         {/* Selector de productos */}
-        <div className="border rounded-2xl p-4">
-          <div className="font-semibold mb-3">Catálogo (interno → {providerLabel})</div>
-          <div className="space-y-2">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow p-6 border border-gray-200 dark:border-gray-700">
+          <SectionTitle>Catálogo (interno → {providerLabel})</SectionTitle>
+          <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-2">
             {PRODUCTS.map((p) => {
               const isSelected = selected.some((x) => x.productId === p.id);
               const prov = p.proveedores?.[providerFilter];
@@ -185,10 +235,10 @@ export default function CotizadorDistribuidores() {
               const precio = prov?.precio ?? 0;
 
               return (
-                <div key={p.id} className="flex items-center justify-between gap-3">
+                <div key={p.id} className="flex items-center justify-between gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
                   <div className="min-w-0">
-                    <div className="font-medium truncate">{p.internoNombre}</div>
-                    <div className="text-xs text-black/60 truncate">
+                    <div className="font-medium truncate text-gray-800 dark:text-gray-100">{p.internoNombre}</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
                       {clave ? `${clave} · ` : ""}
                       {nombre}
                       {" · "}
@@ -196,7 +246,7 @@ export default function CotizadorDistribuidores() {
                     </div>
                   </div>
                   <button
-                    className={`px-3 py-1.5 rounded-lg border ${
+                    className={`btn-secondary text-sm ${
                       isSelected ? "opacity-50 cursor-not-allowed" : ""
                     }`}
                     disabled={isSelected}
@@ -211,44 +261,10 @@ export default function CotizadorDistribuidores() {
         </div>
       </div>
 
-      {/* Seleccionados */}
-      <div className="border rounded-2xl p-4">
-        <div className="font-semibold mb-3">Seleccionados</div>
-        {selectedExpanded.length === 0 ? (
-          <div className="text-sm text-black/60">Aún no agregas productos.</div>
-        ) : (
-          <div className="space-y-2">
-            {selectedExpanded.map((s) => (
-              <div key={s.productId} className="flex items-center justify-between gap-2">
-                <div className="min-w-0">
-                  <div className="font-medium truncate">{s.product.internoNombre}</div>
-                  <div className="text-xs text-black/60">{s.product.unidad}</div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="number"
-                    min={1}
-                    className="w-24 border rounded-lg px-2 py-1"
-                    value={s.qty}
-                    onChange={(e) => setQty(s.productId, e.target.value)}
-                  />
-                  <button
-                    className="px-3 py-1.5 rounded-lg border"
-                    onClick={() => removeProduct(s.productId)}
-                  >
-                    Quitar
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
       {/* Hoja por proveedor seleccionado */}
       <div className="space-y-10">
         {groupedByProvider.length === 0 ? (
-          <div className="text-sm text-black/60">Selecciona productos para generar la hoja.</div>
+          <div className="text-sm text-gray-500 dark:text-gray-400 text-center py-8">Selecciona productos para generar la hoja.</div>
         ) : (
           groupedByProvider.map(({ providerId, items }) => {
             const total = items.reduce((acc, it) => acc + (it.precio || 0) * it.qty, 0);
