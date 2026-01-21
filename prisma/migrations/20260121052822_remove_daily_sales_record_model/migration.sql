@@ -1,6 +1,3 @@
--- CreateSchema
-CREATE SCHEMA IF NOT EXISTS "public";
-
 -- CreateEnum
 CREATE TYPE "UserRole" AS ENUM ('ADMIN', 'VENDEDOR', 'REPARTIDOR', 'CLIENTE');
 
@@ -26,7 +23,7 @@ CREATE TYPE "EstatusEmpleado" AS ENUM ('ACTIVO', 'INACTIVO');
 CREATE TYPE "TipoTerminacion" AS ENUM ('RENUNCIA', 'DESPIDO', 'LIQUIDACION');
 
 -- CreateEnum
-CREATE TYPE "TipoDocumento" AS ENUM ('INE', 'CONTRATO', 'COMPROBANTE_DOMICILIO', 'OTRO');        
+CREATE TYPE "TipoDocumento" AS ENUM ('INE', 'CONTRATO', 'COMPROBANTE_DOMICILIO', 'OTRO');
 
 -- CreateTable
 CREATE TABLE "WaterType" (
@@ -111,6 +108,10 @@ CREATE TABLE "User" (
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "storeId" TEXT,
     "loyaltyPoints" INTEGER NOT NULL DEFAULT 0,
+    "resetPasswordToken" TEXT,
+    "resetPasswordExpires" TIMESTAMP(3),
+    "emailVerified" TIMESTAMP(3),
+    "verificationToken" TEXT,
 
     CONSTRAINT "User_pkey" PRIMARY KEY ("id")
 );
@@ -189,6 +190,8 @@ CREATE TABLE "SesionCaja" (
     "closingBalance" DOUBLE PRECISION,
     "expectedBalance" DOUBLE PRECISION,
     "estado" "EstadoSesionCaja" NOT NULL DEFAULT 'ABIERTA',
+    "initialTags" INTEGER NOT NULL DEFAULT 0,
+    "damagedTags" INTEGER NOT NULL DEFAULT 0,
     "vendedorId" TEXT NOT NULL,
     "storeId" TEXT NOT NULL,
 
@@ -226,54 +229,9 @@ CREATE TABLE "Ingreso" (
     "amount" DOUBLE PRECISION NOT NULL,
     "date" TIMESTAMP(3) NOT NULL,
     "pedidoId" TEXT,
-    "dailySalesRecordId" TEXT,
     "storeId" TEXT,
 
     CONSTRAINT "Ingreso_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "DailySalesRecord" (
-    "id" TEXT NOT NULL,
-    "date" TIMESTAMP(3) NOT NULL,
-    "dayOfWeek" TEXT NOT NULL,
-    "mostradorColor" INTEGER NOT NULL DEFAULT 0,
-    "mostradorBon" INTEGER NOT NULL DEFAULT 0,
-    "mostradorEpura" INTEGER NOT NULL DEFAULT 0,
-    "mostradorCiel" INTEGER NOT NULL DEFAULT 0,
-    "mostradorElectro" INTEGER NOT NULL DEFAULT 0,
-    "mostrador10Lts" INTEGER NOT NULL DEFAULT 0,
-    "mostradorVtaG" INTEGER NOT NULL DEFAULT 0,
-    "mostradorTotal" DOUBLE PRECISION NOT NULL DEFAULT 0,
-    "pedidosColor" INTEGER NOT NULL DEFAULT 0,
-    "pedidosBon" INTEGER NOT NULL DEFAULT 0,
-    "pedidosEpura" INTEGER NOT NULL DEFAULT 0,
-    "pedidosCiel" INTEGER NOT NULL DEFAULT 0,
-    "pedidosElectro" INTEGER NOT NULL DEFAULT 0,
-    "pedidos10Lts" INTEGER NOT NULL DEFAULT 0,
-    "pedidosVtaG" INTEGER NOT NULL DEFAULT 0,
-    "pedidosTotal" DOUBLE PRECISION NOT NULL DEFAULT 0,
-    "negociosColor" INTEGER NOT NULL DEFAULT 0,
-    "negociosBon" INTEGER NOT NULL DEFAULT 0,
-    "negociosEpura" INTEGER NOT NULL DEFAULT 0,
-    "negociosCiel" INTEGER NOT NULL DEFAULT 0,
-    "negociosElectro" INTEGER NOT NULL DEFAULT 0,
-    "negocios10Lts" INTEGER NOT NULL DEFAULT 0,
-    "negociosVtaG" INTEGER NOT NULL DEFAULT 0,
-    "negociosTotal" DOUBLE PRECISION NOT NULL DEFAULT 0,
-    "totalTipoGarrafonColor" INTEGER NOT NULL DEFAULT 0,
-    "totalTipoGarrafonBon" INTEGER NOT NULL DEFAULT 0,
-    "totalTipoGarrafonEpura" INTEGER NOT NULL DEFAULT 0,
-    "totalTipoGarrafonCiel" INTEGER NOT NULL DEFAULT 0,
-    "totalTipoGarrafonElectro" INTEGER NOT NULL DEFAULT 0,
-    "totalTipoGarrafon10Lts" INTEGER NOT NULL DEFAULT 0,
-    "totalTipoGarrafonVtaG" INTEGER NOT NULL DEFAULT 0,
-    "totalGarrafones" INTEGER NOT NULL DEFAULT 0,
-    "totalImporte" DOUBLE PRECISION NOT NULL DEFAULT 0,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
-
-    CONSTRAINT "DailySalesRecord_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -395,12 +353,6 @@ CREATE UNIQUE INDEX "TransaccionCaja_pedidoId_key" ON "TransaccionCaja"("pedidoI
 CREATE UNIQUE INDEX "Ingreso_pedidoId_key" ON "Ingreso"("pedidoId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Ingreso_dailySalesRecordId_key" ON "Ingreso"("dailySalesRecordId");
-
--- CreateIndex
-CREATE UNIQUE INDEX "DailySalesRecord_date_key" ON "DailySalesRecord"("date");
-
--- CreateIndex
 CREATE UNIQUE INDEX "Empleado_emailPersonal_key" ON "Empleado"("emailPersonal");
 
 -- CreateIndex
@@ -468,9 +420,6 @@ ALTER TABLE "Gasto" ADD CONSTRAINT "Gasto_storeId_fkey" FOREIGN KEY ("storeId") 
 
 -- AddForeignKey
 ALTER TABLE "Ingreso" ADD CONSTRAINT "Ingreso_pedidoId_fkey" FOREIGN KEY ("pedidoId") REFERENCES "Pedido"("id") ON DELETE SET NULL ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "Ingreso" ADD CONSTRAINT "Ingreso_dailySalesRecordId_fkey" FOREIGN KEY ("dailySalesRecordId") REFERENCES "DailySalesRecord"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Ingreso" ADD CONSTRAINT "Ingreso_storeId_fkey" FOREIGN KEY ("storeId") REFERENCES "Store"("id") ON DELETE SET NULL ON UPDATE CASCADE;

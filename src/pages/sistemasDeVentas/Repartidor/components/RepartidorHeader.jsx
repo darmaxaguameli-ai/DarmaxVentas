@@ -26,8 +26,8 @@ const RepartidorHeader = ({
   const formattedDate = format(currentTime, 'd MMM', { locale: es });
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 h-14 lg:h-20 transition-all">
-      <div className="h-full px-3 lg:px-6 flex items-center justify-between">
+    <header className="fixed top-0 left-0 right-0 z-50 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-b border-gray-200 dark:border-gray-700 h-14 lg:h-20 transition-all">
+      <div className="h-full px-3 lg:px-6 flex items-center justify-between pt-[env(safe-area-inset-top)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]">
         
         {/* Logo & User Info */}
         <div className="flex items-center gap-3 lg:gap-4">

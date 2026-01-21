@@ -28,12 +28,6 @@ import {
   createExpense as apiCreateExpense,
   updateExpense as apiUpdateExpense,
   deleteExpense as apiDeleteExpense,
-  // Daily Sales
-  fetchDailySalesRecords as apiFetchDailySalesRecords,
-  createDailySalesRecord as apiCreateDailySalesRecord,
-  createDailySalesRecordsBulk as apiCreateDailySalesRecordsBulk,
-  updateDailySalesRecord as apiUpdateDailySalesRecord,
-  deleteDailySalesRecord as apiDeleteDailySalesRecord,
   // Business Config
   fetchWaterTypes as apiFetchWaterTypes,
   createWaterType as apiCreateWaterType,
@@ -78,7 +72,6 @@ const initialState = {
   users: [],
   income: [],
   expenses: [],
-  dailySalesRecords: [],
   waterTypes: [],
   servicePrices: [],
   jugBrands: [],
@@ -102,7 +95,6 @@ const gestionReducer = (state, action) => {
         users: action.payload.users || state.users,
         income: action.payload.income || state.income,
         expenses: action.payload.expenses || state.expenses,
-        dailySalesRecords: action.payload.dailySalesRecords || state.dailySalesRecords,
         waterTypes: action.payload.waterTypes || state.waterTypes,
         servicePrices: action.payload.servicePrices || state.servicePrices,
         jugBrands: action.payload.jugBrands || state.jugBrands,
@@ -163,15 +155,15 @@ export const GestionProvider = ({ children }) => {
     dispatch({ type: "SET_LOADING", payload: true });
     try {
       const [
-        inventory, users, income, expenses, dailySalesRecords,
+        inventory, users, income, expenses,
         waterTypes, servicePrices, jugBrands, empleados, franchises, stores
       ] = await Promise.all([
-        apiFetchProducts(), apiFetchUsers(), apiFetchIncomes(), apiFetchExpenses(), apiFetchDailySalesRecords(),
+        apiFetchProducts(), apiFetchUsers(), apiFetchIncomes(), apiFetchExpenses(),
         apiFetchWaterTypes(), apiFetchServicePrices(), apiFetchJugBrands(), apiFetchEmpleados(), apiFetchFranchises(), apiFetchStores()
       ]);
       dispatch({
         type: "SET_INITIAL_DATA",
-        payload: { inventory, users, income, expenses, dailySalesRecords, waterTypes, servicePrices, jugBrands, empleados, franchises, stores },
+        payload: { inventory, users, income, expenses, waterTypes, servicePrices, jugBrands, empleados, franchises, stores },
       });
     } catch (error) {
       dispatch({ type: "SET_ERROR", payload: error.message });
@@ -246,51 +238,6 @@ export const GestionProvider = ({ children }) => {
   const franchiseActions = createCrudActions('Franchise', { createFranchise: apiCreateFranchise, updateFranchise: apiUpdateFranchise, deleteFranchise: apiDeleteFranchise });
   const storeActions = createCrudActions('Store', { createStore: apiCreateStore, updateStore: apiUpdateStore, deleteStore: apiDeleteStore });
 
-  // Custom actions that don't fit the generic CRUD pattern
-  const addDailySalesRecord = useCallback(async (recordData) => {
-    try {
-      await apiCreateDailySalesRecord(recordData);
-      await fetchManagementData();
-      Swal.fire('Éxito', 'Registro de ventas diarias añadido exitosamente.', 'success');
-    } catch (error) {
-      Swal.fire('Error', `Error al añadir registro de ventas diarias: ${error.message}`, 'error');
-      throw error;
-    }
-  }, [fetchManagementData]);
-
-  const addDailySalesRecordsBulk = useCallback(async (recordsData) => {
-    try {
-      const response = await apiCreateDailySalesRecordsBulk(recordsData);
-      await fetchManagementData(); 
-      Swal.fire('Éxito', response.message || 'Registros de ventas diarias importados exitosamente.', 'success');
-    } catch (error) {
-      Swal.fire('Error', `Error al importar registros de ventas diarias: ${error.message}`, 'error');
-      throw error;
-    }
-  }, [fetchManagementData]);
-
-  const updateDailySalesRecord = useCallback(async (id, recordData) => {
-    try {
-      await apiUpdateDailySalesRecord(id, recordData);
-      await fetchManagementData();
-      Swal.fire('Éxito', 'Registro de ventas diarias actualizado exitosamente.', 'success');
-    } catch (error) {
-      Swal.fire('Error', `Error al actualizar registro de ventas diarias: ${error.message}`, 'error');
-      throw error;
-    }
-  }, [fetchManagementData]);
-
-  const deleteDailySalesRecord = useCallback(async (id) => {
-    try {
-      await apiDeleteDailySalesRecord(id);
-      await fetchManagementData();
-      Swal.fire('Éxito', 'Registro de ventas diarias eliminado exitosamente.', 'success');
-    } catch (error) {
-      Swal.fire('Error', `Error al eliminar registro de ventas diarias: ${error.message}`, 'error');
-      throw error;
-    }
-  }, [fetchManagementData]);
-
   const value = {
     state,
     fetchManagementData,
@@ -304,10 +251,6 @@ export const GestionProvider = ({ children }) => {
     ...empleadoActions,
     ...franchiseActions,
     ...storeActions,
-    addDailySalesRecord,
-    addDailySalesRecordsBulk,
-    updateDailySalesRecord,
-    deleteDailySalesRecord,
   };
 
   return (

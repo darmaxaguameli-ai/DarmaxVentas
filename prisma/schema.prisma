@@ -338,54 +338,10 @@ model Ingreso {
   date               DateTime
   pedido             Pedido?           @relation("PedidoToIngreso", fields: [pedidoId], references: [id])
   pedidoId           String?           @unique
-  dailySalesRecord   DailySalesRecord? @relation("DailySalesRecordToIngreso", fields: [dailySalesRecordId], references: [id])
-  dailySalesRecordId String?           @unique
   
   // Relación con la sucursal
   store              Store?            @relation(fields: [storeId], references: [id])
   storeId            String?
-}
-
-model DailySalesRecord {
-  id                       String   @id @default(cuid())
-  date                     DateTime @unique
-  dayOfWeek                String
-  mostradorColor           Int      @default(0)
-  mostradorBon             Int      @default(0)
-  mostradorEpura           Int      @default(0)
-  mostradorCiel            Int      @default(0)
-  mostradorElectro         Int      @default(0)
-  mostrador10Lts           Int      @default(0)
-  mostradorVtaG            Int      @default(0)
-  mostradorTotal           Float    @default(0)
-  pedidosColor             Int      @default(0)
-  pedidosBon               Int      @default(0)
-  pedidosEpura             Int      @default(0)
-  pedidosCiel              Int      @default(0)
-  pedidosElectro           Int      @default(0)
-  pedidos10Lts             Int      @default(0)
-  pedidosVtaG              Int      @default(0)
-  pedidosTotal             Float    @default(0)
-  negociosColor            Int      @default(0)
-  negociosBon              Int      @default(0)
-  negociosEpura            Int      @default(0)
-  negociosCiel             Int      @default(0)
-  negociosElectro          Int      @default(0)
-  negocios10Lts            Int      @default(0)
-  negociosVtaG             Int      @default(0)
-  negociosTotal            Float    @default(0)
-  totalTipoGarrafonColor   Int      @default(0)
-  totalTipoGarrafonBon     Int      @default(0)
-  totalTipoGarrafonEpura   Int      @default(0)
-  totalTipoGarrafonCiel    Int      @default(0)
-  totalTipoGarrafonElectro Int      @default(0)
-  totalTipoGarrafon10Lts   Int      @default(0)
-  totalTipoGarrafonVtaG    Int      @default(0)
-  totalGarrafones          Int      @default(0)
-  totalImporte             Float    @default(0)
-  createdAt                DateTime @default(now())
-  updatedAt                DateTime @updatedAt
-  ingreso                  Ingreso? @relation("DailySalesRecordToIngreso")
 }
 
 // =====================================================================

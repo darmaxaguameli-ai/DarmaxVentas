@@ -26,7 +26,7 @@ const PosHeader = ({ isDashboard, onNewOrderClick, onDashboardClick, onLogout, i
   });
 
   return (
-    <div className="flex flex-row justify-between items-center p-2 sm:p-4 bg-white dark:bg-gray-900 shadow-sm border-b border-gray-200 dark:border-gray-800 sticky top-0 z-30 w-full transition-all duration-300 h-16 sm:h-auto">
+    <div className="flex flex-row justify-between items-center p-2 sm:p-4 bg-white dark:bg-gray-900 shadow-sm border-b border-gray-200 dark:border-gray-800 sticky top-0 z-30 w-full transition-all duration-300 h-16 sm:h-auto pt-[calc(0.5rem+env(safe-area-inset-top))] sm:pt-[calc(1rem+env(safe-area-inset-top))] pl-[calc(0.5rem+env(safe-area-inset-left))] sm:pl-[calc(1rem+env(safe-area-inset-left))] pr-[calc(0.5rem+env(safe-area-inset-right))] sm:pr-[calc(1rem+env(safe-area-inset-right))]">
       <div className="flex flex-col min-w-0">
         <h1 className="text-lg sm:text-3xl font-black text-gray-800 dark:text-white truncate tracking-tight leading-none">
           {isDashboard ? 'Punto de Venta' : 'Nuevo Pedido'}
