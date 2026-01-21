@@ -38,6 +38,7 @@ import EmpleadoDetalle from "./pages/Gestion/EmpleadoDetalle.jsx";
 import Configuracion from "./pages/Gestion/Configuracion.jsx";
 import ControlVentasDiarias from "./pages/Gestion/ControlVentasDiarias.jsx";
 import DarmaxQuote from "./pages/Gestion/DarmaxQuote.jsx";
+import CotizadorDistribuidoresPage from "./pages/Gestion/CotizadorDistribuidoresPage.jsx";
 
 // Cliente – flujo de pedidos
 import OrderSelection from "./pages/Client/orders/OrderSelection.jsx";
@@ -168,6 +169,7 @@ function App() {
           <Route path="configuracion" element={<Configuracion />} />
           <Route path="control-ventas-diarias" element={<ControlVentasDiarias />} />
           <Route path="cotizador" element={<DarmaxQuote />} />
+          <Route path="cotizador-dist" element={<CotizadorDistribuidoresPage />} />
         </Route>
 
         {/* Cliente – flujo de pedidos */}
