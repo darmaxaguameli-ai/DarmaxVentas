@@ -943,12 +943,19 @@ app.get('/api/incomes', verifyToken, async (req, res) => {
 
     const incomes = await prisma.ingreso.findMany({ 
         where,
+        include: {
+            store: true,
+        },
         orderBy: { date: 'desc' }
     });
     res.json(incomes);
   } catch (error) {
     console.error('Error fetching incomes:', error);
-    res.status(500).json({ error: 'Error fetching incomes' });
+    res.status(500).json({ 
+        error: 'Error fetching incomes',
+        details: error.message,
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
   }
 });
 

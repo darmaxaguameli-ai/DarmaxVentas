@@ -17,7 +17,7 @@ const menuStructure = [
     icon: "storefront",
     children: [
       { name: "Inventario", path: "inventario", icon: "inventory_2" },
-      { name: "Cotizador Dist.", path: "cotizador-dist", icon: "local_shipping" },
+      { name: "Cotizador Dist.", path: "cotizador-distribuidores", icon: "local_shipping" },
     ],
   },
   {

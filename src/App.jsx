@@ -36,6 +36,7 @@ import Empleados from "./pages/Gestion/Empleados.jsx";
 import RecursosHumanos from "./pages/Gestion/RecursosHumanos.jsx";
 import EmpleadoDetalle from "./pages/Gestion/EmpleadoDetalle.jsx";
 import Configuracion from "./pages/Gestion/Configuracion.jsx";
+import CotizadorDistribuidoresPage from "./pages/Gestion/CotizadorDistribuidoresPage.jsx";
 import DarmaxQuote from "./pages/Gestion/DarmaxQuote.jsx";
 
 // Cliente – flujo de pedidos
@@ -166,6 +167,7 @@ function App() {
           <Route path="recursos-humanos/:id" element={<EmpleadoDetalle />} />
           <Route path="configuracion" element={<Configuracion />} />
           <Route path="cotizador" element={<DarmaxQuote />} />
+          <Route path="cotizador-distribuidores" element={<CotizadorDistribuidoresPage />} />
         </Route>
 
         {/* Cliente – flujo de pedidos */}
