@@ -3,6 +3,14 @@ import { PRODUCTS_BY_PROVIDER, PROVIDERS } from "../catalog/catalogIndex";
 
 const LETTER_BG_URL = "/template/coti_darm.jpg";
 
+const todayMX = () => {
+  const d = new Date();
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const yy = d.getFullYear();
+  return `${dd}/${mm}/${yy}`;
+};
+
 function HojaA4({ children }) {
   return (
     <div className="w-full flex justify-center">
@@ -49,7 +57,7 @@ function money(n) {
 }
 
 const SectionTitle = ({ children }) => (
-    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 border-b border-gray-200 dark:border-gray-700 pb-2">
+    <h3 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider mb-3 border-b border-gray-100 dark:border-gray-700 pb-2">
         {children}
     </h3>
 );
@@ -76,6 +84,8 @@ export default function CotizadorDistribuidores() {
   const [selected, setSelected] = useState([]); // [{productId, qty}]
   const [cliente, setCliente] = useState("");
   const [referencia, setReferencia] = useState("");
+  const [folio, setFolio] = useState("");
+  const [fecha, setFecha] = useState(todayMX());
 
   const selectedExpanded = useMemo(() => {
     const byId = Object.fromEntries(PRODUCTS.map((p) => [p.id, p]));
@@ -129,9 +139,9 @@ export default function CotizadorDistribuidores() {
     <div className="w-full max-w-6xl mx-auto p-4 space-y-6">
       <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Cotizador · {providerLabel}</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Cotizador para Distribuidores</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400">
-            Cotización muestra precios. Pedido oculta precios (opcional).
+            Cotización ({providerLabel})
           </p>
         </div>
 
@@ -141,8 +151,8 @@ export default function CotizadorDistribuidores() {
             value={mode}
             onChange={(e) => setMode(e.target.value)}
           >
-            <option value="cotizacion">Cotización (con precios)</option>
-            <option value="pedido">Pedido (sin precios)</option>
+            <option value="cotizacion">Modo: Cotización (con precios)</option>
+            <option value="pedido">Modo: Pedido (sin precios)</option>
           </select>
 
           <select
@@ -156,7 +166,7 @@ export default function CotizadorDistribuidores() {
           >
             {PROVIDERS.map((p) => (
               <option key={p.id} value={p.id}>
-                {p.label}
+                Proveedor: {p.label}
               </option>
             ))}
           </select>
@@ -167,26 +177,37 @@ export default function CotizadorDistribuidores() {
       <div className="grid md:grid-cols-2 gap-6">
         <div className="space-y-6">
           {/* Datos generales */}
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow p-6 border border-gray-200 dark:border-gray-700">
-            <SectionTitle>Datos Generales</SectionTitle>
-            <div className="space-y-4">
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700">
+            <SectionTitle>Información General</SectionTitle>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <InputGroup
                 label="Cliente"
                 value={cliente}
                 onChange={(e) => setCliente(e.target.value)}
-                placeholder="Ej: SOLUCIONES ESTRATEGICAS MAXDAR"
+                placeholder="Ej: SOLUCIONES ESTRATEGICAS"
               />
               <InputGroup
-                label="Referencia / Folio interno"
+                label="Referencia"
                 value={referencia}
                 onChange={(e) => setReferencia(e.target.value)}
-                placeholder="Ej: Pedido #, proyecto, etc."
+                placeholder="Ej: Pedido #, proyecto"
+              />
+              <InputGroup
+                label="Folio (opcional)"
+                value={folio}
+                onChange={(e) => setFolio(e.target.value)}
+                placeholder="Ej: 00123"
+              />
+              <InputGroup
+                label="Fecha"
+                value={fecha}
+                onChange={(e) => setFecha(e.target.value)}
               />
             </div>
           </div>
 
           {/* Seleccionados */}
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow p-6 border border-gray-200 dark:border-gray-700">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-6 border border-gray-200 dark:border-gray-700">
             <SectionTitle>Productos Seleccionados</SectionTitle>
             {selectedExpanded.length === 0 ? (
               <div className="text-center py-8">
@@ -224,7 +245,7 @@ export default function CotizadorDistribuidores() {
         </div>
         
         {/* Selector de productos */}
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow p-6 border border-gray-200 dark:border-gray-700">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-6 border border-gray-200 dark:border-gray-700">
           <SectionTitle>Catálogo (interno → {providerLabel})</SectionTitle>
           <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-2">
             {PRODUCTS.map((p) => {
@@ -262,7 +283,7 @@ export default function CotizadorDistribuidores() {
       </div>
 
       {/* Hoja por proveedor seleccionado */}
-      <div className="space-y-10">
+      <div className="space-y-10 pt-10">
         {groupedByProvider.length === 0 ? (
           <div className="text-sm text-gray-500 dark:text-gray-400 text-center py-8">Selecciona productos para generar la hoja.</div>
         ) : (
@@ -271,7 +292,37 @@ export default function CotizadorDistribuidores() {
 
             return (
               <HojaA4 key={providerId}>
-                <div className="h-full grid grid-rows-3 gap-4">
+                {/* Absolute positioned header elements */}
+                <div
+                  className="absolute text-white"
+                  style={{ top: "13mm", right: "18mm" }}
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-sm">Folio:</span>
+                    <span className="text-sm">{folio ? String(folio).padStart(4, '0') : "N/A"}</span>
+                  </div>
+                </div>
+
+                <div
+                  className="absolute"
+                  style={{ top: "35mm", right: "18mm" }}
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-sm">Fecha:</span>
+                    <span className="text-sm">{fecha}</span>
+                  </div>
+                </div>
+
+                <div
+                  className="absolute"
+                  style={{ top: "15mm", left: "55mm" }}
+                >
+                  <h1 className="text-xl font-bold">Cotización</h1>
+                  <h2 className="text-lg">Distribuidores</h2>
+                </div>
+
+
+                <div className="h-full grid grid-rows-3 gap-4 pt-16">
                   <Seccion
                     titulo={`1) Datos generales · ${
                       mode === "cotizacion" ? "Cotización" : "Pedido"
@@ -285,10 +336,6 @@ export default function CotizadorDistribuidores() {
                       <div>
                         <div className="text-xs text-black/60">Referencia</div>
                         <div className="font-medium">{referencia || "____________________"}</div>
-                      </div>
-                      <div>
-                        <div className="text-xs text-black/60">Fecha</div>
-                        <div className="font-medium">{new Date().toLocaleDateString()}</div>
                       </div>
                     </div>
                   </Seccion>
