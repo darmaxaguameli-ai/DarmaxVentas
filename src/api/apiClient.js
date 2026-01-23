@@ -162,6 +162,7 @@ export const fetchCotizacionByFolio = (folio) => apiClient.get(`/cotizaciones/fo
 // ====================================================================
 export const createSolicitud = (data) => apiClient.post('/solicitudes', data).then(res => res.data);
 export const fetchSolicitud = (id) => apiClient.get(`/solicitudes/${id}`).then(res => res.data);
+export const fetchSolicitudByFolio = (folio) => apiClient.get(`/solicitudes/folio/${folio}`).then(res => res.data);
 
 
 // ====================================================================

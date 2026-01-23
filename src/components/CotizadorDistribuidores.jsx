@@ -3,7 +3,7 @@ import { PRODUCTS_BY_PROVIDER, PROVIDERS } from "../catalog/catalogIndex";
 import { PDFDownloadLink, PDFViewer } from "@react-pdf/renderer";
 import CotizadorDistribuidoresPDF from "../pages/Gestion/components/pdf/CotizadorDistribuidoresPDF";
 import Swal from "sweetalert2";
-import { createSolicitud } from "@/api/apiClient";
+import { createSolicitud, fetchSolicitudByFolio } from "@/api/apiClient";
 
 const todayMX = () => {
   const d = new Date();
@@ -103,6 +103,7 @@ export default function CotizadorDistribuidores() {
   const [searchTerm, setSearchTerm] = useState("");
 
   const handleProviderChange = (e) => {
+    setSavedSolicitud(null);
     setProviderFilter(e.target.value);
     setItemsCotizacion([]); // Limpiar para evitar inconsistencias
   };
@@ -139,6 +140,7 @@ export default function CotizadorDistribuidores() {
 
   const [savedSolicitud, setSavedSolicitud] = useState(null); // Almacena la solicitud guardada con folio
   const [isSaving, setIsSaving] = useState(false);
+  const [searchFolio, setSearchFolio] = useState("");
 
   const [billingInfo, setBillingInfo] = useState({
     nombre: "SOLUCIONES ESTRATEGICAS MAXDAR",
@@ -148,6 +150,7 @@ export default function CotizadorDistribuidores() {
   });
 
   const updateCotizacionItem = (id, field, value) => {
+    setSavedSolicitud(null);
     setItemsCotizacion((prev) =>
       prev.map((item) =>
         item.id === id ? { ...item, [field]: value } : item
@@ -156,6 +159,7 @@ export default function CotizadorDistribuidores() {
   };
   
   const handleAddToQuote = (productId) => {
+    setSavedSolicitud(null);
     const existingItem = itemsCotizacion.find(item => item.productId === productId);
     if (existingItem) {
         updateCotizacionItem(existingItem.id, 'qty', existingItem.qty + 1);
@@ -165,6 +169,7 @@ export default function CotizadorDistribuidores() {
   };
 
   const removeCotizacionItem = (id) => {
+    setSavedSolicitud(null);
     setItemsCotizacion((prev) => prev.filter((item) => item.id !== id));
   };
 
@@ -207,10 +212,38 @@ export default function CotizadorDistribuidores() {
   }, [expandedItemsCotizacion]);
 
   const handleBillingInfoChange = (field) => (e) => {
+    setSavedSolicitud(null);
     setBillingInfo((prev) => ({
       ...prev,
       [field]: e.target.value,
     }));
+  };
+
+  const handleFetchSolicitud = async () => {
+    if (!searchFolio) {
+      Swal.fire("Error", "Por favor, ingrese un número de folio.", "error");
+      return;
+    }
+    try {
+      const solicitud = await fetchSolicitudByFolio(searchFolio);
+      setFecha(new Date(solicitud.fecha).toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' }));
+      setBillingInfo(solicitud.billingInfo);
+      setNotes(solicitud.notes);
+      setProviderFilter(solicitud.providerLabel.toLowerCase()); // Assuming providerLabel is the id
+      
+      const newItems = solicitud.items.map(item => ({
+          id: Date.now() + Math.random(),
+          productId: PRODUCTS.find(p => p.internoNombre === item.internoNombre)?.id,
+          qty: item.qty,
+      }));
+      setItemsCotizacion(newItems);
+
+      setSavedSolicitud(solicitud);
+      Swal.fire("Cargado", `Solicitud con Folio ${String(solicitud.folio).padStart(4, '0')} cargada.`, "success");
+    } catch (error) {
+      console.error("Error fetching solicitud by folio:", error);
+      Swal.fire("Error", "No se pudo encontrar la solicitud con ese folio.", "error");
+    }
   };
 
   const handleSaveSolicitud = async () => {
@@ -313,6 +346,26 @@ export default function CotizadorDistribuidores() {
             {/* Formulario (Izquierda) */}
             <div className="w-full lg:w-1/2 overflow-y-auto custom-scrollbar pr-1 sm:pr-2 pb-24 lg:pb-20">
                 <div className="space-y-4 sm:space-y-6">
+                    {/* Tarjeta: Buscar Folio */}
+                    <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 space-y-4">
+                        <SectionTitle>Buscar Folio</SectionTitle>
+                        <div className="flex items-center gap-3">
+                            <InputGroup 
+                                label="Número de Folio" 
+                                value={searchFolio} 
+                                onChange={(e) => setSearchFolio(e.target.value)} 
+                                placeholder="Ej. 123"
+                                type="number"
+                            />
+                            <button
+                                onClick={handleFetchSolicitud}
+                                className="mt-5 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors"
+                            >
+                                Buscar
+                            </button>
+                        </div>
+                    </div>
+
                     {/* Solicitud de Productos y Datos Generales */}
                     <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 space-y-4">
                         <SectionTitle>Solicitud de Productos</SectionTitle>
