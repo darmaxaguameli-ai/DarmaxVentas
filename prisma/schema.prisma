@@ -429,38 +429,111 @@ model HistorialSueldo {
 }
 
 // =====================================================================
+
 // MODELO DE COTIZACIONES
+
 // =====================================================================
 
+
+
 model Cotizacion {
+
   id            String   @id @default(cuid())
+
   folio         Int      @default(autoincrement()) // Número de folio secuencial
+
   fecha         DateTime @default(now())
+
   
+
   // Datos del Cliente
+
   nombreCliente String
+
   telefono      String?
+
   correo        String?
+
   cp            String?
 
+
+
   // Costos Base
+
   modeloNombre  String?
+
   modeloPrecio  Float    @default(0)
+
   fleteTinacos  Float    @default(0)
+
   viaticos      Float    @default(0)
 
+
+
   // Extras (Guardados como JSON para flexibilidad)
+
   // Estructura esperada: [{ name: "Extra 1", price: 500 }, ...]
+
   extras        Json? 
 
+
+
   // Promo
+
   promoTexto    String?
+
   promoCosto    Float?
+
   promoImagen   String? // Base64 o URL
 
+
+
   // Firma
+
   firma         String? // Base64 de la firma
 
+
+
   createdAt     DateTime @default(now())
+
   updatedAt     DateTime @updatedAt
+
+}
+
+
+
+// =====================================================================
+
+// MODELO DE SOLICITUDES DE PRODUCTO (NUEVO)
+
+// =====================================================================
+
+
+
+model SolicitudProducto {
+
+  id            String   @id @default(cuid())
+
+  folio         Int      @unique @default(autoincrement())
+
+  fecha         DateTime @default(now())
+
+  
+
+  billingInfo   Json
+
+  items         Json
+
+  mode          String
+
+  providerLabel String
+
+  notes         String?
+
+
+
+  createdAt     DateTime @default(now())
+
+  updatedAt     DateTime @updatedAt
+
 }

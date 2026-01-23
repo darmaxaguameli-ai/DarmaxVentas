@@ -173,7 +173,7 @@ export default function CotizadorDistribuidoresPDF({ data }) {
 
         <View style={styles.titleContainer}>
             <Text style={styles.mainTitle}>Solicitud de Productos</Text>
-            <Text style={styles.subTitle}>para Distribuidores</Text>
+            <Text style={styles.subTitle}>Darmax Agua</Text>
         </View>
 
         {/* Espaciador para empujar el contenido solo en la primera página */}

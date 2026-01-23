@@ -2,6 +2,8 @@ import React, { useMemo, useState } from "react";
 import { PRODUCTS_BY_PROVIDER, PROVIDERS } from "../catalog/catalogIndex";
 import { PDFDownloadLink, PDFViewer } from "@react-pdf/renderer";
 import CotizadorDistribuidoresPDF from "../pages/Gestion/components/pdf/CotizadorDistribuidoresPDF";
+import Swal from "sweetalert2";
+import { createSolicitud } from "@/api/apiClient";
 
 const todayMX = () => {
   const d = new Date();
@@ -97,7 +99,7 @@ const ProviderPriceList = ({ products, providerId, onAddToQuote }) => {
 
 export default function CotizadorDistribuidores() {
   const [mode, setMode] = useState("pedido"); // cotizacion | pedido
-  const [providerFilter, setProviderFilter] = useState(PROVIDERS[0]?.id || "ferisa");
+  const [providerFilter, setProviderFilter] = useState(PROVIDERS[0]?.id || "jimaja");
   const [searchTerm, setSearchTerm] = useState("");
 
   const handleProviderChange = (e) => {
@@ -131,10 +133,12 @@ export default function CotizadorDistribuidores() {
   // Nuevo estado para los ítems de la cotización
   const [itemsCotizacion, setItemsCotizacion] = useState([]); // [{ id: uniqueId, productId: '...', qty: 1 }]
 
-  const [folio, setFolio] = useState("");
   const [fecha, setFecha] = useState(todayMX());
-  const defaultNotes = "Favor de enviar la facturación al siguiente correo: facturacion@darmaxagua.mx c.c.p. a CEO@darmaxagua.mx";
+  const defaultNotes = "Favor de enviar la facturación al siguiente correo: facturacion@darmaxagua.mx c.c.p. a administracion@darmaxagua.mx";
   const [notes, setNotes] = useState(defaultNotes);
+
+  const [savedSolicitud, setSavedSolicitud] = useState(null); // Almacena la solicitud guardada con folio
+  const [isSaving, setIsSaving] = useState(false);
 
   const [billingInfo, setBillingInfo] = useState({
     nombre: "SOLUCIONES ESTRATEGICAS MAXDAR",
@@ -209,16 +213,49 @@ export default function CotizadorDistribuidores() {
     }));
   };
 
+  const handleSaveSolicitud = async () => {
+    if (!billingInfo.nombre || !billingInfo.rfc) {
+      Swal.fire("Error", "El nombre de la empresa y el RFC son obligatorios para guardar la solicitud.", "error");
+      return;
+    }
+    if (finalItemsForPdf.length === 0) {
+      Swal.fire("Error", "Debe agregar al menos un producto a la solicitud para guardar.", "error");
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const solicitudToSave = {
+        fecha: new Date(), // Usar fecha del servidor
+        billingInfo: billingInfo,
+        items: finalItemsForPdf.map(({ internoNombre, unidad, qty, proveedorNombre, clave, precio }) => ({
+            internoNombre, unidad, qty, proveedorNombre, clave, precio
+        })),
+        mode: mode,
+        providerLabel: providerLabel,
+        notes: notes,
+      };
+      const response = await createSolicitud(solicitudToSave);
+      setSavedSolicitud(response);
+      Swal.fire("¡Guardado!", `Solicitud guardada con Folio: ${String(response.folio).padStart(4, '0')}`, "success");
+    } catch (error) {
+      console.error("Error saving solicitud:", error);
+      Swal.fire("Error", "No se pudo guardar la solicitud.", "error");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   // Datos a pasar al PDF
   const pdfData = useMemo(() => ({
-    folio,
     fecha,
     billingInfo,
     items: finalItemsForPdf,
     mode,
     providerLabel,
     notes,
-  }), [folio, fecha, billingInfo, finalItemsForPdf, mode, providerLabel, notes]);
+    folio: savedSolicitud?.folio || null, // Folio de la solicitud guardada
+  }), [fecha, billingInfo, finalItemsForPdf, mode, providerLabel, notes, savedSolicitud]);
 
   const doc = <CotizadorDistribuidoresPDF data={pdfData} />;
 
@@ -233,9 +270,32 @@ export default function CotizadorDistribuidores() {
                 </p>
             </div>
             <div className="flex gap-2 w-full sm:w-auto grid grid-cols-2 sm:flex">
+                <button
+                    onClick={handleSaveSolicitud}
+                    disabled={isSaving}
+                    className={`flex items-center justify-center gap-2 px-3 py-2 sm:px-4 rounded-xl font-bold shadow-md transition-all active:scale-95 text-xs sm:text-sm ${
+                        savedSolicitud
+                        ? "bg-green-100 text-green-700 cursor-default shadow-none border border-green-200"
+                        : "bg-white text-gray-700 hover:bg-gray-50 border border-gray-200"
+                    }`}
+                >
+                    {isSaving ? (
+                        "..."
+                    ) : savedSolicitud ? (
+                        <>
+                            <span className="material-symbols-outlined text-lg sm:text-xl">check</span>
+                            <span className="truncate">Folio {String(savedSolicitud.folio).padStart(4, '0')}</span>
+                        </>
+                    ) : (
+                        <>
+                            <span className="material-symbols-outlined text-lg sm:text-xl">save</span>
+                            Guardar
+                        </>
+                    )}
+                </button>
                 <PDFDownloadLink
                     document={doc}
-                    fileName={`Solicitud-Materiales-${billingInfo.nombre || "cliente"}-${folio || "Borrador"}.pdf`}
+                    fileName={`Solicitud-Materiales-${billingInfo.nombre || "cliente"}-${savedSolicitud?.folio ? String(savedSolicitud.folio).padStart(4, '0') : "Borrador"}.pdf`}
                     className="flex items-center justify-center gap-2 bg-primary hover:bg-primary-dark active:bg-primary-dark text-white active:text-white px-3 py-2 sm:px-4 rounded-xl font-bold shadow-lg shadow-primary/30 transition-all active:scale-95 text-xs sm:text-sm text-center select-none touch-none"
                     style={{ WebkitTapHighlightColor: 'transparent' }}
                 >
@@ -257,12 +317,6 @@ export default function CotizadorDistribuidores() {
                     <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 space-y-4">
                         <SectionTitle>Solicitud de Productos</SectionTitle>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <InputGroup
-                                label="Folio (opcional)"
-                                value={folio}
-                                onChange={(e) => setFolio(e.target.value)}
-                                placeholder="Ej: 00123"
-                            />
                             <InputGroup
                                 label="Fecha"
                                 value={fecha}

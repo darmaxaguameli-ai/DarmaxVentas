@@ -2787,6 +2787,78 @@ app.get('/api/cotizaciones/:id', verifyToken, async (req, res) => {
     }
 });
 
+// GET: Obtener una cotización por folio
+app.get('/api/cotizaciones/folio/:folio', verifyToken, async (req, res) => {
+    const { folio } = req.params;
+    try {
+        const quote = await prisma.cotizacion.findFirst({
+            where: { folio: parseInt(folio) }
+        });
+        if (!quote) return res.status(404).json({ error: 'Cotización no encontrada con ese folio.' });
+        res.json(quote);
+    } catch (error) {
+        console.error('Error fetching quote by folio:', error);
+        res.status(500).json({ error: 'Error al obtener la cotización por folio.' });
+    }
+});
+
+// =====================================================
+// SOLICITUDES DE PRODUCTO API (NUEVO)
+// =====================================================
+
+// POST: Crear nueva solicitud de producto
+app.post('/api/solicitudes', verifyToken, async (req, res) => {
+  try {
+    const data = req.body;
+    
+    const newSolicitud = await prisma.solicitudProducto.create({
+      data: {
+        fecha: new Date(), // Usar fecha del servidor
+        billingInfo: data.billingInfo || {},
+        items: data.items || [],
+        mode: data.mode || "pedido",
+        providerLabel: data.providerLabel || "",
+        notes: data.notes || null,
+      }
+    });
+    
+    res.status(201).json(newSolicitud);
+  } catch (error) {
+    console.error('Error creating product request:', error);
+    res.status(500).json({ error: 'Error al guardar la solicitud de producto' });
+  }
+});
+
+// GET: Obtener una solicitud de producto por ID
+app.get('/api/solicitudes/:id', verifyToken, async (req, res) => {
+    const { id } = req.params;
+    try {
+        const solicitud = await prisma.solicitudProducto.findUnique({
+            where: { id }
+        });
+        if (!solicitud) return res.status(404).json({ error: 'Solicitud de producto no encontrada' });
+        res.json(solicitud);
+    } catch (error) {
+        console.error('Error fetching product request:', error);
+        res.status(500).json({ error: 'Error al obtener la solicitud de producto' });
+    }
+});
+
+// GET: Obtener una solicitud de producto por folio
+app.get('/api/solicitudes/folio/:folio', verifyToken, async (req, res) => {
+    const { folio } = req.params;
+    try {
+        const solicitud = await prisma.solicitudProducto.findFirst({
+            where: { folio: parseInt(folio) }
+        });
+        if (!solicitud) return res.status(404).json({ error: 'Solicitud no encontrada con ese folio.' });
+        res.json(solicitud);
+    } catch (error) {
+        console.error('Error fetching product request by folio:', error);
+        res.status(500).json({ error: 'Error al obtener la solicitud por folio.' });
+    }
+});
+
 // ====================================================================
 //  START SERVER
 // ====================================================================

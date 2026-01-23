@@ -2,7 +2,7 @@ import React, { useMemo, useState, useEffect } from "react";
 import { PDFDownloadLink, PDFViewer } from "@react-pdf/renderer";
 import DarmaxWaterQuotePDF from "./components/pdf/DarmaxWaterQuotePDF";
 import SignaturePad from "@/pages/sistemasDeVentas/Repartidor/components/SignaturePad";
-import { createCotizacion } from "../../api/apiClient";
+import { createCotizacion, fetchCotizacionByFolio } from "../../api/apiClient";
 import Swal from "sweetalert2";
 
 const todayMX = () => {
@@ -55,6 +55,7 @@ export default function DarmaxQuote() {
   const [savedQuote, setSavedQuote] = useState(null); // Almacena la cotización guardada con folio
   const [isSaving, setIsSaving] = useState(false);
   const [signatureMode, setSignatureMode] = useState('pad'); // 'pad' | 'upload'
+  const [searchFolio, setSearchFolio] = useState("");
 
   // Cargar catálogo completo de extras al montar el componente
   useEffect(() => {
@@ -116,6 +117,7 @@ export default function DarmaxQuote() {
   }), [debouncedData, savedQuote]);
 
   const onChange = (path) => (e) => {
+    setSavedQuote(null);
     let value = e.target.value;
 
     // Si el valor empieza con 0 y tiene más de un dígito, y no es un decimal (0.), quitar el 0 inicial
@@ -136,12 +138,51 @@ export default function DarmaxQuote() {
 
   const handleSignatureSave = (signatureData) => {
       setForm(prev => ({ ...prev, firma: signatureData }));
-      // setSavedQuote(null);
+      setSavedQuote(null);
   };
 
   const handleSignatureClear = () => {
       setForm(prev => ({ ...prev, firma: "" }));
-      // setSavedQuote(null);
+      setSavedQuote(null);
+  };
+
+  const handleFetchQuote = async () => {
+    if (!searchFolio) {
+      Swal.fire("Error", "Por favor, ingrese un número de folio.", "error");
+      return;
+    }
+    try {
+      const quote = await fetchCotizacionByFolio(searchFolio);
+      setForm({
+        fecha: new Date(quote.fecha).toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' }),
+        diasValidez: "5",
+        nombreAsesor: quote.nombreAsesor || "",
+        cliente: {
+          nombre: quote.nombreCliente || "",
+          telefono: quote.telefono || "",
+          correo: quote.correo || "",
+          cp: quote.cp || "",
+        },
+        costos: {
+          modelo: quote.modeloPrecio || 0,
+          modeloNombre: quote.modeloNombre || "",
+          fleteTinacos: quote.fleteTinacos || 0,
+          viaticos: quote.viaticos || 0,
+        },
+        extrasSeleccionados: quote.extras || [],
+        promo: {
+          texto: quote.promoTexto || "",
+          costo: quote.promoCosto || "",
+          imagenUrl: quote.promoImagen || "",
+        },
+        firma: quote.firma || "",
+      });
+      setSavedQuote(quote);
+      Swal.fire("Cargado", `Cotización con Folio ${String(quote.folio).padStart(4, '0')} cargada.`, "success");
+    } catch (error) {
+      console.error("Error fetching quote by folio:", error);
+      Swal.fire("Error", "No se pudo encontrar la cotización con ese folio.", "error");
+    }
   };
 
   const handleSaveQuote = async () => {
@@ -221,6 +262,26 @@ export default function DarmaxQuote() {
             <div className="w-full lg:w-1/2 overflow-y-auto custom-scrollbar pr-1 sm:pr-2 pb-24 lg:pb-20">
                 <div className="space-y-4 sm:space-y-6">
                     
+                    {/* Tarjeta: Buscar Folio */}
+                    <div className="bg-white dark:bg-gray-900 p-4 sm:p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800">
+                        <SectionTitle>Buscar Folio</SectionTitle>
+                        <div className="flex items-center gap-3">
+                            <InputGroup 
+                                label="Número de Folio" 
+                                value={searchFolio} 
+                                onChange={(e) => setSearchFolio(e.target.value)} 
+                                placeholder="Ej. 123"
+                                type="number"
+                            />
+                            <button
+                                onClick={handleFetchQuote}
+                                className="mt-5 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors"
+                            >
+                                Buscar
+                            </button>
+                        </div>
+                    </div>
+
                     {/* Tarjeta: Datos Generales */}
                     <div className="bg-white dark:bg-gray-900 p-4 sm:p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800">
                         <SectionTitle>Información General</SectionTitle>
