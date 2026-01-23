@@ -95,6 +95,12 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
   },
+  gridItemFull: {
+    width: "100%",
+    marginBottom: 4,
+    flexDirection: "row",
+    alignItems: "center",
+  },
 
   card: {
     borderWidth: 1,
@@ -140,7 +146,7 @@ const styles = StyleSheet.create({
 });
 
 export default function CotizadorDistribuidoresPDF({ data }) {
-  const { cliente, referencia, folio, fecha, billingInfo, items, mode, providerLabel } = data;
+  const { folio, fecha, billingInfo, items, mode, providerLabel, notes } = data;
   const total = items.reduce((acc, it) => acc + (it.precio || 0) * it.qty, 0);
 
   return (
@@ -173,36 +179,23 @@ export default function CotizadorDistribuidoresPDF({ data }) {
         {/* Espaciador para empujar el contenido solo en la primera página */}
         <View style={styles.spacer} /> 
 
-        {/* Datos generales y de facturación */}
+        {/* Datos de facturación */}
         <View style={[styles.section, styles.card]}>
-          <Text style={styles.h2}>Solicitud de productos y datos generales</Text>
-
+          <Text style={styles.h2}>Datos para Facturación</Text>
           <View style={styles.grid2}>
-            <View style={styles.gridItem}>
-              <Text style={styles.label}>Cliente: </Text>
-              <Text style={styles.value}>{cliente || ""}</Text>
-            </View>
-            <View style={styles.gridItem}>
-              <Text style={styles.label}>Referencia: </Text>
-              <Text style={styles.value}>{referencia || ""}</Text>
-            </View>
-          </View>
-          
-          <Text style={[styles.h2, {marginTop: 10}]}>Datos para Facturación</Text>
-          <View style={styles.grid2}>
-            <View style={styles.gridItem}>
+            <View style={styles.gridItemFull}>
               <Text style={styles.label}>Empresa: </Text>
               <Text style={styles.value}>{billingInfo.nombre || ""}</Text>
             </View>
-            <View style={styles.gridItem}>
+            <View style={styles.gridItemFull}>
               <Text style={styles.label}>RFC: </Text>
               <Text style={styles.value}>{billingInfo.rfc || ""}</Text>
             </View>
-            <View style={styles.gridItem}>
+            <View style={styles.gridItemFull}>
               <Text style={styles.label}>C.P.: </Text>
               <Text style={styles.value}>{billingInfo.cp || ""}</Text>
             </View>
-            <View style={styles.gridItem}>
+            <View style={styles.gridItemFull}>
               <Text style={styles.label}>Régimen Fiscal: </Text>
               <Text style={styles.value}>{billingInfo.regimenFiscal || ""}</Text>
             </View>
@@ -243,18 +236,13 @@ export default function CotizadorDistribuidoresPDF({ data }) {
               <Text style={styles.totalValue}>{money(total)}</Text>
             </View>
           )}
-           {mode === "pedido" && (
-            <View style={styles.totalRow}>
-              <Text style={styles.totalLabel}>Pedido (sin precios)</Text>
-            </View>
-          )}
+
         </View>
 
         {/* Notas */}
         <View style={[styles.section, styles.card]}>
-          <Text style={styles.h2}>Notas y Condiciones</Text>
-          <Text style={styles.notes}>__________________________________________________________________________________________________</Text>
-          <Text style={styles.notes}>__________________________________________________________________________________________________</Text>
+          <Text style={styles.h2}>Notas</Text>
+          <Text style={styles.notes}>{notes}</Text>
         </View>
 
       </Page>

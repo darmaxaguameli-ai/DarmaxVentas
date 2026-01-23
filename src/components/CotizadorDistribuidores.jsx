@@ -96,8 +96,9 @@ const ProviderPriceList = ({ products, providerId, onAddToQuote }) => {
 
 
 export default function CotizadorDistribuidores() {
-  const [mode, setMode] = useState("cotizacion"); // cotizacion | pedido
+  const [mode, setMode] = useState("pedido"); // cotizacion | pedido
   const [providerFilter, setProviderFilter] = useState(PROVIDERS[0]?.id || "ferisa");
+  const [searchTerm, setSearchTerm] = useState("");
 
   const handleProviderChange = (e) => {
     setProviderFilter(e.target.value);
@@ -105,6 +106,24 @@ export default function CotizadorDistribuidores() {
   };
 
   const PRODUCTS = PRODUCTS_BY_PROVIDER[providerFilter] ?? [];
+
+  const filteredProducts = useMemo(() => {
+    if (!searchTerm) {
+      return PRODUCTS;
+    }
+    return PRODUCTS.filter(p => {
+        const providerDetails = p.proveedores?.[providerFilter];
+        const searchTermLower = searchTerm.toLowerCase();
+
+        const internalNameMatch = p.internoNombre.toLowerCase().includes(searchTermLower);
+        const providerNameMatch = providerDetails?.nombre?.toLowerCase().includes(searchTermLower);
+        const skuMatch = providerDetails?.sku?.toLowerCase().includes(searchTermLower);
+        const claveMatch = providerDetails?.clave?.toLowerCase().includes(searchTermLower);
+
+        return internalNameMatch || providerNameMatch || skuMatch || claveMatch;
+    });
+  }, [PRODUCTS, providerFilter, searchTerm]);
+
   const providerLabel = useMemo(() => {
     return PROVIDERS.find((p) => p.id === providerFilter)?.label ?? providerFilter;
   }, [providerFilter]);
@@ -112,10 +131,10 @@ export default function CotizadorDistribuidores() {
   // Nuevo estado para los ítems de la cotización
   const [itemsCotizacion, setItemsCotizacion] = useState([]); // [{ id: uniqueId, productId: '...', qty: 1 }]
 
-  const [cliente, setCliente] = useState("");
-  const [referencia, setReferencia] = useState("");
   const [folio, setFolio] = useState("");
   const [fecha, setFecha] = useState(todayMX());
+  const defaultNotes = "Favor de enviar la facturación al siguiente correo: facturacion@darmaxagua.mx c.c.p. a CEO@darmaxagua.mx";
+  const [notes, setNotes] = useState(defaultNotes);
 
   const [billingInfo, setBillingInfo] = useState({
     nombre: "SOLUCIONES ESTRATEGICAS MAXDAR",
@@ -192,15 +211,14 @@ export default function CotizadorDistribuidores() {
 
   // Datos a pasar al PDF
   const pdfData = useMemo(() => ({
-    cliente,
-    referencia,
     folio,
     fecha,
     billingInfo,
     items: finalItemsForPdf,
     mode,
     providerLabel,
-  }), [cliente, referencia, folio, fecha, billingInfo, finalItemsForPdf, mode, providerLabel]);
+    notes,
+  }), [folio, fecha, billingInfo, finalItemsForPdf, mode, providerLabel, notes]);
 
   const doc = <CotizadorDistribuidoresPDF data={pdfData} />;
 
@@ -217,7 +235,7 @@ export default function CotizadorDistribuidores() {
             <div className="flex gap-2 w-full sm:w-auto grid grid-cols-2 sm:flex">
                 <PDFDownloadLink
                     document={doc}
-                    fileName={`Solicitud-Materiales-${cliente || "cliente"}-${folio || "Borrador"}.pdf`}
+                    fileName={`Solicitud-Materiales-${billingInfo.nombre || "cliente"}-${folio || "Borrador"}.pdf`}
                     className="flex items-center justify-center gap-2 bg-primary hover:bg-primary-dark active:bg-primary-dark text-white active:text-white px-3 py-2 sm:px-4 rounded-xl font-bold shadow-lg shadow-primary/30 transition-all active:scale-95 text-xs sm:text-sm text-center select-none touch-none"
                     style={{ WebkitTapHighlightColor: 'transparent' }}
                 >
@@ -239,18 +257,6 @@ export default function CotizadorDistribuidores() {
                     <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 space-y-4">
                         <SectionTitle>Solicitud de Productos</SectionTitle>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <InputGroup
-                                label="Cliente"
-                                value={cliente}
-                                onChange={(e) => setCliente(e.target.value)}
-                                placeholder="Ej: SOLUCIONES ESTRATEGICAS"
-                            />
-                            <InputGroup
-                                label="Referencia"
-                                value={referencia}
-                                onChange={(e) => setReferencia(e.target.value)}
-                                placeholder="Ej: Pedido #, proyecto"
-                            />
                             <InputGroup
                                 label="Folio (opcional)"
                                 value={folio}
@@ -306,11 +312,23 @@ export default function CotizadorDistribuidores() {
                                 ))}
                             </select>
                         </div>
+
+                        {/* Buscador de productos */}
+                        <div className="mb-4">
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Buscar Producto</label>
+                            <input
+                                type="text"
+                                placeholder="Buscar por nombre, clave, SKU..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all"
+                            />
+                        </div>
                         
                         {/* Lista de Precios del Proveedor */}
                         <div className="mb-6 space-y-3">
                             <h4 className="text-md font-semibold text-gray-800 dark:text-white">Lista de Precios - {providerLabel}</h4>
-                            <ProviderPriceList products={PRODUCTS} providerId={providerFilter} onAddToQuote={handleAddToQuote} />
+                            <ProviderPriceList products={filteredProducts} providerId={providerFilter} onAddToQuote={handleAddToQuote} />
                         </div>
 
                         {/* Productos en la cotización */}
@@ -326,7 +344,9 @@ export default function CotizadorDistribuidores() {
                                         <div key={item.id} className="flex flex-col sm:flex-row items-start sm:items-center gap-2 p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
                                             <div className="flex-1 w-full">
                                                 <p className="text-sm font-bold text-gray-900 dark:text-white">{item.productDetails?.internoNombre}</p>
-                                                <p className="text-xs text-gray-500 dark:text-gray-400">{item.proveedorDetails?.nombre}</p>
+                                                <p className="text-xs text-gray-500 dark:text-gray-400">
+                                                    {item.proveedorDetails?.nombre} (Clave: {item.proveedorDetails?.clave})
+                                                </p>
                                             </div>
                                             <div className="w-full sm:w-20 flex-shrink-0">
                                                 <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Cant.</label>
@@ -358,6 +378,16 @@ export default function CotizadorDistribuidores() {
                                 )}
                             </div>
                         </div>
+                    </div>
+
+                    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-6 border border-gray-200 dark:border-gray-700">
+                        <SectionTitle>Notas</SectionTitle>
+                        <textarea
+                            value={notes}
+                            onChange={(e) => setNotes(e.target.value)}
+                            className="w-full h-24 px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all"
+                            placeholder="Escribe tus notas aquí..."
+                        />
                     </div>
                 </div>
             </div>
