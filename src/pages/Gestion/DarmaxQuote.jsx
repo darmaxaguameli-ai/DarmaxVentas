@@ -2,7 +2,7 @@ import React, { useMemo, useState, useEffect } from "react";
 import { PDFDownloadLink, PDFViewer } from "@react-pdf/renderer";
 import DarmaxWaterQuotePDF from "./components/pdf/DarmaxWaterQuotePDF";
 import SignaturePad from "@/pages/sistemasDeVentas/Repartidor/components/SignaturePad";
-import { createCotizacion, fetchCotizacionByFolio } from "../../api/apiClient";
+import { createCotizacion, fetchCotizacionByFolio, fetchCotizacionesByCliente } from "../../api/apiClient";
 import Swal from "sweetalert2";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
@@ -32,6 +32,37 @@ const InputGroup = ({ label, value, onChange, placeholder, type = "text", horizo
     </div>
 );
 
+const ResultsModal = ({ results, onClose, onSelect }) => {
+  if (!results.length) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+      <div className="bg-white dark:bg-gray-900 rounded-lg shadow-xl p-6 w-full max-w-lg max-h-[80vh] overflow-y-auto">
+        <h2 className="text-lg font-bold mb-4">Resultados de Búsqueda</h2>
+        <ul className="divide-y divide-gray-200 dark:divide-gray-700">
+          {results.map((quote) => (
+            <li
+              key={quote.id}
+              onClick={() => onSelect(quote)}
+              className="py-3 px-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md"
+            >
+              <p className="font-semibold">Folio: {String(quote.folio).padStart(4, '0')}</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Cliente: {quote.nombreCliente}</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Fecha: {new Date(quote.fecha).toLocaleDateString()}</p>
+            </li>
+          ))}
+        </ul>
+        <button
+          onClick={onClose}
+          className="mt-6 bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-colors w-full"
+        >
+          Cerrar
+        </button>
+      </div>
+    </div>
+  );
+};
+
 export default function DarmaxQuote() {
   const [form, setForm] = useState({
     fecha: todayMX(),
@@ -55,6 +86,9 @@ export default function DarmaxQuote() {
   const [isSaving, setIsSaving] = useState(false);
   const [signatureMode, setSignatureMode] = useState('pad'); // 'pad' | 'upload'
   const [searchFolio, setSearchFolio] = useState("");
+  const [searchCliente, setSearchCliente] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
+  const [showResultsModal, setShowResultsModal] = useState(false);
 
   // Cargar catálogo completo de extras al montar el componente
   useEffect(() => {
@@ -188,6 +222,56 @@ export default function DarmaxQuote() {
     }
   };
 
+  const handleSearchByCliente = async () => {
+    if (!searchCliente) {
+      Swal.fire("Error", "Por favor, ingrese un nombre de cliente.", "error");
+      return;
+    }
+    try {
+      const results = await fetchCotizacionesByCliente(searchCliente);
+      if (results && results.length > 0) {
+        setSearchResults(results);
+        setShowResultsModal(true);
+      } else {
+        Swal.fire("Sin resultados", "No se encontraron cotizaciones para ese cliente.", "info");
+      }
+    } catch (error) {
+      console.error("Error fetching quotes by cliente:", error);
+      Swal.fire("Error", "No se pudo realizar la búsqueda.", "error");
+    }
+  };
+
+  const handleSelectQuote = (quote) => {
+    setForm({
+      fecha: new Date(quote.fecha),
+      diasValidez: String(quote.diasValidez),
+      nombreAsesor: quote.nombreAsesor || "",
+      cliente: {
+        nombre: quote.nombreCliente || "",
+        telefono: quote.telefono || "",
+        correo: quote.correo || "",
+        cp: quote.cp || "",
+      },
+      costos: {
+        modelo: quote.modeloPrecio || 0,
+        modeloNombre: quote.modeloNombre || "",
+        fleteTinacos: quote.fleteTinacos || 0,
+        viaticos: quote.viaticos || 0,
+      },
+      extrasSeleccionados: quote.extras || [],
+      promo: {
+        texto: quote.promoTexto || "",
+        costo: quote.promoCosto || "",
+        imagenUrl: quote.promoImagen || "",
+      },
+      firma: quote.firma || "",
+    });
+    setSavedQuote(quote);
+    setShowResultsModal(false);
+    setSearchCliente("");
+    Swal.fire("Cargado", `Cotización con Folio ${String(quote.folio).padStart(4, '0')} cargada.`, "success");
+  };
+
   const handleSaveQuote = async () => {
       if (!form.cliente.nombre) {
           Swal.fire("Error", "El nombre del cliente es obligatorio para guardar.", "error");
@@ -226,6 +310,13 @@ export default function DarmaxQuote() {
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
+        {showResultsModal && (
+          <ResultsModal 
+            results={searchResults}
+            onClose={() => setShowResultsModal(false)}
+            onSelect={handleSelectQuote}
+          />
+        )}
         {/* Header Responsivo */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4 sm:mb-6">
             <div>
@@ -278,26 +369,41 @@ export default function DarmaxQuote() {
             <div className="w-full lg:w-1/2 overflow-y-auto custom-scrollbar pr-1 sm:pr-2 pb-24 lg:pb-20">
                 <div className="space-y-4 sm:space-y-6">
                     
-                    {/* Tarjeta: Buscar Folio */}
-                    <div className="bg-white dark:bg-gray-900 p-4 sm:p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800">
-                        <SectionTitle>Buscar Folio</SectionTitle>
-                        <div className="flex items-center gap-3">
-                            <InputGroup 
-                                label="Número de Folio" 
-                                value={searchFolio} 
-                                onChange={(e) => setSearchFolio(e.target.value)} 
-                                placeholder="Ej. 123"
-                                type="number"
-                            />
-                            <button
-                                onClick={handleFetchQuote}
-                                className="mt-5 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors"
-                            >
-                                Buscar
-                            </button>
-                        </div>
-                    </div>
-
+                                        {/* Tarjeta: Buscar Cotización */}
+                                        <div className="bg-white dark:bg-gray-900 p-4 sm:p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800">
+                                            <SectionTitle>Buscar Cotización</SectionTitle>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <div className="flex items-center gap-3">
+                                                    <InputGroup
+                                                        label="Número de Folio"
+                                                        value={searchFolio}
+                                                        onChange={(e) => setSearchFolio(e.target.value)}
+                                                        placeholder="Ej. 123"
+                                                        type="number"
+                                                    />
+                                                    <button
+                                                        onClick={() => handleFetchQuote()}
+                                                        className="mt-5 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors"
+                                                    >
+                                                        Buscar
+                                                    </button>
+                                                </div>
+                                                <div className="flex items-center gap-3">
+                                                    <InputGroup
+                                                        label="Nombre del Cliente"
+                                                        value={searchCliente}
+                                                        onChange={(e) => setSearchCliente(e.target.value)}
+                                                        placeholder="Ej. Juan Pérez"
+                                                    />
+                                                    <button
+                                                        onClick={handleSearchByCliente}
+                                                        className="mt-5 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors"
+                                                    >
+                                                        Buscar
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
                     {/* Tarjeta: Datos Generales */}
                     <div className="bg-white dark:bg-gray-900 p-4 sm:p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800">
                         <SectionTitle>Información General</SectionTitle>

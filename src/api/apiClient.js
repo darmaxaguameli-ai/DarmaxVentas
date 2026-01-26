@@ -156,6 +156,7 @@ export const geocodeAddress = (query) => apiClient.get('/external/geocode', { pa
 export const createCotizacion = (data) => apiClient.post('/cotizaciones', data).then(res => res.data);
 export const fetchCotizacion = (id) => apiClient.get(`/cotizaciones/${id}`).then(res => res.data);
 export const fetchCotizacionByFolio = (folio) => apiClient.get(`/cotizaciones/folio/${folio}`).then(res => res.data);
+export const fetchCotizacionesByCliente = (nombre) => apiClient.get(`/cotizaciones/cliente/${nombre}`).then(res => res.data);
 
 // ====================================================================
 //  SOLICITUDES DE PRODUCTO (NUEVO)

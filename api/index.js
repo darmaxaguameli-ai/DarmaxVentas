@@ -2761,7 +2761,7 @@ app.post('/api/cotizaciones', verifyToken, async (req, res) => {
         
         firma: data.firma,
         
-        fecha: new Date(), // Usar fecha del servidor para consistencia
+        fecha: data.fecha ? new Date(data.fecha) : new Date(), // Usar fecha del servidor para consistencia
         diasValidez: parseInt(data.diasValidez) || 5, // Añadir diasValidez
       }
     });
@@ -2800,6 +2800,28 @@ app.get('/api/cotizaciones/folio/:folio', verifyToken, async (req, res) => {
     } catch (error) {
         console.error('Error fetching quote by folio:', error);
         res.status(500).json({ error: 'Error al obtener la cotización por folio.' });
+    }
+});
+
+// GET: Obtener cotizaciones por nombre de cliente
+app.get('/api/cotizaciones/cliente/:nombre', verifyToken, async (req, res) => {
+    const { nombre } = req.params;
+    try {
+        const quotes = await prisma.cotizacion.findMany({
+            where: {
+                nombreCliente: {
+                    contains: nombre,
+                    mode: 'insensitive', // Case-insensitive search
+                }
+            },
+            orderBy: {
+                fecha: 'desc'
+            }
+        });
+        res.json(quotes);
+    } catch (error) {
+        console.error('Error fetching quotes by client name:', error);
+        res.status(500).json({ error: 'Error al obtener las cotizaciones por nombre de cliente.' });
     }
 });
 
