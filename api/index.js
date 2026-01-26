@@ -2882,6 +2882,31 @@ app.get('/api/solicitudes/folio/:folio', verifyToken, async (req, res) => {
     }
 });
 
+// PUT: Actualizar una solicitud de producto por ID
+app.put('/api/solicitudes/:id', verifyToken, async (req, res) => {
+    const { id } = req.params;
+    try {
+        const data = req.body;
+        const updatedSolicitud = await prisma.solicitudProducto.update({
+            where: { id },
+            data: {
+                billingInfo: data.billingInfo || {},
+                items: data.items || [],
+                mode: data.mode || "pedido",
+                providerLabel: data.providerLabel || "",
+                notes: data.notes || null,
+            }
+        });
+        res.json(updatedSolicitud);
+    } catch (error) {
+        console.error(`Error updating solicitud ${id}:`, error);
+        if (error.code === 'P2025') {
+            return res.status(404).json({ error: 'Solicitud no encontrada.' });
+        }
+        res.status(500).json({ error: 'Error al actualizar la solicitud.' });
+    }
+});
+
 // ====================================================================
 //  START SERVER
 // ====================================================================

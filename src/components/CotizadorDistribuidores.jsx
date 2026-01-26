@@ -3,7 +3,7 @@ import { PRODUCTS_BY_PROVIDER, PROVIDERS } from "../catalog/catalogIndex";
 import { PDFDownloadLink, PDFViewer } from "@react-pdf/renderer";
 import CotizadorDistribuidoresPDF from "../pages/Gestion/components/pdf/CotizadorDistribuidoresPDF";
 import Swal from "sweetalert2";
-import { createSolicitud, fetchSolicitudByFolio } from "@/api/apiClient";
+import { createSolicitud, fetchSolicitudByFolio, updateSolicitud } from "@/api/apiClient";
 
 const todayMX = () => {
   const d = new Date();
@@ -226,16 +226,25 @@ export default function CotizadorDistribuidores() {
     }
     try {
       const solicitud = await fetchSolicitudByFolio(searchFolio);
+      
+      const provider = PROVIDERS.find(p => p.label === solicitud.providerLabel);
+      const providerId = provider ? provider.id : solicitud.providerLabel.toLowerCase();
+      const currentProviderProducts = PRODUCTS_BY_PROVIDER[providerId] ?? [];
+
       setFecha(new Date(solicitud.fecha).toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' }));
       setBillingInfo(solicitud.billingInfo);
       setNotes(solicitud.notes);
-      setProviderFilter(solicitud.providerLabel.toLowerCase()); // Assuming providerLabel is the id
+      setProviderFilter(providerId);
       
-      const newItems = solicitud.items.map(item => ({
-          id: Date.now() + Math.random(),
-          productId: PRODUCTS.find(p => p.internoNombre === item.internoNombre)?.id,
-          qty: item.qty,
-      }));
+      const newItems = solicitud.items.map(item => {
+        const product = currentProviderProducts.find(p => p.internoNombre === item.internoNombre);
+        return {
+            id: Date.now() + Math.random(),
+            productId: product ? product.id : null,
+            qty: item.qty,
+        };
+      }).filter(item => item.productId);
+
       setItemsCotizacion(newItems);
 
       setSavedSolicitud(solicitud);
@@ -268,12 +277,21 @@ export default function CotizadorDistribuidores() {
         providerLabel: providerLabel,
         notes: notes,
       };
-      const response = await createSolicitud(solicitudToSave);
-      setSavedSolicitud(response);
-      Swal.fire("¡Guardado!", `Solicitud guardada con Folio: ${String(response.folio).padStart(4, '0')}`, "success");
+
+      if (savedSolicitud?.id) {
+        // Update existing solicitud
+        const response = await updateSolicitud(savedSolicitud.id, solicitudToSave);
+        setSavedSolicitud(response);
+        Swal.fire("¡Actualizado!", `Solicitud actualizada con Folio: ${String(response.folio).padStart(4, '0')}`, "success");
+      } else {
+        // Create new solicitud
+        const response = await createSolicitud(solicitudToSave);
+        setSavedSolicitud(response);
+        Swal.fire("¡Guardado!", `Solicitud guardada con Folio: ${String(response.folio).padStart(4, '0')}`, "success");
+      }
     } catch (error) {
       console.error("Error saving solicitud:", error);
-      Swal.fire("Error", "No se pudo guardar la solicitud.", "error");
+      Swal.fire("Error", `No se pudo ${savedSolicitud?.id ? 'actualizar' : 'guardar'} la solicitud.`, "error");
     } finally {
       setIsSaving(false);
     }

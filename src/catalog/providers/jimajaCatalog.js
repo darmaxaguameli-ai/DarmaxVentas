@@ -156,4 +156,118 @@ export const PRODUCTS = [
 
   // Nota: conexiones PVC (codos, tees, reducciones, tubos) conviene meterlas después
   // como una familia paramétrica (tipo + diámetro) por la cantidad de variantes.
+
+   // ===== NUEVOS (CFDI JIMAJA 2026-01-23) =====
+  {
+    id: "rotametro_0_5_hydrotek",
+    internoNombre: "Rotámetro 0–5 (Hydrotek)",
+    unidad: "pieza",
+    proveedores: {
+      jimaja: {
+        clave: "PENDIENTE",
+        nombre: "ROTAMETRO 0 A 5 HYDROTEK",
+        precio: 250.0,
+        incluyeIva: true,
+        fuente: "CFDI JIMAJA 2026-01-23 (F 61167)",
+      },
+    },
+  },
+  {
+    id: "manometro_0_100_osmosis_hdt",
+    internoNombre: "Manómetro 0–100 PSI para ósmosis (HDT)",
+    unidad: "pieza",
+    proveedores: {
+      jimaja: {
+        clave: "PENDIENTE",
+        nombre: "MANOMETRO 0-100 PARA OSMOSIS HDT",
+        precio: 120.17241,
+        incluyeIva: true,
+        fuente: "CFDI JIMAJA 2026-01-23 (F 61167)",
+      },
+    },
+  },
+  {
+    id: "manometro_0_300_osmosis_hdt",
+    internoNombre: "Manómetro 0–300 PSI para ósmosis (HDT)",
+    unidad: "pieza",
+    proveedores: {
+      jimaja: {
+        clave: "PENDIENTE",
+        nombre: "MANOMETRO 0-300 PARA OSMOSIS HDT",
+        precio: 120.17241,
+        incluyeIva: true,
+        fuente: "CFDI JIMAJA 2026-01-23 (F 61167)",
+      },
+    },
+  },
+  {
+    id: "conector_macho_1_2x1_2",
+    internoNombre: 'Conector macho 1/2" x 1/2"',
+    unidad: "pieza",
+    proveedores: {
+      jimaja: {
+        clave: "PENDIENTE",
+        nombre: "CONECTOR MACHO 1/2X1/2",
+        precio: 25.0,
+        incluyeIva: true,
+        fuente: "CFDI JIMAJA 2026-01-23 (F 61167)",
+      },
+    },
+  },
+  {
+    id: "conector_macho_1_4x1_4_hdt",
+    internoNombre: 'Conector macho 1/4" x 1/4" (HDT)',
+    unidad: "pieza",
+    proveedores: {
+      jimaja: {
+        clave: "PENDIENTE",
+        nombre: "CONECTOR MACHO 1/4 X 1/4 HDT",
+        precio: 6.0,
+        incluyeIva: true,
+        fuente: "CFDI JIMAJA 2026-01-23 (F 61167)",
+      },
+    },
+  },
+  {
+    id: "adaptador_hembra_1_4x1_4",
+    internoNombre: 'Adaptador hembra 1/4" x 1/4"',
+    unidad: "pieza",
+    proveedores: {
+      jimaja: {
+        clave: "PENDIENTE",
+        nombre: "ADAPTADOR HEMBRA 1/4X1/4",
+        precio: 6.7,
+        incluyeIva: true,
+        fuente: "CFDI JIMAJA 2026-01-23 (F 61167)",
+      },
+    },
+  },
+  {
+    id: "adaptador_hembra_3_8x1_2_hdt",
+    internoNombre: 'Adaptador hembra 3/8" x 1/2" (HDT)',
+    unidad: "pieza",
+    proveedores: {
+      jimaja: {
+        clave: "PENDIENTE",
+        nombre: "ADAPTADOR HEMBRA 3/8 X 1/2 HDT",
+        precio: 21.0,
+        incluyeIva: true,
+        fuente: "CFDI JIMAJA 2026-01-23 (F 61167)",
+      },
+    },
+  },
+  {
+    id: "macho_1_2x1_4_dcc_012e",
+    internoNombre: 'Macho 1/2" x 1/4" DCC-012E',
+    unidad: "pieza",
+    proveedores: {
+      jimaja: {
+        clave: "PENDIENTE",
+        nombre: "MACHO 1/2X1/4 DCC-012E",
+        precio: 22.55,
+        incluyeIva: true,
+        fuente: "CFDI JIMAJA 2026-01-23 (F 61167)",
+      },
+    },
+  },
 ];
