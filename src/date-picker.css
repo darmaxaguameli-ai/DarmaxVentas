@@ -1,0 +1,34 @@
+/* src/date-picker.css */
+.react-datepicker-wrapper {
+  width: 100%;
+}
+
+.react-datepicker__input-container input {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  background-color: #F9FAFB; /* bg-gray-50 */
+  border: 1px solid #E5E7EB; /* border-gray-200 */
+  border-radius: 0.5rem; /* rounded-lg */
+  font-size: 0.875rem; /* text-sm */
+  transition: all 0.2s;
+}
+
+.dark .react-datepicker__input-container input {
+  background-color: #1F2937; /* dark:bg-gray-800 */
+  border-color: #374151; /* dark:border-gray-700 */
+  color: #F9FAFB; /* dark:text-gray-50 */
+}
+
+.react-datepicker__input-container input:focus {
+  outline: none;
+  --tw-ring-offset-shadow: var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);
+  --tw-ring-shadow: var(--tw-ring-inset) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color);
+  box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000);
+  border-color: var(--theme-primary, #3b82f6); /* Assuming --theme-primary is defined somewhere */
+  --tw-ring-color: var(--theme-primary, #3b82f6);
+}
+
+/* Adjust popper position */
+.react-datepicker-popper {
+  z-index: 10;
+}

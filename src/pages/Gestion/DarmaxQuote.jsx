@@ -4,13 +4,12 @@ import DarmaxWaterQuotePDF from "./components/pdf/DarmaxWaterQuotePDF";
 import SignaturePad from "@/pages/sistemasDeVentas/Repartidor/components/SignaturePad";
 import { createCotizacion, fetchCotizacionByFolio } from "../../api/apiClient";
 import Swal from "sweetalert2";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
+import "@/date-picker.css"; // Estilos personalizados para el DatePicker
 
 const todayMX = () => {
-  const d = new Date();
-  const dd = String(d.getDate()).padStart(2, "0");
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const yy = d.getFullYear();
-  return `${dd}/${mm}/${yy}`;
+  return new Date();
 };
 
 const SectionTitle = ({ children }) => (
@@ -120,7 +119,11 @@ export default function DarmaxQuote() {
     setSavedQuote(null);
     let value = e.target.value;
 
-    // Si el valor empieza con 0 y tiene más de un dígito, y no es un decimal (0.), quitar el 0 inicial
+    if (path === "cliente.telefono") {
+        value = formatPhoneNumber(value);
+    }
+
+    // Si el valor empieza con 0 y tiene mÃ¡s de un dÃ­gito, y no es un decimal (0.), quitar el 0 inicial
     if (value.length > 1 && value.startsWith("0") && !value.startsWith("0.")) {
         value = value.replace(/^0+/, '');
         if (value === "") value = "0";
@@ -154,7 +157,7 @@ export default function DarmaxQuote() {
     try {
       const quote = await fetchCotizacionByFolio(searchFolio);
       setForm({
-        fecha: new Date(quote.fecha).toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' }),
+        fecha: new Date(quote.fecha),
         diasValidez: "5",
         nombreAsesor: quote.nombreAsesor || "",
         cliente: {
@@ -207,6 +210,19 @@ export default function DarmaxQuote() {
   };
 
   const doc = <DarmaxWaterQuotePDF data={pdfData} />;
+
+  // Function to format the phone number as XX XXXX XXXX
+  const formatPhoneNumber = (value) => {
+    if (!value) return value;
+    const phoneNumber = value.replace(/[^\d]/g, ""); // Remove all non-digit characters
+    const phoneNumberLength = phoneNumber.length;
+
+    if (phoneNumberLength < 3) return phoneNumber; // 1-2 digits
+    if (phoneNumberLength < 7) { // 3-6 digits
+      return `${phoneNumber.slice(0, 2)} ${phoneNumber.slice(2)}`;
+    } // 7-10 digits
+    return `${phoneNumber.slice(0, 2)} ${phoneNumber.slice(2, 6)} ${phoneNumber.slice(6, 10)}`;
+  };
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -286,7 +302,15 @@ export default function DarmaxQuote() {
                     <div className="bg-white dark:bg-gray-900 p-4 sm:p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800">
                         <SectionTitle>Información General</SectionTitle>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                            <InputGroup label="Fecha" value={form.fecha} onChange={onChange("fecha")} horizontal />
+                            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
+                                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 sm:min-w-fit sm:mb-0">Fecha</label>
+                                <DatePicker
+                                    selected={form.fecha}
+                                    onChange={(date) => onChange("fecha")({ target: { value: date } })}
+                                    dateFormat="dd/MM/yyyy"
+                                    className="w-full" // The custom CSS will handle the styling
+                                />
+                            </div>
                             <InputGroup label="Días Validez" value={form.diasValidez} onChange={onChange("diasValidez")} type="number" horizontal />
                         </div>
                     </div>

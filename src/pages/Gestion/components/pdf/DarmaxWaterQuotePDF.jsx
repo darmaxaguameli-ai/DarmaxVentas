@@ -17,6 +17,28 @@ const money = (n) => {
   }).format(num);
 };
 
+const formatDate = (date) => {
+  if (!date) return "";
+  // Asumimos que `date` puede ser un objeto Date, un string ISO, o un string dd/mm/yyyy
+  try {
+    const d = new Date(date);
+    // Si la fecha es inválida (new Date('dd/mm/yyyy') puede ser inválido), devolvemos el string original
+    if (isNaN(d.getTime())) {
+      // Si ya está en formato dd/mm/yyyy, simplemente lo retornamos
+      if (/\d{2}\/\d{2}\/\d{4}/.test(date)) {
+        return date;
+      }
+      return ""; // o manejar el error como prefieras
+    }
+    const dd = String(d.getDate()).padStart(2, "0");
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const yyyy = d.getFullYear();
+    return `${dd}/${mm}/${yyyy}`;
+  } catch (e) {
+    return date; // fallback al valor original si todo falla
+  }
+};
+
 const styles = StyleSheet.create({
   page: {
     position: "relative",
@@ -226,7 +248,7 @@ export default function CotizacionDarmaxAguaPDF({ data }) {
         {/* Fecha absoluta en la esquina superior derecha (Negro) */}
         <View style={styles.dateContainer}>
             <Text style={styles.labelRight}>Fecha:</Text>
-            <Text style={styles.valueRight}>{data?.fecha || ""}</Text>
+            <Text style={styles.valueRight}>{formatDate(data?.fecha)}</Text>
         </View>
 
         <View style={styles.titleContainer}>
