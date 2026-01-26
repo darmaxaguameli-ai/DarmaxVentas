@@ -2762,6 +2762,7 @@ app.post('/api/cotizaciones', verifyToken, async (req, res) => {
         firma: data.firma,
         
         fecha: new Date(), // Usar fecha del servidor para consistencia
+        diasValidez: parseInt(data.diasValidez) || 5, // Añadir diasValidez
       }
     });
     

@@ -158,7 +158,7 @@ export default function DarmaxQuote() {
       const quote = await fetchCotizacionByFolio(searchFolio);
       setForm({
         fecha: new Date(quote.fecha),
-        diasValidez: "5",
+        diasValidez: String(quote.diasValidez),
         nombreAsesor: quote.nombreAsesor || "",
         cliente: {
           nombre: quote.nombreCliente || "",
@@ -197,7 +197,7 @@ export default function DarmaxQuote() {
       setIsSaving(true);
       try {
           // Usamos 'data' que ya tiene los números procesados
-          const quoteToSave = { ...data };
+          const quoteToSave = { ...data, diasValidez: form.diasValidez };
           const response = await createCotizacion(quoteToSave);
           setSavedQuote(response);
           Swal.fire("¡Guardado!", `Cotización guardada con Folio: ${String(response.folio).padStart(4, '0')}`, "success");
