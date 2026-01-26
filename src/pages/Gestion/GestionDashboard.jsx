@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Outlet } from "react-router-dom";
 import GestionSidebar from "./GestionSidebar";
 import { ThemeProvider } from "../../context/ThemeContext";
@@ -9,7 +9,15 @@ import { Toaster } from "react-hot-toast";
 
 const GestionDashboard = () => {
   const [isSidebarOpen, setSidebarOpen] = useState(false); // Para móvil
-  const [isSidebarCollapsed, setSidebarCollapsed] = useState(false); // Para escritorio
+  const [isSidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    // Leer del localStorage. 'false' es el valor por defecto si no hay nada.
+    return localStorage.getItem('sidebarCollapsed') === 'true';
+  });
+
+  // Guardar en localStorage cuando cambie el estado
+  useEffect(() => {
+    localStorage.setItem('sidebarCollapsed', isSidebarCollapsed);
+  }, [isSidebarCollapsed]);
 
   const toggleSidebarCollapsed = () => {
     setSidebarCollapsed(!isSidebarCollapsed);

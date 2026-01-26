@@ -77,7 +77,7 @@ const SidebarItem = ({ item, isCollapsed, user, onClose, isMobile }) => {
 
   const isActive = item.type === 'link' 
     ? location.pathname === item.path || (item.path !== '/gestion' && location.pathname.includes(item.path))
-    : visibleChildren.some(child => location.pathname.includes(child.path));
+    : visibleChildren.some(child => location.pathname.split('/').includes(child.path));
 
   const baseClasses = `flex items-center w-full rounded-lg px-3 py-2 transition-all duration-200 cursor-pointer ${effectiveCollapsed ? 'justify-center relative' : ''}`;
   const activeClasses = "bg-primary/10 text-primary font-medium";
