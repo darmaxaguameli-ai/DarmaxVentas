@@ -367,21 +367,20 @@ export const MOUNTAIN_LIFE_PRODUCTS = [
       },
     },
   },
-  // corregir este mal cuando den facturacion
-    {
+  {
     id: "valvula_de_aguja",
     internoNombre: "VALVULA DE AGUJA",
     unidad: "pieza",
     proveedores: {
       mountain_life: {
-        sku: "S/N",
+        sku: "VEA-14",
         nombre: "VALVULA DE AGUJA",
-        precio: 0,
+        precio: 290.01, // 250.01 + IVA
         incluyeIva: true,
+        fuente: "Ticket Mountain Life 10791 (27/01/26)",
       },
     },
   },
-  //correggir hasta aqui
   {
     id: "tmf_64_a_manifold_volante_suavisador_1",
     internoNombre: "VALVULA FILTRO SUAVIZADOR 1\"",
@@ -650,8 +649,8 @@ export const MOUNTAIN_LIFE_PRODUCTS = [
       mountain_life: {
         sku: "K3- ROTAMETRO DE 1 A 5 GPM",
         nombre: "FLUJOMETRO  0-5 GPM",
-        precio: 290.0,
-        incluyeIva: true,
+        precio: 287.29, // 247.66 + IVA
+        fuente: "Ticket Mountain Life 10791 (27/01/26)",
       },
     },
   },
@@ -668,35 +667,34 @@ export const MOUNTAIN_LIFE_PRODUCTS = [
       },
     },
   },
-  //corregir este mal cuando den facturacion
-
-    {
-    id: "k4_rotametro_de_0_a_100_gpm",
-    internoNombre: "FUJOMETRO 0-100 GPM",
+   {
+    id: "manometro_0_100",
+    internoNombre: "MANÓMETRO 0–100",
     unidad: "pieza",
     proveedores: {
       mountain_life: {
-        sku: "K4- ROTAMETRO DE 0 A 100 GPM",
-        nombre: "FUJOMETRO 0-100 GPM",
-        precio: 0,
+        sku: "ME-100",
+        nombre: "MANÓMETRO TRAS 0–100",
+        precio: 161.27, // 139.03 + IVA
         incluyeIva: true,
+        fuente: "Ticket ML 10791",
       },
     },
   },
   {
-    id: "k4_rotametro_de_0_a_300_gpm",
-    internoNombre: "FUJOMETRO 0-300 GPM",
+    id: "manometro_0_300",
+    internoNombre: "MANÓMETRO 0–300",
     unidad: "pieza",
     proveedores: {
       mountain_life: {
-        sku: "K4- ROTAMETRO DE 0 A 300 GPM",
-        nombre: "FUJOMETRO 0-300 GPM",
-        precio: 0,
+        sku: "ME-64-A",
+        nombre: "MANÓMETRO TRAS 0–300",
+        precio: 287.29, // 247.66 + IVA
         incluyeIva: true,
+        fuente: "Ticket ML 10791",
       },
     },
   },
-  //corregir hasta aqui
   {
     id: "tds_panel_medidor_de_tdd5",
     internoNombre: "MEDIDIRO TDS DE PANEL",
@@ -863,6 +861,34 @@ export const MOUNTAIN_LIFE_PRODUCTS = [
         nombre: "TINACO BALA 450 BCO",
         precio: 1750.0,
         incluyeIva: true,
+      },
+    },
+  },
+  {
+    id: "manometro_0_100_psi_ml",
+    internoNombre: "MANOMETRO 0-100 (Mountain Life)",
+    unidad: "pieza",
+    proveedores: {
+      mountain_life: {
+        sku: "S/N",
+        nombre: "MANOMETRO TRAS 0-100",
+        precio: 139.40, // 120.17241 + IVA
+        incluyeIva: true,
+        fuente: "Ticket Mountain Life 10791 (27/01/26)",
+      },
+    },
+  },
+  {
+    id: "manometro_0_300_psi_ml",
+    internoNombre: "MANOMETRO 0-300 (Mountain Life)",
+    unidad: "pieza",
+    proveedores: {
+      mountain_life: {
+        sku: "S/N",
+        nombre: "MANOMETRO 0-300",
+        precio: 139.40, // 120.17241 + IVA
+        incluyeIva: true,
+        fuente: "Ticket Mountain Life 10791 (27/01/26)",
       },
     },
   },

@@ -3,7 +3,7 @@ import { PRODUCTS_BY_PROVIDER, PROVIDERS } from "../catalog/catalogIndex";
 import { PDFDownloadLink, PDFViewer } from "@react-pdf/renderer";
 import CotizadorDistribuidoresPDF from "../pages/Gestion/components/pdf/CotizadorDistribuidoresPDF";
 import Swal from "sweetalert2";
-import { createSolicitud, fetchSolicitudByFolio, updateSolicitud } from "@/api/apiClient";
+import { createSolicitud, fetchSolicitudByFolio, updateSolicitud, fetchSolicitudes, deleteSolicitud } from "@/api/apiClient";
 
 const todayMX = () => {
   const d = new Date();
@@ -96,14 +96,110 @@ const ProviderPriceList = ({ products, providerId, onAddToQuote }) => {
     );
 };
 
+const FolioListModal = ({ folios, isLoading, onClose, onLoad, onDelete }) => {
+    return (
+        <div className="fixed inset-0 bg-black/50 z-50 flex justify-center items-center p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col">
+                <div className="flex justify-between items-center p-4 border-b border-gray-200 dark:border-gray-700">
+                    <h3 className="text-lg font-bold">Folios Guardados</h3>
+                    <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700">
+                        <span className="material-symbols-outlined">close</span>
+                    </button>
+                </div>
+                <div className="overflow-y-auto custom-scrollbar">
+                    {isLoading ? (
+                        <div className="p-8 text-center">Cargando folios...</div>
+                    ) : folios.length === 0 ? (
+                        <div className="p-8 text-center text-gray-500">No se encontraron folios guardados.</div>
+                    ) : (
+                        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                            <thead className="bg-gray-50 dark:bg-gray-900 sticky top-0">
+                                <tr>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Folio</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cliente</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Proveedor</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha</th>
+                                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                                {folios.map(folio => (
+                                    <tr key={folio.id}>
+                                        <td className="px-6 py-4 whitespace-nowrap font-mono font-bold">#{String(folio.folio).padStart(4, '0')}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap">{folio.billingInfo?.nombre || 'N/A'}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap">{folio.providerLabel}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap">{new Date(folio.fecha).toLocaleDateString('es-MX')}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
+                                            <button onClick={() => onLoad(folio.folio)} className="btn-secondary py-1 px-3 text-xs">Cargar</button>
+                                            <button onClick={() => onDelete(folio.id)} className="btn-danger py-1 px-3 text-xs">Borrar</button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+};
 
 export default function CotizadorDistribuidores() {
   const [mode, setMode] = useState("pedido"); // cotizacion | pedido
   const [providerFilter, setProviderFilter] = useState(PROVIDERS[0]?.id || "jimaja");
   const [searchTerm, setSearchTerm] = useState("");
+  const [folioList, setFolioList] = useState([]);
+  const [isFolioListVisible, setIsFolioListVisible] = useState(false);
+  const [loadingFolios, setLoadingFolios] = useState(false);
+
+  const handleOpenFolioList = async () => {
+      setIsFolioListVisible(true);
+      setLoadingFolios(true);
+      try {
+          const data = await fetchSolicitudes();
+          setFolioList(data);
+      } catch (error) {
+          Swal.fire("Error", "No se pudieron cargar los folios guardados.", "error");
+      } finally {
+          setLoadingFolios(false);
+      }
+  };
+
+  const handleDeleteSolicitud = async (id) => {
+      const result = await Swal.fire({
+          title: '¿Estás seguro?',
+          text: "¡No podrás revertir esto!",
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonColor: '#3085d6',
+          cancelButtonColor: '#d33',
+          confirmButtonText: 'Sí, ¡bórralo!',
+          cancelButtonText: 'Cancelar'
+      });
+
+      if (result.isConfirmed) {
+          try {
+              await deleteSolicitud(id);
+              Swal.fire('¡Borrado!', 'La solicitud ha sido borrada.', 'success');
+              setFolioList(prev => prev.filter(f => f.id !== id));
+          } catch (error) {
+              Swal.fire('Error', 'No se pudo borrar la solicitud.', 'error');
+          }
+      }
+  };
+  
+  const handleLoadSolicitud = (folioNum) => {
+    setSearchFolio(folioNum);
+    setTimeout(() => {
+        const searchButton = document.getElementById('btn-search-folio');
+        if (searchButton) {
+            searchButton.click();
+        }
+    }, 100);
+    setIsFolioListVisible(false);
+  };
 
   const handleProviderChange = (e) => {
-    setSavedSolicitud(null);
     setProviderFilter(e.target.value);
     setItemsCotizacion([]); // Limpiar para evitar inconsistencias
   };
@@ -150,7 +246,6 @@ export default function CotizadorDistribuidores() {
   });
 
   const updateCotizacionItem = (id, field, value) => {
-    setSavedSolicitud(null);
     setItemsCotizacion((prev) =>
       prev.map((item) =>
         item.id === id ? { ...item, [field]: value } : item
@@ -159,7 +254,6 @@ export default function CotizadorDistribuidores() {
   };
   
   const handleAddToQuote = (productId) => {
-    setSavedSolicitud(null);
     const existingItem = itemsCotizacion.find(item => item.productId === productId);
     if (existingItem) {
         updateCotizacionItem(existingItem.id, 'qty', existingItem.qty + 1);
@@ -169,7 +263,6 @@ export default function CotizadorDistribuidores() {
   };
 
   const removeCotizacionItem = (id) => {
-    setSavedSolicitud(null);
     setItemsCotizacion((prev) => prev.filter((item) => item.id !== id));
   };
 
@@ -212,7 +305,6 @@ export default function CotizadorDistribuidores() {
   }, [expandedItemsCotizacion]);
 
   const handleBillingInfoChange = (field) => (e) => {
-    setSavedSolicitud(null);
     setBillingInfo((prev) => ({
       ...prev,
       [field]: e.target.value,
@@ -312,6 +404,15 @@ export default function CotizadorDistribuidores() {
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
+      {isFolioListVisible && (
+          <FolioListModal
+              folios={folioList}
+              isLoading={loadingFolios}
+              onClose={() => setIsFolioListVisible(false)}
+              onLoad={handleLoadSolicitud}
+              onDelete={handleDeleteSolicitud}
+          />
+      )}
       {/* Header Responsivo */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4 sm:mb-6">
             <div>
@@ -321,6 +422,13 @@ export default function CotizadorDistribuidores() {
                 </p>
             </div>
             <div className="flex gap-2 w-full sm:w-auto grid grid-cols-2 sm:flex">
+                <button
+                    onClick={handleOpenFolioList}
+                    className="flex items-center justify-center gap-2 px-3 py-2 sm:px-4 rounded-xl font-bold shadow-md transition-all active:scale-95 text-xs sm:text-sm bg-white text-gray-700 hover:bg-gray-50 border border-gray-200"
+                >
+                    <span className="material-symbols-outlined text-lg sm:text-xl">list_alt</span>
+                    Ver Folios
+                </button>
                 <button
                     onClick={handleSaveSolicitud}
                     disabled={isSaving}
@@ -376,6 +484,7 @@ export default function CotizadorDistribuidores() {
                                 type="number"
                             />
                             <button
+                                id="btn-search-folio"
                                 onClick={handleFetchSolicitud}
                                 className="mt-5 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors"
                             >

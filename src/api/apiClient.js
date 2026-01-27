@@ -161,10 +161,12 @@ export const fetchCotizacionesByCliente = (nombre) => apiClient.get(`/cotizacion
 // ====================================================================
 //  SOLICITUDES DE PRODUCTO (NUEVO)
 // ====================================================================
+export const fetchSolicitudes = () => apiClient.get('/solicitudes').then(res => res.data);
 export const createSolicitud = (data) => apiClient.post('/solicitudes', data).then(res => res.data);
 export const fetchSolicitud = (id) => apiClient.get(`/solicitudes/${id}`).then(res => res.data);
 export const fetchSolicitudByFolio = (folio) => apiClient.get(`/solicitudes/folio/${folio}`).then(res => res.data);
 export const updateSolicitud = (id, data) => apiClient.put(`/solicitudes/${id}`, data).then(res => res.data);
+export const deleteSolicitud = (id) => apiClient.delete(`/solicitudes/${id}`).then(res => res.data);
 
 
 // ====================================================================

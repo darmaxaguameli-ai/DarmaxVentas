@@ -13,7 +13,8 @@
     "seed": "node ./prisma/seed.js",
     "migrate": "npx prisma migrate dev --name init",
     "generate": "npx prisma generate",
-    "studio": "npx prisma studio"
+    "studio": "npx prisma studio",
+    "reset-folios": "prisma db execute --file ./prisma/reset_folios.sql"
   },
   "prisma": {
     "seed": "node ./prisma/seed.js"

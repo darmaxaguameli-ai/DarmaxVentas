@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useGestion } from './context/GestionContext';
-import { FaUsers, FaUserCheck, FaUserTimes, FaPlus } from 'react-icons/fa';
+import { FaUsers, FaUserCheck, FaUserTimes, FaPlus, FaEnvelope } from 'react-icons/fa';
 import Organigrama from './components/Organigrama';
 
 // A reusable stat card component
@@ -51,10 +51,21 @@ const RecursosHumanos = () => {
                 <h1 className="text-3xl font-bold text-[#111418] dark:text-white">
                     Módulo de Recursos Humanos
                 </h1>
-                <Link to="/gestion/empleados" className="btn-primary flex items-center gap-2">
-                    <FaUsers />
-                    <span>Gestionar Empleados</span>
-                </Link>
+                <div className="flex gap-2">
+                    <Link to="/gestion/empleados" className="btn-primary flex items-center gap-2">
+                        <FaUsers />
+                        <span>Gestionar Empleados</span>
+                    </Link>
+                    <a
+                        href="https://mail.ionos.mx"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="btn-secondary flex items-center gap-2"
+                    >
+                        <FaEnvelope />
+                        <span>Abrir Correo IONOS</span>
+                    </a>
+                </div>
             </div>
 
             {/* Stat Cards Section */}

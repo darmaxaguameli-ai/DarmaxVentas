@@ -8,13 +8,15 @@ export const PROVIDERS = [
 export const PRODUCTS = [
   {
     id: "membrana_xlp_4040",
-    internoNombre: 'Membrana ósmosis 4040 baja presión (XLP4040)',
+    internoNombre: "Membrana ósmosis 4x40 XLP Keensen",
     unidad: "pieza",
     proveedores: {
       jimaja: {
-        clave: "23-XLP-4040",
-        nombre: "MEMBRANA XLP4040 ULTRA BAJA PRESIÓN",
-        precio: 1517.24,
+        clave: "12-MEM4X40XLE",
+        nombre: "MEMBRANA 4X40 XLP KEENSEN",
+        precio: 1517.241379,
+        incluyeIva: false,
+        fuente: "Cotización JIMAJA 27/01/2026",
       },
     },
   },
@@ -57,38 +59,40 @@ export const PRODUCTS = [
   },
   {
     id: "carbon_coco_12_5kg",
-    internoNombre: "Carbón concha de coco 12.5 kg (A.W.)",
+    internoNombre: "Carbón concha de coco 12.5 kg (AW)",
     unidad: "saco",
     proveedores: {
       jimaja: {
-        clave: "27-COCO12.5KG",
-        nombre: "CARBON CONCHA DE COCO 12.5 KG A.W.",
-        precio: 560.34,
+        clave: "26-COCO-AW",
+        nombre: "CARBON CONCHA DE COCO 12.5 KGS AW",
+        precio: 560.34824,
+        incluyeIva: false,
       },
     },
   },
   {
     id: "zeolita_21kg",
-    internoNombre: "Zeolita malla 6-12 (21 kg) (A.W.)",
+    internoNombre: "Zeolita malla 6-12 (21 kg)",
     unidad: "saco",
     proveedores: {
       jimaja: {
-        clave: "27-ZEOLITA AW",
-        nombre: "ZEOLITA MALLA 6-12 SACO 1 PIE (21 KGS) AW",
-        precio: 172.41,
+        clave: "26-ZEOLITA",
+        nombre: "ZEOLITA MALLA 6-12 21 KGS",
+        precio: 160.0,
+        incluyeIva: false,
       },
     },
   },
   {
     id: "resina_001x7_na",
-    internoNombre: "Resina 001x7 Na FG (catiónica)",
+    internoNombre: "Resina catiónica 001x7 Na FG (AW)",
     unidad: "saco",
     proveedores: {
       jimaja: {
-        clave: "27-RCSUQING / 27-RCSUQINGAWT / 27-R001X8H",
-        nombre:
-          'RESINA (SUQING / AMERICA WATER / 001x7 Na FG / 001X8 H CATIONICA)',
-        precio: 861.0,
+        clave: "RESINA AW",
+        nombre: "RESINA AMERICA WATER 001X7 Na FG",
+        precio: 758.620689,
+        incluyeIva: false,
       },
     },
   },
@@ -98,10 +102,10 @@ export const PRODUCTS = [
     unidad: "pieza",
     proveedores: {
       jimaja: {
-        clave: "11-F64A1",
-        nombre: 'MULTIVALVULA 1" PARA FILTRO',
-        // en dic 2025 aparece a 237.07; en jun 2025 aparece a 215.52
-        precio: 237.07,
+        clave: "F64A1",
+        nombre: 'MULTIVÁLVULA 1" PARA FILTRO',
+        precio: 215.517241,
+        incluyeIva: false,
       },
     },
   },
@@ -112,8 +116,9 @@ export const PRODUCTS = [
     proveedores: {
       jimaja: {
         clave: "11-F56A1",
-        nombre: 'MULTIVALVULA 1" PARA SUAVIZADOR',
-        precio: 426.72,
+        nombre: 'MULTIVÁLVULA 1" PARA SUAVIZADOR',
+        precio: 387.931034,
+        incluyeIva: false,
       },
     },
   },
@@ -142,20 +147,18 @@ export const PRODUCTS = [
     },
   },
   {
-    id: "ventury_3_4_jd609",
-    internoNombre: "Ventury 3/4 (JD609) (HDT)",
+    id: "ventury_3_4_hdt",
+    internoNombre: "Ventury 3/4 HDT",
     unidad: "pieza",
     proveedores: {
       jimaja: {
-        clave: "35-JD609 (3/4)",
-        nombre: "VENTURY DE 3/4 HDT",
-        precio: 266.38,
+        clave: "30-V3/4",
+        nombre: "VENTURY 3/4 POLYPROPYLENE HDT",
+        precio: 150.0,
+        incluyeIva: false,
       },
     },
   },
-
-  // Nota: conexiones PVC (codos, tees, reducciones, tubos) conviene meterlas después
-  // como una familia paramétrica (tipo + diámetro) por la cantidad de variantes.
 
    // ===== NUEVOS (CFDI JIMAJA 2026-01-23) =====
   {
@@ -164,81 +167,76 @@ export const PRODUCTS = [
     unidad: "pieza",
     proveedores: {
       jimaja: {
-        clave: "PENDIENTE",
+        clave: "12-ROTAMETRO",
         nombre: "ROTAMETRO 0 A 5 HYDROTEK",
-        precio: 250.0,
-        incluyeIva: true,
-        fuente: "CFDI JIMAJA 2026-01-23 (F 61167)",
-      },
-    },
-  },
-  // borrar cuando ya se tengan los nombres correctos
-  {
-    id: "ozono_blanco",
-    internoNombre: "Ozono blanco",
-    unidad: "pieza",
-    proveedores: {
-      jimaja: {
-        sku: "S/N",
-        nombre: "OZONO BLANCO",
-        precio: 0,
-        incluyeIva: true,
+        precio: 206.896551,   // P/U sin IVA
+        incluyeIva: false,     // ✅ correcto
+        fuente: "Cotización JIMAJA 27/01/2026",
       },
     },
   },
   {
-    id: "ozono_metal",
-    internoNombre: "Ozono metal",
+    id: "ozono_domestico_gl_2186",
+    internoNombre: "Ozono doméstico GL-2186",
     unidad: "pieza",
     proveedores: {
       jimaja: {
-        sku: "S/N",
-        nombre: "OZONO METAL",
-        precio: 0,
-        incluyeIva: true,
+        clave: "30-OZONO",
+        nombre: "OZONO DOMESTICO GL-2186",
+        precio: 724.137931,
+        incluyeIva: false,
       },
     },
   },
   {
-    id: "porta_membrana_4040",
-    internoNombre: "Porta Membrana 4040",
-    unidad: "pieza",
-    
-    proveedores: {
-      jimaja: {
-        sku: "S/N",
-        nombre: "PORTA MEMBRANA 4040",
-        precio: 0,
-        incluyeIva: true,
-      },
-    },
-  },
-  // borrar hasta aquí
-  {
-    id: "manometro_0_100_osmosis_hdt",
-    internoNombre: "Manómetro 0–100 PSI para ósmosis (HDT)",
+    id: "ozono_acero_gl_3211",
+    internoNombre: "Generador de ozono acero GL-3211",
     unidad: "pieza",
     proveedores: {
       jimaja: {
-        clave: "PENDIENTE",
-        nombre: "MANOMETRO 0-100 PARA OSMOSIS HDT",
-        precio: 120.17241,
-        incluyeIva: true,
-        fuente: "CFDI JIMAJA 2026-01-23 (F 61167)",
+        clave: "MOD.GL-3211",
+        nombre: "GENERADOR DE OZONO ACERO MOD GL-3211",
+        precio: 1163.793103,
+        incluyeIva: false,
       },
     },
   },
   {
-    id: "manometro_0_300_osmosis_hdt",
-    internoNombre: "Manómetro 0–300 PSI para ósmosis (HDT)",
+    id: "porta_membrana_4040_inox",
+    internoNombre: "Porta membrana 4x40 acero inoxidable",
     unidad: "pieza",
     proveedores: {
       jimaja: {
-        clave: "PENDIENTE",
-        nombre: "MANOMETRO 0-300 PARA OSMOSIS HDT",
-        precio: 120.17241,
-        incluyeIva: true,
-        fuente: "CFDI JIMAJA 2026-01-23 (F 61167)",
+        clave: "12-PORT4X40HD",
+        nombre: "PORTAMEMBRANA 4X40 ACERO INOX",
+        precio: 1077.586206,
+        incluyeIva: false,
+      },
+    },
+  },
+  {
+    id: "manometro_0_100_hdt",
+    internoNombre: "Manómetro 0–100 PSI HDT",
+    unidad: "pieza",
+    proveedores: {
+      jimaja: {
+        clave: "MAN 0-100 HDT",
+        nombre: "MANÓMETRO 0-100 PARA OSMOSIS HDT",
+        precio: 120.689655,
+        incluyeIva: false,
+      },
+    },
+  },
+  {
+    id: "manometro_0_300_hdt",
+    internoNombre: "Manómetro 0–300 PSI HDT",
+    unidad: "pieza",
+    proveedores: {
+      jimaja: {
+        clave: "MAN 0-300 HDT",
+        nombre: "MANÓMETRO 0-300 PARA OSMOSIS HDT",
+        precio: 120.689655,
+        incluyeIva: false,
       },
     },
   },

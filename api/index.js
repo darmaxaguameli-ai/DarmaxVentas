@@ -2829,6 +2829,21 @@ app.get('/api/cotizaciones/cliente/:nombre', verifyToken, async (req, res) => {
 // SOLICITUDES DE PRODUCTO API (NUEVO)
 // =====================================================
 
+// GET: Obtener todas las solicitudes de producto
+app.get('/api/solicitudes', verifyToken, async (req, res) => {
+    try {
+        const solicitudes = await prisma.solicitudProducto.findMany({
+            orderBy: {
+                folio: 'desc'
+            }
+        });
+        res.json(solicitudes);
+    } catch (error) {
+        console.error('Error fetching product requests:', error);
+        res.status(500).json({ error: 'Error al obtener las solicitudes de producto.' });
+    }
+});
+
 // POST: Crear nueva solicitud de producto
 app.post('/api/solicitudes', verifyToken, async (req, res) => {
   try {
@@ -2864,6 +2879,23 @@ app.get('/api/solicitudes/:id', verifyToken, async (req, res) => {
     } catch (error) {
         console.error('Error fetching product request:', error);
         res.status(500).json({ error: 'Error al obtener la solicitud de producto' });
+    }
+});
+
+// DELETE: Borrar una solicitud de producto por ID
+app.delete('/api/solicitudes/:id', verifyToken, async (req, res) => {
+    const { id } = req.params;
+    try {
+        await prisma.solicitudProducto.delete({
+            where: { id }
+        });
+        res.status(204).send(); // No content
+    } catch (error) {
+        console.error(`Error deleting solicitud ${id}:`, error);
+        if (error.code === 'P2025') {
+            return res.status(404).json({ error: 'Solicitud no encontrada.' });
+        }
+        res.status(500).json({ error: 'Error al borrar la solicitud.' });
     }
 });
 

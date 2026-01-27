@@ -17,7 +17,15 @@ const menuStructure = [
     icon: "storefront",
     children: [
       { name: "Inventario", path: "inventario", icon: "inventory_2" },
+    ],
+  },
+  {
+    type: "group",
+    name: "Cotizadores", // Nuevo Grupo
+    icon: "request_quote", // Icono para el grupo Cotizadores
+    children: [
       { name: "Cotizador Dist.", path: "cotizador-distribuidores", icon: "local_shipping" },
+      { name: "Cotizador Emprendedor", path: "cotizador", icon: "star" }, // Renombrado y path original
     ],
   },
   {
@@ -36,7 +44,6 @@ const menuStructure = [
     children: [
       { name: "Usuarios", path: "usuarios", icon: "group" },
       { name: "Recursos Humanos", path: "recursos-humanos", icon: "folder_managed", adminOnly: true },
-      { name: "Cotizador Darmax", path: "cotizador", icon: "request_quote" },
       { name: "Configuración", path: "configuracion", icon: "tune" },
     ],
   },
