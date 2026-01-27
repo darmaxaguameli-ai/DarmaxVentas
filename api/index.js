@@ -2887,6 +2887,10 @@ app.put('/api/solicitudes/:id', verifyToken, async (req, res) => {
     const { id } = req.params;
     try {
         const data = req.body;
+        console.log("--- UPDATING SOLICITUD ---");
+        console.log("ID:", id);
+        console.log("Received Body:", JSON.stringify(data, null, 2));
+
         const updatedSolicitud = await prisma.solicitudProducto.update({
             where: { id },
             data: {

@@ -172,6 +172,48 @@ export const PRODUCTS = [
       },
     },
   },
+  // borrar cuando ya se tengan los nombres correctos
+  {
+    id: "ozono_blanco",
+    internoNombre: "Ozono blanco",
+    unidad: "pieza",
+    proveedores: {
+      jimaja: {
+        sku: "S/N",
+        nombre: "OZONO BLANCO",
+        precio: 0,
+        incluyeIva: true,
+      },
+    },
+  },
+  {
+    id: "ozono_metal",
+    internoNombre: "Ozono metal",
+    unidad: "pieza",
+    proveedores: {
+      jimaja: {
+        sku: "S/N",
+        nombre: "OZONO METAL",
+        precio: 0,
+        incluyeIva: true,
+      },
+    },
+  },
+  {
+    id: "porta_membrana_4040",
+    internoNombre: "Porta Membrana 4040",
+    unidad: "pieza",
+    
+    proveedores: {
+      jimaja: {
+        sku: "S/N",
+        nombre: "PORTA MEMBRANA 4040",
+        precio: 0,
+        incluyeIva: true,
+      },
+    },
+  },
+  // borrar hasta aquí
   {
     id: "manometro_0_100_osmosis_hdt",
     internoNombre: "Manómetro 0–100 PSI para ósmosis (HDT)",

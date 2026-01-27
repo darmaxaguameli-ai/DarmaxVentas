@@ -18,36 +18,59 @@ export const AuthProvider = ({ children }) => {
 
     useEffect(() => {
         try {
-            let storedUser = localStorage.getItem('user');
-            let storedToken = localStorage.getItem('token');
-            let storage = localStorage;
-
-            if (!storedUser || !storedToken) {
-                storedUser = sessionStorage.getItem('user');
-                storedToken = sessionStorage.getItem('token');
-                storage = sessionStorage;
-            }
+            const storedUser = localStorage.getItem('user');
+            const storedToken = localStorage.getItem('token');
 
             if (storedToken && storedUser) {
                 const parsedUser = JSON.parse(storedUser);
                 setUser(parsedUser);
                 setToken(storedToken);
-                // Configura el token en el apiClient para las recargas de página
                 apiClient.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`;
             }
         } catch (error) {
             console.error("No se pudo cargar la sesión:", error);
-            // Solo limpiar credenciales, no todo el storage (para no borrar tema, etc.)
             localStorage.removeItem('user');
             localStorage.removeItem('token');
-            sessionStorage.removeItem('user');
-            sessionStorage.removeItem('token');
         } finally {
             setLoading(false);
         }
     }, []);
 
-    const login = async (email, password, rememberMe) => {
+    useEffect(() => {
+        const syncLogout = (event) => {
+            if (event.key === 'logout') {
+                console.log('Detectado logout en otra pestaña, cerrando sesión local.');
+                // Forzar el estado de logout en la pestaña actual
+                setUser(null);
+                setToken(null);
+                delete apiClient.defaults.headers.common['Authorization'];
+            } else if (event.key === 'token' && event.newValue) {
+                console.log('Detectado login en otra pestaña, actualizando sesión local.');
+                // Forzar la recarga de datos desde localStorage
+                try {
+                    const storedUser = localStorage.getItem('user');
+                    const storedToken = localStorage.getItem('token');
+                    if (storedToken && storedUser) {
+                        const parsedUser = JSON.parse(storedUser);
+                        setUser(parsedUser);
+                        setToken(storedToken);
+                        apiClient.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`;
+                    }
+                } catch (e) {
+                    console.error("Error al sincronizar la sesión de login:", e);
+                    logout(); // Si algo falla, cerramos sesión por seguridad
+                }
+            }
+        };
+
+        window.addEventListener('storage', syncLogout);
+
+        return () => {
+            window.removeEventListener('storage', syncLogout);
+        };
+    }, []);
+
+    const login = async (email, password) => {
         try {
             const response = await apiClient.post('/login', { email, password });
             const { user: loggedInUser, token: receivedToken } = response.data;
@@ -55,16 +78,10 @@ export const AuthProvider = ({ children }) => {
             setUser(loggedInUser);
             setToken(receivedToken);
 
-            const storage = rememberMe ? localStorage : sessionStorage;
-            storage.setItem('user', JSON.stringify(loggedInUser));
-            storage.setItem('token', receivedToken);
-            
-            // Limpiar el otro storage para evitar conflictos (sin borrar todo el storage)
-            const otherStorage = rememberMe ? sessionStorage : localStorage;
-            otherStorage.removeItem('user');
-            otherStorage.removeItem('token');
+            // Siempre usar localStorage
+            localStorage.setItem('user', JSON.stringify(loggedInUser));
+            localStorage.setItem('token', receivedToken);
 
-            // Configurar el token en las cabeceras de apiClient para futuras peticiones
             apiClient.defaults.headers.common['Authorization'] = `Bearer ${receivedToken}`;
 
             return loggedInUser;
@@ -80,18 +97,16 @@ export const AuthProvider = ({ children }) => {
         setToken(null);
         localStorage.removeItem('user');
         localStorage.removeItem('token');
-        sessionStorage.removeItem('user');
-        sessionStorage.removeItem('token');
-        // Eliminar el token de las cabeceras de apiClient
         delete apiClient.defaults.headers.common['Authorization'];
+        // Disparar el evento de logout para otras pestañas
+        localStorage.setItem('logout', Date.now());
     };
 
     const updateUser = (newUserData) => {
         setUser(newUserData);
+        // Ensure the user data exists in storage before trying to update it
         if (localStorage.getItem('user')) {
             localStorage.setItem('user', JSON.stringify(newUserData));
-        } else if (sessionStorage.getItem('user')) {
-            sessionStorage.setItem('user', JSON.stringify(newUserData));
         }
     };
 
