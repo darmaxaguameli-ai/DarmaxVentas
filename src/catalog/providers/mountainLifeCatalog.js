@@ -656,12 +656,12 @@ export const MOUNTAIN_LIFE_PRODUCTS = [
   },
   {
     id: "k4_rotametro_de_1_a_10_gpm",
-    internoNombre: "FUJOMETRO 2-14 GPM",
+    internoNombre: "FLUJOMETRO 2-14 GPM",
     unidad: "pieza",
     proveedores: {
       mountain_life: {
         sku: "K4- ROTAMETRO DE 1 A 10 GPM",
-        nombre: "FUJOMETRO 2-14 GPM",
+        nombre: "FLUJOMETRO 2-14 GPM",
         precio: 427.0,
         incluyeIva: true,
       },

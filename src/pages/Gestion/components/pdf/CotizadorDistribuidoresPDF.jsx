@@ -122,7 +122,7 @@ const styles = StyleSheet.create({
   th: { fontSize: 10, fontWeight: 700 },
   td: { fontSize: 10, paddingVertical: 6 },
   cellCantidad: { width: 50, textAlign: "center" },
-  cellClave: { width: 100 },
+  cellClave: { width: 100, paddingRight: 10 },
   cellDescripcion: { flex: 1 },
   cellPrecio: { width: 70, textAlign: "right" },
   cellImporte: { width: 70, textAlign: "right" },

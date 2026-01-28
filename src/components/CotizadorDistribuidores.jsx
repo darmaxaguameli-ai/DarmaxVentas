@@ -152,6 +152,22 @@ export default function CotizadorDistribuidores() {
   const [isFolioListVisible, setIsFolioListVisible] = useState(false);
   const [loadingFolios, setLoadingFolios] = useState(false);
 
+  const handleNewSolicitud = () => {
+    setSavedSolicitud(null);
+    setItemsCotizacion([]);
+    setBillingInfo({
+      nombre: "SOLUCIONES ESTRATEGICAS MAXDAR",
+      rfc: "SEM240517KF2",
+      cp: "57170",
+      regimenFiscal: "Régimen Simplificado de Confianza",
+    });
+    setNotes(defaultNotes);
+    setFecha(todayMX());
+    setSearchFolio("");
+    setProviderFilter(PROVIDERS[0]?.id || "jimaja");
+    Swal.fire("Limpiado", "Puedes crear una nueva solicitud.", "info");
+  };
+
   const handleOpenFolioList = async () => {
       setIsFolioListVisible(true);
       setLoadingFolios(true);
@@ -422,6 +438,13 @@ export default function CotizadorDistribuidores() {
                 </p>
             </div>
             <div className="flex gap-2 w-full sm:w-auto grid grid-cols-2 sm:flex">
+                <button
+                    onClick={handleNewSolicitud}
+                    className="flex items-center justify-center gap-2 px-3 py-2 sm:px-4 rounded-xl font-bold shadow-md transition-all active:scale-95 text-xs sm:text-sm bg-white text-gray-700 hover:bg-gray-50 border border-gray-200"
+                >
+                    <span className="material-symbols-outlined text-lg sm:text-xl">add_circle</span>
+                    Nuevo
+                </button>
                 <button
                     onClick={handleOpenFolioList}
                     className="flex items-center justify-center gap-2 px-3 py-2 sm:px-4 rounded-xl font-bold shadow-md transition-all active:scale-95 text-xs sm:text-sm bg-white text-gray-700 hover:bg-gray-50 border border-gray-200"
