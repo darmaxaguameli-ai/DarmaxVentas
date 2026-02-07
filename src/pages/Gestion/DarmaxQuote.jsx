@@ -441,8 +441,8 @@ export default function DarmaxQuote() {
                                 <InputGroup label="Costo" value={form.costos.modelo} onChange={onChange("costos.modelo")} type="number" />
                             </div>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                                <InputGroup label="Flete" value={form.costos.fleteTinacos} onChange={onChange("costos.fleteTinacos")} type="number" />
-                                <InputGroup label="Viáticos" value={form.costos.viaticos} onChange={onChange("costos.viaticos")} type="number" />
+                                <InputGroup label="Flete de Tinaco" value={form.costos.fleteTinacos} onChange={onChange("costos.fleteTinacos")} type="number" />
+                                <InputGroup label="Viatico del instalador" value={form.costos.viaticos} onChange={onChange("costos.viaticos")} type="number" />
                             </div>
                         </div>
                     </div>
