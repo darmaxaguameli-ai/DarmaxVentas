@@ -54,6 +54,7 @@ import BuyJugsAssignWaterStepThree from "./pages/Client/orders/BuyJugsAssignWate
 import OrderConfirmation from "./pages/Client/orders/OrderConfirmation.jsx";
 import ClientProfile from "./pages/Client/ClientProfile";
 import MisPedidos from "./pages/Client/MisPedidos.jsx";
+import PuntoDeVentaPage from "./pages/PuntoDeVenta/PuntoDeVentaPage.jsx";
 
 import ScrollToTop from "./components/common/ScrollToTop.jsx";
 
@@ -140,6 +141,9 @@ function App() {
         {/* Cliente Profile & Pedidos */}
         <Route path="/profile" element={<ProtectedRoute><ClientProfile /></ProtectedRoute>} />
         <Route path="/mis-pedidos" element={<ProtectedRoute><MisPedidos /></ProtectedRoute>} />
+
+        {/* Punto de Venta */}
+        <Route path="/punto-de-venta" element={<PuntoDeVentaPage />} />
 
         {/* Sistema de Ventas */}
         <Route path="/ventas/productos" element={<ProductGrid />} />
