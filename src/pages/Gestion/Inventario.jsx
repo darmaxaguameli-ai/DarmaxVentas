@@ -1,17 +1,21 @@
 import { useState, useEffect, useMemo } from "react";
 import { useGestion } from "./context/GestionContext";
-import Swal from 'sweetalert2'; // Importar SweetAlert2
+import Swal from 'sweetalert2';
 
-const ProductModal = ({ isOpen, onClose, productToEdit, onSave }) => {
+// Categorías Fijas para el Inventario
+const inventoryCategories = ['Garrafones', 'Tapas', 'PVC', 'Insumos', 'Otros'];
+
+const ProductModal = ({ isOpen, onClose, productToEdit, onSave, activeCategory }) => {
     const [product, setProduct] = useState({ name: '', stock: '', price: '', category: '', imageUrl: '' });
     const [uploadType, setUploadType] = useState('url');
 
     useEffect(() => {
         if (productToEdit) {
             setProduct(productToEdit);
-            setUploadType('url');
+            setUploadType(productToEdit.imageUrl && !productToEdit.imageUrl.startsWith('http') ? 'file' : 'url');
         } else {
-            setProduct({ name: '', stock: '', price: '', category: '', imageUrl: '' });
+            // Al agregar, pre-seleccionar la categoría activa
+            setProduct({ name: '', stock: '', price: '', category: activeCategory, imageUrl: '' });
             setUploadType('url');
         }
 
@@ -20,7 +24,7 @@ const ProductModal = ({ isOpen, onClose, productToEdit, onSave }) => {
                 URL.revokeObjectURL(product.imageUrl);
             }
         };
-    }, [productToEdit, isOpen]);
+    }, [productToEdit, isOpen, activeCategory]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -69,7 +73,12 @@ const ProductModal = ({ isOpen, onClose, productToEdit, onSave }) => {
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Categoría</label>
-                        <input name="category" type="text" value={product.category} onChange={handleChange} required className="mt-1 block w-full input-style" />
+                        <select name="category" value={product.category} onChange={handleChange} required className="mt-1 block w-full input-style">
+                            <option value="" disabled>Seleccione una categoría</option>
+                            {inventoryCategories.map(cat => (
+                                <option key={cat} value={cat}>{cat}</option>
+                            ))}
+                        </select>
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Imagen del Producto</label>
@@ -81,23 +90,22 @@ const ProductModal = ({ isOpen, onClose, productToEdit, onSave }) => {
                                 Subir Archivo
                             </button>
                         </div>
-                        {uploadType === 'url' && (
+                        {uploadType === 'url' ? (
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">URL de Imagen</label>
                                 <input name="imageUrl" type="text" value={product.imageUrl || ''} onChange={handleChange} placeholder="https://ejemplo.com/imagen.png" className="mt-1 block w-full input-style" />
                             </div>
-                        )}
-                        {uploadType === 'file' && (
+                        ) : (
                             <div>
                                 <input type="file" id="file-upload" className="hidden" accept="image/*" onChange={handleFileChange} />
                                 <label htmlFor="file-upload" className="cursor-pointer mt-1 block w-full text-center p-4 border-2 border-dashed rounded-md text-gray-500 dark:text-gray-400 hover:border-primary dark:hover:border-primary-dark transition-colors">
-                                    {product.imageUrl ? 'Cambiar imagen' : 'Seleccionar una imagen'}
+                                    {product.imageUrl && product.imageUrl.startsWith('blob:') ? 'Cambiar imagen' : 'Seleccionar una imagen'}
                                 </label>
-                                {product.imageUrl && (
-                                    <div className="mt-4 flex justify-center">
-                                        <img src={product.imageUrl} alt="Previsualización" className="h-32 w-32 rounded-md object-cover"/>
-                                    </div>
-                                )}
+                            </div>
+                        )}
+                        {product.imageUrl && (
+                            <div className="mt-4 flex justify-center">
+                                <img src={product.imageUrl} alt="Previsualización" className="h-32 w-32 rounded-md object-cover"/>
                             </div>
                         )}
                     </div>
@@ -127,19 +135,10 @@ const Inventario = () => {
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [productToEdit, setProductToEdit] = useState(null);
-    const [activeCategory, setActiveCategory] = useState('All');
-
-    // Get unique categories for filter buttons
-    const categories = useMemo(() => {
-        const allCategories = inventory.map(p => p.category).filter(Boolean);
-        return ['All', ...new Set(allCategories)];
-    }, [inventory]);
+    const [activeCategory, setActiveCategory] = useState(inventoryCategories[0]); // Default to the first category
 
     // Filter inventory based on active category
     const filteredInventory = useMemo(() => {
-        if (activeCategory === 'All') {
-            return inventory;
-        }
         return inventory.filter(p => p.category === activeCategory);
     }, [inventory, activeCategory]);
 
@@ -159,8 +158,8 @@ const Inventario = () => {
         } else {
             addProduct(product);
         }
-        // If a new category was added, we might want to switch to it
-        if (product.category && !categories.includes(product.category)) {
+        // Switch to the category of the saved product
+        if (product.category && inventoryCategories.includes(product.category)) {
             setActiveCategory(product.category);
         }
     };
@@ -182,11 +181,11 @@ const Inventario = () => {
         }
     }
     
-    const getCategoryClassName = (category) => {
-        return `px-3 py-1 text-sm font-medium rounded-full transition-colors ${
+    const getTabClassName = (category) => {
+        return `px-4 py-2 font-medium rounded-t-lg transition-colors whitespace-nowrap ${
             activeCategory === category
-                ? 'bg-primary text-white'
-                : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-primary/80 hover:text-white'
+                ? 'bg-primary text-white border-b-2 border-primary-dark'
+                : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
         }`;
     }
 
@@ -204,19 +203,22 @@ const Inventario = () => {
               onClose={handleCloseModal}
               onSave={handleSaveProduct}
               productToEdit={productToEdit}
+              activeCategory={activeCategory}
             />
 
-            {/* Category Filter Buttons */}
-            <div className="flex items-center gap-2 mb-4 overflow-x-auto pb-2">
-                {categories.map(category => (
-                    <button 
-                        key={category} 
-                        onClick={() => setActiveCategory(category)}
-                        className={getCategoryClassName(category)}
-                    >
-                        {category}
-                    </button>
-                ))}
+            {/* Category Tabs */}
+            <div className="border-b border-gray-200 dark:border-gray-700 mb-6">
+                <nav className="flex flex-wrap -mb-px space-x-2 sm:space-x-4 overflow-x-auto">
+                    {inventoryCategories.map(category => (
+                        <button 
+                            key={category} 
+                            onClick={() => setActiveCategory(category)}
+                            className={getTabClassName(category)}
+                        >
+                            {category}
+                        </button>
+                    ))}
+                </nav>
             </div>
             
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-x-auto">
@@ -243,7 +245,7 @@ const Inventario = () => {
                         ) : filteredInventory.length === 0 ? (
                              <tr>
                                 <td colSpan="6" className="p-6 text-center text-gray-500 dark:text-gray-400">
-                                    {activeCategory === 'All' ? 'No hay productos en el inventario.' : `No hay productos en la categoría "${activeCategory}".`}
+                                    {`No hay productos en la categoría "${activeCategory}".`}
                                 </td>
                             </tr>
                         ) : (

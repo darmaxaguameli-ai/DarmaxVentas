@@ -49,40 +49,37 @@ const menuStructure = [
   },
 ];
 
-const SidebarItem = ({ item, isCollapsed, user, onClose, isMobile }) => {
-  const [isOpen, setIsOpen] = useState(false);
+const SidebarItem = ({ item, isCollapsed, user, onClose, isMobile, isOpen, onToggle }) => {
+  const [isFlyoutOpen, setIsFlyoutOpen] = useState(false);
   const location = useLocation();
-  const navigate = useNavigate();
-  const itemRef = useRef(null); 
+  const itemRef = useRef(null);
 
-  // Force expanded behavior on mobile
   const effectiveCollapsed = isMobile ? false : isCollapsed;
 
-  // Close menu when clicking outside (only relevant for desktop collapsed mode)
+  // Flyout logic for collapsed desktop sidebar
   useEffect(() => {
-    if (isMobile || !effectiveCollapsed) return; // Disable click outside logic on mobile/expanded
+    if (isMobile || !effectiveCollapsed) return;
 
     const handleClickOutside = (event) => {
-        if (itemRef.current && !itemRef.current.contains(event.target)) {
-            setIsOpen(false);
-        }
+      if (itemRef.current && !itemRef.current.contains(event.target)) {
+        setIsFlyoutOpen(false);
+      }
     };
-    
-    if (isOpen) {
-        document.addEventListener("mousedown", handleClickOutside);
-    }
-    
-    return () => {
-        document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [isOpen, effectiveCollapsed, isMobile]);
 
-  // ... (rest of permissions logic same as before)
+    if (isFlyoutOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isFlyoutOpen, effectiveCollapsed, isMobile]);
+  
   if (item.adminOnly && user?.role !== 'ADMIN') return null;
   const visibleChildren = item.children?.filter(child => !child.adminOnly || user?.role === 'ADMIN');
   if (item.type === 'group' && (!visibleChildren || visibleChildren.length === 0)) return null;
 
-  const isActive = item.type === 'link' 
+  const isActive = item.type === 'link'
     ? location.pathname === item.path || (item.path !== '/gestion' && location.pathname.includes(item.path))
     : visibleChildren.some(child => location.pathname.split('/').includes(child.path));
 
@@ -105,15 +102,23 @@ const SidebarItem = ({ item, isCollapsed, user, onClose, isMobile }) => {
     );
   }
 
+  const handleGroupClick = () => {
+      if (effectiveCollapsed) {
+          setIsFlyoutOpen(!isFlyoutOpen);
+      } else {
+          onToggle();
+      }
+  }
+
   // Renderizado de Grupo
   return (
-    <div 
-        ref={itemRef}
-        className={`mb-1 ${effectiveCollapsed ? 'relative' : ''}`}
+    <div
+      ref={itemRef}
+      className={`mb-1 ${effectiveCollapsed ? 'relative' : ''}`}
     >
-      <div 
+      <div
         className={`${baseClasses} ${isActive && !isOpen ? activeClasses : inactiveClasses} ${effectiveCollapsed ? '' : 'justify-between'}`}
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={handleGroupClick}
         title={effectiveCollapsed ? item.name : ''}
       >
         <div className={`flex items-center ${effectiveCollapsed ? 'justify-center' : 'gap-3'}`}>
@@ -126,59 +131,57 @@ const SidebarItem = ({ item, isCollapsed, user, onClose, isMobile }) => {
           </span>
         )}
       </div>
-      
+
       {/* Submenú Normal (Acordeón) - Móvil o Escritorio Expandido */}
       {!effectiveCollapsed && (
         <div className={`overflow-hidden transition-all duration-300 ease-in-out ${isOpen ? 'max-h-48 opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
-            <div className="ml-4 pl-3 border-l-2 border-gray-200 dark:border-gray-700 space-y-1">
+          <div className="ml-4 pl-3 border-l-2 border-gray-200 dark:border-gray-700 space-y-1">
             {visibleChildren.map((child) => (
-                <NavLink
+              <NavLink
                 key={child.name}
                 to={child.path}
                 className={({ isActive }) =>
-                    `flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${
-                    isActive 
-                        ? "text-primary font-semibold bg-blue-50 dark:bg-blue-900/20" 
-                        : "text-gray-500 dark:text-gray-400 hover:text-primary dark:hover:text-white"
-                    }`
+                  `flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${isActive
+                    ? "text-primary font-semibold bg-blue-50 dark:bg-blue-900/20"
+                    : "text-gray-500 dark:text-gray-400 hover:text-primary dark:hover:text-white"
+                  }`
                 }
                 onClick={onClose}
-                >
-                    <span className="material-symbols-outlined text-lg">{child.icon}</span>
-                    <span>{child.name}</span>
-                </NavLink>
+              >
+                <span className="material-symbols-outlined text-lg">{child.icon}</span>
+                <span>{child.name}</span>
+              </NavLink>
             ))}
-            </div>
+          </div>
         </div>
       )}
 
       {/* Submenú Flotante (Flyout) - Solo Escritorio Colapsado */}
-      {effectiveCollapsed && isOpen && (
-          <div className="absolute left-full top-0 ml-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 z-50 py-2 animate-fade-in">
-              <div className="px-4 py-2 border-b border-gray-100 dark:border-gray-700 mb-1">
-                  <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">{item.name}</span>
-              </div>
-              {visibleChildren.map((child) => (
-                <NavLink
-                key={child.name}
-                to={child.path}
-                className={({ isActive }) =>
-                    `flex items-center gap-3 px-4 py-2 text-sm transition-colors ${
-                    isActive 
-                        ? "text-primary font-semibold bg-blue-50 dark:bg-blue-900/20" 
-                        : "text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-                    }`
-                }
-                onClick={() => {
-                    setIsOpen(false);
-                    onClose();
-                }} 
-                >
-                    <span className="material-symbols-outlined text-lg">{child.icon}</span>
-                    <span>{child.name}</span>
-                </NavLink>
-            ))}
+      {effectiveCollapsed && isFlyoutOpen && (
+        <div className="absolute left-full top-0 ml-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 z-50 py-2 animate-fade-in">
+          <div className="px-4 py-2 border-b border-gray-100 dark:border-gray-700 mb-1">
+            <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">{item.name}</span>
           </div>
+          {visibleChildren.map((child) => (
+            <NavLink
+              key={child.name}
+              to={child.path}
+              className={({ isActive }) =>
+                `flex items-center gap-3 px-4 py-2 text-sm transition-colors ${isActive
+                  ? "text-primary font-semibold bg-blue-50 dark:bg-blue-900/20"
+                  : "text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                }`
+              }
+              onClick={() => {
+                setIsFlyoutOpen(false);
+                onClose();
+              }}
+            >
+              <span className="material-symbols-outlined text-lg">{child.icon}</span>
+              <span>{child.name}</span>
+            </NavLink>
+          ))}
+        </div>
       )}
     </div>
   );
@@ -188,10 +191,30 @@ const GestionSidebar = ({ isOpen, onClose, isCollapsed, toggleCollapsed }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
+  const location = useLocation();
 
-  // Helper para detectar si estamos en móvil visualmente (usando la prop isOpen que viene del layout padre)
-  // Nota: isOpen controla la visibilidad en móvil. isCollapsed controla el ancho en desktop.
-  // Si isOpen es true, significa que el sidebar está visible en móvil (overlay).
+  // Find the active group based on the current URL to open it on load
+  const getActiveGroup = () => {
+    const activeGroup = menuStructure.find(item => 
+        item.type === 'group' && 
+        item.children.some(child => location.pathname.includes(child.path))
+    );
+    return activeGroup ? activeGroup.name : null;
+  };
+  
+  const [openGroup, setOpenGroup] = useState(getActiveGroup());
+  
+  // Update open group when route changes
+  useEffect(() => {
+    if (!isCollapsed) { // Only auto-open groups when sidebar is expanded
+      setOpenGroup(getActiveGroup());
+    }
+  }, [location.pathname, isCollapsed]);
+
+
+  const handleToggleGroup = (groupName) => {
+    setOpenGroup(prevOpenGroup => (prevOpenGroup === groupName ? null : groupName));
+  };
   
   const handleLogout = () => {
     const name = user?.name || 'Usuario';
@@ -207,12 +230,11 @@ const GestionSidebar = ({ isOpen, onClose, isCollapsed, toggleCollapsed }) => {
         transform transition-all duration-300 ease-in-out flex-shrink-0 overflow-hidden
         ${isOpen ? 'translate-x-0 w-64 p-4 shadow-xl' : '-translate-x-full w-0 p-0'} 
         md:relative md:translate-x-0 md:shadow-none md:p-0
-        ${isCollapsed ? 'md:w-20' : 'md:w-64'} /* Desktop Widths override mobile w-0 */
-        ${isCollapsed ? 'md:px-2 md:overflow-visible' : 'md:p-4 md:overflow-hidden'} /* Desktop Paddings and Overflow */
+        ${isCollapsed ? 'md:w-20' : 'md:w-64'}
+        ${isCollapsed ? 'md:px-2 md:overflow-visible' : 'md:p-4 md:overflow-hidden'}
       `}
     >
       <div className={`flex flex-col h-full ${isCollapsed ? 'md:overflow-visible' : 'overflow-hidden'}`}>
-        {/* Header */}
         <div className="flex justify-end md:hidden mb-4">
           <button onClick={onClose} className="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700">
             <span className="material-symbols-outlined">close</span>
@@ -220,10 +242,7 @@ const GestionSidebar = ({ isOpen, onClose, isCollapsed, toggleCollapsed }) => {
         </div>
 
         <div className={`flex items-center p-2 mt-2 mb-8 ${isCollapsed ? 'md:justify-center' : 'gap-3'}`}>
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-2xl font-bold text-white shadow-sm flex-shrink-0">
-            D
-          </div>
-          {/* Mostrar texto si NO está colapsado (Desktop) O si estamos en móvil (siempre expandido visualmente) */}
+          <img src="/img/logos/darmax-logo.png" alt="Darmax Logo" className="h-10 w-10 object-contain" />
           {(!isCollapsed || isOpen) && (
             <div className={`flex flex-col leading-none overflow-hidden ${isCollapsed ? 'md:hidden' : ''}`}>
               <span className="text-sm font-bold tracking-tight text-dark dark:text-white truncate">
@@ -242,21 +261,21 @@ const GestionSidebar = ({ isOpen, onClose, isCollapsed, toggleCollapsed }) => {
           )}
         </div>
 
-        {/* Navigation - Scrollable Area */}
         <div className={`flex-1 pr-1 custom-scrollbar space-y-1 ${isCollapsed ? 'md:overflow-visible' : 'overflow-y-auto'}`}>
           {menuStructure.map((item, index) => (
             <SidebarItem 
                 key={index} 
                 item={item} 
                 isCollapsed={isCollapsed} 
-                isMobile={isOpen} // Pass mobile state
+                isMobile={isOpen}
                 user={user} 
-                onClose={onClose} 
+                onClose={onClose}
+                isOpen={openGroup === item.name}
+                onToggle={() => handleToggleGroup(item.name)}
             />
           ))}
         </div>
 
-        {/* Footer Actions */}
         <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-800 space-y-1">
             <button onClick={toggleTheme} className={footerLinkClasses} title="Cambiar Tema">
                 <span className="material-symbols-outlined text-xl">
