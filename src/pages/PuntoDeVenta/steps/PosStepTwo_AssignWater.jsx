@@ -26,7 +26,7 @@ const DraggableJug = ({ jug, children }) => {
   const style = {
     touchAction: "manipulation", 
     transform: transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined,
-    zIndex: isDragging ? 9999 : "auto",
+    zIndex: isDragging ? 99999 : "auto",
     cursor: isDragging ? "grabbing" : "grab",
   };
   return <div ref={setNodeRef} style={style} {...listeners} {...attributes}>{children}</div>;
@@ -36,7 +36,7 @@ const DroppableWaterType = ({ id, name, children }) => {
   return <div ref={setNodeRef} className={`border-2 border-dashed rounded-2xl transition-all duration-200 ${isOver ? "border-primary shadow-lg" : "border-transparent"}`}>{children}</div>;
 };
 
-// --- Reducer (copiado de la versión original, sin cambios en su lógica interna) ---
+// --- Reducer para manejar el estado complejo de forma atómica ---
 function assignmentReducer(state, action) {
   switch (action.type) {
     case 'INITIALIZE': {
@@ -70,12 +70,91 @@ function assignmentReducer(state, action) {
         targetWater: initialTargetWater,
       };
     }
-    case 'ASSIGN_JUG': { /* ... lógica idéntica ... */ }
-    case 'UNASSIGN_JUG': { /* ... lógica idéntica ... */ }
-    default: throw new Error(`Unhandled action type: ${action.type}`);
+    
+    case 'ASSIGN_JUG': {
+      const { sourceJugId, targetWaterId } = action.payload;
+      const { sourceJugs, targetWater } = state;
+
+      const sourceJug = sourceJugs.find(j => j.id === sourceJugId);
+      if (!sourceJug || sourceJug.quantity === 0) return state;
+
+      const newSourceJugs = sourceJugs.map(jug => 
+        jug.id === sourceJugId ? { ...jug, quantity: jug.quantity - 1 } : jug
+      );
+
+      const newTargetWater = targetWater.map(water => {
+        if (water.id !== targetWaterId) return water;
+        
+        let existingAssignmentFound = false;
+        const updatedAssignments = water.assignments.map(assign => {
+            if (assign.jugId === sourceJugId) {
+                existingAssignmentFound = true;
+                return { ...assign, quantity: assign.quantity + 1 };
+            }
+            return assign;
+        });
+
+        if (!existingAssignmentFound) {
+          updatedAssignments.push({
+            jugId: sourceJug.id,
+            jugName: sourceJug.name,
+            imageUrl: sourceJug.imageUrl,
+            quantity: 1,
+          });
+        }
+        
+        return {
+          ...water,
+          assignments: updatedAssignments,
+          quantity: water.quantity + 1,
+        };
+      });
+
+      return { sourceJugs: newSourceJugs, targetWater: newTargetWater };
+    }
+
+    case 'UNASSIGN_JUG': {
+      const { waterTypeId } = action.payload;
+      const { sourceJugs, targetWater } = state;
+      
+      const waterType = targetWater.find(w => w.id === waterTypeId);
+      if (!waterType || waterType.quantity === 0) return state;
+
+      const assignmentToRemoveFrom = waterType.assignments.find(a => a.quantity > 0);
+      if (!assignmentToRemoveFrom) return state;
+
+      const jugIdToReturn = assignmentToRemoveFrom.jugId;
+
+      const newSourceJugs = sourceJugs.map(jug =>
+        jug.id === jugIdToReturn ? { ...jug, quantity: jug.quantity + 1 } : jug
+      );
+
+      const newTargetWater = targetWater.map(water => {
+        if (water.id !== waterTypeId) return water;
+
+        let assignmentUpdated = false;
+        const updatedAssignments = water.assignments.map(assign => {
+          if (assign.jugId === jugIdToReturn && !assignmentUpdated) {
+            assignmentUpdated = true;
+            return { ...assign, quantity: assign.quantity - 1 };
+          }
+          return assign;
+        }).filter(assign => assign.quantity > 0);
+
+        return {
+          ...water,
+          assignments: updatedAssignments,
+          quantity: water.quantity - 1,
+        };
+      });
+      
+      return { sourceJugs: newSourceJugs, targetWater: newTargetWater };
+    }
+
+    default:
+      throw new Error(`Unhandled action type: ${action.type}`);
   }
 }
-
 
 // ====================================================================
 // Componente Principal Adaptado para el Flujo de Punto de Venta
@@ -180,9 +259,29 @@ const PosStepTwo_AssignWater = ({ onContinue, onBack, pedidoData }) => {
               <h2 className="text-xl font-bold text-center">Tipos de Agua</h2>
               {targetWater.map((water) => (
                 <DroppableWaterType key={water.id} {...water}>
-                   <div className="p-4 rounded-lg shadow bg-white dark:bg-gray-800 flex flex-col items-center justify-center gap-2 min-h-[120px] relative overflow-hidden">
-                        {/* ... contenido visual (botones, etc) ... */}
-                   </div>
+                  <div className="p-4 rounded-lg shadow bg-white dark:bg-gray-800 flex flex-col items-center justify-center gap-2 min-h-[120px] relative overflow-hidden">
+                    <div className="wave-container">
+                      <div className="wave"></div>
+                      <div className="wave two"></div>
+                    </div>
+                    <div className="relative z-10 flex flex-col items-center justify-center gap-2">
+                      <div className="flex items-center gap-2">
+                        <p className="text-lg font-bold text-center">{water.name}</p>
+                        <button 
+                          onClick={() => setInfoModalOpen(water.name)}
+                          className="text-gray-400 hover:text-primary transition-colors"
+                          title="Ver beneficios"
+                        >
+                          <span className="material-symbols-outlined text-lg">info</span>
+                        </button>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <button onClick={() => handleManualRemove(water.id)} className="btn-secondary flex h-11 w-11 items-center justify-center rounded-full text-xl">-</button>
+                        <span className="w-12 text-center text-3xl font-black text-primary tabular-nums">{water.quantity}</span>
+                        <button onClick={() => handleManualAdd(water.id)} className="btn-secondary flex h-11 w-11 items-center justify-center rounded-full text-xl">+</button>
+                      </div>
+                    </div>
+                  </div>
                 </DroppableWaterType>
               ))}
             </div>
@@ -220,11 +319,6 @@ const PosStepTwo_AssignWater = ({ onContinue, onBack, pedidoData }) => {
   );
 };
 
-// --- Reducer (lógica completa para referencia, omitida en el editor por brevedad) ---
-const originalAssignmentReducer = (state, action) => {
-    // ... la implementación completa del reducer original
-};
-// Nota: Tuve que acortar el contenido del archivo para el ejemplo, 
-// pero la lógica completa del reducer y los subcomponentes visuales se mantendría.
+
 
 export default PosStepTwo_AssignWater;

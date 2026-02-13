@@ -90,6 +90,42 @@ const PanelPrincipal = ({ jornadaData, onTerminarJornada, onNuevoPedido }) => {
   const totalVentas = jornadaData.pedidos.reduce((sum, p) => sum + p.total, 0);
   const cajaActual = jornadaData.dineroInicial + totalVentas;
 
+  // Calculo de sellos restantes
+  const sellosConsumidos = jornadaData.pedidos.reduce((totalConsumidos, pedido) => {
+    if (pedido.itemsDetalle && pedido.itemsDetalle.length > 0) {
+      // Por cada 'waterType' en itemsDetalle
+      pedido.itemsDetalle.forEach(waterType => {
+        // Sumar la cantidad de todos los asignados para este waterType
+        waterType.assignments.forEach(assignment => {
+          // Un sello se consume si NO se cobró recolección (asumiendo que significa que se entregó un garrafón nuevo)
+          // O si es una venta de garrafón lleno (no recarga)
+          // La lógica actual de `cobrarRecoleccion` es para "ir por ellos", así que si está marcado como true, NO consume sello (se trajo uno vacío)
+          // Si es false, SÍ consume sello (se entregó uno nuevo o no se recogió vacío)
+          if (!pedido.cobrarRecoleccion) { // Si no se cobró recolección, se asume que se entregó un garrafón nuevo
+              totalConsumidos += assignment.quantity;
+          }
+        });
+      });
+    }
+    return totalConsumidos;
+  }, 0);
+  const sellosRestantes = jornadaData.sellosIniciales - sellosConsumidos;
+
+
+  // Garrafones vendidos por tipo
+  const garrafonesVendidosPorTipo = jornadaData.pedidos.reduce((counts, pedido) => {
+    if (pedido.itemsDetalle && pedido.itemsDetalle.length > 0) {
+      pedido.itemsDetalle.forEach(waterType => {
+        waterType.assignments.forEach(assignment => {
+          const key = `${assignment.jugName} (${waterType.name.replace('Agua ', '')})`;
+          counts[key] = (counts[key] || 0) + assignment.quantity;
+        });
+      });
+    }
+    return counts;
+  }, {});
+
+
   return (
     <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
       <div className="flex flex-wrap justify-between items-center mb-6 gap-4">
@@ -113,7 +149,7 @@ const PanelPrincipal = ({ jornadaData, onTerminarJornada, onNuevoPedido }) => {
       </div>
 
       {/* Resumen de la Jornada */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         <div className="bg-gray-100 dark:bg-gray-700 p-4 rounded-lg">
             <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Dinero en Caja</h3>
             <p className="text-2xl font-bold text-gray-800 dark:text-white">${cajaActual.toFixed(2)}</p>
@@ -123,14 +159,33 @@ const PanelPrincipal = ({ jornadaData, onTerminarJornada, onNuevoPedido }) => {
             <p className="text-2xl font-bold text-gray-800 dark:text-white">${totalVentas.toFixed(2)}</p>
         </div>
         <div className="bg-gray-100 dark:bg-gray-700 p-4 rounded-lg">
+            <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Sellos Restantes</h3>
+            <p className="text-2xl font-bold text-gray-800 dark:text-white">{sellosRestantes}</p>
+        </div>
+        <div className="bg-gray-100 dark:bg-gray-700 p-4 rounded-lg">
             <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Pedidos Registrados</h3>
             <p className="text-2xl font-bold text-gray-800 dark:text-white">{jornadaData.pedidos.length}</p>
         </div>
       </div>
+
+      {/* Resumen de Garrafones Vendidos por Tipo */}
+      {Object.keys(garrafonesVendidosPorTipo).length > 0 && (
+        <div className="mb-8 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+          <h3 className="text-xl font-semibold mb-4 text-gray-800 dark:text-white">Garrafones Vendidos</h3>
+          <ul className="space-y-2">
+            {Object.entries(garrafonesVendidosPorTipo).map(([jugType, count]) => (
+              <li key={jugType} className="flex justify-between items-center text-gray-700 dark:text-gray-300">
+                <span>{jugType}</span>
+                <span className="font-bold">{count}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
       
       {/* Lista de Pedidos */}
       <div className="mb-8">
-        <h3 className="text-xl font-semibold mb-4 text-gray-800 dark:text-white">Pedidos del Día</h3>
+        <h3 className="text-xl font-semibold mb-4 text-gray-800 dark:text-white">Últimos Pedidos</h3>
         <div className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg min-h-[150px]">
             {jornadaData.pedidos.length === 0 ? (
                 <p className="text-gray-500 dark:text-gray-400 text-center pt-10">Aún no se han registrado pedidos.</p>
@@ -267,9 +322,12 @@ const PuntoDeVentaPage = () => {
 
   return (
     <div className="p-4 md:p-8 bg-gray-50 dark:bg-gray-900 min-h-screen">
-      <header className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-800 dark:text-white">Punto de Venta</h1>
-        <p className="text-gray-500 dark:text-gray-400">Sistema de registro de ventas diarias.</p>
+      <header className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-800 dark:text-white">Punto de Venta</h1>
+          <p className="text-gray-500 dark:text-gray-400">Sistema de registro de ventas diarias.</p>
+        </div>
+        <img src="/img/logos/darmax-logo.png" alt="Darmax Logo" className="h-16 w-auto" />
       </header>
       
       <main>
