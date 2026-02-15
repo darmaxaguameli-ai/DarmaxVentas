@@ -327,7 +327,7 @@ const PuntoDeVentaPage = () => {
           <h1 className="text-3xl font-bold text-gray-800 dark:text-white">Punto de Venta</h1>
           <p className="text-gray-500 dark:text-gray-400">Sistema de registro de ventas diarias.</p>
         </div>
-        <img src="/img/logos/darmax-logo.png" alt="Darmax Logo" className="h-16 w-auto" />
+        <img src="/img/logos/darmax-logo.png" alt="Darmax Logo" className="w-20 h-auto sm:w-24" />
       </header>
       
       <main>
