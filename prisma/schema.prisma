@@ -21,6 +21,14 @@ enum UserRole {
   CLIENTE
 }
 
+enum ClientCategory {
+  PARTICULAR
+  EMPRESA
+  HOSPITAL
+  ESCUELA
+  OTRO
+}
+
 enum PedidoStatus {
   PENDIENTE
   EN_PROCESO
@@ -93,6 +101,7 @@ model JugBrand {
   compatibleCapId String?
   
   servicePrices ServicePrice[] // Relación muchos a muchos
+  userPreferences UserJugPreference[]
 }
 
 // =====================================================================
@@ -162,6 +171,7 @@ model User {
   lat                Float?
   lng                Float?
   role               UserRole          @default(CLIENTE)
+  clientCategory     ClientCategory    @default(PARTICULAR)
   sexo               String?           // Nuevo campo: HOMBRE, MUJER, OTRO
   createdAt          DateTime          @default(now())
   updatedAt          DateTime          @updatedAt
@@ -170,6 +180,7 @@ model User {
   pedidos            Pedido[]
   sesionesCaja       SesionCaja[]
   empleado           Empleado?
+  jugPreferences     UserJugPreference[]
   
   // Nueva relación con Sucursal (Opcional, pues un cliente puede no tener una fija)
   store              Store?            @relation(fields: [storeId], references: [id])
@@ -202,6 +213,17 @@ model LoyaltyTransaction {
   
   user        User     @relation(fields: [userId], references: [id])
   userId      String
+}
+
+model UserJugPreference {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  jugBrandId String
+  jugBrand   JugBrand @relation(fields: [jugBrandId], references: [id])
+  quantity   Int      @default(0)
+
+  @@unique([userId, jugBrandId])
 }
 
 // Renombrado de "Producto" a "Product" para seguir convenciones.

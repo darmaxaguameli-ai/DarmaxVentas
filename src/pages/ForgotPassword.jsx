@@ -1,10 +1,30 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import Swal from 'sweetalert2';
-import axios from 'axios';
+import apiClient from '../api/apiClient'; // Ruta corregida
 import MainLayout from "../layouts/MainLayout";
 import Button from "../components/common/Button";
 import { MdEmail, MdArrowBack, MdMarkEmailRead } from 'react-icons/md';
+
+// Definir fuera para evitar que se recree en cada render y pierda el foco
+const InputField = ({ label, type, value, onChange, placeholder, icon, required = true }) => (
+  <div className="mb-6 text-left">
+    <label className="block text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider mb-1.5 ml-1">
+      {label}
+    </label>
+    <div className="relative flex items-center bg-gray-50 dark:bg-gray-700 rounded-xl border border-gray-300 dark:border-gray-600 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all">
+      {icon && <div className="pl-4 text-gray-400 dark:text-gray-500 text-xl">{icon}</div>}
+      <input
+        type={type}
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        required={required}
+        className="w-full py-3.5 px-4 bg-transparent outline-none text-gray-800 dark:text-white placeholder:text-gray-400 text-base"
+      />
+    </div>
+  </div>
+);
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState('');
@@ -13,9 +33,12 @@ const ForgotPassword = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!email) return;
+    
     setLoading(true);
     try {
-      await axios.post('/api/forgot-password', { email });
+      // Usar apiClient que ya tiene el /api configurado
+      await apiClient.post('/forgot-password', { email });
       setSent(true);
       Swal.fire({
         icon: 'success',
@@ -28,7 +51,7 @@ const ForgotPassword = () => {
       Swal.fire({
         icon: 'error',
         title: 'Error',
-        text: 'Hubo un problema al procesar tu solicitud. Intenta de nuevo.',
+        text: error.message || 'Hubo un problema al procesar tu solicitud. Intenta de nuevo.',
         confirmButtonColor: '#3b82f6'
       });
     } finally {
@@ -36,29 +59,10 @@ const ForgotPassword = () => {
     }
   };
 
-  const InputField = ({ label, type, value, onChange, placeholder, icon, required = true }) => (
-    <div className="mb-6 text-left">
-      <label className="block text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider mb-1.5 ml-1">
-        {label}
-      </label>
-      <div className="relative flex items-center bg-gray-50 dark:bg-gray-700 rounded-xl border border-gray-300 dark:border-gray-600 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all">
-        {icon && <div className="pl-4 text-gray-400 dark:text-gray-500 text-xl">{icon}</div>}
-        <input
-          type={type}
-          value={value}
-          onChange={onChange}
-          placeholder={placeholder}
-          required={required}
-          className="w-full py-3.5 px-4 bg-transparent outline-none text-gray-800 dark:text-white placeholder:text-gray-400 text-base"
-        />
-      </div>
-    </div>
-  );
-
   return (
     <MainLayout>
       <div className="min-h-[80vh] flex flex-col justify-center items-center px-4 py-8 w-full font-display">
-        <div className="w-full max-w-md bg-white dark:bg-gray-800 rounded-[2.5rem] shadow-xl border border-gray-100 dark:border-gray-700 p-8 sm:p-10 transition-all overflow-hidden">
+        <div className="w-full max-w-md bg-white dark:bg-gray-800 rounded-[2.5rem] shadow-xl border border-gray-100 dark:border-gray-700 p-8 sm:p-10 transition-all overflow-hidden animate-in fade-in zoom-in-105 duration-500">
           
           <div className="mb-8">
             <Link to="/login" className="inline-flex items-center text-gray-400 hover:text-primary transition-colors text-sm font-bold gap-1">

@@ -173,3 +173,9 @@ export const deleteSolicitud = (id) => apiClient.delete(`/solicitudes/${id}`).th
 //  REPORTS
 // ====================================================================
 export const fetchConsolidatedReport = () => apiClient.get('/reports/consolidated').then(res => res.data);
+
+// ====================================================================
+//  USER PREFERENCES
+// ====================================================================
+export const fetchUserPreferences = () => apiClient.get('/user-preferences').then(res => res.data);
+export const saveUserPreferences = (preferences) => apiClient.post('/user-preferences', { preferences }).then(res => res.data);

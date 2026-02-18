@@ -89,10 +89,14 @@ app.post('/api/forgot-password', async (req, res) => {
     return res.status(400).json({ error: 'El email es requerido.' });
   }
 
+  const normalizedEmail = email.toLowerCase().trim();
+  console.log(`[Forgot-Password] Iniciando proceso para: ${normalizedEmail}`);
+
   try {
-    const user = await prisma.user.findUnique({ where: { email } });
+    const user = await prisma.user.findUnique({ where: { email: normalizedEmail } });
 
     if (!user) {
+      console.warn(`[Forgot-Password] Usuario no encontrado: ${normalizedEmail}`);
       // Por seguridad, no indicamos si el usuario no existe
       return res.json({ message: 'Si el correo existe, se enviará un enlace de recuperación.' });
     }
@@ -103,18 +107,27 @@ app.post('/api/forgot-password', async (req, res) => {
 
     // Guardar token en BD
     await prisma.user.update({
-      where: { email },
+      where: { id: user.id },
       data: {
         resetPasswordToken: token,
         resetPasswordExpires: expires,
       },
     });
 
-    // Enviar correo
-    const resetLink = `https://ventas-darmax-gestion.vercel.app/reset-password?token=${token}`; // Ajustar URL frontend
+    console.log(`[Forgot-Password] Token generado y guardado para ${user.id}`);
+
+    // Enviar correo - Enlace dinámico según el entorno
+    const frontendUrl = process.env.FRONTEND_URL || 'https://ventas-darmax-gestion.vercel.app';
+    const resetLink = `${frontendUrl}/reset-password?token=${token}`;
     const html = getResetPasswordEmailTemplate({ name: user.name, resetLink });
 
-    await sendEmail(email, 'Recuperación de contraseña de Darmax', html);
+    try {
+        await sendEmail(normalizedEmail, 'Recuperación de contraseña de Darmax', html);
+        console.log(`[Forgot-Password] Email enviado exitosamente a ${normalizedEmail}`);
+    } catch (emailErr) {
+        console.error(`[Forgot-Password] Error crítico al enviar email a ${normalizedEmail}:`, emailErr);
+        throw new Error('Error al enviar el correo electrónico.');
+    }
 
     res.json({ message: 'Si el correo existe, se enviará un enlace de recuperación.' });
 
@@ -261,6 +274,7 @@ app.post('/api/register-client', async (req, res) => {
       lat: coordinates.lat, // <-- Guardar latitud
       lng: coordinates.lng, // <-- Guardar longitud
       role: 'CLIENTE',
+      clientCategory: data.clientCategory || 'PARTICULAR',
     };
 
     // Generar un customId único
@@ -1425,6 +1439,7 @@ app.post('/api/users', async (req, res) => {
       state: data.state === '' ? null : data.state,
       postalCode: data.postalCode === '' ? null : data.postalCode,
       sexo: data.sexo === '' ? null : data.sexo, // Nuevo campo
+      clientCategory: data.clientCategory || 'PARTICULAR',
       role: finalRole,
     };
 
@@ -1581,22 +1596,23 @@ app.put('/api/users/:id', verifyToken, async (req, res) => {
     // Explicitly convert empty strings to null for optional fields
     // We map EACH field manually to ensure nothing is missed
     const updateData = {
-      name: data.name,
-      email: data.email === '' ? null : data.email,
-      phone: data.phone === '' ? null : data.phone,
-      street: data.street === '' ? null : data.street,
-      neighborhood: data.neighborhood === '' ? null : data.neighborhood,
-      city: data.city === '' ? null : data.city,
-      municipality: data.municipality === '' ? null : data.municipality,
-      state: data.state === '' ? null : data.state,
-      postalCode: data.postalCode === '' ? null : data.postalCode,
-      references: data.references === '' ? null : data.references,
-      sexo: data.sexo === '' ? null : data.sexo, // Nuevo campo
-      lat: data.lat, // Permitir actualizar latitud
-      lng: data.lng, // Permitir actualizar longitud
-      // Handle storeId: Allow if Admin OR if user is updating their own profile (e.g. changing preference)
+      name: data.name || undefined,
+      email: data.email === '' ? null : (data.email || undefined),
+      phone: data.phone === '' ? null : (data.phone || undefined),
+      street: data.street === '' ? null : (data.street || undefined),
+      neighborhood: data.neighborhood === '' ? null : (data.neighborhood || undefined),
+      city: data.city === '' ? null : (data.city || undefined),
+      municipality: data.municipality === '' ? null : (data.municipality || undefined),
+      state: data.state === '' ? null : (data.state || undefined),
+      postalCode: data.postalCode === '' ? null : (data.postalCode || undefined),
+      references: data.references === '' ? null : (data.references || undefined),
+      sexo: data.sexo === '' ? null : (data.sexo || undefined), 
+      clientCategory: data.clientCategory || undefined,
+      lat: data.lat === null ? null : (data.lat !== undefined ? parseFloat(data.lat) : undefined),
+      lng: data.lng === null ? null : (data.lng !== undefined ? parseFloat(data.lng) : undefined),
+      // Handle storeId: Allow if Admin OR if user is updating their own profile
       storeId: (requesterIsAdmin || id === req.user.id) && data.storeId !== undefined 
-          ? (data.storeId === '' ? null : data.storeId) 
+          ? (data.storeId === '' || data.storeId === null ? null : data.storeId) 
           : undefined
     };
 
@@ -1621,6 +1637,8 @@ app.put('/api/users/:id', verifyToken, async (req, res) => {
     // Remove undefined values to ensure Prisma doesn't try to update fields that weren't sent
     Object.keys(updateData).forEach(key => updateData[key] === undefined && delete updateData[key]);
 
+    console.log(`[UpdateUser] Intentando actualizar usuario ${id} con data:`, JSON.stringify(updateData, null, 2));
+
     const updatedUser = await prisma.user.update({
       where: { id },
       data: updateData,
@@ -1638,10 +1656,73 @@ app.put('/api/users/:id', verifyToken, async (req, res) => {
 
   } catch (error) {
     console.error(`Error updating user ${id}:`, error);
+    
+    // Errores conocidos de Prisma
+    if (error.code === 'P2002') {
+        const field = error.meta?.target?.includes('phone') ? 'teléfono' : 'email';
+        return res.status(409).json({ 
+            error: `El ${field} ya está registrado en otra cuenta.`,
+            details: `Por favor usa un ${field} diferente o contacta a soporte.`
+        });
+    }
+
     if (error.code === 'P2025') {
       return res.status(404).json({ error: 'User not found' });
     }
-    res.status(500).json({ error: 'Error updating user', details: error.message });
+    res.status(500).json({ error: 'Error updating user', details: error.message, prismaError: error.code });
+  }
+});
+
+// =====================================================
+// USER PREFERENCES API
+// =====================================================
+
+app.get('/api/user-preferences', verifyToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const preferences = await prisma.userJugPreference.findMany({
+      where: { userId },
+      include: { jugBrand: true }
+    });
+    res.json(preferences);
+  } catch (error) {
+    console.error('Error fetching user preferences:', error);
+    res.status(500).json({ error: 'Error al obtener preferencias.' });
+  }
+});
+
+app.post('/api/user-preferences', verifyToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { preferences } = req.body;
+
+    if (!Array.isArray(preferences)) {
+      return res.status(400).json({ error: 'Preferences must be an array.' });
+    }
+
+    await prisma.$transaction(
+      preferences.map(pref => 
+        prisma.userJugPreference.upsert({
+          where: {
+            userId_jugBrandId: {
+              userId,
+              jugBrandId: pref.jugBrandId
+            }
+          },
+          update: { quantity: pref.quantity },
+          create: {
+            userId,
+            jugBrandId: pref.jugBrandId,
+            quantity: pref.quantity
+          }
+        })
+      )
+    );
+
+    res.json({ message: 'Preferencias guardadas exitosamente.' });
+  } catch (error) {
+    console.error('Error saving user preferences:', error);
+    res.status(500).json({ error: 'Error al guardar preferencias.' });
   }
 });
 

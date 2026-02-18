@@ -40,7 +40,7 @@ const ClientUserModal = ({ onClose, userToEdit, onSave }) => {
   const initialUserState = { 
       name: "", email: "", password: "", phone: "", sexo: "",
       street: "", neighborhood: "", municipality: "", state: "", city: "", postalCode: "", references: "",
-      role: "CLIENTE", storeId: "" 
+      role: "CLIENTE", storeId: "", clientCategory: "PARTICULAR" 
   };
   
   const [user, setUser] = useState(() => {
@@ -121,8 +121,17 @@ const ClientUserModal = ({ onClose, userToEdit, onSave }) => {
           {/* Datos Personales */}
           <div className="space-y-4">
               <h3 className="text-sm font-bold text-primary border-b pb-1">Datos Personales</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div><label className="label-style">Nombre Completo</label><input name="name" type="text" value={user.name || ""} onChange={handleChange} required className="input-style" /></div>
+                <div><label className="label-style">Tipo de Cliente</label>
+                    <select name="clientCategory" value={user.clientCategory || "PARTICULAR"} onChange={handleChange} className="input-style">
+                        <option value="PARTICULAR">Particular</option>
+                        <option value="EMPRESA">Empresa</option>
+                        <option value="HOSPITAL">Hospital</option>
+                        <option value="ESCUELA">Escuela</option>
+                        <option value="OTRO">Otro</option>
+                    </select>
+                </div>
                 <div><label className="label-style">Sucursal Preferida</label>
                     <select name="storeId" value={user.storeId || ""} onChange={handleChange} className="input-style">
                     <option value="">Ninguna / Global</option>

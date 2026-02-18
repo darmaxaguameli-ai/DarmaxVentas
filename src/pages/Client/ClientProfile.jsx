@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { toast } from 'sonner'; // Importar toast
 import ClientOrderHeader from '../../components/ClientOrderHeader';
 import { useAuth } from '../../context/AuthContext';
 import apiClient, { fetchPostalCodeData as apiFetchPostalCode } from '../../api/apiClient'; // Renombrado para evitar conflicto
@@ -23,6 +24,7 @@ const ClientProfile = () => {
     city: '',         // Combined field for DB
     postalCode: '',
     references: '',
+    clientCategory: 'PARTICULAR',
     lat: null,        // New Geolocation field
     lng: null,        // New Geolocation field
   });
@@ -68,6 +70,7 @@ const ClientProfile = () => {
             city: userData.city || '', // Keep city for legacy/display if needed
             postalCode: userData.postalCode || '',
             references: userData.references || '',
+            clientCategory: userData.clientCategory || 'PARTICULAR',
             lat: userData.lat ? parseFloat(userData.lat) : null,
             lng: userData.lng ? parseFloat(userData.lng) : null,
             // Loyalty Data
@@ -169,17 +172,27 @@ const ClientProfile = () => {
       });
 
       const response = await apiClient.put(`/users/${user.id}`, dataToUpdate);
+      
+      // Mensaje de éxito visual
+      toast.success('¡Perfil actualizado con éxito!');
       setSuccessMessage('¡Perfil actualizado con éxito!');
+      
       updateAuthUser(response.data);
 
-      if (location.state?.fromOrderFlow) {
-        navigate('/pedidos/rellenar/resumen', { state: location.state.orderState });
-      } else {
-        navigate('/pedidos');
-      }
+      // Pequeño retraso para que el usuario vea el éxito
+      setTimeout(() => {
+        if (location.state?.fromOrderFlow) {
+          navigate('/pedidos/rellenar/resumen', { state: location.state.orderState });
+        } else {
+          navigate('/pedidos');
+        }
+      }, 1500);
+
     } catch (err) {
       console.error('Error updating user profile:', err);
-      setError(err.response?.data?.error || 'Error al actualizar el perfil.');
+      const errorMsg = err.response?.data?.error || 'Error al actualizar el perfil.';
+      setError(errorMsg);
+      toast.error(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -235,6 +248,24 @@ const ClientProfile = () => {
         </section>
 
         <form onSubmit={handleSubmit} className="space-y-6 sm:space-y-8">
+          <section className="space-y-4">
+            <h2 className="text-lg font-bold text-primary flex items-center gap-2 border-b pb-2 dark:border-gray-700">
+                <span className="material-symbols-outlined">category</span> Tipo de Cliente
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+                <div>
+                    <label className="label-style mb-1 block">¿Cómo te categorizas?</label>
+                    <select name="clientCategory" value={formData.clientCategory} onChange={handleChange} className="input-style">
+                        <option value="PARTICULAR">Particular (Hogar)</option>
+                        <option value="EMPRESA">Empresa / Oficina</option>
+                        <option value="HOSPITAL">Hospital / Clínica</option>
+                        <option value="ESCUELA">Escuela / Universidad</option>
+                        <option value="OTRO">Otro</option>
+                    </select>
+                </div>
+            </div>
+          </section>
+
           <section className="space-y-4">
             <h2 className="text-lg font-bold text-primary flex items-center gap-2 border-b pb-2 dark:border-gray-700">
                 <span className="material-symbols-outlined">person</span> Datos Personales

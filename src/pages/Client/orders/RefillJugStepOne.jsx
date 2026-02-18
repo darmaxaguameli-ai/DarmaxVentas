@@ -1,11 +1,13 @@
 // src/pages/cliente/orders/RefillJugStepOne.jsx
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { toast } from "sonner";
 import OrderLayout from "../../../layouts/OrderLayout";
 import QuantityCard from "../../../components/order/QuantityCard";
 import { useConfig } from "../../../context/ConfigContext";
 import { useHaptic } from "../../../hooks/useHaptic";
+import { fetchUserPreferences, saveUserPreferences } from "../../../api/apiClient";
+import { useAuth } from "../../../context/AuthContext";
 
 const brandImageMap = {
   'ciel': '/img/garrafones/ciel.png',
@@ -24,80 +26,123 @@ const RefillJugStepOne = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { jugBrands: fetchedJugBrands, loading: configLoading, error: configError } = useConfig();
+  const { isAuthenticated } = useAuth();
   const { impact } = useHaptic();
   
   const [selectedJugs, setSelectedJugs] = useState([]);
+  const [preferences, setPreferences] = useState(null);
+  const [loadingPrefs, setLoadingPrefs] = useState(false);
+  const [saveAsDefault, setSaveAsDefault] = useState(false);
+
+  // Load Preferences
+  useEffect(() => {
+    if (isAuthenticated) {
+      const loadPrefs = async () => {
+        try {
+          setLoadingPrefs(true);
+          const prefs = await fetchUserPreferences();
+          if (prefs && prefs.length > 0) {
+            setPreferences(prefs);
+          }
+        } catch (err) {
+          console.error("Error loading preferences:", err);
+        } finally {
+          setLoadingPrefs(false);
+        }
+      };
+      loadPrefs();
+    }
+  }, [isAuthenticated]);
+
+  const initializeJugs = useCallback((brands, initialSelections = null, prefs = null) => {
+    return brands.map((brand, index) => {
+      // 1. Prioritize current flow state (if user went back)
+      const existingInState = initialSelections?.find(p => p.id === brand.id);
+      
+      // 2. If no state, use preferences if available
+      const pref = prefs?.find(p => p.jugBrandId === brand.id);
+      const initialQty = existingInState ? existingInState.quantity : (pref ? pref.quantity : 0);
+
+      const finalImage = brand.imageUrl || getImageUrlForBrand(brand.name);
+      const lowerName = brand.name.toLowerCase();
+      const isBottle = lowerName.includes('1l') || lowerName.includes('1 litro') || lowerName.includes('1lt') || lowerName.includes('1.5l');
+      const displayName = isBottle ? `Botella ${brand.name}` : `Garrafón ${brand.name}`;
+
+      return {
+        id: brand.id,
+        name: displayName,
+        quantity: initialQty,
+        featured: index === 0,
+        imageUrl: finalImage,
+      };
+    });
+  }, []);
 
   useEffect(() => {
     if (!configLoading && !configError && fetchedJugBrands.length > 0) {
-      // Revisa si hay un estado previo con selecciones
-      const previousSelection = location.state?.fromStepOne;
-
-      const initialProducts = fetchedJugBrands.map((brand, index) => {
-        const existingJug = previousSelection?.find(p => p.id === brand.id);
-        // Use dynamic image if available, otherwise fallback to static map
-        const finalImage = brand.imageUrl || getImageUrlForBrand(brand.name);
-        
-        // Determinar si es botella o garrafón basado en el nombre
-        const lowerName = brand.name.toLowerCase();
-        const isBottle = lowerName.includes('1l') || lowerName.includes('1 litro') || lowerName.includes('1lt') || lowerName.includes('1.5l');
-        const displayName = isBottle ? `Botella ${brand.name}` : `Garrafón ${brand.name}`;
-
-        return {
-          id: brand.id,
-          name: displayName,
-          quantity: existingJug?.quantity || 0,
-          featured: index === 0,
-          imageUrl: finalImage,
-        };
-      });
-      setSelectedJugs(initialProducts);
+      const initial = initializeJugs(fetchedJugBrands, location.state?.fromStepOne, preferences);
+      setSelectedJugs(initial);
     }
-  }, [fetchedJugBrands, configLoading, configError, location.state]);
+  }, [fetchedJugBrands, configLoading, configError, location.state, preferences, initializeJugs]);
 
   const totalJugs = selectedJugs.reduce((sum, p) => sum + p.quantity, 0);
+
+  const applyPreferences = () => {
+    if (!preferences) return;
+    impact('medium');
+    const updated = selectedJugs.map(jug => {
+      const pref = preferences.find(p => p.jugBrandId === jug.id);
+      return { ...jug, quantity: pref ? pref.quantity : 0 };
+    });
+    setSelectedJugs(updated);
+    toast.success("Se aplicó tu pedido habitual.");
+  };
 
   const handleChangeQuantity = (id, delta) => {
     setSelectedJugs((prev) =>
       prev.map((p) => {
-        // If this is the card being interacted with
         if (p.id === id) {
             return { 
                 ...p, 
                 quantity: Math.max(0, p.quantity + delta),
-                featured: true // Make this card the featured/active one
+                featured: true 
             };
         }
-        // For all other cards, remove featured status
         return { ...p, featured: false };
       })
     );
-    // Trigger haptic feedback on increase
     if (delta > 0) {
       impact();
     }
   };
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
     if (totalJugs === 0) {
       toast.warning("Debes seleccionar al menos 1 garrafón.");
       return;
     }
 
-    // Al continuar, nos aseguramos de limpiar los datos de los pasos siguientes
-    // para evitar inconsistencias si el usuario ha navegado hacia atrás.
-    const { 
-      fromStepOne, 
-      fromStepTwo, 
-      ...restOfState 
-    } = location.state || {};
+    // Save preferences if requested
+    if (isAuthenticated && saveAsDefault) {
+      try {
+        const prefsToSave = selectedJugs
+          .filter(j => j.quantity > 0)
+          .map(j => ({ jugBrandId: j.id, quantity: j.quantity }));
+        
+        await saveUserPreferences(prefsToSave);
+      } catch (err) {
+        console.error("Failed to save preferences:", err);
+      }
+    }
+
+    const { fromStepOne, fromStepTwo, ...restOfState } = location.state || {};
 
     navigate("/pedidos/rellenar/asignar", {
       state: {
         ...restOfState,
         maxJugs: totalJugs,
         fromStepOne: selectedJugs.filter(p => p.quantity > 0),
-        backPath: location.pathname, // Añadir la ruta actual para el regreso
+        backPath: location.pathname,
       },
     });
   };
@@ -121,19 +166,28 @@ const RefillJugStepOne = () => {
 
     return (
       <>
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-sm sm:text-base text-text-secondary dark:text-white/80">
-          <span>
-            Garrafones seleccionados:{" "}
-            <span className="font-bold text-primary text-lg">
-              {totalJugs}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex flex-col gap-1">
+            <span className="text-sm sm:text-base text-text-secondary dark:text-white/80">
+              Garrafones seleccionados:{" "}
+              <span className="font-bold text-primary text-lg">
+                {totalJugs}
+              </span>
             </span>
-          </span>
-          <span className="text-sm">
-            <span className="font-semibold text-dark dark:text-white">
-              Tip:
-            </span>{" "}
-            toca el garrafón o el botón <strong>+</strong> para agregar uno.
-          </span>
+            <span className="text-xs text-gray-500">
+              <span className="font-semibold text-dark dark:text-white">Tip:</span> toca el garrafón para agregar uno.
+            </span>
+          </div>
+
+          {preferences && (
+            <button 
+              onClick={applyPreferences}
+              className="flex items-center gap-2 px-4 py-2 bg-primary/10 text-primary rounded-full text-sm font-bold hover:bg-primary/20 transition-all active:scale-95"
+            >
+              <span className="material-symbols-outlined text-lg">history</span>
+              Cargar mi pedido habitual
+            </button>
+          )}
         </div>
 
         <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 md:gap-6 lg:grid-cols-4 max-w-5xl mx-auto">
@@ -166,22 +220,41 @@ const RefillJugStepOne = () => {
           ))}
         </div>
 
-        <div className="flex justify-between items-center pt-2 md:pt-4">
-          <button
-            type="button"
-            onClick={handleGoToStart}
-            className="hidden md:block text-sm font-medium text-text-secondary dark:text-white/70 hover:text-primary dark:hover:text-primary transition-colors"
-          >
-            &larr; Volver al inicio
-          </button>
-          <button
-            type="button"
-            onClick={handleContinue}
-            className="w-full md:w-auto flex items-center justify-center rounded-xl bg-primary px-8 h-12 text-base font-semibold text-white shadow-sm hover:bg-primary/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary transition-all active:scale-[0.98]"
-            disabled={totalJugs === 0}
-          >
-            Continuar al paso 2
-          </button>
+        <div className="flex flex-col gap-6 pt-4">
+          {isAuthenticated && totalJugs > 0 && (
+            <label className="flex items-center gap-3 cursor-pointer group self-center sm:self-end">
+              <div className="relative flex items-center justify-center">
+                <input 
+                  type="checkbox" 
+                  checked={saveAsDefault}
+                  onChange={(e) => setSaveAsDefault(e.target.checked)}
+                  className="peer h-5 w-5 cursor-pointer appearance-none rounded border border-slate-300 bg-white checked:border-primary checked:bg-primary transition-all"
+                />
+                <span className="material-symbols-outlined absolute text-white opacity-0 peer-checked:opacity-100 text-sm font-bold">check</span>
+              </div>
+              <span className="text-sm font-medium text-text-secondary dark:text-white/70 group-hover:text-primary transition-colors">
+                Guardar estos garrafones como mi pedido habitual
+              </span>
+            </label>
+          )}
+
+          <div className="flex justify-between items-center">
+            <button
+              type="button"
+              onClick={handleGoToStart}
+              className="hidden md:block text-sm font-medium text-text-secondary dark:text-white/70 hover:text-primary dark:hover:text-primary transition-colors"
+            >
+              &larr; Volver al inicio
+            </button>
+            <button
+              type="button"
+              onClick={handleContinue}
+              className="w-full md:w-auto flex items-center justify-center rounded-xl bg-primary text-white px-10 h-14 text-lg font-black shadow-xl shadow-primary/30 hover:bg-primary-dark transition-all active:scale-[0.98] disabled:opacity-50 disabled:scale-100"
+              disabled={totalJugs === 0}
+            >
+              Continuar al paso 2
+            </button>
+          </div>
         </div>
       </>
     );

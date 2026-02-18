@@ -1,6 +1,7 @@
 // src/pages/Register.jsx
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { toast } from 'sonner'; // Importar sonner
 import MainLayout from "../layouts/MainLayout";
 import axios from "axios";
 import Button from "../components/common/Button";
@@ -73,6 +74,7 @@ const Register = () => {
     email: "",
     password: "",
     confirmPassword: "",
+    clientCategory: "PARTICULAR",
   });
 
   // Estado específico para Activación (Usuarios existentes)
@@ -169,9 +171,11 @@ const Register = () => {
             userId: foundUser.id,
             name: formData.name,
             sexo: formData.sexo,
+            clientCategory: formData.clientCategory,
             email: formData.email,
             password: formData.password, 
         });
+        toast.success("¡Cuenta activada con éxito!");
       } else {
         // Crear nuevo usuario
         if (!formData.email) {
@@ -183,9 +187,10 @@ const Register = () => {
             ...formData,
             role: "CLIENTE",
         });
+        toast.success("¡Registro creado exitosamente!");
       }
 
-      // Éxito
+      // Éxito - Mensaje Detallado
       await Swal.fire({
         title: '¡Casi listo!',
         text: 'Te hemos enviado un correo de verificación. Por favor, revísalo para activar tu cuenta y poder iniciar sesión.',
@@ -197,7 +202,9 @@ const Register = () => {
 
     } catch (err) {
       console.error(err);
-      setError(err.response?.data?.message || err.response?.data?.error || "Error al procesar el registro.");
+      const errorMsg = err.response?.data?.message || err.response?.data?.error || "Error al procesar el registro.";
+      setError(errorMsg);
+      toast.error(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -277,14 +284,27 @@ const Register = () => {
                 icon={<MdPerson />}
             />
             
-            <div className="mb-5 text-left">
-                <label className="block text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider mb-1.5 ml-1">Sexo</label>
-                <select name="sexo" value={formData.sexo} onChange={handleChange} className="w-full py-3.5 px-4 bg-gray-50 dark:bg-gray-700 rounded-xl border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none text-gray-800 dark:text-white text-base transition-all" required>
-                    <option value="">Selecciona...</option>
-                    <option value="HOMBRE">Hombre</option>
-                    <option value="MUJER">Mujer</option>
-                    <option value="OTRO">Otro</option>
-                </select>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="mb-5 text-left">
+                    <label className="block text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider mb-1.5 ml-1">Sexo</label>
+                    <select name="sexo" value={formData.sexo} onChange={handleChange} className="w-full py-3.5 px-4 bg-gray-50 dark:bg-gray-700 rounded-xl border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none text-gray-800 dark:text-white text-base transition-all" required>
+                        <option value="">Selecciona...</option>
+                        <option value="HOMBRE">Hombre</option>
+                        <option value="MUJER">Mujer</option>
+                        <option value="OTRO">Otro</option>
+                    </select>
+                </div>
+
+                <div className="mb-5 text-left">
+                    <label className="block text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider mb-1.5 ml-1">Tipo de Cliente</label>
+                    <select name="clientCategory" value={formData.clientCategory} onChange={handleChange} className="w-full py-3.5 px-4 bg-gray-50 dark:bg-gray-700 rounded-xl border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none text-gray-800 dark:text-white text-base transition-all" required>
+                        <option value="PARTICULAR">Hogar / Particular</option>
+                        <option value="EMPRESA">Empresa / Oficina</option>
+                        <option value="HOSPITAL">Hospital / Clínica</option>
+                        <option value="ESCUELA">Escuela / Universidad</option>
+                        <option value="OTRO">Otro</option>
+                    </select>
+                </div>
             </div>
 
             <InputField 
