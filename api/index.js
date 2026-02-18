@@ -1448,6 +1448,7 @@ app.post('/api/users', async (req, res) => {
       switch (finalRole) {
           case 'ADMIN': rolePrefix = 'ADM'; break;
           case 'VENDEDOR': rolePrefix = 'VEN'; break;
+          case 'VENTA': rolePrefix = 'VTA'; break;
           case 'REPARTIDOR': rolePrefix = 'REP'; break;
           default: rolePrefix = 'CLI';
       }
@@ -1608,6 +1609,7 @@ app.put('/api/users/:id', verifyToken, async (req, res) => {
         switch (data.role) {
             case 'ADMIN': rolePrefix = 'ADM'; break;
             case 'VENDEDOR': rolePrefix = 'VEN'; break;
+            case 'VENTA': rolePrefix = 'VTA'; break;
             case 'REPARTIDOR': rolePrefix = 'REP'; break;
             default: rolePrefix = 'CLI';
         }

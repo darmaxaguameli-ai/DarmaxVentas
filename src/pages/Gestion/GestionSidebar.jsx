@@ -75,6 +75,13 @@ const SidebarItem = ({ item, isCollapsed, user, onClose, isMobile, isOpen, onTog
     };
   }, [isFlyoutOpen, effectiveCollapsed, isMobile]);
   
+  // Restriction for role VENTA: Only 'Cotizadores'
+  if (user?.role === 'VENTA') {
+    if (item.name !== 'Cotizadores') {
+      return null;
+    }
+  }
+
   if (item.adminOnly && user?.role !== 'ADMIN') return null;
   const visibleChildren = item.children?.filter(child => !child.adminOnly || user?.role === 'ADMIN');
   if (item.type === 'group' && (!visibleChildren || visibleChildren.length === 0)) return null;

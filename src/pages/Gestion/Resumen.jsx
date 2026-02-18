@@ -1,12 +1,13 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useGestion } from "./context/GestionContext";
-import { useAuth } from "../../context/AuthContext"; // Import useAuth
+import { useAuth } from "../../context/AuthContext";
+import { useNavigate } from "react-router-dom";
 import CashFlowChart from "./components/CashFlowChart";
 import ExpensePieChart from './components/ExpensePieChart';
 import SalesByChannelChart from './components/SalesByChannelChart';
 import TopSellingProducts from './components/TopSellingProducts';
 import NotificationCenter from './components/NotificationCenter';
-import ConsolidatedReports from './components/ConsolidatedReports'; // Import ConsolidatedReports
+import ConsolidatedReports from './components/ConsolidatedReports';
 
 const StatCard = ({ title, value, subtext, type }) => {
     let valueColorClass = "text-[#111418] dark:text-white";
@@ -30,12 +31,20 @@ const StatCard = ({ title, value, subtext, type }) => {
 
 const Resumen = () => {
     const { state } = useGestion();
-    const { user } = useAuth(); // Get current user
+    const { user } = useAuth();
+    const navigate = useNavigate();
     const { income, expenses, inventory, dailySalesRecords } = state;
     const [timePeriod, setTimePeriod] = useState('monthly'); // 'monthly' or 'annual'
     const [viewMode, setViewMode] = useState('local'); // 'local' or 'consolidated'
 
     const isAdmin = user?.role === 'ADMIN';
+
+    // Redirección para el rol VENTA
+    useEffect(() => {
+        if (user?.role === 'VENTA') {
+            navigate('/gestion/cotizador-distribuidores', { replace: true });
+        }
+    }, [user, navigate]);
 
     const { totalIncome, totalExpenses, netProfit, incomeTransactions, expenseTransactions } = useMemo(() => {
         const now = new Date();
@@ -50,7 +59,7 @@ const Resumen = () => {
             if (timePeriod === 'annual') {
                 return itemDate.getFullYear() === currentYear;
             }
-            return true; // Should not happen with defined states
+            return true;
         };
 
         const filteredIncome = income.filter(filterByPeriod);

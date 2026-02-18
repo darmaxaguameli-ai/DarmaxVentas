@@ -15,8 +15,8 @@ const AdminProtectedRoute = ({ children }) => {
     return <Navigate to="/login" />;
   }
 
-  if (user.role !== 'ADMIN') {
-    // Si está autenticado pero no es ADMIN, redirige a la página de pedidos del cliente
+  if (user.role !== 'ADMIN' && user.role !== 'VENTA') {
+    // Si está autenticado pero no es ADMIN ni VENTA, redirige a la página de pedidos del cliente
     return <Navigate to="/pedidos" />;
   }
 

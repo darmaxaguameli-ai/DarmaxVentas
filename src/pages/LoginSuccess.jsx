@@ -23,6 +23,7 @@ const LoginSuccess = () => {
                 redirectPath = '/repartidor/dashboard';
                 break;
             case 'ADMIN':
+            case 'VENTA':
             default:
                 redirectPath = '/gestion';
                 break;
@@ -46,6 +47,7 @@ const LoginSuccess = () => {
             case 'REPARTIDOR':
                 return 'Redirigiendo a tu dashboard de repartidor...';
             case 'ADMIN':
+            case 'VENTA':
             default:
                 return 'Redirigiendo a tu panel de gestión...';
         }
