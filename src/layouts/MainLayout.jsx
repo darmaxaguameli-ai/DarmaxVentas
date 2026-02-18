@@ -5,7 +5,7 @@ const MainLayout = ({ children }) => {
                  flex flex-col items-center transition-colors" // Removed justify-center
       style={{ fontFamily: 'Inter, "Noto Sans", sans-serif' }}
     >
-      <main className="flex w-full max-w-none sm:px-6 px-0 sm:py-4 py-0 justify-center items-center flex-grow"> {/* Increased max-width */}
+      <main className="flex w-full max-w-none justify-center items-center flex-grow"> {/* Removed paddings to allow full height usage */}
         {children}
       </main>
 

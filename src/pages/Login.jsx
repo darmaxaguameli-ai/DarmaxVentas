@@ -61,7 +61,7 @@ const Login = () => {
   return (
     <MainLayout>
       <div className="min-h-[80vh] flex flex-col justify-center items-center px-4 py-8 w-full font-display">
-        <div className="w-full max-w-md bg-white dark:bg-gray-800 rounded-[2.5rem] shadow-xl border border-gray-100 dark:border-gray-700 p-8 sm:p-10 transition-all overflow-hidden flex flex-col justify-center">
+        <div className="w-full max-w-md bg-white dark:bg-gray-800 rounded-[2.5rem] shadow-xl border border-gray-100 dark:border-gray-700 p-8 sm:p-10 transition-all overflow-hidden flex flex-col justify-center animate-in fade-in zoom-in-105 slide-in-from-bottom-4 duration-500 ease-out">
           
           {/* Header */}
           <div className="mb-10 text-center">
