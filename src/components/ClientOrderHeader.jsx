@@ -57,7 +57,11 @@ const ClientOrderHeader = ({ primaryLink, showOrderSelectionButton }) => {
       {/* --- DESKTOP LOGO & INFO (Hidden on mobile) --- */}
       <Link to="/pedidos" className="hidden sm:flex items-center gap-3">
         <div className="flex h-10 w-10 items-center justify-center rounded-xl text-primary bg-transparent">
-          <img src="/img/logos/darmax-logo.png" alt="Darmax Logo" className="h-full w-auto object-contain" />
+          <img 
+            src={theme === 'dark' ? '/img/logos/LogoTO.png' : '/img/logos/darmax-logo.png'} 
+            alt="Darmax Logo" 
+            className="h-full w-auto object-contain" 
+          />
         </div>
 
         <div className="flex flex-col items-start">

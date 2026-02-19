@@ -249,7 +249,11 @@ const GestionSidebar = ({ isOpen, onClose, isCollapsed, toggleCollapsed }) => {
         </div>
 
         <div className={`flex items-center p-2 mt-2 mb-8 ${isCollapsed ? 'md:justify-center' : 'gap-3'}`}>
-          <img src="/img/logos/darmax-logo.png" alt="Darmax Logo" className="h-10 w-10 object-contain" />
+          <img 
+            src={theme === 'dark' ? '/img/logos/LogoTO.png' : '/img/logos/darmax-logo.png'} 
+            alt="Darmax Logo" 
+            className="h-10 w-10 object-contain" 
+          />
           {(!isCollapsed || isOpen) && (
             <div className={`flex flex-col leading-none overflow-hidden ${isCollapsed ? 'md:hidden' : ''}`}>
               <span className="text-sm font-bold tracking-tight text-dark dark:text-white truncate">

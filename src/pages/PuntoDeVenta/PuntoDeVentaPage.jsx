@@ -4,6 +4,7 @@ import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import CrearPedidoFlow from './CrearPedidoFlow'; 
 import ReportePDF from './ReportePDF';
+import { useTheme } from '../../context/ThemeContext';
 
 // Constante para la clave del localStorage
 const JORNADA_STORAGE_KEY = 'jornadaVentas';
@@ -224,6 +225,7 @@ const PuntoDeVentaPage = () => {
   const [jornada, setJornada] = useState(null);
   const [loading, setLoading] = useState(true);
   const [vista, setVista] = useState({ tipo: 'panel', pedido: null }); // panel | creando_pedido
+  const { theme } = useTheme();
   const reporteRef = useRef();
 
   useEffect(() => {
@@ -327,7 +329,11 @@ const PuntoDeVentaPage = () => {
           <h1 className="text-3xl font-bold text-gray-800 dark:text-white">Punto de Venta</h1>
           <p className="text-gray-500 dark:text-gray-400">Sistema de registro de ventas diarias.</p>
         </div>
-        <img src="/img/logos/darmax-logo.png" alt="Darmax Logo" className="w-20 h-auto sm:w-24" />
+        <img 
+          src={theme === 'dark' ? '/img/logos/LogoTO.png' : '/img/logos/darmax-logo.png'} 
+          alt="Darmax Logo" 
+          className="w-20 h-auto sm:w-24" 
+        />
       </header>
       
       <main>

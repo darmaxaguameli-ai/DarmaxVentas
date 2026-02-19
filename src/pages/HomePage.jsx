@@ -3,10 +3,12 @@ import { useState } from 'react';
 import { Link, useNavigate } from "react-router-dom";
 import MainLayout from "../layouts/MainLayout.jsx";
 import { MdLogin, MdPersonAdd } from 'react-icons/md';
+import { useTheme } from "../context/ThemeContext";
 
 const HomePage = () => {
   const [isExiting, setIsExiting] = useState(false);
   const navigate = useNavigate();
+  const { theme, toggleTheme } = useTheme();
 
   const handleNavigation = (path) => {
     setIsExiting(true);
@@ -34,12 +36,23 @@ const HomePage = () => {
           <div className={`absolute -top-20 -right-20 bg-primary/10 rounded-full blur-[100px] transition-all duration-1000 ${isExiting ? 'w-0 h-0 opacity-0' : 'w-64 sm:w-[500px] h-64 sm:h-[500px]'}`}></div>
           <div className={`absolute -bottom-20 -left-20 bg-blue-400/10 rounded-full blur-[100px] transition-all duration-1000 ${isExiting ? 'w-0 h-0 opacity-0' : 'w-64 sm:w-[500px] h-64 sm:h-[500px]'}`}></div>
 
+          {/* Theme Toggle Button */}
+          <button
+            onClick={toggleTheme}
+            className={`absolute top-4 right-4 sm:top-8 sm:right-8 p-3 rounded-2xl bg-gray-50 dark:bg-gray-700/50 text-gray-500 dark:text-gray-400 hover:text-primary dark:hover:text-primary hover:bg-white dark:hover:bg-gray-700 transition-all duration-300 z-50 shadow-sm border border-gray-100 dark:border-gray-600 ${isExiting ? 'opacity-0 scale-0' : 'opacity-100 scale-100'}`}
+            title={theme === 'dark' ? 'Activar modo claro' : 'Activar modo oscuro'}
+          >
+            <span className="material-symbols-outlined text-2xl flex items-center justify-center">
+              {theme === 'dark' ? 'light_mode' : 'dark_mode'}
+            </span>
+          </button>
+
           {/* Main Content Wrapper - Fades out fast on exit */}
           <div className={`flex-grow flex flex-col items-center justify-center w-full transition-all duration-300 ${isExiting ? 'opacity-0 scale-90 blur-sm' : 'opacity-100'}`}>
             {/* Logo Section */}
             <div className="mb-4 sm:mb-8 w-full flex justify-center">
               <img
-                src="/img/logos/darmax-logo.png"
+                src={theme === 'dark' ? '/img/logos/LogoTO.png' : '/img/logos/darmax-logo.png'}
                 alt="Logo DARMAX"
                 className="h-20 sm:h-32 lg:h-40 w-auto object-contain drop-shadow-xl"
               />

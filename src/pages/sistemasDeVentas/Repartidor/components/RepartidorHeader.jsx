@@ -32,7 +32,11 @@ const RepartidorHeader = ({
         {/* Logo & User Info */}
         <div className="flex items-center gap-3 lg:gap-4">
             <div className={`flex items-center justify-center w-10 h-10 lg:w-12 lg:h-12 rounded-xl transition-transform ${isRefreshing ? 'animate-pulse' : ''}`}>
-                <img src="/img/logos/darmax-logo.png" alt="Darmax Logo" className="h-full w-auto object-contain drop-shadow-sm" />
+                <img 
+                  src={theme === 'dark' ? '/img/logos/LogoTO.png' : '/img/logos/darmax-logo.png'} 
+                  alt="Darmax Logo" 
+                  className="h-full w-auto object-contain drop-shadow-sm" 
+                />
             </div>
             <div className="leading-tight flex flex-col justify-center">
                 <h1 className="text-sm lg:text-lg font-black text-gray-900 dark:text-white hidden sm:block tracking-tight">Darmax Reparto</h1>
