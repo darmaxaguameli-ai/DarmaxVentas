@@ -1,3 +1,5 @@
+import { MdClose } from 'react-icons/md';
+
 const UserPlusIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M19 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zM4 19.235v-.11a6.375 6.375 0 0112.75 0v.109A12.375 12.375 0 0110.5 21.75c-2.551 0-4.863-.868-6.682-2.315z" />
@@ -33,42 +35,48 @@ const OrderSummary = ({
     isMobileView = false
 }) => {
   return (
-    <div className={`bg-white dark:bg-gray-800 flex flex-col h-full ${isMobileView ? '' : 'rounded-2xl shadow-lg'}`}>
-      {/* Header (Hidden on Mobile View as parent handles it, or adapted) */}
+    <div className={`bg-white dark:bg-gray-800 flex flex-col h-full ${isMobileView ? '' : 'rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700'}`}>
+      {/* Header */}
       {!isMobileView && (
         <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-            <h2 className="text-xl font-bold text-gray-800 dark:text-white">Resumen de Orden</h2>
+            <h2 className="text-xl font-black text-gray-800 dark:text-white uppercase tracking-tight">Carrito</h2>
         </div>
       )}
 
       {/* Customer & Delivery */}
       <div className="p-4 grid grid-cols-2 gap-3 sm:gap-4 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
           {customer ? (
-              <div className="bg-blue-50 dark:bg-blue-900/50 p-3 rounded-lg relative group">
-                <p className="text-[10px] sm:text-xs text-blue-800 dark:text-blue-300 font-bold uppercase">CLIENTE</p>
-                <div className="pr-5">
-                    <p className="font-bold text-sm sm:text-base text-gray-800 dark:text-white truncate">{customer.name || 'Cliente'}</p>
-                    <p className="text-xs sm:text-sm text-primary font-semibold truncate">{customer.phone}</p>
+              <div className={`p-3 rounded-2xl relative group border transition-all ${customer.isNew ? 'bg-orange-50 border-orange-100 dark:bg-orange-900/20 dark:border-orange-800/50' : 'bg-blue-50 border-blue-100 dark:bg-blue-900/20 dark:border-blue-800/50'}`}>
+                <p className={`text-[10px] font-black uppercase tracking-widest ${customer.isNew ? 'text-orange-600 dark:text-orange-400' : 'text-blue-600 dark:text-blue-400'}`}>
+                    {customer.isNew ? 'Nuevo / Temporal' : 'Cliente'}
+                </p>
+                <div className="pr-5 min-w-0 mt-1">
+                    <p className="font-black text-xs sm:text-sm text-gray-800 dark:text-white uppercase truncate">{customer.name || 'Cliente'}</p>
+                    <p className="text-[10px] sm:text-xs text-gray-500 font-bold truncate">{customer.phone || 'Sin tel'}</p>
                 </div>
                 <button onClick={onRemoveCustomer} className="absolute top-2 right-2 text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition-colors">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 sm:h-5 sm:w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" /></svg>
+                  <MdClose className="h-4 w-4" />
                 </button>
               </div>
           ) : (
-            <button onClick={onCustomerSelect} className="w-full text-left flex items-center gap-2 sm:gap-3 p-2 sm:p-3 rounded-lg bg-gray-50 hover:bg-gray-100 dark:bg-gray-700/50 dark:hover:bg-gray-700 transition-colors">
-                <UserPlusIcon />
+            <button onClick={onCustomerSelect} className="w-full text-left flex items-center gap-2 sm:gap-3 p-3 rounded-2xl bg-gray-50 hover:bg-gray-100 dark:bg-gray-700/50 dark:hover:bg-gray-700 transition-all border border-transparent hover:border-primary/20">
+                <div className="bg-primary/10 p-2 rounded-xl text-primary">
+                    <UserPlusIcon />
+                </div>
                 <div className="min-w-0">
-                    <p className="font-semibold text-sm sm:text-base text-gray-700 dark:text-gray-200 truncate">Cliente</p>
-                    <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400">Agregar</p>
+                    <p className="font-black text-xs uppercase text-gray-700 dark:text-gray-200 truncate tracking-tight">Cliente</p>
+                    <p className="text-[10px] font-bold text-gray-400 uppercase">Identificar</p>
                 </div>
             </button>
           )}
 
-          <button onClick={onDeliverySelect} className="w-full text-left flex items-center gap-2 sm:gap-3 p-2 sm:p-3 rounded-lg bg-gray-50 hover:bg-gray-100 dark:bg-gray-700/50 dark:hover:bg-gray-700 transition-colors">
-            <TruckIconSvg />
+          <button onClick={onDeliverySelect} className={`w-full text-left flex items-center gap-2 sm:gap-3 p-3 rounded-2xl bg-gray-50 hover:bg-gray-100 dark:bg-gray-700/50 dark:hover:bg-gray-700 transition-all border ${deliveryMethod === 'domicilio' ? 'border-orange-200 dark:border-orange-800/50' : 'border-transparent'} hover:border-primary/20 relative`}>
+            <div className={`p-2 rounded-xl ${deliveryMethod === 'domicilio' ? 'bg-orange-100 text-orange-600' : 'bg-primary/10 text-primary'}`}>
+                <TruckIconSvg />
+            </div>
             <div className="min-w-0">
-                <p className="font-semibold text-sm sm:text-base text-gray-700 dark:text-gray-200 truncate">Entrega</p>
-                <p className="text-[10px] sm:text-sm text-primary capitalize font-bold truncate">{deliveryMethod}</p>
+                <p className="font-black text-xs uppercase text-gray-700 dark:text-gray-200 truncate tracking-tight">Entrega</p>
+                <p className={`text-[10px] uppercase font-black truncate tracking-tighter ${deliveryMethod === 'domicilio' ? 'text-orange-600' : 'text-primary'}`}>{deliveryMethod}</p>
             </div>
         </button>
       </div>
@@ -77,26 +85,22 @@ const OrderSummary = ({
       <div className="flex-grow p-4 space-y-4 overflow-y-auto custom-scrollbar">
         {orderItems.length === 0 ? (
             <div className="text-center text-gray-400 dark:text-gray-500 flex flex-col items-center justify-center h-full">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-20 w-20 text-gray-300 dark:text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-                </svg>
-                <p className="mt-4 text-lg font-medium">Tu carrito está vacío</p>
-                <p className="text-sm text-gray-400">Agrega productos para comenzar una venta.</p>
+                <span className="material-symbols-outlined text-6xl opacity-20">shopping_cart</span>
+                <p className="mt-4 text-sm font-black uppercase tracking-widest">Vacío</p>
             </div>
         ) : (
             orderItems.map(item => (
-                <div key={item.id} className="flex items-center gap-3 animate-fade-in">
-                    <div className="flex-grow">
-                        <p className="font-semibold text-gray-800 dark:text-white">{item.name}</p>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">${item.price.toFixed(2)} c/u</p>
+                <div key={item.id} className="flex items-center gap-3 animate-fade-in bg-gray-50 dark:bg-gray-900/30 p-3 rounded-2xl border border-transparent hover:border-gray-100 dark:hover:border-gray-700 transition-all">
+                    <div className="flex-grow min-w-0">
+                        <p className="font-black text-xs sm:text-sm text-gray-800 dark:text-white uppercase truncate">{item.name}</p>
+                        <p className="text-[10px] text-gray-500 dark:text-gray-400 font-bold">${item.price.toFixed(2)} c/u</p>
                     </div>
-                    <div className="flex-shrink-0 flex items-center gap-2 bg-gray-100 dark:bg-gray-700 rounded-full">
-                        <button onClick={() => onQuantityChange(item.id, item.quantity - 1)} className="h-8 w-8 rounded-full text-lg font-bold flex items-center justify-center hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">-</button>
-                        <span className="w-8 text-center font-bold text-primary">{item.quantity}</span>
-                        <button onClick={() => onQuantityChange(item.id, item.quantity + 1)} className="h-8 w-8 rounded-full text-lg font-bold flex items-center justify-center hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">+</button>
+                    <div className="flex-shrink-0 flex items-center gap-2 bg-white dark:bg-gray-800 p-1 rounded-xl shadow-sm">
+                        <button onClick={() => onQuantityChange(item.id, item.quantity - 1)} className="h-7 w-7 rounded-lg text-lg font-bold flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">-</button>
+                        <span className="w-6 text-center font-black text-primary text-sm">{item.quantity}</span>
+                        <button onClick={() => onQuantityChange(item.id, item.quantity + 1)} className="h-7 w-7 rounded-lg text-lg font-bold flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">+</button>
                     </div>
-                    <p className="w-20 text-right font-bold text-gray-800 dark:text-white">${(item.price * item.quantity).toFixed(2)}</p>
-                    <button onClick={() => onRemoveItem(item.id)} className="ml-1 flex-shrink-0 text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition-colors">
+                    <button onClick={() => onRemoveItem(item.id)} className="ml-1 flex-shrink-0 text-gray-300 hover:text-red-500 transition-colors">
                         <TrashIconSvg />
                     </button>
                 </div>
@@ -106,28 +110,28 @@ const OrderSummary = ({
 
       {/* Totals & Checkout */}
       {orderItems.length > 0 && (
-        <div className="flex-shrink-0 p-5 border-t border-gray-200 dark:border-gray-700 space-y-3 bg-gray-50 dark:bg-gray-900/50 rounded-b-2xl">
-            <div className="flex justify-between text-md">
-                <span className="text-gray-600 dark:text-gray-300">Subtotal</span>
-                <span className="font-semibold text-gray-800 dark:text-white">${subtotal.toFixed(2)}</span>
+        <div className="flex-shrink-0 p-5 border-t border-gray-200 dark:border-gray-700 space-y-3 bg-gray-50 dark:bg-gray-900/50">
+            <div className="flex justify-between text-xs font-bold uppercase tracking-widest">
+                <span className="text-gray-500">Subtotal</span>
+                <span className="text-gray-800 dark:text-white">${subtotal.toFixed(2)}</span>
             </div>
-            <div className="flex justify-between text-md">
-                <span className="text-gray-600 dark:text-gray-300">Envío</span>
-                <span className="font-semibold text-gray-800 dark:text-white">${shippingCost.toFixed(2)}</span>
+            <div className="flex justify-between text-xs font-bold uppercase tracking-widest">
+                <span className="text-gray-500">Envío / Recolección</span>
+                <span className="text-gray-800 dark:text-white">${shippingCost.toFixed(2)}</span>
             </div>
-            <div className="flex justify-between items-center text-2xl font-bold text-gray-900 dark:text-white pt-2 border-t border-gray-200 dark:border-gray-600 mt-2">
-                <span>Total</span>
-                <span>${total.toFixed(2)}</span>
+            <div className="flex justify-between items-center text-2xl font-black text-gray-900 dark:text-white pt-2 border-t border-gray-200 dark:border-gray-700 mt-2">
+                <span className="uppercase text-xs tracking-[0.2em]">Total</span>
+                <span className="text-primary">${total.toFixed(2)}</span>
             </div>
             <button 
                 onClick={onCheckout}
                 disabled={orderItems.length === 0}
-                className="w-full bg-primary text-white py-4 rounded-lg font-bold text-lg hover:bg-primary-dark transition-all shadow-lg hover:shadow-xl disabled:bg-gray-300 dark:disabled:bg-gray-600 disabled:shadow-none disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="w-full bg-primary text-white py-4 rounded-2xl font-black uppercase text-sm hover:bg-primary-dark transition-all shadow-lg shadow-primary/25 disabled:bg-gray-300 dark:disabled:bg-gray-600 disabled:shadow-none disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-4"
             >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H4a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                </svg>
-                Proceder al Pago
+                <span className="material-symbols-outlined">
+                    {deliveryMethod === 'domicilio' ? 'calendar_today' : 'payments'}
+                </span>
+                {deliveryMethod === 'domicilio' ? 'Agendar Pedido' : 'Finalizar y Cobrar'}
             </button>
         </div>
       )}

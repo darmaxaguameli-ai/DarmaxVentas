@@ -1,250 +1,209 @@
 import React, { useState, useMemo } from 'react';
-import ProductGrid from "./ProductGrid";
 import PosRefillGrid from "./PosRefillGrid";
-import PosBuyGrid from "./PosBuyGrid";
-import OrderSummary from "./OrderSummary";
 import CustomerModal from "./CustomerModal";
 import PaymentModal from "./PaymentModal";
 import DeliveryModal from "./DeliveryModal";
 import Swal from 'sweetalert2';
 import { createOrder, createUser } from '../../api/apiClient';
-import { MdShoppingCart, MdClose, MdExpandLess } from 'react-icons/md';
+import { MdPerson, MdLocalShipping, MdReceipt, MdClose, MdCheckCircle } from 'react-icons/md';
 import { useHaptic } from '../../hooks/useHaptic';
+import { formatCurrency } from '@/utils/formatters';
 
-const NewOrderFlow = ({ onExit }) => {
-    const { selection, impact } = useHaptic();
-    // Re-introduce states from the old VentaMostrador for new order creation
+const NewOrderFlow = ({ onExit, sesionCajaId, onOrderCreated, storeId }) => {
+    const { impact } = useHaptic();
+    
+    // Core State - Centered on "what are we recording"
     const [orderItems, setOrderItems] = useState([]);
     const [customer, setCustomer] = useState(null);
     const [deliveryInfo, setDeliveryInfo] = useState({
-        method: 'domicilio', // Default for new orders via seller
+        method: 'mostrador',
         collectEmptyJugs: false,
         deliveryDetails: null,
     });
     
-    // Modals state
+    // Modals
     const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
     const [isDeliveryModalOpen, setIsDeliveryModalOpen] = useState(false);
-    const [isMobileSummaryOpen, setIsMobileSummaryOpen] = useState(false); // New Mobile State
-    const [activeTab, setActiveTab] = useState('refill'); // Tab for product selection
 
-    // Memoized calculations (from old VentaMostrador)
-    const subtotal = useMemo(() => orderItems.reduce((sum, item) => sum + item.price * item.quantity, 0), [orderItems]);
-    const shippingCost = useMemo(() => (deliveryInfo.method === 'domicilio' && deliveryInfo.collectEmptyJugs) ? 10 : 0, [deliveryInfo]);
-    const total = useMemo(() => subtotal + shippingCost, [subtotal, shippingCost]);
-    const totalItems = useMemo(() => orderItems.reduce((sum, item) => sum + item.quantity, 0), [orderItems]);
+    // Totals
+    const total = useMemo(() => {
+        const subtotal = orderItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+        const shipping = (deliveryInfo.method === 'domicilio' && deliveryInfo.collectEmptyJugs) ? 10 : 0;
+        return subtotal + shipping;
+    }, [orderItems, deliveryInfo]);
 
-    // Handlers for order items (from old VentaMostrador)
-    const handleProductSelect = (product, quantity = 1) => {
-        setOrderItems(prevItems => {
-            const existingItem = prevItems.find(item => item.id === product.id);
-            if (existingItem) {
-                return prevItems.map(item => item.id === product.id ? { ...item, quantity: item.quantity + quantity } : item);
+    const handleProductSelect = (item, quantity) => {
+        // En el modo bitácora, reemplazamos o añadimos de forma directa
+        setOrderItems(prev => {
+            const exists = prev.find(i => i.servicePriceId === item.servicePriceId && i.jugBrandId === item.jugBrandId);
+            if (exists) {
+                return prev.map(i => i === exists ? { ...i, quantity: i.quantity + quantity } : i);
             }
-            return [...prevItems, { ...product, quantity: quantity }];
+            return [...prev, { ...item, quantity }];
         });
     };
-    const handleQuantityChange = (productId, newQuantity) => {
-        if (newQuantity <= 0) {
-            handleRemoveItem(productId);
-            return;
-        }
-        setOrderItems(prevItems => prevItems.map(item => item.id === productId ? { ...item, quantity: newQuantity } : item));
-    };
-    const handleRemoveItem = (productId) => {
-        setOrderItems(prevItems => prevItems.filter(item => item.id !== productId));
-        if (orderItems.length <= 1) {
-            setIsMobileSummaryOpen(false); // Close mobile summary if empty
-        }
-    };
-    const handleCustomerAdd = (customerData) => {
-        setCustomer(customerData);
-        setIsCustomerModalOpen(false); // Close modal after adding customer
-    };
-    const handleSaveDeliveryInfo = (newDeliveryInfo) => {
-        setDeliveryInfo(newDeliveryInfo);
-        setIsDeliveryModalOpen(false); // Close modal after saving delivery info
+
+    const handleRemoveItem = (id) => {
+        setOrderItems(prev => prev.filter(i => i.servicePriceId !== id && i.id !== id));
     };
 
-    const handlePaymentConfirm = async (paymentData) => {
+    const handleFinalizeAction = async (paymentData = null) => {
+        const isMostrador = deliveryInfo.method === 'mostrador';
+        
         try {
-            Swal.fire({
-                title: 'Procesando Pedido...',
-                text: 'Por favor espere.',
-                allowOutsideClick: false,
-                didOpen: () => {
-                    Swal.showLoading();
-                }
-            });
+            Swal.fire({ title: 'Registrando...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
 
-            // 1. Resolve Customer ID
             let finalCustomerId = customer?.id;
 
-            // If customer is marked as new (from CustomerModal) or we have delivery details but no ID
-            if ((customer?.isNew || !finalCustomerId) && deliveryInfo.deliveryDetails?.name) {
-                try {
-                    // Create the user first
-                    const newUserData = {
-                        name: deliveryInfo.deliveryDetails.name,
-                        phone: deliveryInfo.deliveryDetails.phone || customer?.phone || '',
-                        street: deliveryInfo.deliveryDetails.address || '',
-                        neighborhood: '', // Simplified for now
-                        references: deliveryInfo.deliveryDetails.references || '',
-                        // Role will be forced to CLIENTE by backend
-                    };
-                    
-                    // Only create if we have at least a name
-                    if (newUserData.name) {
-                        const createdUser = await createUser(newUserData);
-                        finalCustomerId = createdUser.id;
-                    }
-                } catch (err) {
-                    console.error("Error creating new user:", err);
-                    // Continue? We might fail if delivery requires user.
-                    // But backend allows guest (null id).
-                    // If it's delivery, we really want the address saved on the user or at least accessible.
-                    // For now, if creation fails, we might proceed as guest or throw.
-                    // Let's throw to warn the seller.
-                    throw new Error("No se pudo registrar el nuevo cliente. Verifique los datos (teléfono duplicado?).");
-                }
+            // Auto-creación de cliente si es nuevo
+            if (customer?.isNew && deliveryInfo.deliveryDetails?.name) {
+                const createdUser = await createUser({
+                    name: deliveryInfo.deliveryDetails.name,
+                    phone: customer.phone || deliveryInfo.deliveryDetails.phone || '',
+                    street: deliveryInfo.deliveryDetails.street || '',
+                    neighborhood: deliveryInfo.deliveryDetails.neighborhood || '',
+                    municipality: deliveryInfo.deliveryDetails.municipality || '',
+                    state: deliveryInfo.deliveryDetails.state || '',
+                    city: deliveryInfo.deliveryDetails.city || '',
+                    postalCode: deliveryInfo.deliveryDetails.postalCode || '',
+                    references: deliveryInfo.deliveryDetails.references || '',
+                    lat: deliveryInfo.deliveryDetails.lat || null,
+                    lng: deliveryInfo.deliveryDetails.lng || null,
+                    clientCategory: customer.clientCategory || 'PARTICULAR'
+                });
+                finalCustomerId = createdUser.id;
             }
 
-            // 2. Construct Payload
             const orderPayload = {
                 clienteId: finalCustomerId || null,
+                sesionCajaId: sesionCajaId || null,
+                storeId: storeId || null, // ✅ Se añade el storeId
                 items: orderItems.map(item => ({
                     quantity: item.quantity,
                     price: item.price,
-                    servicePriceId: item.servicePriceId || undefined,
-                    productId: item.productId || item.id, // Fallback to id
-                    jugBrandId: item.jugBrandId || undefined,
-                    jugBrandName: item.jugBrandName || undefined,
-                    jugBrandImageUrl: item.jugBrandImageUrl || undefined
+                    servicePriceId: item.servicePriceId,
+                    jugBrandId: item.jugBrandId,
+                    jugBrandName: item.jugBrandName,
+                    jugBrandImageUrl: item.jugBrandImageUrl
                 })),
                 total: total,
-                deliveryMethod: deliveryInfo.method === 'domicilio' ? 'delivery' : 'pickup',
-                paymentMethod: paymentData.method === 'cash' ? 'Efectivo' : 'Tarjeta',
-                paymentStatus: 'PAGADO', // POS assumes immediate payment or commitment
+                deliveryMethod: isMostrador ? 'pickup' : (deliveryInfo.collectEmptyJugs ? 'home_collection' : 'delivery'),
+                deliveryLat: deliveryInfo.deliveryDetails?.lat || null,
+                deliveryLng: deliveryInfo.deliveryDetails?.lng || null,
+                deliveryTimeSlot: deliveryInfo.deliveryDetails?.deliveryTimeSlot || null,
+                paymentMethod: isMostrador ? (paymentData?.method === 'cash' ? 'Efectivo' : 'Tarjeta') : 'Pendiente',
+                paymentStatus: isMostrador ? 'PAGADO' : 'NO_PAGADO',
+                status: isMostrador ? 'ENTREGADO' : 'PENDIENTE', // ✅ Venta mostrador pagada se marca como entregada
             };
 
-            // 3. Call API
             await createOrder(orderPayload);
-
-            // 4. Success
-            triggerImpact('heavy');
-            Swal.fire('Pedido Creado', `Pedido registrado exitosamente.`, 'success');
-            
-            // Reset state and go back to dashboard
-            setOrderItems([]);
-            setCustomer(null);
-            setDeliveryInfo({ method: 'domicilio', collectEmptyJugs: false, deliveryDetails: null });
-            setIsPaymentModalOpen(false);
-            onExit(); // Go back to the dashboard view
+            impact('heavy');
+            if (onOrderCreated) onOrderCreated(); // Refresh the list immediately
+            Swal.fire({ icon: 'success', title: 'Registro Completado', showConfirmButton: false, timer: 2000 });
+            onExit();
 
         } catch (error) {
-            console.error("Error creating order:", error);
-            Swal.fire('Error', 'No se pudo crear el pedido: ' + error.message, 'error');
+            Swal.fire('Error', error.message, 'error');
         }
     };
 
-    const getTabClassName = (tabName) => `flex-1 py-3 text-sm font-bold text-center border-b-2 transition-colors ${activeTab === tabName ? 'border-primary text-primary bg-primary/5' : 'border-transparent text-gray-500 hover:text-gray-700'}`;
-
     return (
-        <div className="animate-fade-in pb-24 lg:pb-0 h-full flex flex-col">
-             <main className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full">
-                {/* Product Selection Area */}
-                <div className="lg:col-span-2 flex flex-col h-full">
-                    <div className="flex-shrink-0 bg-white dark:bg-gray-800 shadow-sm sticky top-0 z-10">
-                        <nav className="flex">
-                            <button onClick={() => { selection(); setActiveTab('refill'); }} className={getTabClassName('refill')}>Recargas</button>
-                            <button onClick={() => { selection(); setActiveTab('buyNew'); }} className={getTabClassName('buyNew')}>Nuevos</button>
-                            <button onClick={() => { selection(); setActiveTab('directSale'); }} className={getTabClassName('directSale')}>Otros</button>
-                        </nav>
-                    </div>
-                    <div className="flex-1 py-4 overflow-y-auto">
-                        {activeTab === 'directSale' && <ProductGrid onProductSelect={handleProductSelect} />}
-                        {activeTab === 'refill' && <PosRefillGrid onProductSelect={handleProductSelect} defaultDeliveryMethod={deliveryInfo.method} />}
-                        {activeTab === 'buyNew' && <PosBuyGrid onProductSelect={handleProductSelect} />}
-                    </div>
-                </div>
-
-                {/* Desktop Order Summary (Sidebar) */}
-                <div className="hidden lg:block lg:col-span-1 h-full">
-                    <OrderSummary 
-                        orderItems={orderItems}
-                        customer={customer}
-                        deliveryMethod={deliveryInfo.method}
-                        onQuantityChange={handleQuantityChange}
-                        onRemoveItem={handleRemoveItem}
-                        subtotal={subtotal}
-                        shippingCost={shippingCost}
-                        total={total}
-                        onCheckout={() => setIsPaymentModalOpen(true)}
-                        onCustomerSelect={() => setIsCustomerModalOpen(true)}
-                        onDeliverySelect={() => setIsDeliveryModalOpen(true)}
-                        onRemoveCustomer={() => setCustomer(null)}
+        <div className="flex flex-col lg:flex-row gap-6 h-full animate-in fade-in duration-500">
+            
+            {/* IZQUIERDA: El Asistente de Registro */}
+            <div className="flex-grow flex flex-col min-w-0 h-full">
+                <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 flex-grow overflow-hidden flex flex-col">
+                    <PosRefillGrid 
+                        onProductSelect={handleProductSelect} 
+                        defaultDeliveryMethod={deliveryInfo.method} 
                     />
                 </div>
-            </main>
+            </div>
 
-            {/* Mobile Floating Cart Bar */}
-            {orderItems.length > 0 && (
-                <div className="fixed bottom-0 left-0 right-0 z-40 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 p-4 shadow-[0_-4px_20px_rgba(0,0,0,0.1)] lg:hidden animate-slide-up">
+            {/* DERECHA: Resumen de Bitácora */}
+            <div className="w-full lg:w-96 flex flex-col gap-4 h-full">
+                
+                {/* Panel de Cliente y Logística */}
+                <div className="bg-white dark:bg-gray-800 rounded-3xl p-6 border border-gray-100 dark:border-gray-700 shadow-sm space-y-4">
+                    <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Datos del Registro</h3>
+                    
                     <button 
-                        onClick={() => { selection(); setIsMobileSummaryOpen(true); }}
-                        className="w-full bg-primary text-white h-14 rounded-xl flex items-center justify-between px-6 shadow-lg active:scale-95 transition-transform"
+                        onClick={() => setIsCustomerModalOpen(true)}
+                        className={`w-full p-4 rounded-2xl border-2 transition-all flex items-center gap-4 ${customer ? 'border-primary bg-primary/5 text-primary' : 'border-gray-50 bg-gray-50 dark:bg-gray-900 dark:border-gray-800 text-gray-400 hover:border-primary/20'}`}
                     >
-                        <div className="flex items-center gap-3">
-                            <div className="bg-white/20 px-2.5 py-1 rounded-lg text-sm font-bold">
-                                {totalItems}
-                            </div>
-                            <span className="font-bold text-lg">Ver Carrito</span>
+                        <MdPerson className="text-2xl" />
+                        <div className="text-left min-w-0">
+                            <p className="font-black uppercase text-xs truncate">{customer ? customer.name : 'Identificar Cliente'}</p>
+                            <p className="text-[10px] font-bold opacity-70">{customer ? customer.phone : 'Opcional para Mostrador'}</p>
                         </div>
-                        <div className="flex items-center gap-2">
-                            <span className="text-xl font-black">${total.toFixed(2)}</span>
-                            <MdExpandLess className="text-2xl" />
+                    </button>
+
+                    <button 
+                        onClick={() => setIsDeliveryModalOpen(true)}
+                        className={`w-full p-4 rounded-2xl border-2 transition-all flex items-center gap-4 ${deliveryInfo.method === 'domicilio' ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/20 text-orange-600' : 'border-gray-50 bg-gray-50 dark:bg-gray-900 dark:border-gray-800 text-gray-400 hover:border-primary/20'}`}
+                    >
+                        <MdLocalShipping className="text-2xl" />
+                        <div className="text-left min-w-0">
+                            <p className="font-black uppercase text-xs truncate">{deliveryInfo.method === 'mostrador' ? 'Venta en Mostrador' : 'Entrega a Domicilio'}</p>
+                            <p className="text-[10px] font-bold opacity-70">{deliveryInfo.method === 'mostrador' ? 'Cobro inmediato' : 'Cobro al entregar'}</p>
                         </div>
                     </button>
                 </div>
-            )}
 
-            {/* Mobile Summary Modal (Full Screen Sheet) */}
-            {isMobileSummaryOpen && (
-                <div className="fixed inset-0 z-50 bg-gray-50 dark:bg-gray-900 flex flex-col animate-fade-in lg:hidden">
-                    <div className="flex-shrink-0 bg-white dark:bg-gray-800 p-4 shadow-sm border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
-                        <h2 className="text-xl font-black text-gray-800 dark:text-white">Resumen</h2>
+                {/* Lista de Items Registrados */}
+                <div className="bg-white dark:bg-gray-800 rounded-3xl p-6 border border-gray-100 dark:border-gray-700 shadow-sm flex-grow flex flex-col overflow-hidden">
+                    <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 mb-4">Productos en Bitácora</h3>
+                    
+                    <div className="flex-grow overflow-y-auto custom-scrollbar space-y-3 pr-2">
+                        {orderItems.length === 0 ? (
+                            <div className="h-full flex flex-col items-center justify-center text-center opacity-30 grayscale">
+                                <MdReceipt className="text-5xl mb-2" />
+                                <p className="text-xs font-bold uppercase">Esperando selección</p>
+                            </div>
+                        ) : (
+                            orderItems.map((item, idx) => (
+                                <div key={idx} className="flex items-center justify-between group animate-in slide-in-from-right-4 duration-300">
+                                    <div className="min-w-0">
+                                        <p className="text-xs font-black text-gray-800 dark:text-white uppercase truncate">{item.jugBrandName}</p>
+                                        <p className="text-[9px] text-gray-400 font-bold uppercase">{item.quantity} x {formatCurrency(item.price)}</p>
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                        <p className="text-xs font-black text-primary">{formatCurrency(item.price * item.quantity)}</p>
+                                        <button onClick={() => handleRemoveItem(item.servicePriceId || item.id)} className="p-1.5 text-gray-300 hover:text-red-500 transition-colors">
+                                            <MdClose />
+                                        </button>
+                                    </div>
+                                </div>
+                            ))
+                        )}
+                    </div>
+
+                    <div className="mt-6 pt-6 border-t border-gray-100 dark:border-gray-700 space-y-4">
+                        <div className="flex justify-between items-end">
+                            <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest">Total a Registrar</p>
+                            <p className="text-3xl font-black text-gray-900 dark:text-white leading-none">{formatCurrency(total)}</p>
+                        </div>
+
                         <button 
-                            onClick={() => setIsMobileSummaryOpen(false)}
-                            className="p-2 bg-gray-100 dark:bg-gray-700 rounded-full text-gray-500 hover:bg-gray-200"
+                            disabled={orderItems.length === 0}
+                            onClick={() => {
+                                if (deliveryInfo.method === 'mostrador') setIsPaymentModalOpen(true);
+                                else handleFinalizeAction();
+                            }}
+                            className="w-full py-4 rounded-2xl bg-primary text-white font-black uppercase text-sm shadow-xl shadow-primary/25 hover:bg-primary-dark active:scale-95 transition-all disabled:opacity-30 disabled:grayscale flex items-center justify-center gap-2"
                         >
-                            <MdClose className="text-2xl" />
+                            <MdCheckCircle className="text-xl" />
+                            {deliveryInfo.method === 'mostrador' ? 'Registrar y Cobrar' : 'Agendar en Bitácora'}
                         </button>
                     </div>
-                    <div className="flex-grow overflow-y-auto">
-                        <OrderSummary 
-                            orderItems={orderItems}
-                            customer={customer}
-                            deliveryMethod={deliveryInfo.method}
-                            onQuantityChange={handleQuantityChange}
-                            onRemoveItem={handleRemoveItem}
-                            subtotal={subtotal}
-                            shippingCost={shippingCost}
-                            total={total}
-                            onCheckout={() => setIsPaymentModalOpen(true)}
-                            onCustomerSelect={() => setIsCustomerModalOpen(true)}
-                            onDeliverySelect={() => setIsDeliveryModalOpen(true)}
-                            onRemoveCustomer={() => setCustomer(null)}
-                            isMobileView={true} // Prop to remove duplicate headers inside component if needed
-                        />
-                    </div>
                 </div>
-            )}
+            </div>
 
-            {/* Modals for new order flow */}
-            <CustomerModal isOpen={isCustomerModalOpen} onClose={() => setIsCustomerModalOpen(false)} onCustomerAdd={handleCustomerAdd} />
-            <PaymentModal isOpen={isPaymentModalOpen} onClose={() => setIsPaymentModalOpen(false)} total={total} onPaymentConfirm={handlePaymentConfirm} />
-            <DeliveryModal isOpen={isDeliveryModalOpen} onClose={() => setIsDeliveryModalOpen(false)} onSave={handleSaveDeliveryInfo} initialData={deliveryInfo} />
+            {/* Modals */}
+            <CustomerModal isOpen={isCustomerModalOpen} onClose={() => setIsCustomerModalOpen(false)} onCustomerAdd={(c) => { impact('medium'); setCustomer(c); }} />
+            <PaymentModal isOpen={isPaymentModalOpen} onClose={() => setIsPaymentModalOpen(false)} total={total} onPaymentConfirm={handleFinalizeAction} />
+            <DeliveryModal isOpen={isDeliveryModalOpen} onClose={() => setIsDeliveryModalOpen(false)} initialData={deliveryInfo} customer={customer} onSave={(d) => { impact('medium'); setDeliveryInfo(d); }} />
         </div>
     );
 };

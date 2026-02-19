@@ -495,7 +495,7 @@ const PosRefillGrid = ({ onProductSelect, defaultDeliveryMethod = 'mostrador' })
                         >
                             <span className="material-symbols-outlined text-4xl text-primary">storefront</span>
                             <div className="text-center">
-                                <div className="font-bold text-lg">En Tienda</div>
+                                <div className="font-bold text-lg">Mostrador</div>
                                 <p className="text-sm text-gray-500">Recarga en mostrador.</p>
                             </div>
                             {deliveryMethod === 'pickup' && <span className="material-symbols-outlined text-primary">check_circle</span>}

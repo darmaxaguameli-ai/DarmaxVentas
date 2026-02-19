@@ -255,8 +255,8 @@ app.post('/api/register-client', async (req, res) => {
     }
     
     // --- Geocodificación de la dirección ---
-    let coordinates = { lat: null, lng: null };
-    if (data.street && data.city) {
+    let coordinates = { lat: data.lat || null, lng: data.lng || null };
+    if (!coordinates.lat && !coordinates.lng && data.street && data.city) {
         const fullAddress = `${data.street}, ${data.neighborhood || ''}, ${data.city}, ${data.postalCode || ''}`;
         coordinates = await geocodeAddress(fullAddress);
     }
@@ -271,8 +271,8 @@ app.post('/api/register-client', async (req, res) => {
       state: data.state || null,               // Nuevo
       postalCode: data.postalCode || null,
       references: data.references || null,
-      lat: coordinates.lat, // <-- Guardar latitud
-      lng: coordinates.lng, // <-- Guardar longitud
+      lat: coordinates.lat ? parseFloat(coordinates.lat) : null, // <-- Guardar latitud
+      lng: coordinates.lng ? parseFloat(coordinates.lng) : null, // <-- Guardar longitud
       role: 'CLIENTE',
       clientCategory: data.clientCategory || 'PARTICULAR',
     };
@@ -1161,6 +1161,11 @@ app.get('/api/cash-drawer/active', verifyToken, async (req, res) => {
             createdAt: 'asc',
           },
         },
+        pedidos: {
+            include: {
+                items: true
+            }
+        }
       },
     });
 
@@ -1438,6 +1443,9 @@ app.post('/api/users', async (req, res) => {
       municipality: data.municipality === '' ? null : data.municipality,
       state: data.state === '' ? null : data.state,
       postalCode: data.postalCode === '' ? null : data.postalCode,
+      references: data.references === '' ? null : data.references,
+      lat: data.lat ? parseFloat(data.lat) : null,
+      lng: data.lng ? parseFloat(data.lng) : null,
       sexo: data.sexo === '' ? null : data.sexo, // Nuevo campo
       clientCategory: data.clientCategory || 'PARTICULAR',
       role: finalRole,
@@ -1730,12 +1738,24 @@ app.delete('/api/users/:id', verifyToken, async (req, res) => {
   const { id } = req.params;
   try {
     await prisma.$transaction(async (tx) => {
+        // 0. Eliminar preferencias de garrafones
+        await tx.userJugPreference.deleteMany({
+            where: { userId: id }
+        });
+
         // 1. Eliminar transacciones de fidelidad
         await tx.loyaltyTransaction.deleteMany({
             where: { userId: id }
         });
 
-        // 2. Eliminar pedidos del cliente y sus dependencias
+        // 2. Limpiar Pedidos (donde el usuario es cliente o repartidor)
+        // Primero, desvincular como repartidor para no borrarlos
+        await tx.pedido.updateMany({
+            where: { repartidorId: id },
+            data: { repartidorId: null }
+        });
+
+        // Ahora tratar los pedidos donde es el CLIENTE (estos sí se limpian sus dependencias)
         const userOrders = await tx.pedido.findMany({
             where: { clienteId: id },
             select: { id: true }
@@ -1758,7 +1778,24 @@ app.delete('/api/users/:id', verifyToken, async (req, res) => {
             });
         }
         
-        // 3. Desvincular de empleado si existe
+        // 3. Limpiar Sesiones de Caja (donde es vendedor)
+        // Desvincular transacciones de caja que dependen de sus sesiones
+        const userSessions = await tx.sesionCaja.findMany({
+            where: { vendedorId: id },
+            select: { id: true }
+        });
+        const sessionIds = userSessions.map(s => s.id);
+        
+        if (sessionIds.length > 0) {
+            await tx.transaccionCaja.deleteMany({
+                where: { sesionId: { in: sessionIds } }
+            });
+            await tx.sesionCaja.deleteMany({
+                where: { id: { in: sessionIds } }
+            });
+        }
+
+        // 4. Desvincular de empleado si existe
         const empleado = await tx.empleado.findUnique({ where: { userId: id } });
         if (empleado) {
              await tx.empleado.update({
@@ -1767,7 +1804,7 @@ app.delete('/api/users/:id', verifyToken, async (req, res) => {
              });
         }
 
-        // 4. Eliminar el usuario
+        // 5. Finalmente, eliminar el usuario
         await tx.user.delete({
             where: { id },
         });
@@ -2201,8 +2238,25 @@ app.post('/api/pedidos', async (req, res) => {
           paymentStatus: paymentStatus || 'NO_PAGADO',
           cliente: { connect: { id: clienteId } },
           store: { connect: { id: storeId } },
+          sesionCaja: req.body.sesionCajaId ? { connect: { id: req.body.sesionCajaId } } : undefined,
+          deliveryLat: req.body.deliveryLat ? parseFloat(req.body.deliveryLat) : undefined,
+          deliveryLng: req.body.deliveryLng ? parseFloat(req.body.deliveryLng) : undefined,
+          deliveryTimeSlot: req.body.deliveryTimeSlot || null,
         },
       });
+
+      // --- PASO 2.7: Registrar en Caja si está PAGADO ---
+      if (paymentStatus === 'PAGADO' && req.body.sesionCajaId) {
+          await tx.transaccionCaja.create({
+              data: {
+                  tipo: 'VENTA',
+                  amount: total,
+                  description: `Venta Mostrador ${customId}`,
+                  sesion: { connect: { id: req.body.sesionCajaId } },
+                  pedido: { connect: { id: newPedido.id } }
+              }
+          });
+      }
 
       // --- PASO 2.5: Registrar transacción de puntos (Si aplica) ---
       if (pointsUsed && pointsUsed > 0) {
@@ -3029,8 +3083,8 @@ app.put('/api/solicitudes/:id', verifyToken, async (req, res) => {
 // ====================================================================
 //  START SERVER
 // ====================================================================
-app.listen(port, () => {
-  console.log(`Server listening at http://localhost:${port}`);
+app.listen(port, '0.0.0.0', () => {
+  console.log(`Server listening on port ${port}`);
 });
 
 // Forced restart trigger for Prisma Client update

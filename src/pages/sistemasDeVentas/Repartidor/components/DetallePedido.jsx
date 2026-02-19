@@ -71,9 +71,16 @@ const DetallePedido = ({ order, onUpdateOrder }) => {
     onUpdateOrder(order.id, { status: 'ENTREGADO', signature: signatureData });
   };
 
-  const { items, cliente, total, status, deliveryLat, deliveryLng } = order;
+  const { items, cliente, total, status, deliveryLat, deliveryLng, deliveryTimeSlot } = order;
   const isDelivered = status === 'ENTREGADO';
-  const fullAddress = [cliente.street, cliente.neighborhood, cliente.city, cliente.postalCode].filter(Boolean).join(', ');
+  const fullAddress = [
+    cliente.street, 
+    cliente.neighborhood, 
+    cliente.municipality,
+    cliente.city, 
+    cliente.state,
+    cliente.postalCode
+  ].filter(Boolean).join(', ');
 
   // Robust coordinate check (Priority: Order Delivery Coords -> Client Default Coords)
   let lat = Number(deliveryLat);
@@ -117,6 +124,12 @@ const DetallePedido = ({ order, onUpdateOrder }) => {
                 <div>
                     <p className="text-lg font-bold text-gray-800 dark:text-white mb-1">{cliente.name}</p>
                     <p className="text-gray-600 dark:text-gray-300 text-sm mb-3 leading-relaxed">{fullAddress}</p>
+                    {deliveryTimeSlot && (
+                        <p className="text-xs font-black text-primary uppercase tracking-widest flex items-center gap-1 mb-2">
+                            <span className="material-symbols-outlined text-sm">schedule</span>
+                            Horario: {deliveryTimeSlot}
+                        </p>
+                    )}
                 </div>
                 {hasCoordinates && (
                     <div title="Ubicación precisa verificada" className="bg-green-100 text-green-600 p-1.5 rounded-lg">
