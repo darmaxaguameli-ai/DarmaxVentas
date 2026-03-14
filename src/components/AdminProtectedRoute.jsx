@@ -3,11 +3,15 @@ import { Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 const AdminProtectedRoute = ({ children }) => {
-  const { isAuthenticated, user, loading } = useAuth();
+  const { isAuthenticated, user, loading, hasPermission } = useAuth();
 
   if (loading) {
     // Muestra un indicador de carga mientras se verifica la autenticación
-    return <div>Cargando...</div>;
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+      </div>
+    );
   }
 
   if (!isAuthenticated) {
@@ -15,12 +19,13 @@ const AdminProtectedRoute = ({ children }) => {
     return <Navigate to="/login" />;
   }
 
-  if (user.role !== 'ADMIN' && user.role !== 'VENTA') {
-    // Si está autenticado pero no es ADMIN ni VENTA, redirige a la página de pedidos del cliente
+  // Verificar si tiene el permiso maestro de gestión
+  if (!hasPermission('canAccessManagement')) {
+    console.warn(`Acceso denegado a Gestión: El usuario ${user.name} no tiene el permiso [canAccessManagement]`);
     return <Navigate to="/pedidos" />;
   }
 
-  // Si está autenticado y es ADMIN, permite el acceso a la ruta
+  // Si tiene el permiso, permite el acceso a la ruta
   return children;
 };
 

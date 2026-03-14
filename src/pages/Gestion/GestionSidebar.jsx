@@ -16,16 +16,16 @@ const menuStructure = [
     name: "Operaciones",
     icon: "storefront",
     children: [
-      { name: "Inventario", path: "inventario", icon: "inventory_2" },
+      { name: "Inventario", path: "inventario", icon: "inventory_2", permission: "canAccessInventory" },
     ],
   },
   {
     type: "group",
-    name: "Cotizadores", // Nuevo Grupo
-    icon: "request_quote", // Icono para el grupo Cotizadores
+    name: "Cotizadores",
+    icon: "request_quote",
     children: [
-      { name: "Cotizador Dist.", path: "cotizador-distribuidores", icon: "local_shipping" },
-      { name: "Cotizador Emprendedor", path: "cotizador", icon: "star" }, // Renombrado y path original
+      { name: "Cotizador Dist.", path: "cotizador-distribuidores", icon: "local_shipping", permission: "canAccessQuotes" },
+      { name: "Cotizador Emprendedor", path: "cotizador", icon: "star", permission: "canAccessQuotes" },
     ],
   },
   {
@@ -33,8 +33,8 @@ const menuStructure = [
     name: "Finanzas",
     icon: "account_balance_wallet",
     children: [
-      { name: "Ingresos", path: "ingresos", icon: "payments" },
-      { name: "Gastos", path: "gastos", icon: "receipt_long" },
+      { name: "Ingresos", path: "ingresos", icon: "payments", permission: "canAccessFinances" },
+      { name: "Gastos", path: "gastos", icon: "receipt_long", permission: "canAccessFinances" },
     ],
   },
   {
@@ -42,14 +42,16 @@ const menuStructure = [
     name: "Administración",
     icon: "settings_suggest",
     children: [
-      { name: "Usuarios", path: "usuarios", icon: "group" },
-      { name: "Recursos Humanos", path: "recursos-humanos", icon: "folder_managed", adminOnly: true },
-      { name: "Configuración", path: "configuracion", icon: "tune" },
+      { name: "Usuarios", path: "usuarios", icon: "group", permission: "canAccessRH" },
+      { name: "Recursos Humanos", path: "recursos-humanos", icon: "folder_managed", permission: "canAccessRH" },
+      { name: "Roles y Permisos", path: "roles", icon: "security", permission: "canAccessRH" },
+      { name: "Configuración", path: "configuracion", icon: "tune", permission: "canAccessConfig" },
     ],
   },
 ];
 
 const SidebarItem = ({ item, isCollapsed, user, onClose, isMobile, isOpen, onToggle }) => {
+  const { hasPermission } = useAuth();
   const [isFlyoutOpen, setIsFlyoutOpen] = useState(false);
   const location = useLocation();
   const itemRef = useRef(null);
@@ -75,15 +77,17 @@ const SidebarItem = ({ item, isCollapsed, user, onClose, isMobile, isOpen, onTog
     };
   }, [isFlyoutOpen, effectiveCollapsed, isMobile]);
   
-  // Restriction for role VENTA: Only 'Cotizadores'
-  if (user?.role === 'VENTA') {
-    if (item.name !== 'Cotizadores') {
-      return null;
-    }
-  }
-
+  // 1. Verificación de Permisos Dinámicos para el ítem raíz
+  if (item.permission && !hasPermission(item.permission)) return null;
   if (item.adminOnly && user?.role !== 'ADMIN') return null;
-  const visibleChildren = item.children?.filter(child => !child.adminOnly || user?.role === 'ADMIN');
+
+  // 2. Filtrar hijos basados en permisos
+  const visibleChildren = item.children?.filter(child => {
+    if (child.permission && !hasPermission(child.permission)) return false;
+    if (child.adminOnly && user?.role !== 'ADMIN') return false;
+    return true;
+  });
+
   if (item.type === 'group' && (!visibleChildren || visibleChildren.length === 0)) return null;
 
   const isActive = item.type === 'link'

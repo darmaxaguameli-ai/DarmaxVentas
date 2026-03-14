@@ -71,9 +71,10 @@ export const updateExpense = (id, expenseData) => apiClient.put(`/expenses/${id}
 export const deleteExpense = (id) => apiClient.delete(`/expenses/${id}`).then(res => res.data);
 
 // ====================================================================
-//  USERS
+//  USERS & ROLES
 // ====================================================================
 export const fetchUsers = () => apiClient.get('/users').then(res => res.data);
+export const fetchRoles = () => apiClient.get('/roles').then(res => res.data); // Nuevo: Obtener roles
 export const createUser = (userData) => apiClient.post('/users', userData).then(res => res.data);
 export const updateUser = (id, userData) => apiClient.put(`/users/${id}`, userData).then(res => res.data);
 export const deleteUser = (id) => apiClient.delete(`/users/${id}`).then(res => res.data);

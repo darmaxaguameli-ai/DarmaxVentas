@@ -1,14 +1,33 @@
 // src/pages/HomePage.jsx
-import { useState } from 'react';
-import { Link, useNavigate } from "react-router-dom";
+import { useState, useEffect } from 'react';
+import { useNavigate } from "react-router-dom";
 import MainLayout from "../layouts/MainLayout.jsx";
 import { MdLogin, MdPersonAdd } from 'react-icons/md';
 import { useTheme } from "../context/ThemeContext";
+import { useAuth } from "../context/AuthContext";
 
 const HomePage = () => {
   const [isExiting, setIsExiting] = useState(false);
   const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
+  const { isAuthenticated, hasPermission, loading } = useAuth();
+
+  // Redirección automática si ya está logueado
+  useEffect(() => {
+    if (!loading && isAuthenticated) {
+      let redirectPath = '/pedidos';
+      
+      if (hasPermission('canAccessManagement')) {
+        redirectPath = '/gestion';
+      } else if (hasPermission('canAccessPOS')) {
+        redirectPath = '/ventas/mostrador';
+      } else if (hasPermission('canAccessDelivery')) {
+        redirectPath = '/repartidor/dashboard';
+      }
+
+      navigate(redirectPath, { replace: true });
+    }
+  }, [isAuthenticated, loading, hasPermission, navigate]);
 
   const handleNavigation = (path) => {
     setIsExiting(true);
@@ -16,6 +35,14 @@ const HomePage = () => {
       navigate(path);
     }, 700); // Duración de la animación sincronizada
   };
+
+  if (loading || (isAuthenticated && !isExiting)) {
+    return (
+      <div className="h-screen w-full flex items-center justify-center bg-light dark:bg-dark">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   return (
     <MainLayout>

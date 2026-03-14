@@ -6,15 +6,16 @@ import React, {
   useEffect,
 } from "react";
 import { useAuth } from "../../../context/AuthContext";
-import Swal from 'sweetalert2'; // Importar SweetAlert2
+import Swal from 'sweetalert2';
 import {
   // Product
   fetchProducts as apiFetchProducts,
   createProduct as apiCreateProduct,
   updateProduct as apiUpdateProduct,
   deleteProduct as apiDeleteProduct,
-  // User
+  // User (Clients)
   fetchUsers as apiFetchUsers,
+  fetchRoles as apiFetchRoles,
   createUser as apiCreateUser,
   updateUser as apiUpdateUser,
   deleteUser as apiDeleteUser,
@@ -58,7 +59,7 @@ import {
 } from "../../../api/apiClient";
 
 const GestionContext = createContext(null);
-// ... (useGestion y el reducer se mantienen igual)
+
 export const useGestion = () => {
   const context = useContext(GestionContext);
   if (!context) {
@@ -69,7 +70,8 @@ export const useGestion = () => {
 
 const initialState = {
   inventory: [],
-  users: [],
+  users: [], // Clientes y Personal
+  roles: [], 
   income: [],
   expenses: [],
   waterTypes: [],
@@ -93,6 +95,7 @@ const gestionReducer = (state, action) => {
         ...state,
         inventory: action.payload.inventory || state.inventory,
         users: action.payload.users || state.users,
+        roles: action.payload.roles || state.roles,
         income: action.payload.income || state.income,
         expenses: action.payload.expenses || state.expenses,
         waterTypes: action.payload.waterTypes || state.waterTypes,
@@ -103,41 +106,6 @@ const gestionReducer = (state, action) => {
         stores: action.payload.stores || state.stores,
         loading: false,
       };
-    case "ADD_PRODUCT":
-      return { ...state, inventory: [...state.inventory, action.payload] };
-    case "ADD_USER":
-        return { ...state, users: [...state.users, action.payload] };
-    case "ADD_INCOME":
-        return { ...state, income: [...state.income, action.payload] };
-    case "ADD_EXPENSE":
-        return { ...state, expenses: [...state.expenses, action.payload] };
-    case "ADD_WATER_TYPE":
-      return { ...state, waterTypes: [...state.waterTypes, action.payload] };
-    case "ADD_SERVICE_PRICE":
-        return { ...state, servicePrices: [...state.servicePrices, action.payload] };
-    case "ADD_JUG_BRAND":
-        return { ...state, jugBrands: [...state.jugBrands, action.payload] };
-    case "ADD_EMPLEADO":
-        return { ...state, empleados: [...state.empleados, action.payload] };
-    case "ADD_FRANCHISE":
-        return { ...state, franchises: [...state.franchises, action.payload] };
-    case "ADD_STORE":
-        return { ...state, stores: [...state.stores, action.payload] };
-    case "UPDATE_SERVICEPRICE":
-        return {
-            ...state,
-            servicePrices: state.servicePrices.map(sp => sp.id === action.payload.id ? action.payload : sp),
-        };
-    case "UPDATE_PRODUCT_IN_STATE": // Nuevo caso para actualizar un producto en el estado local
-        return {
-            ...state,
-            inventory: state.inventory.map(prod => prod.id === action.payload.id ? action.payload : prod)
-        };
-    case "DELETE_PRODUCT_FROM_STATE": // Nuevo caso para eliminar un producto del estado local
-        return {
-            ...state,
-            inventory: state.inventory.filter(prod => prod.id !== action.payload)
-        };
     default:
       return state;
   }
@@ -146,95 +114,128 @@ const gestionReducer = (state, action) => {
 
 export const GestionProvider = ({ children }) => {
   const [state, dispatch] = useReducer(gestionReducer, initialState);
-  const { isAuthenticated, loading: authLoading } = useAuth(); // Usar AuthContext
+  const { isAuthenticated, loading: authLoading } = useAuth();
 
   const fetchManagementData = useCallback(async () => {
-    // No hacer nada si no está autenticado
     if (!isAuthenticated) return;
 
     dispatch({ type: "SET_LOADING", payload: true });
     try {
       const [
-        inventory, users, income, expenses,
+        inventory, users, roles, income, expenses,
         waterTypes, servicePrices, jugBrands, empleados, franchises, stores
       ] = await Promise.all([
-        apiFetchProducts(), apiFetchUsers(), apiFetchIncomes(), apiFetchExpenses(),
+        apiFetchProducts(), apiFetchUsers(), apiFetchRoles(), apiFetchIncomes(), apiFetchExpenses(),
         apiFetchWaterTypes(), apiFetchServicePrices(), apiFetchJugBrands(), apiFetchEmpleados(), apiFetchFranchises(), apiFetchStores()
       ]);
       dispatch({
         type: "SET_INITIAL_DATA",
-        payload: { inventory, users, income, expenses, waterTypes, servicePrices, jugBrands, empleados, franchises, stores },
+        payload: { inventory, users, roles, income, expenses, waterTypes, servicePrices, jugBrands, empleados, franchises, stores },
       });
     } catch (error) {
       dispatch({ type: "SET_ERROR", payload: error.message });
-      Swal.fire('Error', error.message, 'error');
     }
-  }, [isAuthenticated]); // Depender de isAuthenticated
+  }, [isAuthenticated]);
 
   useEffect(() => {
-    // Solo cargar datos si la autenticación no está cargando y el usuario está autenticado
     if (!authLoading && isAuthenticated) {
       fetchManagementData();
     }
   }, [authLoading, isAuthenticated, fetchManagementData]);
 
-  // ... (resto del provider se mantiene igual)
-  const createCrudActions = (modelName, api) => ({
-    [`add${modelName}`]: useCallback(async (data) => {
+  const createCrudActions = (modelName, api, label) => ({
+    [`add${label || modelName}`]: useCallback(async (data) => {
       try {
         const newRecord = await api[`create${modelName}`](data);
-        await fetchManagementData(); // Refrescar todos los datos para asegurar consistencia
-        Swal.fire('Éxito', `${modelName} añadido exitosamente.`, 'success');
+        await fetchManagementData();
         return newRecord;
       } catch (error) {
-        Swal.fire('Error', `Error al añadir ${modelName.toLowerCase()}: ${error.message}`, 'error');
+        Swal.fire('Error', `Error al añadir: ${error.message}`, 'error');
         throw error;
       }
     }, [fetchManagementData]),
-    [`update${modelName}`]: useCallback(async (id, data) => {
+    [`update${label || modelName}`]: useCallback(async (id, data) => {
       try {
         const updatedRecord = await api[`update${modelName}`](id, data);
-        await fetchManagementData(); // Refrescar todos los datos para asegurar consistencia
-        Swal.fire('Éxito', `${modelName} actualizado exitosamente.`, 'success');
+        await fetchManagementData();
         return updatedRecord;
       } catch (error) {
-        Swal.fire('Error', `Error al actualizar ${modelName.toLowerCase()}: ${error.message}`, 'error');
+        Swal.fire('Error', `Error al actualizar: ${error.message}`, 'error');
         throw error;
       }
     }, [fetchManagementData]),
-    [`delete${modelName}`]: useCallback(async (id) => {
+    [`delete${label || modelName}`]: useCallback(async (id) => {
       try {
         await api[`delete${modelName}`](id);
-        await fetchManagementData(); // Refrescar todos los datos
-        Swal.fire('Éxito', `${modelName} eliminado exitosamente.`, 'success');
+        await fetchManagementData();
       } catch (error) {
-        Swal.fire('Error', `Error al eliminar ${modelName.toLowerCase()}: ${error.message}`, 'error');
+        Swal.fire('Error', `Error al eliminar: ${error.message}`, 'error');
         throw error;
       }
     }, [fetchManagementData]),
   });
 
   const productActions = createCrudActions('Product', { createProduct: apiCreateProduct, updateProduct: apiUpdateProduct, deleteProduct: apiDeleteProduct });
-  const userActions = createCrudActions('User', { createUser: apiCreateUser, updateUser: apiUpdateUser, deleteUser: apiDeleteUser });
+  
+  // Acciones para CLIENTES (mapeadas a las funciones de User en la API)
+  const clientActions = createCrudActions('User', { createUser: apiCreateUser, updateUser: apiUpdateUser, deleteUser: apiDeleteUser }, 'Client');
+  
   const waterTypeActions = createCrudActions('WaterType', { createWaterType: apiCreateWaterType, updateWaterType: apiUpdateWaterType, deleteWaterType: apiDeleteWaterType });
-    const servicePriceActions = createCrudActions('ServicePrice', {
-      createServicePrice: apiCreateServicePrice,
-      updateServicePrice: async (id, data) => {
-          try {
-              const updatedRecord = await apiUpdateServicePrice(id, data);
-              dispatch({ type: 'UPDATE_SERVICEPRICE', payload: updatedRecord });
-              Swal.fire('Éxito', 'Precio de servicio actualizado exitosamente.', 'success');
-              return updatedRecord;
-          } catch (error) {
-              Swal.fire('Error', `Error al actualizar el precio de servicio: ${error.message}`, 'error');
-              throw error;
-          }
-      },
-      deleteServicePrice: apiDeleteServicePrice 
-    });  const jugBrandActions = createCrudActions('JugBrand', { createJugBrand: apiCreateJugBrand, updateJugBrand: apiUpdateJugBrand, deleteJugBrand: apiDeleteJugBrand });
+  const servicePriceActions = createCrudActions('ServicePrice', { createServicePrice: apiCreateServicePrice, updateServicePrice: apiUpdateServicePrice, deleteServicePrice: apiDeleteServicePrice });
+  const jugBrandActions = createCrudActions('JugBrand', { createJugBrand: apiCreateJugBrand, updateJugBrand: apiUpdateJugBrand, deleteJugBrand: apiDeleteJugBrand });
   const expenseActions = createCrudActions('Expense', { createExpense: apiCreateExpense, updateExpense: apiUpdateExpense, deleteExpense: apiDeleteExpense });
   const incomeActions = createCrudActions('Income', { createIncome: apiCreateIncome, updateIncome: apiUpdateIncome, deleteIncome: apiDeleteIncome });
-  const empleadoActions = createCrudActions('Empleado', { createEmpleado: apiCreateEmpleado, updateEmpleado: apiUpdateEmpleado, deleteEmpleado: apiDeleteEmpleado });
+  
+  const empleadoActions = {
+    ...createCrudActions('Empleado', { 
+        createEmpleado: apiCreateEmpleado, 
+        updateEmpleado: apiUpdateEmpleado, 
+        deleteEmpleado: apiDeleteEmpleado 
+    }),
+    addEmpleado: useCallback(async (data) => {
+        try {
+            let userId = data.userId;
+            if (data._createAccount) {
+                const userPayload = {
+                    name: data.nombreCompleto,
+                    email: data._createAccount.email,
+                    password: data._createAccount.password,
+                    roleId: data._createAccount.roleId,
+                    phone: data.telefono,
+                    street: data.street,
+                    neighborhood: data.neighborhood,
+                    city: data.city,
+                    postalCode: data.postalCode
+                };
+                const newUser = await apiCreateUser(userPayload);
+                userId = newUser.id;
+            }
+            const { _createAccount, ...empleadoPayload } = data;
+            const finalPayload = { ...empleadoPayload, userId };
+            const newEmpleado = await apiCreateEmpleado(finalPayload);
+            await fetchManagementData();
+            Swal.fire('Éxito', 'Personal registrado correctamente.', 'success');
+            return newEmpleado;
+        } catch (error) {
+            console.error("Error en alta de personal:", error);
+            Swal.fire('Error', `No se pudo completar el registro: ${error.response?.data?.error || error.message}`, 'error');
+            throw error;
+        }
+    }, [fetchManagementData]),
+    updateEmpleado: useCallback(async (id, data) => {
+        try {
+            const updatedRecord = await apiUpdateEmpleado(id, data);
+            await fetchManagementData();
+            Swal.fire('Éxito', 'Expediente actualizado exitosamente.', 'success');
+            return updatedRecord;
+        } catch (error) {
+            console.error("Error al actualizar empleado:", error);
+            Swal.fire('Error', `Error al actualizar: ${error.message}`, 'error');
+            throw error;
+        }
+    }, [fetchManagementData])
+  };
+
   const franchiseActions = createCrudActions('Franchise', { createFranchise: apiCreateFranchise, updateFranchise: apiUpdateFranchise, deleteFranchise: apiDeleteFranchise });
   const storeActions = createCrudActions('Store', { createStore: apiCreateStore, updateStore: apiUpdateStore, deleteStore: apiDeleteStore });
 
@@ -242,7 +243,7 @@ export const GestionProvider = ({ children }) => {
     state,
     fetchManagementData,
     ...productActions,
-    ...userActions,
+    ...clientActions, // Esto proporciona addClient, updateClient, deleteClient
     ...waterTypeActions,
     ...servicePriceActions,
     ...jugBrandActions,

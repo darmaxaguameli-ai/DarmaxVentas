@@ -1,668 +1,300 @@
 import { useState, useEffect } from "react";
 import { useGestion } from "./context/GestionContext";
 import { useAuth } from "../../context/AuthContext";
-import apiClient, { fetchPostalCodeData as apiFetchPostalCode } from "../../api/apiClient";
+import apiClient, { fetchPostalCodeData as apiFetchPostalCode } from "@/api/apiClient";
 import Swal from 'sweetalert2';
+import { FaUserPlus, FaSearch, FaFilter, FaMapMarkerAlt, FaEnvelope, FaPhone, FaStar, FaStore, FaEdit, FaTrash, FaTimes } from 'react-icons/fa';
 
-// ====================================================================
-// Reusable Password Input Component
-// ====================================================================
-const PasswordInput = (props) => {
-    const [showPassword, setShowPassword] = useState(false);
-  
-    return (
-      <div className="relative flex w-full items-center">
-        <input
-          type={showPassword ? "text" : "password"}
-          {...props}
-          className="input-style pr-10"
-        />
-        <button
-          type="button"
-          onClick={() => setShowPassword((prev) => !prev)}
-          className="absolute right-3 text-gray-500 dark:text-gray-400"
-          aria-label="Toggle password visibility"
-        >
-          <span className="material-symbols-outlined">
-            {showPassword ? "visibility_off" : "visibility"}
-          </span>
-        </button>
-      </div>
-    );
-};
-
-// ====================================================================
-// Modal for Client Management
-// ====================================================================
-const ClientUserModal = ({ onClose, userToEdit, onSave }) => {
-  const { state } = useGestion();
-  const { stores } = state;
-  const initialUserState = { 
-      name: "", email: "", password: "", phone: "", sexo: "",
-      street: "", neighborhood: "", municipality: "", state: "", city: "", postalCode: "", references: "",
-      role: "CLIENTE", storeId: "", clientCategory: "PARTICULAR" 
-  };
-  
-  const [user, setUser] = useState(() => {
-      if (userToEdit) {
-          let defaultMuni = userToEdit.municipality || "";
-          let defaultState = userToEdit.state || "";
-          if (!defaultMuni && !defaultState && userToEdit.city) {
-             const parts = userToEdit.city.split(', ');
-             defaultMuni = parts[0] || "";
-             defaultState = parts[1] || "";
-          }
-          return { ...userToEdit, password: "", municipality: defaultMuni, state: defaultState };
-      }
-      return initialUserState;
-  });
-
-  const [colonias, setColonias] = useState([]);
-  const [postalLoading, setPostalLoading] = useState(false);
-
-  // DIPOMEX Logic
-  useEffect(() => {
-    if (user.postalCode && user.postalCode.length === 5) {
-      setPostalLoading(true);
-      setColonias([]);
-      
-      const fetchPostal = async () => {
-        try {
-            const data = await apiFetchPostalCode(user.postalCode);
-            if (!data.error && data.codigo_postal) {
-                const { municipio, estado, colonias: cols } = data.codigo_postal;
-                setUser(prev => ({
-                    ...prev,
-                    municipality: municipio,
-                    state: estado,
-                    city: `${municipio}, ${estado}`,
-                    neighborhood: cols.length === 1 ? cols[0] : prev.neighborhood
-                }));
-                setColonias(cols);
-            }
-        } catch (e) {
-            console.error("Error fetching CP", e);
-        } finally {
-            setPostalLoading(false);
-        }
-      };
-      fetchPostal();
-    } else if (user.postalCode?.length < 5) {
-        setColonias([]);
-    }
-  }, [user.postalCode]);
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setUser((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    const userData = { ...user, role: "CLIENTE" };
-    if (isEditing && !userData.password) delete userData.password;
-    
-    Object.keys(userData).forEach(key => { if (userData[key] === '') userData[key] = null; });
-    
-    userData.city = `${userData.municipality || ''}, ${userData.state || ''}`;
-    
-    onSave(userData);
-    onClose();
-  };
-
-  const isEditing = !!userToEdit;
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4">
-      <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        <h2 className="text-2xl font-bold mb-6 text-[#111418] dark:text-white">{isEditing ? "Editar Cliente" : "Agregar Nuevo Cliente"}</h2>
-        <form onSubmit={handleSubmit} className="space-y-6">
-          
-          {/* Datos Personales */}
-          <div className="space-y-4">
-              <h3 className="text-sm font-bold text-primary border-b pb-1">Datos Personales</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div><label className="label-style">Nombre Completo</label><input name="name" type="text" value={user.name || ""} onChange={handleChange} required className="input-style" /></div>
-                <div><label className="label-style">Tipo de Cliente</label>
-                    <select name="clientCategory" value={user.clientCategory || "PARTICULAR"} onChange={handleChange} className="input-style">
-                        <option value="PARTICULAR">Particular</option>
-                        <option value="EMPRESA">Empresa</option>
-                        <option value="HOSPITAL">Hospital</option>
-                        <option value="ESCUELA">Escuela</option>
-                        <option value="OTRO">Otro</option>
-                    </select>
-                </div>
-                <div><label className="label-style">Sucursal Preferida</label>
-                    <select name="storeId" value={user.storeId || ""} onChange={handleChange} className="input-style">
-                    <option value="">Ninguna / Global</option>
-                    {stores.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                    </select>
-                </div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div><label className="label-style">Email</label><input name="email" type="email" value={user.email || ""} onChange={handleChange} className="input-style" /></div>
-                <div className="grid grid-cols-2 gap-4">
-                    <div><label className="label-style">Teléfono</label><input name="phone" type="tel" value={user.phone || ""} onChange={handleChange} className="input-style" /></div>
-                    <div>
-                        <label className="label-style">Sexo</label>
-                        <select name="sexo" value={user.sexo || ""} onChange={handleChange} className="input-style">
-                            <option value="">Selecciona...</option>
-                            <option value="HOMBRE">Hombre</option>
-                            <option value="MUJER">Mujer</option>
-                            <option value="OTRO">Prefiero no decirlo</option>
-                        </select>
-                    </div>
-                </div>
-              </div>
-              {!isEditing && (<div><label className="label-style">Contraseña</label><PasswordInput name="password" value={user.password || ''} onChange={handleChange} required className="input-style" /></div>)}
-          </div>
-
-          {/* Dirección */}
-          <div className="space-y-4">
-              <h3 className="text-sm font-bold text-primary border-b pb-1">Dirección de Entrega</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="md:col-span-1">
-                      <label className="label-style">Código Postal</label>
-                      <input name="postalCode" type="text" value={user.postalCode || ""} onChange={handleChange} maxLength="5" className="input-style" placeholder="00000" />
-                      {postalLoading && <span className="text-xs text-primary animate-pulse">Buscando...</span>}
-                  </div>
-                  <div className="md:col-span-2">
-                      <label className="label-style">Calle y Número</label>
-                      <input name="street" type="text" value={user.street || ""} onChange={handleChange} className="input-style" />
-                  </div>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                      <label className="label-style">Colonia</label>
-                      {colonias.length > 0 ? (
-                          <select name="neighborhood" value={user.neighborhood || ""} onChange={handleChange} className="input-style">
-                              <option value="">Selecciona...</option>
-                              {colonias.map((col, idx) => <option key={`${idx}-${col}`} value={col}>{col}</option>)}
-                          </select>
-                      ) : (
-                          <input name="neighborhood" type="text" value={user.neighborhood || ""} onChange={handleChange} className="input-style" />
-                      )}
-                  </div>
-                  <div><label className="label-style">Municipio</label><input name="municipality" type="text" value={user.municipality || ""} readOnly className="input-style bg-gray-100 dark:bg-gray-700" /></div>
-                  <div><label className="label-style">Estado</label><input name="state" type="text" value={user.state || ""} readOnly className="input-style bg-gray-100 dark:bg-gray-700" /></div>
-              </div>
-              
-              <div>
-                  <label className="label-style">Referencias</label>
-                  <textarea name="references" value={user.references || ""} onChange={handleChange} rows="2" className="input-style resize-none" />
-              </div>
-          </div>
-
-          <div className="flex justify-end gap-4 pt-4"><button type="button" onClick={onClose} className="btn-secondary">Cancelar</button><button type="submit" className="btn-primary">Guardar</button></div>
-        </form>
-      </div>
-    </div>
-  );
-};
-// ... The rest of the file (StaffUserModal, ManageClients, etc.) should follow
-const StaffUserModal = ({ onClose, userToEdit, onSave }) => {
-    const { state } = useGestion();
-    const { stores } = state;
-    const { user: currentUser } = useAuth();
-    const defaultStoreId = userToEdit?.storeId || (currentUser.role !== 'ADMIN' ? currentUser.storeId : "") || "";
-
-    const initialUserState = { 
-        name: "", email: "", password: "", phone: "", sexo: "", role: "VENDEDOR", 
-        street: "", neighborhood: "", city: "", postalCode: "", storeId: defaultStoreId,
-        municipality: "", state: ""
-    };
-    
-    const [user, setUser] = useState(() => {
-        if (userToEdit) {
-            let defaultMuni = userToEdit.municipality || "";
-            let defaultState = userToEdit.state || "";
-            if (!defaultMuni && !defaultState && userToEdit.city) {
-                const parts = userToEdit.city.split(', ');
-                defaultMuni = parts[0] || "";
-                defaultState = parts[1] || "";
-            }
-            return { ...userToEdit, password: "", municipality: defaultMuni, state: defaultState };
-        }
-        return initialUserState;
-    });
-
-    const [colonias, setColonias] = useState([]);
-    const [postalLoading, setPostalLoading] = useState(false);
-
-    useEffect(() => {
-        if (user.postalCode && user.postalCode.length === 5) {
-            setPostalLoading(true);
-            setColonias([]);
-            const fetchPostal = async () => {
-                try {
-                    const data = await apiFetchPostalCode(user.postalCode);
-                    if (!data.error && data.codigo_postal) {
-                        const { municipio, estado, colonias: cols } = data.codigo_postal;
-                        setUser(prev => ({
-                            ...prev,
-                            municipality: municipio,
-                            state: estado,
-                            city: `${municipio}, ${estado}`,
-                            neighborhood: cols.length === 1 ? cols[0] : prev.neighborhood,
-                        }));
-                        setColonias(cols);
-                    }
-                } catch (e) {
-                    console.error("Error fetching CP", e);
-                } finally {
-                    setPostalLoading(false);
-                }
-            };
-            fetchPostal();
-        } else if (user.postalCode?.length < 5) {
-            setColonias([]);
-        }
-    }, [user.postalCode]);
-  
-    const handleChange = (e) => {
-      const { name, value } = e.target;
-      setUser((prev) => ({ ...prev, [name]: value }));
-    };
-  
-    const handleSubmit = (e) => {
-      e.preventDefault();
-      const userData = { ...user };
-      if (isEditing && !userData.password) delete userData.password;
-      
-      if (currentUser.role !== 'ADMIN' && !userData.storeId) {
-          userData.storeId = currentUser.storeId;
-      }
-      Object.keys(userData).forEach(key => { if (userData[key] === '') userData[key] = null; });
-      userData.city = `${userData.municipality || ''}, ${userData.state || ''}`;
-      onSave(userData);
-      onClose();
-    };
-  
-    const isEditing = !!userToEdit;
-    const staffRoles = ["ADMIN", "VENDEDOR", "VENTA", "REPARTIDOR"];
-    const canAssignStore = currentUser.role === 'ADMIN';
-  
-    return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4">
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-          <h2 className="text-2xl font-bold mb-6 text-[#111418] dark:text-white">{isEditing ? "Editar Personal" : "Agregar Nuevo Personal"}</h2>
-          <form onSubmit={handleSubmit} className="space-y-6">
-            
-            <div className="space-y-4">
-                <h3 className="text-sm font-bold text-primary border-b pb-1">Cuenta y Rol</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div><label className="label-style">Nombre Completo</label><input name="name" type="text" value={user.name || ""} onChange={handleChange} required className="input-style" /></div>
-                    <div><label className="label-style">Email (para login)</label><input name="email" type="email" value={user.email || ""} onChange={handleChange} required className="input-style" /></div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div><label className="label-style">Rol</label>
-                        <select name="role" value={user.role} onChange={handleChange} className="input-style">
-                        {staffRoles.map(role => <option key={role} value={role}>{role}</option>)}
-                        </select>
-                    </div>
-                    {canAssignStore ? (
-                        <div>
-                        <label className="label-style">Asignar a Sucursal</label>
-                        <select name="storeId" value={user.storeId || ""} onChange={handleChange} required={user.role !== 'ADMIN'} className="input-style">
-                            <option value="">{user.role === 'ADMIN' ? 'Todas (Global)' : 'Selecciona...'}</option>
-                            {stores.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                        </select>
-                        </div>
-                    ) : ( <input type="hidden" name="storeId" value={user.storeId || ""} /> )}
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div><label className="label-style">Teléfono</label><input name="phone" type="tel" value={user.phone || ""} onChange={handleChange} className="input-style" /></div>
-                    <div>
-                        <label className="label-style">Sexo</label>
-                        <select name="sexo" value={user.sexo || ""} onChange={handleChange} className="input-style">
-                            <option value="">Selecciona...</option>
-                            <option value="HOMBRE">Hombre</option>
-                            <option value="MUJER">Mujer</option>
-                            <option value="OTRO">Prefiero no decirlo</option>
-                        </select>
-                    </div>
-                    <div>
-                    <label className="label-style">{isEditing ? "Nueva Contraseña (opcional)" : "Contraseña"}</label>
-                    <PasswordInput name="password" value={user.password || ''} onChange={handleChange} required={!isEditing} className="input-style" />
-                    </div>
-                </div>
-            </div>
-
-            <div className="space-y-4">
-                <h3 className="text-sm font-bold text-primary border-b pb-1">Dirección (Opcional)</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="md:col-span-1">
-                      <label className="label-style">Código Postal</label>
-                      <input name="postalCode" type="text" value={user.postalCode || ""} onChange={handleChange} maxLength="5" className="input-style" placeholder="00000" />
-                      {postalLoading && <span className="text-xs text-primary animate-pulse">Buscando...</span>}
-                  </div>
-                  <div className="md:col-span-2">
-                      <label className="label-style">Calle y Número</label>
-                      <input name="street" type="text" value={user.street || ""} onChange={handleChange} className="input-style" />
-                  </div>
-                </div>
-              
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                        <label className="label-style">Colonia</label>
-                        {colonias.length > 0 ? (
-                            <select name="neighborhood" value={user.neighborhood || ""} onChange={handleChange} className="input-style">
-                                <option value="">Selecciona...</option>
-                                {colonias.map((col, idx) => <option key={`${idx}-${col}`} value={col}>{col}</option>)}
-                            </select>
-                        ) : (
-                            <input name="neighborhood" type="text" value={user.neighborhood || ""} onChange={handleChange} className="input-style" />
-                        )}
-                    </div>
-                    <div><label className="label-style">Municipio</label><input name="municipality" type="text" value={user.municipality || ""} readOnly className="input-style bg-gray-100 dark:bg-gray-700" /></div>
-                    <div><label className="label-style">Estado</label><input name="state" type="text" value={user.state || ""} readOnly className="input-style bg-gray-100 dark:bg-gray-700" /></div>
-                </div>
-            </div>
-
-            <div className="flex justify-end gap-4 pt-4"><button type="button" onClick={onClose} className="btn-secondary">Cancelar</button><button type="submit" className="btn-primary">Guardar</button></div>
-          </form>
-        </div>
-      </div>
-    );
-};
-
-// ... ManageClients and Usuarios components follow ...
+// Componente para gestionar Clientes (Simplificado)
 const ManageClients = ({ selectedStoreFilter }) => {
-  const { state, addUser, updateUser, deleteUser } = useGestion();
-  const { users, loading, error, stores } = state;
-  const { user: currentUser } = useAuth();
+  const { state, addClient, updateClient, deleteClient } = useGestion();
+  const { users, stores } = state;
+  const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [userToEdit, setUserToEdit] = useState(null);
+  const [editingClient, setEditingClient] = useState(null);
+  
+  const initialClientState = {
+    name: "",
+    email: "",
+    phone: "",
+    street: "",
+    neighborhood: "",
+    municipality: "",
+    state: "",
+    postalCode: "",
+    references: "",
+    clientCategory: "PARTICULAR",
+    storeId: ""
+  };
 
-  const clientUsers = users.filter(user => {
-      const isClient = user.role === 'CLIENTE';
-      if (!isClient) return false;
-      
-      if (currentUser.role === 'ADMIN') {
-          if (selectedStoreFilter && selectedStoreFilter !== 'all') {
-              return user.storeId === selectedStoreFilter;
-          }
-          return true;
-      }
-      
-      return user.storeId === currentUser.storeId || !user.storeId;
+  const [formData, setFormData] = useState(initialClientState);
+
+  // Filtrar solo usuarios con rol CLIENTE
+  const clients = users.filter(u => u.role === 'CLIENTE');
+
+  const filteredClients = clients.filter(client => {
+    const matchesSearch = (client.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                          client.phone?.includes(searchTerm) ||
+                          client.customId?.toLowerCase().includes(searchTerm.toLowerCase()));
+    
+    const matchesStore = !selectedStoreFilter || client.storeId === selectedStoreFilter;
+    
+    return matchesSearch && matchesStore;
   });
 
-  const handleOpenModal = (user = null) => { setUserToEdit(user); setIsModalOpen(true); };
-  const handleCloseModal = () => { setUserToEdit(null); setIsModalOpen(false); };
-  const handleSaveUser = (user) => { 
-      // Ensure empty strings are null to prevent DB errors (like unique constraint on empty string)
-      const cleanUser = { ...user };
-      Object.keys(cleanUser).forEach(key => {
-          if (cleanUser[key] === "") cleanUser[key] = null;
+  const handleOpenModal = (client = null) => {
+    if (client) {
+      setEditingClient(client);
+      setFormData({
+        name: client.name || "",
+        email: client.email || "",
+        phone: client.phone || "",
+        street: client.street || "",
+        neighborhood: client.neighborhood || "",
+        municipality: client.municipality || "",
+        state: client.state || "",
+        postalCode: client.postalCode || "",
+        references: client.references || "",
+        clientCategory: client.clientCategory || "PARTICULAR",
+        storeId: client.storeId || ""
       });
-      
-      user.id ? updateUser(user.id, cleanUser) : addUser(cleanUser); 
+    } else {
+      setEditingClient(null);
+      setFormData(initialClientState);
+    }
+    setIsModalOpen(true);
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      if (editingClient) {
+        await updateClient(editingClient.id, formData);
+        Swal.fire('Actualizado', 'Cliente actualizado con éxito', 'success');
+      } else {
+        await addClient(formData);
+        Swal.fire('Creado', 'Cliente registrado con éxito', 'success');
+      }
+      setIsModalOpen(false);
+    } catch (error) {
+      Swal.fire('Error', 'No se pudo guardar el cliente', 'error');
+    }
   };
 
   const handleDelete = async (id) => {
-    const result = await Swal.fire({ title: '¿Estás seguro?', text: '¡No podrás revertir esto!', icon: 'warning', showCancelButton: true, confirmButtonColor: '#3085d6', cancelButtonColor: '#d33', confirmButtonText: 'Sí, eliminar', cancelButtonText: 'Cancelar' });
-    if (result.isConfirmed) deleteUser(id);
-  };
+    const result = await Swal.fire({
+      title: '¿Eliminar cliente?',
+      text: "Esta acción no se puede deshacer.",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar'
+    });
 
-  const showOrderHistory = async (client) => {
-    try {
-        Swal.fire({ title: 'Cargando historial...', didOpen: () => Swal.showLoading() });
-        
-        // Fetch specific user orders directly
-        const response = await apiClient.get('/pedidos'); 
-        const allOrders = response.data;
-        
-        // Filter and sort client orders
-        const clientOrders = allOrders
-            .filter(o => o.clienteId === client.id)
-            .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-            .slice(0, 5); // Last 5 orders
-
-        if (clientOrders.length === 0) {
-            Swal.fire('Historial vacío', 'Este cliente no tiene pedidos registrados.', 'info');
-            return;
-        }
-
-        const htmlContent = `
-            <div class="text-left text-sm max-h-[60vh] overflow-y-auto pr-2">
-                ${clientOrders.map(order => `
-                    <div class="mb-3 border-b border-gray-200 dark:border-gray-700 pb-3 last:border-0">
-                        <div class="flex justify-between items-center mb-1">
-                            <span class="font-bold text-gray-800 dark:text-gray-200">${new Date(order.createdAt).toLocaleDateString()}</span>
-                            <span class="px-2 py-0.5 rounded text-xs font-semibold ${
-                                order.status === 'ENTREGADO' ? 'bg-green-100 text-green-800' : 
-                                order.status === 'CANCELADO' ? 'bg-red-100 text-red-800' : 
-                                'bg-blue-100 text-blue-800'
-                            }">${order.status}</span>
-                        </div>
-                        <div class="text-gray-600 dark:text-gray-400 font-medium">Total: $${order.total.toFixed(2)}</div>
-                        <div class="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                            ${order.items.map(i => `${i.quantity}x ${i.jugBrandName || 'Producto'}`).join(', ')}
-                        </div>
-                    </div>
-                `).join('')}
-            </div>
-        `;
-
-        Swal.fire({
-            title: `Últimos pedidos de ${client.name}`,
-            html: htmlContent,
-            width: 500,
-            showCloseButton: true,
-            confirmButtonText: 'Cerrar',
-            confirmButtonColor: '#3085d6'
-        });
-
-    } catch (error) {
-        console.error("Error loading history:", error);
-        Swal.fire('Error', 'No se pudo cargar el historial.', 'error');
+    if (result.isConfirmed) {
+      await deleteClient(id);
+      Swal.fire('Eliminado', 'Cliente eliminado', 'success');
     }
   };
 
-  const getStoreName = (storeId) => {
-      if (!storeId) return <span className="text-gray-400 italic">General</span>;
-      const store = stores.find(s => s.id === storeId);
-      return store ? <span className="bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded-full dark:bg-blue-900 dark:text-blue-300">{store.name}</span> : 'Desconocida';
-  };
-
   return (
-    <div className="animate-fade-in">
-        <div className="flex justify-end mb-4"><button onClick={() => handleOpenModal()} className="btn-primary">Agregar Cliente</button></div>
-         {isModalOpen && <ClientUserModal onClose={handleCloseModal} onSave={handleSaveUser} userToEdit={userToEdit} />}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-x-auto">
-            <table className="min-w-full">
-            <thead className="bg-gray-50 dark:bg-gray-700">
-                <tr>
-                  <th className="th-style">ID</th>
-                  <th className="th-style">Nombre</th>
-                  <th className="th-style">Email</th>
-                  <th className="th-style">Teléfono</th>
-                  <th className="th-style">Sucursal</th>
-                  <th className="th-style text-center">Puntos</th>
-                  <th className="th-style text-right">Acciones</th>
-                </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                {loading ? (
-                <tr><td colSpan="7" className="p-6 text-center text-gray-500">Cargando clientes...</td></tr>
-                ) : error ? (
-                <tr><td colSpan="7" className="p-6 text-center text-red-500">Error: {error}</td></tr>
-                ) : clientUsers.length === 0 ? (
-                <tr><td colSpan="7" className="p-6 text-center text-gray-500">No hay clientes registrados que coincidan con el filtro.</td></tr>
-                ) : (
-                clientUsers.map((user) => (
-                    <tr key={user.id}>
-                    <td className="td-style font-mono text-xs">{user.customId}</td>
-                    <td className="td-style font-medium">{user.name}</td>
-                    <td className="td-style">{user.email || "N/A"}</td>
-                    <td className="td-style">{user.phone || "N/A"}</td>
-                    <td className="td-style">{getStoreName(user.storeId)}</td>
-                    <td className="td-style text-center font-bold text-primary">{user.loyaltyPoints || 0}</td>
-                    <td className="td-style text-right">
-                        <div className="flex flex-col sm:flex-row gap-2 justify-end items-center">
-                            <button 
-                                onClick={() => showOrderHistory(user)} 
-                                className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 font-medium p-1 rounded-full hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors" 
-                                title="Ver Historial"
-                            >
-                                <span className="material-symbols-outlined text-xl align-middle">history</span>
-                            </button>
-                            <button onClick={() => handleOpenModal(user)} className="text-primary hover:text-primary/90 font-medium">Editar</button>
-                            <button onClick={() => handleDelete(user.id)} className="text-red-500 hover:text-red-700 font-medium">Eliminar</button>
-                        </div>
-                    </td>
-                    </tr>
-                )))}
-            </tbody>
-            </table>
+    <div className="space-y-6">
+      <div className="flex flex-col md:flex-row justify-between gap-4">
+        <div className="relative flex-1">
+          <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input 
+            type="text" 
+            placeholder="Buscar cliente por nombre, teléfono o ID..." 
+            className="w-full pl-10 pr-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl outline-none focus:ring-2 focus:ring-primary transition-all"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
         </div>
-    </div>
-  )
-};
+        <button onClick={() => handleOpenModal()} className="btn-primary flex items-center gap-2">
+          <FaUserPlus /> Nuevo Cliente
+        </button>
+      </div>
 
-const ManageStaff = ({ selectedStoreFilter }) => {
-    const { state, addUser, updateUser, deleteUser } = useGestion();
-    const { users, loading, error, stores } = state;
-    const { user: currentUser } = useAuth(); 
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [userToEdit, setUserToEdit] = useState(null);
-
-    const staffUsers = users.filter(user => {
-        const isStaff = user.role !== 'CLIENTE';
-        if (!isStaff) return false;
-        
-        if (currentUser.role === 'ADMIN') {
-            if (selectedStoreFilter && selectedStoreFilter !== 'all') {
-                return user.storeId === selectedStoreFilter;
-            }
-            return true;
-        }
-        
-        return user.storeId === currentUser.storeId;
-    });
-
-    const handleOpenModal = (user = null) => { setUserToEdit(user); setIsModalOpen(true); };
-    const handleCloseModal = () => { setUserToEdit(null); setIsModalOpen(false); };
-    const handleSaveUser = (user) => { user.id ? updateUser(user.id, user) : addUser(user); };
-    const handleDelete = async (id) => {
-        const result = await Swal.fire({ title: '¿Estás seguro?', text: '¡No podrás revertir esto!', icon: 'warning', showCancelButton: true, confirmButtonColor: '#3085d6', cancelButtonColor: '#d33', confirmButtonText: 'Sí, eliminar', cancelButtonText: 'Cancelar' });
-        if (result.isConfirmed) deleteUser(id);
-    };
-
-    const RoleBadge = ({ role }) => {
-        const roleStyles = {
-            ADMIN: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300",
-            VENDEDOR: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300",
-            VENTA: "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300",
-            REPARTIDOR: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300",
-        };
-        return <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${roleStyles[role] || ""}`}>{role}</span>;
-    };
-
-    const getStoreName = (storeId) => {
-        if (!storeId) return <span className="text-purple-600 font-semibold text-xs">GLOBAL</span>;
-        const store = stores.find(s => s.id === storeId);
-        return store ? store.name : 'Desconocida';
-    };
-
-    return (
-        <div className="animate-fade-in">
-            <div className="flex justify-end mb-4"><button onClick={() => handleOpenModal()} className="btn-primary">Agregar Personal</button></div>
-            {isModalOpen && <StaffUserModal onClose={handleCloseModal} onSave={handleSaveUser} userToEdit={userToEdit} />}
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-x-auto">
-                <table className="min-w-full">
-                    <thead className="bg-gray-50 dark:bg-gray-700">
-                        <tr>
-                            <th className="th-style">ID</th>
-                            <th className="th-style">Nombre</th>
-                            <th className="th-style">Email</th>
-                            <th className="th-style">Rol</th>
-                            <th className="th-style">Sucursal</th> 
-                            <th className="th-style text-right">Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                        {loading ? (
-                            <tr><td colSpan="6" className="p-6 text-center text-gray-500">Cargando personal...</td></tr>
-                        ) : error ? (
-                            <tr><td colSpan="6" className="p-6 text-center text-red-500">Error: {error}</td></tr>
-                        ) : staffUsers.length === 0 ? (
-                            <tr><td colSpan="6" className="p-6 text-center text-gray-500">No se encontró personal con los filtros actuales.</td></tr>
-                        ) : (
-                            staffUsers.map((user) => (
-                                <tr key={user.id}>
-                                    <td className="td-style font-mono text-xs">{user.customId}</td>
-                                    <td className="td-style font-medium">{user.name}</td>
-                                    <td className="td-style">{user.email || "N/A"}</td>
-                                    <td className="td-style"><RoleBadge role={user.role} /></td>
-                                    <td className="td-style text-sm">{getStoreName(user.storeId)}</td>
-                                    <td className="td-style text-right">
-                                    <div className="flex flex-col sm:flex-row gap-2 justify-end">
-                                        <button onClick={() => handleOpenModal(user)} className="text-primary hover:text-primary/90 font-medium">Editar</button>
-                                        <button onClick={() => handleDelete(user.id)} className="text-red-500 hover:text-red-700 font-medium">Eliminar</button>
-                                    </div>
-                                </td>
-                                </tr>
-                            ))
-                        )}
-                    </tbody>
-                </table>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {filteredClients.map(client => (
+          <div key={client.id} className="bg-white dark:bg-gray-800 p-5 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-all group">
+            <div className="flex justify-between items-start mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center text-primary font-black">
+                  {client.name?.charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <h3 className="font-bold text-gray-800 dark:text-white leading-tight">{client.name}</h3>
+                  <span className="text-[10px] font-black text-gray-400 uppercase tracking-tighter">#{client.customId}</span>
+                </div>
+              </div>
+              <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                client.clientCategory === 'EMPRESA' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'
+              }`}>
+                {client.clientCategory}
+              </span>
             </div>
+
+            <div className="space-y-2 mb-4">
+              <div className="flex items-center gap-2 text-xs text-gray-500">
+                <FaPhone className="text-gray-400" /> {client.phone || 'Sin teléfono'}
+              </div>
+              <div className="flex items-center gap-2 text-xs text-gray-500">
+                <FaEnvelope className="text-gray-400" /> {client.email || 'Sin correo'}
+              </div>
+              <div className="flex items-center gap-2 text-xs text-gray-500 truncate">
+                <FaMapMarkerAlt className="text-gray-400 shrink-0" /> {client.street}, {client.neighborhood}
+              </div>
+              {client.store && (
+                <div className="flex items-center gap-2 text-[10px] font-bold text-primary uppercase">
+                  <FaStore /> {client.store.name}
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end gap-2 border-t border-gray-50 dark:border-gray-700 pt-3">
+              <button onClick={() => handleOpenModal(client)} className="p-2 text-gray-400 hover:text-primary transition-colors">
+                <FaEdit />
+              </button>
+              <button onClick={() => handleDelete(client.id)} className="p-2 text-gray-400 hover:text-red-500 transition-colors">
+                <FaTrash />
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Modal para Clientes */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white dark:bg-gray-800 rounded-3xl w-full max-w-lg shadow-xl overflow-hidden">
+            <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center">
+              <h2 className="text-xl font-black text-gray-800 dark:text-white uppercase tracking-tight">
+                {editingClient ? 'Editar Cliente' : 'Nuevo Cliente'}
+              </h2>
+              <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-white">
+                <FaTimes size={20} />
+              </button>
+            </div>
+            <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[70vh] overflow-y-auto custom-scrollbar">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="col-span-full">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">Nombre Completo</label>
+                  <input 
+                    name="name" 
+                    value={formData.name} 
+                    onChange={(e) => setFormData({...formData, name: e.target.value})}
+                    required 
+                    className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-700 rounded-xl px-4 py-2.5 font-bold"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">Teléfono</label>
+                  <input 
+                    name="phone" 
+                    value={formData.phone} 
+                    onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                    className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-700 rounded-xl px-4 py-2.5 font-bold"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">Correo (Opcional)</label>
+                  <input 
+                    name="email" 
+                    value={formData.email} 
+                    onChange={(e) => setFormData({...formData, email: e.target.value})}
+                    className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-700 rounded-xl px-4 py-2.5 font-bold"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-gray-50 dark:border-gray-700">
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">Calle y Número</label>
+                <input 
+                  name="street" 
+                  value={formData.street} 
+                  onChange={(e) => setFormData({...formData, street: e.target.value})}
+                  className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-700 rounded-xl px-4 py-2.5 font-bold mb-3"
+                />
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">Colonia</label>
+                    <input name="neighborhood" value={formData.neighborhood} onChange={(e) => setFormData({...formData, neighborhood: e.target.value})} className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-700 rounded-xl px-4 py-2.5 font-bold" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">Código Postal</label>
+                    <input name="postalCode" value={formData.postalCode} onChange={(e) => setFormData({...formData, postalCode: e.target.value})} className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-700 rounded-xl px-4 py-2.5 font-bold" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">Categoría</label>
+                  <select name="clientCategory" value={formData.clientCategory} onChange={(e) => setFormData({...formData, clientCategory: e.target.value})} className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-700 rounded-xl px-4 py-2.5 font-bold">
+                    <option value="PARTICULAR">PARTICULAR</option>
+                    <option value="EMPRESA">EMPRESA</option>
+                    <option value="HOSPITAL">HOSPITAL</option>
+                    <option value="ESCUELA">ESCUELA</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">Sucursal Asignada</label>
+                  <select name="storeId" value={formData.storeId} onChange={(e) => setFormData({...formData, storeId: e.target.value})} className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-700 rounded-xl px-4 py-2.5 font-bold">
+                    <option value="">Ninguna (Global)</option>
+                    {stores.map(store => (
+                      <option key={store.id} value={store.id}>{store.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-3 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 font-black rounded-xl uppercase text-xs tracking-widest">Cancelar</button>
+                <button type="submit" className="flex-1 py-3 bg-primary text-white font-black rounded-xl uppercase text-xs tracking-widest">Guardar</button>
+              </div>
+            </form>
+          </div>
         </div>
-    );
+      )}
+    </div>
+  );
 };
 
 const Usuarios = () => {
-  const [activeTab, setActiveTab] = useState('staff');
-  const [storeFilter, setStoreFilter] = useState('all');
   const { state } = useGestion();
   const { stores } = state;
-  const { user } = useAuth();
+  const [storeFilter, setStoreFilter] = useState("");
 
-  const getTabClassName = (tabName) => {
-    return `px-4 py-2 font-medium rounded-t-lg transition-colors text-sm sm:text-base ${
-        activeTab === tabName
-            ? 'bg-white dark:bg-gray-800 text-primary border-b-2 border-primary'
-            : 'bg-transparent text-gray-500 hover:text-primary dark:hover:text-gray-300'
-    }`;
-  };
-  
   return (
-    <div>
-      <div className="flex flex-wrap justify-between items-center mb-6 gap-4">
-        <h1 className="text-3xl font-bold text-[#111418] dark:text-white">Gestión de Usuarios</h1>
-        
-        {user?.role === 'ADMIN' && (
-            <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Filtrar por:</span>
-                <select 
-                    value={storeFilter} 
-                    onChange={(e) => setStoreFilter(e.target.value)}
-                    className="input-style py-1 px-3 text-sm"
-                >
-                    <option value="all">Todas las Sucursales</option>
-                    {stores.map(store => (
-                        <option key={store.id} value={store.id}>{store.name}</option>
-                    ))}
-                </select>
-            </div>
-        )}
+    <div className="animate-fade-in">
+      <div className="flex flex-wrap justify-between items-center mb-8 gap-4">
+        <div>
+          <h1 className="text-3xl font-black text-gray-800 dark:text-white flex items-center gap-3 uppercase tracking-tighter">
+            <span className="p-2 bg-primary/10 text-primary rounded-xl">
+              <FaStar />
+            </span>
+            Gestión de Clientes
+          </h1>
+          <p className="text-gray-500 dark:text-gray-400 mt-1">Administra tu base de datos de clientes particulares y empresas.</p>
+        </div>
+
+        <div className="flex items-center gap-2 bg-white dark:bg-gray-800 p-1.5 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm">
+          <FaFilter className="ml-2 text-gray-400 text-sm" />
+          <select 
+            value={storeFilter} 
+            onChange={(e) => setStoreFilter(e.target.value)}
+            className="bg-transparent text-xs font-bold text-gray-600 dark:text-gray-300 outline-none border-none pr-8 cursor-pointer"
+          >
+            <option value="">Todas las sucursales</option>
+            {stores.map(store => (
+              <option key={store.id} value={store.id}>{store.name}</option>
+            ))}
+          </select>
+        </div>
       </div>
-      
-      <div className="border-b border-gray-200 dark:border-gray-700 mb-6">
-        <nav className="-mb-px flex gap-4">
-            <button onClick={() => setActiveTab('staff')} className={getTabClassName('staff')}>Personal</button>
-            <button onClick={() => setActiveTab('clients')} className={getTabClassName('clients')}>Clientes</button>
-        </nav>
-      </div>
-      <div>
-        {activeTab === 'staff' && <ManageStaff selectedStoreFilter={storeFilter} />}
-        {activeTab === 'clients' && <ManageClients selectedStoreFilter={storeFilter} />}
-      </div>
+
+      <ManageClients selectedStoreFilter={storeFilter} />
     </div>
   );
 };

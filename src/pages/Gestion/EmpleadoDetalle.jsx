@@ -177,7 +177,7 @@ const EmpleadoDetalle = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
 
     const { state: gestionState, updateEmpleado } = useGestion();
-    const { empleados: allEmpleados } = gestionState;
+    const { empleados: allEmpleados, users: allUsers } = gestionState;
 
     const handleOpenModal = () => setIsModalOpen(true);
     const handleCloseModal = () => setIsModalOpen(false);
@@ -269,6 +269,7 @@ const EmpleadoDetalle = () => {
                     onSave={handleSaveEmpleado}
                     empleadoToEdit={empleado}
                     empleados={allEmpleados}
+                    users={allUsers}
                 />
             )}
         </div>
@@ -277,6 +278,23 @@ const EmpleadoDetalle = () => {
 
 const InfoGeneral = ({ empleado }) => (
     <div className="space-y-4">
+        {empleado.user && (
+            <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-800 mb-6 flex items-center gap-4 animate-fade-in shadow-sm">
+                <div className="bg-blue-100 dark:bg-blue-800 p-3 rounded-full shadow-inner">
+                    <span className="material-symbols-outlined text-blue-600 dark:text-blue-300">account_circle</span>
+                </div>
+                <div>
+                    <p className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-widest mb-0.5">Usuario de Sistema Vinculado</p>
+                    <p className="text-base font-bold text-gray-800 dark:text-gray-200">
+                        {empleado.user.name} <span className="text-xs font-normal opacity-70 ml-1">({empleado.user.roleRelation?.name || empleado.user.role})</span>
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1 mt-0.5">
+                        <span className="material-symbols-outlined text-[12px]">mail</span>
+                        {empleado.user.email || 'Sin correo registrado'}
+                    </p>
+                </div>
+            </div>
+        )}
         <h3 className="text-xl font-bold mb-4">Detalles del Empleado</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
             <InfoItem label="Nombre Completo" value={empleado.nombreCompleto} />

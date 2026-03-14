@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
 import apiClient from '../api/apiClient'; // Importa el apiClient configurado
 
 const AuthContext = createContext(null);
@@ -15,6 +15,26 @@ export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [token, setToken] = useState(null);
     const [loading, setLoading] = useState(true);
+
+    // Función de utilidad para verificar permisos de forma sencilla en cualquier componente
+    const hasPermission = useCallback((permissionName) => {
+        if (!user) return false;
+        
+        // El ADMIN siempre tiene todos los permisos por defecto (Superusuario)
+        if (user.role === 'ADMIN') return true;
+        
+        // 1. Buscar en la relación de rol adjunta (RBAC Dinámico)
+        if (user.roleRelation && typeof user.roleRelation[permissionName] === 'boolean') {
+            return user.roleRelation[permissionName];
+        }
+
+        // 2. Fallback: buscar directamente en el objeto user (Compatibilidad/Tokens)
+        if (typeof user[permissionName] === 'boolean') {
+            return user[permissionName];
+        }
+        
+        return false;
+    }, [user]);
 
     useEffect(() => {
         try {
@@ -40,13 +60,11 @@ export const AuthProvider = ({ children }) => {
         const syncLogout = (event) => {
             if (event.key === 'logout') {
                 console.log('Detectado logout en otra pestaña, cerrando sesión local.');
-                // Forzar el estado de logout en la pestaña actual
                 setUser(null);
                 setToken(null);
                 delete apiClient.defaults.headers.common['Authorization'];
             } else if (event.key === 'token' && event.newValue) {
                 console.log('Detectado login en otra pestaña, actualizando sesión local.');
-                // Forzar la recarga de datos desde localStorage
                 try {
                     const storedUser = localStorage.getItem('user');
                     const storedToken = localStorage.getItem('token');
@@ -58,7 +76,7 @@ export const AuthProvider = ({ children }) => {
                     }
                 } catch (e) {
                     console.error("Error al sincronizar la sesión de login:", e);
-                    logout(); // Si algo falla, cerramos sesión por seguridad
+                    logout();
                 }
             }
         };
@@ -78,7 +96,6 @@ export const AuthProvider = ({ children }) => {
             setUser(loggedInUser);
             setToken(receivedToken);
 
-            // Siempre usar localStorage
             localStorage.setItem('user', JSON.stringify(loggedInUser));
             localStorage.setItem('token', receivedToken);
 
@@ -98,13 +115,11 @@ export const AuthProvider = ({ children }) => {
         localStorage.removeItem('user');
         localStorage.removeItem('token');
         delete apiClient.defaults.headers.common['Authorization'];
-        // Disparar el evento de logout para otras pestañas
         localStorage.setItem('logout', Date.now());
     };
 
     const updateUser = (newUserData) => {
         setUser(newUserData);
-        // Ensure the user data exists in storage before trying to update it
         if (localStorage.getItem('user')) {
             localStorage.setItem('user', JSON.stringify(newUserData));
         }
@@ -118,6 +133,7 @@ export const AuthProvider = ({ children }) => {
         login,
         logout,
         updateUser,
+        hasPermission, // Exponer la función de permisos
     };
 
     return (
@@ -127,3 +143,4 @@ export const AuthProvider = ({ children }) => {
     );
 };
 
+export default AuthContext;

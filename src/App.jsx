@@ -35,6 +35,7 @@ import Usuarios from "./pages/Gestion/Usuarios.jsx";
 import Empleados from "./pages/Gestion/Empleados.jsx";
 import RecursosHumanos from "./pages/Gestion/RecursosHumanos.jsx";
 import EmpleadoDetalle from "./pages/Gestion/EmpleadoDetalle.jsx";
+import Roles from "./pages/Gestion/Roles.jsx";
 import Configuracion from "./pages/Gestion/Configuracion.jsx";
 import CotizadorDistribuidoresPage from "./pages/Gestion/CotizadorDistribuidoresPage.jsx";
 import DarmaxQuote from "./pages/Gestion/DarmaxQuote.jsx";
@@ -147,8 +148,8 @@ function App() {
 
         {/* Sistema de Ventas */}
         <Route path="/ventas/productos" element={<ProductGrid />} />
-        <Route path="/ventas/mostrador" element={<ProtectedRoute allowedRoles={['ADMIN', 'VENDEDOR']}><VentaMostrador /></ProtectedRoute>} />
-        <Route path="/repartidor/dashboard" element={<ProtectedRoute allowedRoles={['ADMIN', 'REPARTIDOR']}><RepartidorDashboard /></ProtectedRoute>} />
+        <Route path="/ventas/mostrador" element={<ProtectedRoute permission="canAccessPOS"><VentaMostrador /></ProtectedRoute>} />
+        <Route path="/repartidor/dashboard" element={<ProtectedRoute permission="canAccessDelivery"><RepartidorDashboard /></ProtectedRoute>} />
 
         {/* Gestión */}
         <Route
@@ -169,6 +170,7 @@ function App() {
           <Route path="empleados" element={<Empleados />} />
           <Route path="recursos-humanos" element={<RecursosHumanos />} />
           <Route path="recursos-humanos/:id" element={<EmpleadoDetalle />} />
+          <Route path="roles" element={<Roles />} />
           <Route path="configuracion" element={<Configuracion />} />
           <Route path="cotizador" element={<DarmaxQuote />} />
           <Route path="cotizador-distribuidores" element={<CotizadorDistribuidoresPage />} />

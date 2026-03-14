@@ -9,7 +9,12 @@ const { getResetPasswordEmailTemplate, getVerificationEmailTemplate } = require(
 require('dotenv').config();
 
 const app = express();
-const port = 3001; // Or any port you prefer
+const port = 3001;
+
+console.log("========================================");
+console.log("🚀 BACKEND DARMAX INICIADO EN PUERTO 3001");
+console.log("🛠️  SISTEMA DE LOGS DE DEPURACIÓN ACTIVO");
+console.log("========================================");
 
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
@@ -27,54 +32,44 @@ app.get('/api/health', (req, res) => {
 app.post('/api/login', async (req, res) => {
   try {
     const { email, password } = req.body;
+    if (!email || !password) return res.status(400).json({ error: 'Email y contraseña requeridos.' });
 
-    if (!email || !password) {
-      return res.status(400).json({ error: 'Email y contraseña son requeridos.' });
-    }
+    const normalizedEmail = email.toLowerCase().trim();
+    console.log(`[Login] Intento de acceso para: ${normalizedEmail}`);
 
     const user = await prisma.user.findUnique({
-      where: { email },
-      include: { store: true } // Incluir datos de la sucursal
+      where: { email: normalizedEmail },
+      include: { store: true, roleRelation: true }
     });
 
     if (!user) {
-      return res.status(401).json({ error: 'Credenciales inválidas.' });
+        console.warn(`[Login] Usuario no encontrado: ${normalizedEmail}`);
+        return res.status(401).json({ error: 'Credenciales inválidas.' });
     }
 
     if (!user.password) {
-      return res.status(401).json({ error: 'Este usuario no tiene una contraseña configurada.' });
+        console.warn(`[Login] Usuario sin contraseña guardada: ${normalizedEmail}`);
+        return res.status(401).json({ error: 'Usuario sin contraseña configurada.' });
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
-
     if (!isPasswordValid) {
-      return res.status(401).json({ error: 'Credenciales inválidas.' });
+        console.warn(`[Login] Contraseña incorrecta para: ${normalizedEmail}`);
+        return res.status(401).json({ error: 'Credenciales inválidas.' });
     }
 
-    // --- Verificar Correo (opcional según requerimiento, pero recomendado) ---
-    if (user.role === 'CLIENTE' && !user.emailVerified) {
-        return res.status(403).json({ 
-            error: 'Correo no verificado.', 
-            message: 'Por favor, verifica tu correo electrónico para activar tu cuenta.' 
-        });
-    }
-
-    // --- Generar JWT ---
+    console.log(`[Login] ÉXITO para: ${normalizedEmail} [ID: ${user.id}]`);
     const token = jwt.sign(
-      { id: user.id, name: user.name, role: user.role },
+      { id: user.id, name: user.name, role: user.role, roleId: user.roleId, permissions: user.roleRelation || {} },
       process.env.JWT_SECRET,
-      { expiresIn: '8h' } // El token expira en 8 horas
+      { expiresIn: '8h' }
     );
 
-    // No devolver el hash de la contraseña
     const { password: _, ...userWithoutPassword } = user;
-    
-    // Devolver token y datos del usuario
     res.json({ user: userWithoutPassword, token });
-
   } catch (error) {
-    console.error('Error en el login:', error);
-    res.status(500).json({ error: 'Ocurrió un error en el servidor.' });
+    console.error('Error login:', error);
+    res.status(500).json({ error: 'Error en el servidor.' });
   }
 });
 
@@ -261,19 +256,23 @@ app.post('/api/register-client', async (req, res) => {
         coordinates = await geocodeAddress(fullAddress);
     }
 
+    // 🔍 BUSCAR ROLE ID DINÁMICO
+    const roleRecord = await prisma.role.findUnique({ where: { name: 'CLIENTE' } });
+
     const userData = {
       name: data.name,
       phone: data.phone,
       street: data.street || null,
       neighborhood: data.neighborhood || null,
       city: data.city || null,
-      municipality: data.municipality || null, // Nuevo
-      state: data.state || null,               // Nuevo
+      municipality: data.municipality || null, 
+      state: data.state || null,               
       postalCode: data.postalCode || null,
       references: data.references || null,
-      lat: coordinates.lat ? parseFloat(coordinates.lat) : null, // <-- Guardar latitud
-      lng: coordinates.lng ? parseFloat(coordinates.lng) : null, // <-- Guardar longitud
+      lat: coordinates.lat ? parseFloat(coordinates.lat) : null, 
+      lng: coordinates.lng ? parseFloat(coordinates.lng) : null, 
       role: 'CLIENTE',
+      roleId: roleRecord ? roleRecord.id : null, // ✅ Asignar el ID dinámico
       clientCategory: data.clientCategory || 'PARTICULAR',
     };
 
@@ -1375,6 +1374,93 @@ app.post('/api/cash-drawer/report-tags', verifyToken, async (req, res) => {
 
 
 // =====================================================
+// ROLES API
+// =====================================================
+app.get('/api/roles', verifyToken, async (req, res) => {
+  try {
+    console.log("[Backend] Intentando obtener roles...");
+    const roles = await prisma.role.findMany({ orderBy: { name: 'asc' } });
+    console.log(`[Backend] ${roles.length} roles encontrados.`);
+    res.json(roles);
+  } catch (error) {
+    console.error('[Backend] Error crítico al obtener roles:', error);
+    res.status(500).json({ 
+        error: 'Error al obtener roles', 
+        details: error.message,
+        code: error.code 
+    });
+  }
+});
+
+app.post('/api/roles', verifyToken, async (req, res) => {
+  try {
+    const newRole = await prisma.role.create({ data: req.body });
+    res.status(201).json(newRole);
+  } catch (error) {
+    res.status(500).json({ error: 'Error al crear rol' });
+  }
+});
+
+app.put('/api/roles/:id', verifyToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { 
+      name, 
+      description, 
+      canAccessPOS, 
+      canAccessOrders, 
+      canAccessDelivery, 
+      canAccessManagement, 
+      canAccessInventory, 
+      canAccessRH, 
+      canAccessFinances, 
+      canAccessConfig, 
+      canAccessQuotes 
+    } = req.body;
+
+    const updatedRole = await prisma.role.update({
+      where: { id },
+      data: {
+        name,
+        description,
+        canAccessPOS,
+        canAccessOrders,
+        canAccessDelivery,
+        canAccessManagement,
+        canAccessInventory,
+        canAccessRH,
+        canAccessFinances,
+        canAccessConfig,
+        canAccessQuotes
+      }
+    });
+    res.json(updatedRole);
+  } catch (error) {
+    console.error(`Error updating role ${req.params.id}:`, error);
+    if (error.code === 'P2025') {
+      return res.status(404).json({ error: 'Rol no encontrado.' });
+    }
+    res.status(500).json({ error: 'Error al actualizar el rol.' });
+  }
+});
+
+app.delete('/api/roles/:id', verifyToken, async (req, res) => {
+  try {
+    const role = await prisma.role.findUnique({ 
+        where: { id: req.params.id }, 
+        include: { _count: { select: { users: true } } } 
+    });
+    if (role.isSystem) return res.status(400).json({ error: 'No se pueden eliminar roles del sistema.' });
+    if (role._count.users > 0) return res.status(400).json({ error: 'No se puede eliminar un rol que tiene usuarios asignados.' });
+    
+    await prisma.role.delete({ where: { id: req.params.id } });
+    res.status(204).send();
+  } catch (error) {
+    res.status(500).json({ error: 'Error al eliminar rol' });
+  }
+});
+
+// =====================================================
 // USERS API
 // =====================================================
 
@@ -1417,9 +1503,9 @@ app.post('/api/users', async (req, res) => {
         }
 
         if (!isAdmin) {
-            return res.status(403).json({ 
-                error: 'Permisos insuficientes.', 
-                message: 'Solo los administradores pueden crear usuarios con roles especiales (Vendedor, Repartidor, Admin).' 
+            return res.status(403).json({
+                error: 'Permisos insuficientes.',
+                message: 'Solo los administradores pueden crear usuarios con roles especiales (Vendedor, Repartidor, Admin).'
             });
         }
 
@@ -1427,15 +1513,32 @@ app.post('/api/users', async (req, res) => {
         finalRole = requestedRole;
         finalStoreId = data.storeId || null;
     } else {
-        // For CLIENTE, force role and ignore storeId (unless we want to allow assigning clients to stores later, but for now safe default)
+        // For CLIENTE, force role and ignore storeId
         finalRole = 'CLIENTE';
-        finalStoreId = null; 
+        finalStoreId = null;
     }
+
+    // 🔍 BUSCAR ROLE ID DINÁMICO
+    const roleRecord = await prisma.role.findUnique({
+        where: { name: finalRole }
+    });
+
+    if (!roleRecord) {
+        console.error(`[Error] Rol no encontrado en la base de datos: ${finalRole}`);
+        // No detenemos el proceso si es un cliente, pero registramos el error
+        // Si no es cliente, sí fallamos porque es una creación administrativa
+        if (finalRole !== 'CLIENTE') {
+            return res.status(500).json({ error: `El rol solicitado [${finalRole}] no existe en el sistema.` });
+        }
+    }
+
+    // Normalizar email si existe
+    const normalizedEmail = data.email ? data.email.toLowerCase().trim() : null;
 
     // Explicitly convert empty strings to null for optional fields
     const userData = {
       name: data.name,
-      email: data.email === '' ? null : data.email,
+      email: normalizedEmail,
       phone: data.phone === '' ? null : data.phone,
       street: data.street === '' ? null : data.street,
       neighborhood: data.neighborhood === '' ? null : data.neighborhood,
@@ -1446,11 +1549,11 @@ app.post('/api/users', async (req, res) => {
       references: data.references === '' ? null : data.references,
       lat: data.lat ? parseFloat(data.lat) : null,
       lng: data.lng ? parseFloat(data.lng) : null,
-      sexo: data.sexo === '' ? null : data.sexo, // Nuevo campo
+      sexo: data.sexo === '' ? null : data.sexo, 
       clientCategory: data.clientCategory || 'PARTICULAR',
       role: finalRole,
+      roleId: roleRecord ? roleRecord.id : null, // ✅ Asignar el ID dinámico
     };
-
     // Connect store if provided
     if (finalStoreId) {
         userData.store = { connect: { id: finalStoreId } };
@@ -1458,9 +1561,11 @@ app.post('/api/users', async (req, res) => {
 
     // Hash password if provided
     if (data.password) {
-      const hashedPassword = await bcrypt.hash(data.password, 10); // 10 is the salt rounds
+      console.log(`[CreateUser] Hasheando contraseña para: ${normalizedEmail}`);
+      const hashedPassword = await bcrypt.hash(data.password, 10);
       userData.password = hashedPassword;
     } else {
+      console.warn(`[CreateUser] Registro sin contraseña para: ${normalizedEmail}`);
       userData.password = null;
     }
 
@@ -1480,6 +1585,8 @@ app.post('/api/users', async (req, res) => {
       customId = `${rolePrefix}-${random}`; 
     }
 
+    console.log(`[CreateUser] Intentando crear en DB: ${normalizedEmail} con CustomID: ${customId}`);
+
     // Generate Verification Token
     const verificationToken = crypto.randomBytes(32).toString('hex');
 
@@ -1487,10 +1594,12 @@ app.post('/api/users', async (req, res) => {
       data: {
         ...userData,
         customId,
-        verificationToken, // Save token
-        emailVerified: null // Explicitly null initially
+        verificationToken,
+        emailVerified: null
       },
     });
+
+    console.log(`[CreateUser] USUARIO CREADO EXITOSAMENTE: ${newUser.id}`);
 
     // Send Verification Email if email exists
     if (userData.email) {
@@ -1830,9 +1939,9 @@ app.get('/api/empleados', verifyToken, async (req, res) => {
   try {
     const empleados = await prisma.empleado.findMany({
       include: {
-        user: true, // Include related user account info
-        documentos: true, // Include employee documents
-        manager: true, // Include manager info
+        user: { include: { roleRelation: true } }, 
+        documentos: true,
+        manager: true,
       },
       orderBy: {
         nombreCompleto: 'asc'
@@ -1852,7 +1961,7 @@ app.get('/api/empleados/:id', verifyToken, async (req, res) => {
     const empleado = await prisma.empleado.findUnique({
       where: { id },
       include: {
-        user: true,
+        user: { include: { roleRelation: true } }, 
         documentos: true,
         manager: true,
         subordinados: true,
@@ -1903,58 +2012,92 @@ app.post('/api/empleados', verifyToken, async (req, res) => {
 // PUT to update an employee
 app.put('/api/empleados/:id', verifyToken, async (req, res) => {
   const { id } = req.params;
-  // Destruct and discard relational fields that should not be in the update payload
   const {
     userId,
     fechaContratacion,
     fechaTerminacion,
     managerId,
-    // Fields to ignore from the body to prevent validation errors
-    documentos, 
-    user, 
-    manager, 
-    subordinados,
-    historialSueldos,
-    createdAt,
-    updatedAt,
-    id: employeeId, // rename to avoid conflict with `id` from params
-    ...data 
+    roleId,
+    emailPersonal,
+    nombreCompleto,
+    newPassword,
+    _createAccount,
+    documentos, user, manager, subordinados, historialSueldos, createdAt, updatedAt, id: employeeId, role, accessEmail, password,
+    ...data
   } = req.body;
 
+  const VALID_ENUM_ROLES = ['ADMIN', 'VENDEDOR', 'VENTA', 'REPARTIDOR', 'CLIENTE'];
+
   try {
-    const empleadoData = { ...data };
+    const result = await prisma.$transaction(async (tx) => {
+        const empleadoData = { ...data };
+        if (nombreCompleto) empleadoData.nombreCompleto = nombreCompleto;
+        if (emailPersonal) empleadoData.emailPersonal = emailPersonal;
 
-    if (fechaContratacion) empleadoData.fechaContratacion = new Date(fechaContratacion);
-    if (fechaTerminacion) empleadoData.fechaTerminacion = new Date(fechaTerminacion);
-    else if (req.body.hasOwnProperty('fechaTerminacion')) empleadoData.fechaTerminacion = null;
+        if (fechaContratacion) empleadoData.fechaContratacion = new Date(fechaContratacion);
+        if (fechaTerminacion) empleadoData.fechaTerminacion = new Date(fechaTerminacion);
+        else if (req.body.hasOwnProperty('fechaTerminacion')) empleadoData.fechaTerminacion = null;
 
-    if (req.body.hasOwnProperty('userId')) {
-      empleadoData.user = userId ? { connect: { id: userId } } : { disconnect: true };
-    }
+        if (req.body.hasOwnProperty('userId')) {
+            if (userId && userId !== "null") empleadoData.userId = userId;
+            else empleadoData.userId = null;
+        }
 
-    if (req.body.hasOwnProperty('managerId')) {
-        empleadoData.manager = managerId ? { connect: { id: managerId } } : { disconnect: true };
-    }
+        if (req.body.hasOwnProperty('managerId')) {
+            if (managerId && managerId !== "null") empleadoData.managerId = managerId;
+            else empleadoData.managerId = null;
+        }
 
-    const updatedEmpleado = await prisma.empleado.update({
-      where: { id },
-      data: empleadoData,
-      include: { manager: true },
+        const currentEmpleado = await tx.empleado.findUnique({ where: { id }, select: { userId: true, nombreCompleto: true } });
+        let finalUserId = (userId !== undefined) ? userId : currentEmpleado?.userId;
+
+        if (!finalUserId && _createAccount) {
+            const roleRec = await tx.role.findUnique({ where: { id: _createAccount.roleId } });
+            const legacyRole = VALID_ENUM_ROLES.includes(roleRec?.name) ? roleRec.name : (roleRec?.canAccessPOS ? 'VENDEDOR' : 'VENTA');
+            const newUser = await tx.user.create({
+                data: {
+                    name: nombreCompleto || currentEmpleado.nombreCompleto,
+                    email: _createAccount.email,
+                    password: await bcrypt.hash(_createAccount.password, 10),
+                    roleId: _createAccount.roleId,
+                    role: legacyRole,
+                    customId: `EMP-${Math.floor(Math.random() * 900) + 100}`
+                }
+            });
+            finalUserId = newUser.id;
+            empleadoData.userId = newUser.id;
+        } else if (finalUserId && finalUserId !== "null" && finalUserId !== null) {
+            const userUpdateData = {};
+            if (nombreCompleto) userUpdateData.name = nombreCompleto;
+            if (emailPersonal) userUpdateData.email = emailPersonal;
+            if (newPassword) userUpdateData.password = await bcrypt.hash(newPassword, 10);
+            if (roleId) {
+                userUpdateData.roleId = roleId;
+                const roleRec = await tx.role.findUnique({ where: { id: roleId } });
+                if (roleRec) {
+                    userUpdateData.role = VALID_ENUM_ROLES.includes(roleRec.name) ? roleRec.name : (roleRec.canAccessPOS ? 'VENDEDOR' : 'VENTA');
+                }
+            }
+            if (Object.keys(userUpdateData).length > 0) {
+                await tx.user.update({ where: { id: finalUserId }, data: userUpdateData });
+            }
+        }
+
+        return await tx.empleado.update({
+            where: { id },
+            data: empleadoData,
+            include: { 
+                user: { include: { roleRelation: true } },
+                manager: true 
+            },
+        });
     });
-    res.json(updatedEmpleado);
+    res.json(result);
   } catch (error) {
     console.error(`Error updating empleado ${id}:`, error);
-    if (error.code === 'P2025') {
-      return res.status(404).json({ error: 'Empleado no encontrado.' });
-    }
-    // Provide more detailed validation error
-    if (error instanceof prisma.Prisma.PrismaClientValidationError) {
-        return res.status(400).json({ error: 'Error de validación. Revise los datos enviados.', details: error.message });
-    }
-    res.status(500).json({ error: 'Error al actualizar el empleado.' });
+    res.status(500).json({ error: 'Error al actualizar el empleado.', details: error.message });
   }
 });
-
 // DELETE an employee
 app.delete('/api/empleados/:id', verifyToken, async (req, res) => {
   const { id } = req.params;

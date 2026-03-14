@@ -21,6 +21,39 @@ enum UserRole {
   CLIENTE
 }
 
+// ... rest of enums ...
+
+// =====================================================================
+// MODELOS DE SEGURIDAD Y ROLES (¡NUEVO!)
+// =====================================================================
+
+model Role {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  
+  // Permisos de Módulos Principales
+  canAccessPOS        Boolean @default(false) // Punto de Venta / Mostrador
+  canAccessOrders     Boolean @default(false) // Flujo de Pedidos Cliente
+  canAccessDelivery   Boolean @default(false) // Dashboard Repartidor
+  canAccessManagement Boolean @default(false) // Acceso al panel /gestion
+  
+  // Permisos Internos de Gestión
+  canAccessInventory  Boolean @default(false)
+  canAccessRH         Boolean @default(false)
+  canAccessFinances   Boolean @default(false)
+  canAccessConfig     Boolean @default(false)
+  canAccessQuotes     Boolean @default(false)
+  
+  isSystem            Boolean @default(false) // Protege ADMIN y CLIENTE
+  
+  users               User[]
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
+
+// ... rest of business models ...
+
 enum ClientCategory {
   PARTICULAR
   EMPRESA
@@ -171,6 +204,8 @@ model User {
   lat                Float?
   lng                Float?
   role               UserRole          @default(CLIENTE)
+  roleId             String?           // Relación con la nueva tabla Role
+  roleRelation       Role?             @relation(fields: [roleId], references: [id])
   clientCategory     ClientCategory    @default(PARTICULAR)
   sexo               String?           // Nuevo campo: HOMBRE, MUJER, OTRO
   createdAt          DateTime          @default(now())
