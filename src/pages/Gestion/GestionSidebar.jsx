@@ -21,6 +21,14 @@ const menuStructure = [
   },
   {
     type: "group",
+    name: "Ventas de Campo",
+    icon: "campaign",
+    children: [
+      { name: "Prospección", path: "prospeccion", icon: "trending_up", permission: "canAccessLeads" },
+    ],
+  },
+  {
+    type: "group",
     name: "Cotizadores",
     icon: "request_quote",
     children: [

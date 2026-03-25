@@ -44,6 +44,7 @@ model Role {
   canAccessFinances   Boolean @default(false)
   canAccessConfig     Boolean @default(false)
   canAccessQuotes     Boolean @default(false)
+  canAccessLeads      Boolean @default(false) // Acceso al módulo de Prospección / Leads
   
   isSystem            Boolean @default(false) // Protege ADMIN y CLIENTE
   
@@ -228,13 +229,46 @@ model User {
   // Relación inversa para pedidos asignados como repartidor
   pedidosReparto     Pedido[]          @relation("RepartidorPedidos")
 
+  // Relación con sus Leads / Prospectos
+  leadsCaptados      Lead[]            @relation("VendedorLeads")
+
   // Recuperación de contraseña
   resetPasswordToken   String?
   resetPasswordExpires DateTime?
-
+  
   // Verificación de correo
   emailVerified        DateTime?
   verificationToken    String?
+}
+
+// =====================================================================
+// MODELO DE LEADS / PROSPECCIÓN (¡NUEVO!)
+// =====================================================================
+
+model Lead {
+  id               String   @id @default(cuid())
+  nombre           String
+  telefono         String   @unique
+  paqueteVendido   String?  // Nombre del paquete (ej: "Planta Pro")
+  cantidadPaquetes Int      @default(0)
+  
+  // Flexibilidad total para registrar insumos a futuro
+  // Formato sugerido: [ { "item": "Tapas", "cantidad": 500, "frecuencia": "mensual", "notas": "Color azul" }, ... ]
+  insumosInteres   Json?    
+  
+  notas            String?
+  status           String   @default("NUEVO") // NUEVO, NEGOCIACION, CERRADO, SEGUIMIENTO
+  
+  // Datos de contacto opcionales
+  direccion        String?
+  ciudad           String?
+
+  // Relación con el vendedor que lo captó
+  vendedor         User     @relation("VendedorLeads", fields: [vendedorId], references: [id])
+  vendedorId       String
+  
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 }
 
 // Historial de puntos de fidelidad

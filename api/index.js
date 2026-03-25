@@ -1374,6 +1374,116 @@ app.post('/api/cash-drawer/report-tags', verifyToken, async (req, res) => {
 
 
 // =====================================================
+// LEADS API (Prospects Tracking)
+// =====================================================
+
+// GET all leads for the logged-in salesperson
+app.get('/api/leads', verifyToken, async (req, res) => {
+  try {
+    const { id, role } = req.user;
+    const where = {};
+
+    // Si no es ADMIN, solo ve sus propios leads
+    if (role !== 'ADMIN') {
+      where.vendedorId = id;
+    }
+
+    const leads = await prisma.lead.findMany({
+      where,
+      include: {
+        vendedor: {
+          select: { name: true, customId: true }
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+    res.json(leads);
+  } catch (error) {
+    console.error('Error fetching leads:', error);
+    res.status(500).json({ error: 'Error al obtener los prospectos.' });
+  }
+});
+
+// GET single lead
+app.get('/api/leads/:id', verifyToken, async (req, res) => {
+  try {
+    const lead = await prisma.lead.findUnique({
+      where: { id: req.params.id },
+      include: { vendedor: { select: { name: true } } }
+    });
+    if (!lead) return res.status(404).json({ error: 'Prospecto no encontrado.' });
+    res.json(lead);
+  } catch (error) {
+    res.status(500).json({ error: 'Error al obtener el prospecto.' });
+  }
+});
+
+// POST a new lead
+app.post('/api/leads', verifyToken, async (req, res) => {
+  try {
+    const { nombre, telefono, paqueteVendido, cantidadPaquetes, insumosInteres, notas, direccion, ciudad } = req.body;
+    const vendedorId = req.user.id;
+
+    if (!nombre || !telefono) {
+      return res.status(400).json({ error: 'Nombre y teléfono son requeridos.' });
+    }
+
+    const newLead = await prisma.lead.create({
+      data: {
+        nombre,
+        telefono,
+        paqueteVendido,
+        cantidadPaquetes: parseInt(cantidadPaquetes) || 0,
+        insumosInteres: insumosInteres || [], // Array flexible de insumos
+        notas,
+        direccion,
+        ciudad,
+        vendedor: { connect: { id: vendedorId } }
+      }
+    });
+
+    res.status(201).json(newLead);
+  } catch (error) {
+    console.error('Error creating lead:', error);
+    if (error.code === 'P2002') {
+      return res.status(409).json({ error: 'Ya existe un prospecto con este número de teléfono.' });
+    }
+    res.status(500).json({ error: 'Error al crear el prospecto.' });
+  }
+});
+
+// PUT to update a lead
+app.put('/api/leads/:id', verifyToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const data = req.body;
+
+    const updatedLead = await prisma.lead.update({
+      where: { id },
+      data: {
+        ...data,
+        cantidadPaquetes: data.cantidadPaquetes ? parseInt(data.cantidadPaquetes) : undefined,
+      }
+    });
+
+    res.json(updatedLead);
+  } catch (error) {
+    console.error('Error updating lead:', error);
+    res.status(500).json({ error: 'Error al actualizar el prospecto.' });
+  }
+});
+
+// DELETE a lead
+app.delete('/api/leads/:id', verifyToken, async (req, res) => {
+  try {
+    await prisma.lead.delete({ where: { id: req.params.id } });
+    res.status(204).send();
+  } catch (error) {
+    res.status(500).json({ error: 'Error al eliminar el prospecto.' });
+  }
+});
+
+// =====================================================
 // ROLES API
 // =====================================================
 app.get('/api/roles', verifyToken, async (req, res) => {
@@ -1412,13 +1522,14 @@ app.put('/api/roles/:id', verifyToken, async (req, res) => {
       canAccessDelivery, 
       canAccessManagement, 
       canAccessInventory, 
-      canAccessRH, 
-      canAccessFinances, 
-      canAccessConfig, 
-      canAccessQuotes 
-    } = req.body;
+      canAccessRH,
+      canAccessFinances,
+      canAccessConfig,
+      canAccessQuotes,
+      canAccessLeads
+      } = req.body;
 
-    const updatedRole = await prisma.role.update({
+      const updatedRole = await prisma.role.update({
       where: { id },
       data: {
         name,
@@ -1431,9 +1542,11 @@ app.put('/api/roles/:id', verifyToken, async (req, res) => {
         canAccessRH,
         canAccessFinances,
         canAccessConfig,
-        canAccessQuotes
+        canAccessQuotes,
+        canAccessLeads
       }
-    });
+      });
+
     res.json(updatedRole);
   } catch (error) {
     console.error(`Error updating role ${req.params.id}:`, error);

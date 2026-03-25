@@ -22,6 +22,7 @@ const Roles = () => {
         canAccessFinances: false,
         canAccessConfig: false,
         canAccessQuotes: false,
+        canAccessLeads: false,
     };
 
     const [formData, setFormData] = useState(initialRoleState);
@@ -58,6 +59,7 @@ const Roles = () => {
                 canAccessFinances: !!role.canAccessFinances,
                 canAccessConfig: !!role.canAccessConfig,
                 canAccessQuotes: !!role.canAccessQuotes,
+                canAccessLeads: !!role.canAccessLeads,
             });
         } else {
             setEditingRole(null);
@@ -191,6 +193,7 @@ const Roles = () => {
                                     <PermissionBadge active={role.canAccessFinances} label="Finanzas" />
                                     <PermissionBadge active={role.canAccessConfig} label="Config." />
                                     <PermissionBadge active={role.canAccessQuotes} label="Cotiz." />
+                                    <PermissionBadge active={role.canAccessLeads} label="Prospección" />
                                 </div>
                             </div>
 
@@ -323,6 +326,7 @@ const Roles = () => {
                                             { id: 'canAccessFinances', label: 'Finanzas', icon: 'account_balance_wallet' },
                                             { id: 'canAccessConfig', label: 'Configuración', icon: 'tune' },
                                             { id: 'canAccessQuotes', label: 'Cotizadores', icon: 'request_quote' },
+                                            { id: 'canAccessLeads', label: 'Prospección', icon: 'trending_up' },
                                         ].map((perm) => (
                                             <label key={perm.id} className="flex items-center justify-between p-3 rounded-xl bg-gray-50 dark:bg-gray-900/40 hover:bg-gray-100 dark:hover:bg-gray-900 border border-transparent hover:border-gray-200 dark:hover:border-gray-700 cursor-pointer transition-all">
                                                 <div className="flex items-center gap-3">
