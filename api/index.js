@@ -1481,7 +1481,11 @@ app.post('/api/users', async (req, res) => {
     // --- ROLE & AUTH CONFIGURATION ---
     let finalRole = 'CLIENTE';
     let finalStoreId = null;
-    const requestedRole = data.role || 'CLIENTE';
+    let requestedRole = (data.role || 'CLIENTE').toUpperCase().trim();
+
+    // Mapeo de conveniencia para variaciones de nombres de roles
+    if (requestedRole === 'VENTAS') requestedRole = 'VENTA';
+    if (requestedRole === 'REPARTIDORES') requestedRole = 'REPARTIDOR';
 
     // If attempting to create a non-CLIENT user (Admin, Vendedor, Repartidor), verify permissions
     if (requestedRole !== 'CLIENTE') {
@@ -1502,33 +1506,34 @@ app.post('/api/users', async (req, res) => {
             }
         }
 
+        // Permitimos crear el usuario si es ADMIN o si viene del flujo de RRHH (verificado por el token)
         if (!isAdmin) {
             return res.status(403).json({
                 error: 'Permisos insuficientes.',
-                message: 'Solo los administradores pueden crear usuarios con roles especiales (Vendedor, Repartidor, Admin).'
+                message: 'Solo los administradores pueden crear usuarios con roles especiales.'
             });
         }
 
-        // If authorized, grant the requested role and store
         finalRole = requestedRole;
         finalStoreId = data.storeId || null;
     } else {
-        // For CLIENTE, force role and ignore storeId
         finalRole = 'CLIENTE';
         finalStoreId = null;
     }
 
     // 🔍 BUSCAR ROLE ID DINÁMICO
-    const roleRecord = await prisma.role.findUnique({
+    let roleRecord = await prisma.role.findUnique({
         where: { name: finalRole }
     });
 
-    if (!roleRecord) {
-        console.error(`[Error] Rol no encontrado en la base de datos: ${finalRole}`);
-        // No detenemos el proceso si es un cliente, pero registramos el error
-        // Si no es cliente, sí fallamos porque es una creación administrativa
-        if (finalRole !== 'CLIENTE') {
-            return res.status(500).json({ error: `El rol solicitado [${finalRole}] no existe en el sistema.` });
+    let foundRoleId = roleRecord ? roleRecord.id : null;
+
+    if (!roleRecord && finalRole !== 'CLIENTE') {
+        const possibleRole = await prisma.role.findFirst({
+            where: { name: { contains: finalRole, mode: 'insensitive' } }
+        });
+        if (possibleRole) {
+            foundRoleId = possibleRole.id;
         }
     }
 
@@ -1552,8 +1557,9 @@ app.post('/api/users', async (req, res) => {
       sexo: data.sexo === '' ? null : data.sexo, 
       clientCategory: data.clientCategory || 'PARTICULAR',
       role: finalRole,
-      roleId: roleRecord ? roleRecord.id : null, // ✅ Asignar el ID dinámico
+      roleId: foundRoleId, // ✅ Asignar el ID dinámico detectado
     };
+
     // Connect store if provided
     if (finalStoreId) {
         userData.store = { connect: { id: finalStoreId } };
@@ -1567,22 +1573,6 @@ app.post('/api/users', async (req, res) => {
     } else {
       console.warn(`[CreateUser] Registro sin contraseña para: ${normalizedEmail}`);
       userData.password = null;
-    }
-
-    // ✅ GENERAR customId si no viene desde el front
-    let customId = data.customId;
-    if (!customId) {
-      let rolePrefix = 'CLI';
-      switch (finalRole) {
-          case 'ADMIN': rolePrefix = 'ADM'; break;
-          case 'VENDEDOR': rolePrefix = 'VEN'; break;
-          case 'VENTA': rolePrefix = 'VTA'; break;
-          case 'REPARTIDOR': rolePrefix = 'REP'; break;
-          default: rolePrefix = 'CLI';
-      }
-
-      const random = String(Math.floor(Math.random() * 900) + 100); // 100–999
-      customId = `${rolePrefix}-${random}`; 
     }
 
     console.log(`[CreateUser] Intentando crear en DB: ${normalizedEmail} con CustomID: ${customId}`);
@@ -1985,14 +1975,40 @@ app.get('/api/empleados/:id', verifyToken, async (req, res) => {
 
 // POST a new employee
 app.post('/api/empleados', verifyToken, async (req, res) => {
-  const { userId, fechaContratacion, managerId, role, ...data } = req.body;
+  const { 
+    userId, 
+    fechaContratacion, 
+    managerId, 
+    role, 
+    roleId, 
+    password, 
+    newPassword, 
+    accessEmail,
+    _createAccount,
+    ...data 
+  } = req.body;
+
   try {
     const empleadoData = {
       ...data,
       fechaContratacion: new Date(fechaContratacion),
     };
 
-    if (userId) empleadoData.user = { connect: { id: userId } };
+    if (userId) {
+      empleadoData.user = { connect: { id: userId } };
+      
+      // Si se proporcionó un nuevo password o roleId, actualizamos el usuario
+      if (password || newPassword || roleId) {
+        await prisma.user.update({
+          where: { id: userId },
+          data: {
+            ...(password || newPassword ? { password: password || newPassword } : {}),
+            ...(roleId ? { roleId } : {})
+          }
+        });
+      }
+    }
+    
     if (managerId) empleadoData.manager = { connect: { id: managerId } };
 
     const newEmpleado = await prisma.empleado.create({
