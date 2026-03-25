@@ -2128,12 +2128,17 @@ app.post('/api/empleados', verifyToken, async (req, res) => {
       
       // Si se proporcionó un nuevo password o roleId, actualizamos el usuario
       if (password || newPassword || roleId) {
+        const userUpdateData = {};
+        if (password || newPassword) {
+            userUpdateData.password = await bcrypt.hash(password || newPassword, 10);
+        }
+        if (roleId) {
+            userUpdateData.roleId = roleId;
+        }
+
         await prisma.user.update({
           where: { id: userId },
-          data: {
-            ...(password || newPassword ? { password: password || newPassword } : {}),
-            ...(roleId ? { roleId } : {})
-          }
+          data: userUpdateData
         });
       }
     }
