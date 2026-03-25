@@ -10,6 +10,7 @@ const menuStructure = [
     name: "Resumen",
     path: "/gestion",
     icon: "dashboard",
+    permission: "canAccessManagement",
   },
   {
     type: "group",
@@ -20,9 +21,16 @@ const menuStructure = [
     ],
   },
   {
+    type: "link",
+    name: "Marketing Planner",
+    path: "marketing",
+    icon: "ads_click",
+    permission: "canAccessMarketing",
+  },
+  {
     type: "group",
     name: "Ventas de Campo",
-    icon: "campaign",
+    icon: "groups",
     children: [
       { name: "Prospección", path: "prospeccion", icon: "trending_up", permission: "canAccessLeads" },
     ],

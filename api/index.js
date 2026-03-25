@@ -1374,6 +1374,102 @@ app.post('/api/cash-drawer/report-tags', verifyToken, async (req, res) => {
 
 
 // =====================================================
+// MARKETING API
+// =====================================================
+
+// GET all marketing posts
+app.get('/api/marketing', verifyToken, async (req, res) => {
+  try {
+    const { id, role } = req.user;
+    const where = {};
+
+    // Si no es ADMIN, solo ve sus propios posts
+    if (role !== 'ADMIN') {
+      where.creadorId = id;
+    }
+
+    const posts = await prisma.marketingPost.findMany({
+      where,
+      include: {
+        creador: {
+          select: { name: true, customId: true }
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+    res.json(posts);
+  } catch (error) {
+    console.error('Error fetching marketing posts:', error);
+    res.status(500).json({ error: 'Error al obtener las publicaciones de marketing.' });
+  }
+});
+
+// POST a new marketing post
+app.post('/api/marketing', verifyToken, async (req, res) => {
+  try {
+    const { titulo, descripcion, url, fechaEntrega, status } = req.body;
+    const creadorId = req.user.id;
+
+    if (!titulo) return res.status(400).json({ error: 'El título es requerido.' });
+
+    const newPost = await prisma.marketingPost.create({
+      data: {
+        titulo,
+        descripcion,
+        url,
+        fechaEntrega: fechaEntrega ? new Date(fechaEntrega) : null,
+        status: status || 'BORRADOR',
+        creador: { connect: { id: creadorId } }
+      }
+    });
+
+    res.status(201).json(newPost);
+  } catch (error) {
+    console.error('Error creating marketing post:', error);
+    res.status(500).json({ error: 'Error al crear la publicación.' });
+  }
+});
+
+// PUT to update a marketing post (includes admin approval)
+app.put('/api/marketing/:id', verifyToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { 
+        status, 
+        comentariosAdmin, 
+        fechaPublicacion,
+        ...data 
+    } = req.body;
+
+    const updateData = { ...data };
+
+    if (status) updateData.status = status;
+    if (comentariosAdmin !== undefined) updateData.comentariosAdmin = comentariosAdmin;
+    if (fechaPublicacion) updateData.fechaPublicacion = new Date(fechaPublicacion);
+
+    const updatedPost = await prisma.marketingPost.update({
+      where: { id },
+      data: updateData
+    });
+
+    res.json(updatedPost);
+  } catch (error) {
+    console.error('Error updating marketing post:', error);
+    res.status(500).json({ error: 'Error al actualizar la publicación.' });
+  }
+});
+
+// DELETE a marketing post
+app.delete('/api/marketing/:id', verifyToken, async (req, res) => {
+  try {
+    await prisma.marketingPost.delete({ where: { id: req.params.id } });
+    res.status(204).send();
+  } catch (error) {
+    res.status(500).json({ error: 'Error al eliminar la publicación.' });
+  }
+});
+
+// =====================================================
 // LEADS API (Prospects Tracking)
 // =====================================================
 
@@ -1528,7 +1624,8 @@ app.put('/api/roles/:id', verifyToken, async (req, res) => {
       canAccessFinances,
       canAccessConfig,
       canAccessQuotes,
-      canAccessLeads
+      canAccessLeads,
+      canAccessMarketing
       } = req.body;
 
       const updatedRole = await prisma.role.update({
@@ -1545,10 +1642,10 @@ app.put('/api/roles/:id', verifyToken, async (req, res) => {
         canAccessFinances,
         canAccessConfig,
         canAccessQuotes,
-        canAccessLeads
+        canAccessLeads,
+        canAccessMarketing
       }
       });
-
     res.json(updatedRole);
   } catch (error) {
     console.error(`Error updating role ${req.params.id}:`, error);

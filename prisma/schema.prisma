@@ -44,9 +44,10 @@ model Role {
   canAccessFinances   Boolean @default(false)
   canAccessConfig     Boolean @default(false)
   canAccessQuotes     Boolean @default(false)
-  canAccessLeads      Boolean @default(false) // Acceso al módulo de Prospección / Leads
+  canAccessLeads      Boolean @default(false) 
+  canAccessMarketing  Boolean @default(false) // Acceso al Planificador de Marketing
   
-  isSystem            Boolean @default(false) // Protege ADMIN y CLIENTE
+  isSystem            Boolean @default(false)
   
   users               User[]
   createdAt           DateTime @default(now())
@@ -231,6 +232,9 @@ model User {
 
   // Relación con sus Leads / Prospectos
   leadsCaptados      Lead[]            @relation("VendedorLeads")
+
+  // Relación con sus Posts de Marketing
+  marketingPosts     MarketingPost[]
 
   // Recuperación de contraseña
   resetPasswordToken   String?
@@ -559,6 +563,32 @@ model Cotizacion {
   firma         String? // Base64 de la firma
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+}
+
+// =====================================================================
+// MODELO DE MARKETING (¡NUEVO!)
+// =====================================================================
+
+model MarketingPost {
+  id               String   @id @default(cuid())
+  titulo           String
+  descripcion      String?
+  url              String?  // Link de Canva, Borrador o Post Publicado
+  status           String   @default("BORRADOR") // BORRADOR, EN_PROCESO, PENDIENTE_APROBACION, APROBADO, PUBLICADO
+  
+  // Fechas de planificación
+  fechaEntrega     DateTime?
+  fechaPublicacion DateTime?
+  
+  // Feedback del Administrador
+  comentariosAdmin String?
+  
+  // Relación con el creador (Usuario con rol Marketing)
+  creador          User     @relation(fields: [creadorId], references: [id])
+  creadorId        String
+  
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 }
 
 // =====================================================================
