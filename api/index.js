@@ -1650,8 +1650,26 @@ app.post('/api/users', async (req, res) => {
         }
     }
 
+    // ✅ GENERAR customId
+    let customId = data.customId;
+    if (!customId) {
+      let rolePrefix = 'CLI';
+      const normalizedRole = finalRole.toUpperCase();
+      
+      if (normalizedRole.includes('ADMIN')) rolePrefix = 'ADM';
+      else if (normalizedRole.includes('VENDEDOR')) rolePrefix = 'VEN';
+      else if (normalizedRole.includes('VENTA')) rolePrefix = 'VTA';
+      else if (normalizedRole.includes('REPARTIDOR')) rolePrefix = 'REP';
+      else rolePrefix = 'CLI';
+
+      const random = String(Math.floor(Math.random() * 900) + 100); 
+      customId = `${rolePrefix}-${random}`; 
+    }
+
     // Normalizar email si existe
     const normalizedEmail = data.email ? data.email.toLowerCase().trim() : null;
+    
+    console.log(`[CreateUser] Intentando crear en DB: ${normalizedEmail} con CustomID: ${customId}`);
 
     // Explicitly convert empty strings to null for optional fields
     const userData = {
@@ -1670,7 +1688,7 @@ app.post('/api/users', async (req, res) => {
       sexo: data.sexo === '' ? null : data.sexo, 
       clientCategory: data.clientCategory || 'PARTICULAR',
       role: finalRole,
-      roleId: foundRoleId, // ✅ Asignar el ID dinámico detectado
+      roleId: foundRoleId, 
     };
 
     // Connect store if provided
@@ -1687,8 +1705,6 @@ app.post('/api/users', async (req, res) => {
       console.warn(`[CreateUser] Registro sin contraseña para: ${normalizedEmail}`);
       userData.password = null;
     }
-
-    console.log(`[CreateUser] Intentando crear en DB: ${normalizedEmail} con CustomID: ${customId}`);
 
     // Generate Verification Token
     const verificationToken = crypto.randomBytes(32).toString('hex');
