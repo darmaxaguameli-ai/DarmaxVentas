@@ -1421,7 +1421,7 @@ app.get('/api/leads/:id', verifyToken, async (req, res) => {
 // POST a new lead
 app.post('/api/leads', verifyToken, async (req, res) => {
   try {
-    const { nombre, telefono, paqueteVendido, cantidadPaquetes, insumosInteres, notas, direccion, ciudad } = req.body;
+    const { nombre, telefono, paqueteVendido, cantidadPaquetes, insumosInteres, mantenimientos, notas, direccion, ciudad, tipo } = req.body;
     const vendedorId = req.user.id;
 
     if (!nombre || !telefono) {
@@ -1434,7 +1434,9 @@ app.post('/api/leads', verifyToken, async (req, res) => {
         telefono,
         paqueteVendido,
         cantidadPaquetes: parseInt(cantidadPaquetes) || 0,
-        insumosInteres: insumosInteres || [], // Array flexible de insumos
+        insumosInteres: insumosInteres || [],
+        mantenimientos: mantenimientos || [],
+        tipo: tipo || 'PROSPECTO',
         notas,
         direccion,
         ciudad,
@@ -1456,13 +1458,13 @@ app.post('/api/leads', verifyToken, async (req, res) => {
 app.put('/api/leads/:id', verifyToken, async (req, res) => {
   try {
     const { id } = req.params;
-    const data = req.body;
+    const { vendedorId, createdAt, updatedAt, id: _, ...data } = req.body; // Evitar sobrescribir campos protegidos
 
     const updatedLead = await prisma.lead.update({
       where: { id },
       data: {
         ...data,
-        cantidadPaquetes: data.cantidadPaquetes ? parseInt(data.cantidadPaquetes) : undefined,
+        cantidadPaquetes: data.cantidadPaquetes !== undefined ? parseInt(data.cantidadPaquetes) : undefined,
       }
     });
 

@@ -256,8 +256,13 @@ model Lead {
   // Formato sugerido: [ { "item": "Tapas", "cantidad": 500, "frecuencia": "mensual", "notas": "Color azul" }, ... ]
   insumosInteres   Json?    
   
+  // Seguimiento de Mantenimientos (¡NUEVO!)
+  // Estructura: [ { "equipo": "Filtro Carbón", "frecuencia": "6 meses", "ultimaFecha": "2026-01-01", "proximaFecha": "2026-07-01" }, ... ]
+  mantenimientos   Json?
+
   notas            String?
-  status           String   @default("NUEVO") // NUEVO, NEGOCIACION, CERRADO, SEGUIMIENTO
+  status           String   @default("NUEVO") 
+  tipo             String   @default("PROSPECTO") // PROSPECTO o CLIENTE_VENTA
   
   // Datos de contacto opcionales
   direccion        String?
