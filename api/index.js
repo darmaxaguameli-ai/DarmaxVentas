@@ -1374,6 +1374,49 @@ app.post('/api/cash-drawer/report-tags', verifyToken, async (req, res) => {
 
 
 // =====================================================
+// NOTIFICATIONS API
+// =====================================================
+
+// GET all notifications for the logged-in user
+app.get('/api/notifications', verifyToken, async (req, res) => {
+  try {
+    const notifications = await prisma.notification.findMany({
+      where: { userId: req.user.id },
+      orderBy: { createdAt: 'desc' },
+      take: 20 // Solo las últimas 20
+    });
+    res.json(notifications);
+  } catch (error) {
+    res.status(500).json({ error: 'Error al obtener notificaciones.' });
+  }
+});
+
+// PUT mark notification as read
+app.put('/api/notifications/:id/read', verifyToken, async (req, res) => {
+  try {
+    await prisma.notification.update({
+      where: { id: req.params.id, userId: req.user.id },
+      data: { read: true }
+    });
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: 'Error al actualizar notificación.' });
+  }
+});
+
+// DELETE clear all notifications for user
+app.delete('/api/notifications', verifyToken, async (req, res) => {
+  try {
+    await prisma.notification.deleteMany({
+      where: { userId: req.user.id }
+    });
+    res.status(204).send();
+  } catch (error) {
+    res.status(500).json({ error: 'Error al limpiar notificaciones.' });
+  }
+});
+
+// =====================================================
 // MARKETING API
 // =====================================================
 
@@ -1449,8 +1492,53 @@ app.put('/api/marketing/:id', verifyToken, async (req, res) => {
 
     const updatedPost = await prisma.marketingPost.update({
       where: { id },
-      data: updateData
+      data: updateData,
+      include: { creador: true }
     });
+
+    // --- LÓGICA DE NOTIFICACIONES AUTOMÁTICAS ---
+    
+    // 1. Si el post pasa a PENDIENTE_APROBACION, notificar a los ADMINS
+    if (status === 'PENDIENTE_APROBACION') {
+        const admins = await prisma.user.findMany({ where: { role: 'ADMIN' } });
+        await Promise.all(admins.map(admin => 
+            prisma.notification.create({
+                data: {
+                    userId: admin.id,
+                    title: 'Nuevo Contenido para Revisar',
+                    message: `Marketing ha enviado "${updatedPost.titulo}" para tu aprobación.`,
+                    type: 'WARNING',
+                    link: '/gestion/marketing'
+                }
+            })
+        ));
+    }
+
+    // 2. Si el post es APROBADO, notificar al creador
+    if (status === 'APROBADO') {
+        await prisma.notification.create({
+            data: {
+                userId: updatedPost.creadorId,
+                title: '¡Post Aprobado! 🎉',
+                message: `Tu contenido "${updatedPost.titulo}" ha sido aprobado por el Admin.`,
+                type: 'SUCCESS',
+                link: '/gestion/marketing'
+            }
+        });
+    }
+
+    // 3. Si hay feedback (comentariosAdmin) pero vuelve a BORRADOR, notificar al creador
+    if (comentariosAdmin && status === 'BORRADOR') {
+        await prisma.notification.create({
+            data: {
+                userId: updatedPost.creadorId,
+                title: 'Cambios solicitados en tu post',
+                message: `El Admin ha dejado comentarios en "${updatedPost.titulo}".`,
+                type: 'ERROR',
+                link: '/gestion/marketing'
+            }
+        });
+    }
 
     res.json(updatedPost);
   } catch (error) {

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Outlet } from "react-router-dom";
 import GestionSidebar from "./GestionSidebar";
+import NotificationTray from "../../components/common/NotificationTray";
 import { ThemeProvider } from "../../context/ThemeContext";
 import { GestionProvider } from "./context/GestionContext";
 import { NotificationProvider } from "./context/NotificationContext"; // Import NotificationProvider
@@ -58,7 +59,9 @@ const GestionDashboard = () => {
                 {isSidebarCollapsed ? 'menu_open' : 'menu'}
               </span>
             </button>
-            <div></div> 
+            <div>
+              <NotificationTray />
+            </div> 
           </div>
           <NotificationProvider>
             <GestionProvider>
