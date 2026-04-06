@@ -10,11 +10,23 @@ const HomePage = () => {
   const [isExiting, setIsExiting] = useState(false);
   const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
-  const { isAuthenticated, hasPermission, loading } = useAuth();
+  const { isAuthenticated, user, hasPermission, loading } = useAuth();
+  
+  const isMaintenanceMode = import.meta.env.VITE_MAINTENANCE_MODE === 'true';
+
+  // Redirección por Mantenimiento
+  useEffect(() => {
+    if (isMaintenanceMode) {
+      const isAuthorized = user?.role === 'ADMIN' || user?.roleRelation?.isSystem;
+      if (!isAuthorized) {
+        navigate('/mantenimiento', { replace: true });
+      }
+    }
+  }, [isMaintenanceMode, user, navigate]);
 
   // Redirección automática si ya está logueado
   useEffect(() => {
-    if (!loading && isAuthenticated) {
+    if (!loading && isAuthenticated && !isMaintenanceMode) {
       let redirectPath = '/pedidos';
       
       if (hasPermission('canAccessManagement')) {

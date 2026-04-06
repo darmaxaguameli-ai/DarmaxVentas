@@ -59,9 +59,11 @@ import ClientProfile from "./pages/Client/ClientProfile";
 import MisPedidos from "./pages/Client/MisPedidos.jsx";
 import PuntoDeVentaPage from "./pages/PuntoDeVenta/PuntoDeVentaPage.jsx";
 
+import Maintenance from "./pages/Maintenance.jsx";
 import ScrollToTop from "./components/common/ScrollToTop.jsx";
 
 function App() {
+  const isMaintenanceMode = import.meta.env.VITE_MAINTENANCE_MODE === 'true'; // ACTIVAR DESDE .env
 
   // --- Push Notification Setup ---
   const registerPush = () => {
@@ -193,6 +195,9 @@ function App() {
         <Route path="/pedidos/comprar/opcion-llenado" element={<BuyJugsFillOptionStepTwo />} />
         <Route path="/pedidos/comprar/asignar-agua" element={<BuyJugsAssignWaterStepThree />} />
         <Route path="/pedidos/confirmado" element={<OrderConfirmation />} />
+
+        {/* Mantenimiento */}
+        <Route path="/mantenimiento" element={<Maintenance />} />
       </Routes>
     </ClientProvider>
   );

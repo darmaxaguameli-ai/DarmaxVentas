@@ -4,6 +4,9 @@ import { useAuth } from '../context/AuthContext';
 
 const ProtectedRoute = ({ children, allowedRoles, permission }) => {
     const { isAuthenticated, user, loading, hasPermission } = useAuth();
+    
+    // Configuración de Mantenimiento desde .env
+    const isMaintenanceMode = import.meta.env.VITE_MAINTENANCE_MODE === 'true'; 
 
     if (loading) {
         return (
@@ -11,6 +14,14 @@ const ProtectedRoute = ({ children, allowedRoles, permission }) => {
                 <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-primary"></div>
             </div>
         );
+    }
+
+    // --- Lógica de Mantenimiento ---
+    if (isMaintenanceMode) {
+        const isAuthorized = user?.role === 'ADMIN' || user?.roleRelation?.isSystem;
+        if (!isAuthorized && window.location.pathname !== '/mantenimiento') {
+            return <Navigate to="/mantenimiento" replace />;
+        }
     }
 
     if (!isAuthenticated) {

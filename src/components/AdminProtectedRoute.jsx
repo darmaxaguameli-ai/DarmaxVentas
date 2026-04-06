@@ -4,6 +4,8 @@ import { useAuth } from '../context/AuthContext';
 
 const AdminProtectedRoute = ({ children }) => {
   const { isAuthenticated, user, loading, hasPermission } = useAuth();
+  
+  const isMaintenanceMode = import.meta.env.VITE_MAINTENANCE_MODE === 'true'; 
 
   if (loading) {
     // Muestra un indicador de carga mientras se verifica la autenticación
@@ -12,6 +14,14 @@ const AdminProtectedRoute = ({ children }) => {
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
       </div>
     );
+  }
+
+  // --- Lógica de Mantenimiento ---
+  if (isMaintenanceMode) {
+      const isAuthorized = user?.role === 'ADMIN' || user?.roleRelation?.isSystem;
+      if (!isAuthorized && window.location.pathname !== '/mantenimiento') {
+          return <Navigate to="/mantenimiento" replace />;
+      }
   }
 
   if (!isAuthenticated) {
