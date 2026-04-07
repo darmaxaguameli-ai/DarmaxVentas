@@ -20,15 +20,23 @@ export const AuthProvider = ({ children }) => {
     const hasPermission = useCallback((permissionName) => {
         if (!user) return false;
         
-        // El ADMIN siempre tiene todos los permisos por defecto (Superusuario)
-        if (user.role === 'ADMIN') return true;
+        // 1. Verificación de SUPERUSUARIO (ADMIN)
+        // Buscamos si alguno de los roles asignados es "ADMIN"
+        const isAdmin = user.roles?.some(r => r.name === 'ADMIN') || user.role === 'ADMIN';
+        if (isAdmin) return true;
         
-        // 1. Buscar en la relación de rol adjunta (RBAC Dinámico)
+        // 2. Verificación Dinámica (RBAC v2 - Muchos a Muchos)
+        // Retorna true si CUALQUIERA de los roles del usuario tiene el permiso activado
+        if (user.roles && user.roles.length > 0) {
+            return user.roles.some(role => role[permissionName] === true);
+        }
+
+        // 3. Fallback: buscar en el rol legacy si existiera
         if (user.roleRelation && typeof user.roleRelation[permissionName] === 'boolean') {
             return user.roleRelation[permissionName];
         }
 
-        // 2. Fallback: buscar directamente en el objeto user (Compatibilidad/Tokens)
+        // 4. Fallback final: buscar directamente en el objeto user
         if (typeof user[permissionName] === 'boolean') {
             return user[permissionName];
         }
@@ -88,9 +96,9 @@ export const AuthProvider = ({ children }) => {
         };
     }, []);
 
-    const login = async (email, password) => {
+    const login = async (identifier, password) => {
         try {
-            const response = await apiClient.post('/login', { email, password });
+            const response = await apiClient.post('/login', { email: identifier, password });
             const { user: loggedInUser, token: receivedToken } = response.data;
             
             setUser(loggedInUser);

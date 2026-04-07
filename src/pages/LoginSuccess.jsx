@@ -14,16 +14,33 @@ const LoginSuccess = () => {
     useEffect(() => {
         if (loading) return;
 
-        let redirectPath = '/pedidos'; // Fallback por defecto
+        // 1. Prioridad Máxima: Cambio de contraseña forzado
+        if (user?.mustChangePassword) {
+            navigate('/change-password-force', { replace: true });
+            return;
+        }
 
-        // Prioridad de Redirección según Permisos Maestros
-        if (hasPermission('canAccessManagement')) {
-            redirectPath = '/gestion';
-        } else if (hasPermission('canAccessPOS')) {
-            redirectPath = '/ventas/mostrador';
-        } else if (hasPermission('canAccessDelivery')) {
-            redirectPath = '/repartidor/dashboard';
-        } else if (hasPermission('canAccessOrders')) {
+        // Definir permisos maestros para detectar multi-rol
+        const masterPermissions = [
+            { key: 'canAccessManagement', path: '/gestion' },
+            { key: 'canAccessPOS', path: '/ventas/mostrador' },
+            { key: 'canAccessDelivery', path: '/repartidor/dashboard' },
+            { key: 'canAccessOrders', path: '/pedidos' }
+        ];
+
+        // Contar a cuántos módulos tiene acceso real
+        const authorizedModules = masterPermissions.filter(p => hasPermission(p.key));
+
+        let redirectPath = '/pedidos';
+
+        if (authorizedModules.length > 1) {
+            // Si tiene más de uno, mandarlo al selector
+            redirectPath = '/role-selector';
+        } else if (authorizedModules.length === 1) {
+            // Si tiene exactamente uno, mandarlo directo
+            redirectPath = authorizedModules[0].path;
+        } else {
+            // Si no tiene ninguno (cliente básico o sin roles), mandarlo a pedidos
             redirectPath = '/pedidos';
         }
 
@@ -35,6 +52,10 @@ const LoginSuccess = () => {
     }, [navigate, hasPermission, loading]);
 
     const getRedirectMessage = () => {
+        const masterPermissions = ['canAccessManagement', 'canAccessPOS', 'canAccessDelivery', 'canAccessOrders'];
+        const count = masterPermissions.filter(p => hasPermission(p)).length;
+
+        if (count > 1) return 'Preparando selector de modo...';
         if (hasPermission('canAccessManagement')) return 'Redirigiendo al Panel de Gestión...';
         if (hasPermission('canAccessPOS')) return 'Redirigiendo a Caja y Ventas...';
         if (hasPermission('canAccessDelivery')) return 'Redirigiendo al Dashboard de Reparto...';

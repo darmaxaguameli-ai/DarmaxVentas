@@ -31,20 +31,26 @@ const StatCard = ({ title, value, subtext, type }) => {
 
 const Resumen = () => {
     const { state } = useGestion();
-    const { user } = useAuth();
+    const { user, hasPermission } = useAuth();
     const navigate = useNavigate();
     const { income, expenses, inventory, dailySalesRecords } = state;
     const [timePeriod, setTimePeriod] = useState('monthly'); // 'monthly' or 'annual'
     const [viewMode, setViewMode] = useState('local'); // 'local' or 'consolidated'
 
-    const isAdmin = user?.role === 'ADMIN';
-
-    // Redirección para el rol VENTA
+    // El control de acceso ahora se maneja centralmente en AdminProtectedRoute
+    // Pero si entra aquí y no tiene permiso de ver el resumen, lo mandamos al primer módulo que sí tenga
     useEffect(() => {
-        if (user?.role === 'VENTA') {
-            navigate('/gestion/cotizador-distribuidores', { replace: true });
+        if (!hasPermission('canViewSummary')) {
+            console.log("No tienes permiso para ver el resumen. Redirigiendo...");
+            if (hasPermission('canAccessInventory')) navigate('/gestion/inventario', { replace: true });
+            else if (hasPermission('canAccessRH')) navigate('/gestion/usuarios', { replace: true });
+            else if (hasPermission('canAccessLeads')) navigate('/gestion/prospeccion', { replace: true });
+            else if (hasPermission('canAccessQuotes')) navigate('/gestion/cotizador-distribuidores', { replace: true });
+            else navigate('/role-selector', { replace: true });
         }
-    }, [user, navigate]);
+    }, [hasPermission, navigate]);
+
+    const isAdmin = user?.roles?.some(r => r.name === 'ADMIN') || user?.role === 'ADMIN';
 
     const { totalIncome, totalExpenses, netProfit, incomeTransactions, expenseTransactions } = useMemo(() => {
         const now = new Date();

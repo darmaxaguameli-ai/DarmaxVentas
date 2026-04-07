@@ -29,8 +29,8 @@ const ManageClients = ({ selectedStoreFilter }) => {
 
   const [formData, setFormData] = useState(initialClientState);
 
-  // Filtrar solo usuarios con rol CLIENTE
-  const clients = users.filter(u => u.role === 'CLIENTE');
+  // Filtrar solo usuarios que son realmente CLIENTES (usando el nuevo IdentityType)
+  const clients = users.filter(u => u.type === 'CLIENTE' || u.customId?.startsWith('CLI-'));
 
   const filteredClients = clients.filter(client => {
     const matchesSearch = (client.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 

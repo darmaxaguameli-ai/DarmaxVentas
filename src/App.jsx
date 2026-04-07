@@ -60,6 +60,8 @@ import MisPedidos from "./pages/Client/MisPedidos.jsx";
 import PuntoDeVentaPage from "./pages/PuntoDeVenta/PuntoDeVentaPage.jsx";
 
 import Maintenance from "./pages/Maintenance.jsx";
+import RoleSelector from "./pages/RoleSelector.jsx";
+import ForceChangePassword from "./pages/ForceChangePassword.jsx";
 import ScrollToTop from "./components/common/ScrollToTop.jsx";
 
 function App() {
@@ -140,6 +142,8 @@ function App() {
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/verify-email" element={<VerifyEmail />} />
         <Route path="/login-success" element={<ProtectedRoute><LoginSuccess /></ProtectedRoute>} />
+        <Route path="/role-selector" element={<ProtectedRoute><RoleSelector /></ProtectedRoute>} />
+        <Route path="/change-password-force" element={<ProtectedRoute><ForceChangePassword /></ProtectedRoute>} />
         <Route path="/logout-success" element={<LogoutSuccess />} />
         <Route path="/registro" element={<Register />} />
 

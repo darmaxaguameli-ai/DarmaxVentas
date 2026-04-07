@@ -20,7 +20,6 @@ const Roles = () => {
         canAccessOrders: false,
         canAccessDelivery: false,
         canAccessManagement: false,
-        canViewSummary: false, // Nuevo permiso
         canAccessInventory: false,
         canAccessRH: false,
         canAccessFinances: false,
@@ -71,7 +70,6 @@ const Roles = () => {
                 canAccessOrders: !!role.canAccessOrders,
                 canAccessDelivery: !!role.canAccessDelivery,
                 canAccessManagement: !!role.canAccessManagement,
-                canViewSummary: !!role.canViewSummary, // Nuevo
                 canAccessInventory: !!role.canAccessInventory,
                 canAccessRH: !!role.canAccessRH,
                 canAccessFinances: !!role.canAccessFinances,
@@ -91,7 +89,13 @@ const Roles = () => {
         setEditingRole(role);
         setLoading(true);
         try {
-            // Buscamos usuarios que YA tienen este rol asignado
+            // Obtener detalles completos del rol para saber qué usuarios tiene asignados
+            // Asumimos que el backend en el include ya podría traerlos o hacemos un fetch específico
+            // Para simplicidad, si el GET /roles ya trajera los user IDs, los usamos. 
+            // Si no, podríamos filtrar users que tengan este roleId (si fuera legacy) 
+            // pero lo mejor es que el rol traiga su lista de usuarios.
+            
+            // Simulación: Buscamos usuarios que YA tienen este rol asignado
             const currentRoleUsers = users.filter(u => u.roles?.some(r => r.id === role.id) || u.roleId === role.id);
             setSelectedUserIds(currentRoleUsers.map(u => u.id));
             setIsUsersModalOpen(true);
@@ -154,7 +158,7 @@ const Roles = () => {
             Swal.fire('¡Personal Actualizado!', `Se han asignado ${selectedUserIds.length} colaboradores al puesto de ${editingRole.name}`, 'success');
             handleCloseModal();
             fetchRoles();
-            fetchUsers();
+            fetchUsers(); // Refrescar lista global para sincronizar
         } catch (error) {
             Swal.fire('Error', 'No se pudieron guardar los cambios de personal', 'error');
         } finally {
@@ -386,7 +390,7 @@ const Roles = () => {
                 </div>
             )}
 
-            {/* Modal de Creación/Edición */}
+            {/* Modal de Creación/Edición (Se mantiene pero optimizado) */}
             {isModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
                     <div className="bg-white dark:bg-gray-800 rounded-3xl w-full max-w-2xl shadow-2xl overflow-hidden border border-gray-100 dark:border-gray-700 flex flex-col max-h-[90vh]">
@@ -439,20 +443,17 @@ const Roles = () => {
                                     
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                         {[
-                                            { id: 'canAccessManagement', label: 'Resumen General', icon: 'dashboard', desc: 'Acceso al dashboard principal y gráficas.' },
-                                            { id: 'canAccessPOS', label: 'Caja y Ventas', icon: 'payments', desc: 'Permite realizar ventas en mostrador.' },
-                                            { id: 'canAccessOrders', label: 'Pedidos Cliente', icon: 'shopping_cart', desc: 'Flujo de pedidos a domicilio.' },
-                                            { id: 'canAccessDelivery', label: 'Dashboard Reparto', icon: 'local_shipping', desc: 'Gestión de rutas y entregas.' },
+                                            { id: 'canAccessPOS', label: 'Caja y Ventas', icon: 'payments' },
+                                            { id: 'canAccessOrders', label: 'Pedidos Cliente', icon: 'shopping_cart' },
+                                            { id: 'canAccessDelivery', label: 'Dashboard Reparto', icon: 'local_shipping' },
+                                            { id: 'canAccessManagement', label: 'Panel Gestión', icon: 'admin_panel_settings' },
                                         ].map((perm) => (
                                             <label key={perm.id} className="flex items-center justify-between p-4 rounded-2xl bg-blue-50/30 dark:bg-blue-900/5 border border-blue-100/50 dark:border-blue-800/20 hover:border-blue-300 cursor-pointer transition-all group">
                                                 <div className="flex gap-4">
                                                     <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-500 flex items-center justify-center">
                                                         <span className="material-symbols-outlined">{perm.icon}</span>
                                                     </div>
-                                                    <div>
-                                                        <p className="text-sm font-black text-gray-800 dark:text-gray-200">{perm.label}</p>
-                                                        <p className="text-[10px] text-gray-500 dark:text-gray-400 leading-tight">{perm.desc}</p>
-                                                    </div>
+                                                    <p className="text-sm font-black text-gray-800 dark:text-gray-200 my-auto">{perm.label}</p>
                                                 </div>
                                                 <input 
                                                     type="checkbox" 
@@ -475,13 +476,12 @@ const Roles = () => {
                                     
                                     <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
                                         {[
-                                            { id: 'canViewSummary', label: 'Ver Resumen', icon: 'monitoring' },
                                             { id: 'canAccessInventory', label: 'Inventario', icon: 'inventory_2' },
                                             { id: 'canAccessRH', label: 'RRHH y Roles', icon: 'folder_managed' },
                                             { id: 'canAccessFinances', label: 'Finanzas', icon: 'account_balance_wallet' },
                                             { id: 'canAccessConfig', label: 'Configuración', icon: 'tune' },
                                             { id: 'canAccessQuotes', label: 'Cotizadores', icon: 'request_quote' },
-                                            { id: 'canAccessMarketing', label: 'Marketing', icon: 'campaign' },
+                                            { id: 'canAccessMarketing', label: 'Marketing', icon: 'bullhorn' },
                                         ].map((perm) => (
                                             <label key={perm.id} className="flex items-center justify-between p-3 rounded-xl bg-gray-50 dark:bg-gray-900/40 hover:bg-gray-100 border border-transparent hover:border-gray-200 cursor-pointer transition-all">
                                                 <div className="flex items-center gap-2">

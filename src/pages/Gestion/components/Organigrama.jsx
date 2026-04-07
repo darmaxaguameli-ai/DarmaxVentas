@@ -1,83 +1,245 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { Tree, TreeNode } from 'react-organizational-chart';
 import { Link } from 'react-router-dom';
+import { 
+  MdPerson, 
+  MdLocalShipping, 
+  MdStorefront, 
+  MdTrendingUp, 
+  MdAdminPanelSettings, 
+  MdWaterDrop,
+  MdPictureAsPdf
+} from 'react-icons/md';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 
-const EmployeeNode = ({ employee }) => (
-  <Link to={`/gestion/recursos-humanos/${employee.id}`}>
-    <div className="inline-block p-2 rounded-lg border bg-white dark:bg-gray-800 dark:border-gray-600 hover:shadow-lg transition-shadow duration-200 min-w-[150px] text-center">
-      <div className="font-semibold text-sm text-gray-800 dark:text-white">{employee.nombreCompleto}</div>
-      <div className="text-xs text-gray-500 dark:text-gray-400">{employee.puesto}</div>
+const getRoleConfig = (puesto = '') => {
+  const p = puesto.toUpperCase();
+  if (p.includes('ADMIN') || p.includes('GERENTE') || p.includes('CEO') || p.includes('DUEÑO')) {
+    return {
+      color: 'bg-blue-600',
+      lightColor: 'bg-blue-50 dark:bg-blue-900/30',
+      icon: <MdAdminPanelSettings />,
+      border: 'border-blue-200 dark:border-blue-800',
+      text: 'text-blue-700 dark:text-blue-300'
+    };
+  }
+  if (p.includes('REPARTIDOR') || p.includes('CHOFER') || p.includes('RUTA')) {
+    return {
+      color: 'bg-amber-500',
+      lightColor: 'bg-amber-50 dark:bg-amber-900/30',
+      icon: <MdLocalShipping />,
+      border: 'border-amber-200 dark:border-amber-800',
+      text: 'text-amber-700 dark:text-amber-300'
+    };
+  }
+  if (p.includes('MOSTRADOR') || p.includes('CAJA')) {
+    return {
+      color: 'bg-emerald-500',
+      lightColor: 'bg-emerald-50 dark:bg-emerald-900/30',
+      icon: <MdStorefront />,
+      border: 'border-emerald-200 dark:border-emerald-800',
+      text: 'text-emerald-700 dark:text-emerald-300'
+    };
+  }
+  if (p.includes('VENDEDOR') || p.includes('VENTA') || p.includes('PROSPECCIÓN')) {
+    return {
+      color: 'bg-indigo-500',
+      lightColor: 'bg-indigo-50 dark:bg-indigo-900/30',
+      icon: <MdTrendingUp />,
+      border: 'border-indigo-200 dark:border-indigo-800',
+      text: 'text-indigo-700 dark:text-indigo-300'
+    };
+  }
+  return {
+    color: 'bg-gray-500',
+    lightColor: 'bg-gray-50 dark:bg-gray-800',
+    icon: <MdPerson />,
+    border: 'border-gray-200 dark:border-gray-700',
+    text: 'text-gray-700 dark:text-gray-300'
+  };
+};
+
+const EmployeeNode = ({ employee }) => {
+  const config = getRoleConfig(employee.puesto);
+  
+  return (
+    <div className="inline-block p-1">
+      <Link to={`/gestion/recursos-humanos/${employee.id}`} className="block outline-none group">
+        <div className={`
+          relative flex flex-col items-center p-3 rounded-xl border-2 transition-all duration-300
+          bg-white dark:bg-gray-800 min-w-[140px] shadow-sm hover:shadow-lg hover:-translate-y-0.5
+          ${config.border}
+        `}>
+          {/* Top Accent Line */}
+          <div className={`absolute top-0 left-0 right-0 h-1 rounded-t-lg ${config.color}`}></div>
+
+          {/* Icon/Avatar Circle - Smaller */}
+          <div className={`
+            w-8 h-8 rounded-lg flex items-center justify-center mb-2 shadow-inner
+            ${config.lightColor} ${config.text} group-hover:scale-110 transition-transform duration-300
+          `}>
+            <span className="text-xl">{config.icon}</span>
+          </div>
+
+          <div className="text-center">
+            <div className="font-black text-[11px] text-gray-800 dark:text-white uppercase tracking-tight leading-tight">
+              {employee.nombreCompleto}
+            </div>
+            <div className={`text-[8px] font-bold uppercase tracking-widest mt-0.5 opacity-80 ${config.text}`}>
+              {employee.puesto}
+            </div>
+          </div>
+
+          {/* Status Indicator */}
+          {employee.estatus === 'INACTIVO' && (
+            <div className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[6px] font-black px-1.5 py-0.5 rounded-full shadow-sm ring-1 ring-white dark:ring-gray-800">
+              BAJA
+            </div>
+          )}
+        </div>
+      </Link>
     </div>
-  </Link>
-);
+  );
+};
 
 const renderTree = (nodes) => {
   return nodes.map(node => (
-    <TreeNode key={node.id} label={<EmployeeNode employee={node} />}>
+    <TreeNode 
+      key={node.id} 
+      label={<EmployeeNode employee={node} />}
+    >
       {node.children && node.children.length > 0 && renderTree(node.children)}
     </TreeNode>
   ));
 };
 
 const Organigrama = ({ empleados }) => {
+  const chartRef = useRef(null);
+
   const buildTree = (employees) => {
-    if (!employees || employees.length === 0) {
-      return [];
-    }
+    if (!employees || employees.length === 0) return [];
 
     const employeeMap = {};
     employees.forEach(employee => {
       employeeMap[employee.id] = { ...employee, children: [] };
     });
 
-    const ceo = employees.find(e => e.puesto === 'CEO');
-    const tree = [];
-
-    if (ceo) {
-      tree.push(employeeMap[ceo.id]);
-    }
+    const roots = [];
+    const ceo = employees.find(e => {
+        const p = e.puesto.toUpperCase();
+        return p === 'CEO' || p.includes('DUEÑO') || (p.includes('ADMIN') && !e.managerId);
+    });
 
     employees.forEach(employee => {
-      // If CEO exists, skip adding them again in this loop
-      if (ceo && employee.id === ceo.id) {
-        return;
-      }
-
+      const emp = employeeMap[employee.id];
       if (employee.managerId && employeeMap[employee.managerId]) {
-        // Ensure not to add duplicates if data is weird
-        if (!employeeMap[employee.managerId].children.some(child => child.id === employee.id)) {
-            employeeMap[employee.managerId].children.push(employeeMap[employee.id]);
-        }
-      } else if (ceo) {
-        // If there's a CEO and this employee has no manager, they report to the CEO
-        if (!employeeMap[ceo.id].children.some(child => child.id === employee.id)) {
-          employeeMap[ceo.id].children.push(employeeMap[employee.id]);
-        }
+        employeeMap[employee.managerId].children.push(emp);
       } else {
-        // Original behavior: if no CEO, top-level employees become roots
-        tree.push(employeeMap[employee.id]);
+        if (ceo && employee.id !== ceo.id) {
+          employeeMap[ceo.id].children.push(emp);
+        } else {
+          roots.push(emp);
+        }
       }
     });
-    return tree;
+
+    Object.values(employeeMap).forEach(emp => {
+      emp.children.sort((a, b) => a.puesto.localeCompare(b.puesto));
+    });
+
+    return roots;
+  };
+
+  const exportToPdf = async () => {
+    if (!chartRef.current) return;
+
+    try {
+      const canvas = await html2canvas(chartRef.current, {
+        scale: 2, // Mayor calidad
+        useCORS: true,
+        backgroundColor: '#ffffff'
+      });
+      
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: canvas.width > canvas.height ? 'landscape' : 'portrait',
+        unit: 'px',
+        format: [canvas.width, canvas.height]
+      });
+
+      pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
+      pdf.save(`Organigrama_Darmax_${new Date().toLocaleDateString()}.pdf`);
+    } catch (error) {
+      console.error("Error al exportar PDF:", error);
+    }
   };
 
   const treeData = buildTree(empleados);
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 overflow-x-auto">
-      <h3 className="text-xl font-bold mb-6">Organigrama de la Empresa</h3>
-      {treeData.length > 0 ? (
-        <Tree
-          lineWidth={'2px'}
-          lineColor={'#cbd5e0'} // gray-300
-          lineBorderRadius={'10px'}
-          label="Organigrama de la Empresa"
-        >
-          {renderTree(treeData)}
-        </Tree>
-      ) : (
-        <p className="text-gray-500 dark:text-gray-400">No hay datos de empleados para mostrar el organigrama.</p>
-      )}
+    <div className="bg-white dark:bg-gray-800 rounded-[2.5rem] border border-gray-100 dark:border-gray-700 shadow-sm p-6 sm:p-10 overflow-hidden">
+      <div className="flex flex-col lg:flex-row justify-between items-center mb-8 gap-6">
+        <div>
+            <h3 className="text-2xl font-black text-gray-800 dark:text-white uppercase tracking-tighter flex items-center gap-3">
+                <span className="p-2 bg-blue-100 text-blue-600 rounded-xl">
+                    <MdWaterDrop />
+                </span>
+                Estructura Organizacional
+            </h3>
+            <p className="text-gray-500 dark:text-gray-400 text-xs mt-1">Mapa jerárquico compacto del equipo.</p>
+        </div>
+        
+        <div className="flex flex-wrap items-center justify-center gap-4">
+            {/* Legend Compact */}
+            <div className="flex gap-3 bg-gray-50 dark:bg-gray-900/50 px-4 py-2 rounded-2xl border border-gray-100 dark:border-gray-700">
+                {[
+                    { label: 'Dirección', color: 'bg-blue-600' },
+                    { label: 'Reparto', color: 'bg-amber-500' },
+                    { label: 'Mostrador', color: 'bg-emerald-500' },
+                    { label: 'Ventas', color: 'bg-indigo-500' },
+                ].map(l => (
+                    <div key={l.label} className="flex items-center gap-1.5">
+                        <div className={`w-1.5 h-1.5 rounded-full ${l.color}`}></div>
+                        <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest">{l.label}</span>
+                    </div>
+                ))}
+            </div>
+
+            <button 
+                onClick={exportToPdf}
+                className="flex items-center gap-2 px-5 py-2.5 bg-primary text-white text-[10px] font-black uppercase tracking-[0.1em] rounded-xl shadow-lg shadow-primary/20 hover:shadow-primary/40 hover:-translate-y-0.5 active:translate-y-0 transition-all"
+            >
+                <MdPictureAsPdf size={16} />
+                Exportar PDF
+            </button>
+        </div>
+      </div>
+
+      <div className="overflow-x-auto custom-scrollbar pb-6">
+        <div ref={chartRef} className="flex justify-center min-w-max p-10 bg-white dark:bg-gray-800 transition-colors">
+            {treeData.length > 0 ? (
+            <Tree
+                lineWidth={'2px'}
+                lineColor={'#e5e7eb'}
+                lineBorderRadius={'15px'}
+                label={
+                    <div className="mb-8">
+                        <span className="px-4 py-1.5 bg-gray-50 dark:bg-gray-700/50 text-gray-400 text-[8px] font-black uppercase tracking-[0.3em] rounded-full border border-gray-100 dark:border-gray-600 shadow-sm">
+                            DARMAX AGUA
+                        </span>
+                    </div>
+                }
+            >
+                {renderTree(treeData)}
+            </Tree>
+            ) : (
+            <div className="text-center py-10">
+                <p className="text-gray-400 font-bold italic text-sm">Sin datos para el organigrama.</p>
+            </div>
+            )}
+        </div>
+      </div>
     </div>
   );
 };

@@ -286,9 +286,25 @@ const InfoGeneral = ({ empleado }) => (
                 <div>
                     <p className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-widest mb-0.5">Usuario de Sistema Vinculado</p>
                     <p className="text-base font-bold text-gray-800 dark:text-gray-200">
-                        {empleado.user.name} <span className="text-xs font-normal opacity-70 ml-1">({empleado.user.roleRelation?.name || empleado.user.role})</span>
+                        {empleado.user.name} 
+                        <span className="text-[10px] font-black bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-full ml-2 uppercase tracking-tighter shadow-sm border border-blue-200 dark:border-blue-800">
+                            {empleado.user.customId}
+                        </span>
                     </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1 mt-0.5">
+                    <div className="flex flex-wrap gap-1 mt-1.5">
+                        {empleado.user.roles && empleado.user.roles.length > 0 ? (
+                            empleado.user.roles.map(role => (
+                                <span key={role.id} className="text-[9px] font-bold bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 px-2 py-0.5 rounded border border-gray-200 dark:border-gray-700 uppercase">
+                                    {role.name}
+                                </span>
+                            ))
+                        ) : (
+                            <span className="text-[9px] font-bold bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 px-2 py-0.5 rounded border border-amber-100 dark:border-amber-800 uppercase">
+                                {empleado.user.role || 'SIN ROL'}
+                            </span>
+                        )}
+                    </div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1 mt-2">
                         <span className="material-symbols-outlined text-[12px]">mail</span>
                         {empleado.user.email || 'Sin correo registrado'}
                     </p>

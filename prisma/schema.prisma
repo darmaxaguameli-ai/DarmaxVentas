@@ -10,9 +10,15 @@ datasource db {
 }
 
 // =====================================================================
-// ENUMS - Para valores predefinidos y fijos
+// ENUMS - Clasificación y Estados
 // =====================================================================
 
+enum IdentityType {
+  CLIENTE
+  COLABORADOR
+}
+
+// Mantenemos UserRole por compatibilidad durante la migración
 enum UserRole {
   ADMIN
   VENDEDOR
@@ -20,41 +26,6 @@ enum UserRole {
   REPARTIDOR
   CLIENTE
 }
-
-// ... rest of enums ...
-
-// =====================================================================
-// MODELOS DE SEGURIDAD Y ROLES (¡NUEVO!)
-// =====================================================================
-
-model Role {
-  id          String   @id @default(cuid())
-  name        String   @unique
-  description String?
-  
-  // Permisos de Módulos Principales
-  canAccessPOS        Boolean @default(false) // Punto de Venta / Mostrador
-  canAccessOrders     Boolean @default(false) // Flujo de Pedidos Cliente
-  canAccessDelivery   Boolean @default(false) // Dashboard Repartidor
-  canAccessManagement Boolean @default(false) // Acceso al panel /gestion
-  
-  // Permisos Internos de Gestión
-  canAccessInventory  Boolean @default(false)
-  canAccessRH         Boolean @default(false)
-  canAccessFinances   Boolean @default(false)
-  canAccessConfig     Boolean @default(false)
-  canAccessQuotes     Boolean @default(false)
-  canAccessLeads      Boolean @default(false) 
-  canAccessMarketing  Boolean @default(false) // Acceso al Planificador de Marketing
-  
-  isSystem            Boolean @default(false)
-  
-  users               User[]
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
-}
-
-// ... rest of business models ...
 
 enum ClientCategory {
   PARTICULAR
@@ -94,122 +65,88 @@ enum DeliverySpeed {
   EXPRES
 }
 
-
-// =====================================================================
-// MODELOS DE CONFIGURACIÓN DEL NEGOCIO
-// =====================================================================
-
-// Tipos de agua que ofreces (Premium, Alcalina, etc.)
-model WaterType {
-  id       String         @id @default(cuid())
-  name     String         @unique
-  services ServicePrice[]
+enum EstatusEmpleado {
+  ACTIVO
+  INACTIVO
 }
 
-// Precios de los servicios (recargas, tarifas, etc.)
-model ServicePrice {
-  id     String @id @default(cuid())
-  name   String // "Recarga", "Tarifa de Recolección"
-  method String // "Domicilio", "Mostrador"
-  price  Float
-
-  // Relaciones opcionales
-  waterType   WaterType? @relation(fields: [waterTypeId], references: [id])
-  waterTypeId String?
-
-  jugBrands JugBrand[] // Relación muchos a muchos
-
-  itemsPedido PedidoItem[]
-
-  // Un precio de servicio debe ser único para la combinación de sus propiedades
-  @@unique([name, method, waterTypeId])
+enum TipoTerminacion {
+  RENUNCIA
+  DESPIDO
+  LIQUIDACION
 }
 
-// Marcas de garrafones que manejas (Bonafont, Ciel, etc.)
-model JugBrand {
-  id   String @id @default(cuid())
-  name String @unique
-  imageUrl String? // Nueva columna para la imagen
+enum TipoDocumento {
+  INE
+  CONTRATO
+  COMPROBANTE_DOMICILIO
+  OTRO
+}
 
-  // Relación con la tapa compatible en el inventario
-  compatibleCap   Product? @relation(fields: [compatibleCapId], references: [id])
-  compatibleCapId String?
+// =====================================================================
+// MODELOS DE SEGURIDAD Y ROLES
+// =====================================================================
+
+model Role {
+  id          String   @id @default(cuid())
+  name        String   @unique 
+  description String?
   
-  servicePrices ServicePrice[] // Relación muchos a muchos
-  userPreferences UserJugPreference[]
-}
-
-// =====================================================================
-// MODELOS DE FRANQUICIA Y SUCURSALES (¡NUEVOS!)
-// =====================================================================
-
-// 1. La Franquicia (El dueño de varias purificadoras)
-model Franchise {
-  id        String   @id @default(cuid())
-  name      String   @unique
-  stores    Store[]
-  createdAt DateTime @default(now())
-}
-
-// 2. La Sucursal (Cada punto de venta físico)
-model Store {
-  id           String        @id @default(cuid())
-  name         String
-  address      String
-  latitud      Float?        // Para que el cliente encuentre la más cercana
-  longitud     Float?
-  franchise    Franchise     @relation(fields: [franchiseId], references: [id])
-  franchiseId  String
+  // Permisos de Módulos Principales
+  canAccessPOS        Boolean @default(false)
+  canAccessOrders     Boolean @default(false)
+  canAccessDelivery   Boolean @default(false)
+  canAccessManagement Boolean @default(false)
   
-  // Relaciones
-  users        User[]
-  pedidos      Pedido[]
-  sesionesCaja SesionCaja[]
-  inventory    StoreInventory[] // El stock ahora es por sucursal
+  // Permisos Internos de Gestión
+  canViewSummary      Boolean @default(false)
+  canAccessInventory  Boolean @default(false)
+  canAccessRH         Boolean @default(false)
+  canAccessFinances   Boolean @default(false)
+  canAccessConfig     Boolean @default(false)
+  canAccessQuotes     Boolean @default(false)
+  canAccessLeads      Boolean @default(false) 
+  canAccessMarketing  Boolean @default(false)
   
-  // Relaciones financieras
-  gastos       Gasto[]
-  ingresos     Ingreso[]
+  isSystem            Boolean @default(false)
+  
+  // Relación Muchos a Muchos con Usuarios
+  users               User[]   @relation("UserRoles")
+  
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 }
-
-// 3. Inventario por Sucursal
-model StoreInventory {
-  id        String   @id @default(cuid())
-  store     Store    @relation(fields: [storeId], references: [id])
-  storeId   String
-  product   Product  @relation(fields: [productId], references: [id])
-  productId String
-  stock     Int      @default(0)
-
-  @@unique([storeId, productId]) // Una sucursal solo tiene una entrada por producto
-}
-
 
 // =====================================================================
-// MODELOS PRINCIPALES (MODIFICADOS)
+// MODELOS PRINCIPALES
 // =====================================================================
 
 model User {
   id                 String            @id @default(cuid())
-  customId           String            @unique // ID legible para humanos, ej: CL-0001
+  customId           String            @unique // CLI-0001 o CO-0001
   name               String
   email              String?           @unique
   password           String?
   phone              String?           @unique
   street             String?
   neighborhood       String?
-  municipality       String?           // Nuevo: Municipio/Alcaldía
-  state              String?           // Nuevo: Estado
-  city               String?           // Se mantiene para compatibilidad o como campo compuesto
+  municipality       String?
+  state              String?
+  city               String?
   postalCode         String?
   references         String?
   lat                Float?
   lng                Float?
+  
+  // Compatibilidad Legacy
   role               UserRole          @default(CLIENTE)
-  roleId             String?           // Relación con la nueva tabla Role
-  roleRelation       Role?             @relation(fields: [roleId], references: [id])
+  
+  // Nueva Estructura RBAC v2
+  type               IdentityType      @default(CLIENTE)
+  roles              Role[]            @relation("UserRoles")
+  
   clientCategory     ClientCategory    @default(PARTICULAR)
-  sexo               String?           // Nuevo campo: HOMBRE, MUJER, OTRO
+  sexo               String?           
   createdAt          DateTime          @default(now())
   updatedAt          DateTime          @updatedAt
   
@@ -219,63 +156,42 @@ model User {
   empleado           Empleado?
   jugPreferences     UserJugPreference[]
   
-  // Nueva relación con Sucursal (Opcional, pues un cliente puede no tener una fija)
   store              Store?            @relation(fields: [storeId], references: [id])
   storeId            String?
 
-  // Puntos de Fidelidad
   loyaltyPoints      Int               @default(0)
   loyaltyTransactions LoyaltyTransaction[]
 
-  // Relación inversa para pedidos asignados como repartidor
   pedidosReparto     Pedido[]          @relation("RepartidorPedidos")
-
-  // Relación con sus Leads / Prospectos
   leadsCaptados      Lead[]            @relation("VendedorLeads")
-
-  // Relación con sus Posts de Marketing
   marketingPosts     MarketingPost[]
-
-  // Notificaciones del Usuario (¡NUEVO!)
   notifications      Notification[]
 
-  // Recuperación de contraseña
   resetPasswordToken   String?
   resetPasswordExpires DateTime?
-  
-  // Verificación de correo
   emailVerified        DateTime?
   verificationToken    String?
+  mustChangePassword   Boolean           @default(false)
 }
 
 // =====================================================================
-// MODELO DE LEADS / PROSPECCIÓN (¡NUEVO!)
+// MODELO DE LEADS / PROSPECCIÓN
 // =====================================================================
 
 model Lead {
   id               String   @id @default(cuid())
   nombre           String
   telefono         String   @unique
-  paqueteVendido   String?  // Nombre del paquete (ej: "Planta Pro")
+  paqueteVendido   String?  
   cantidadPaquetes Int      @default(0)
-  
-  // Flexibilidad total para registrar insumos a futuro
-  // Formato sugerido: [ { "item": "Tapas", "cantidad": 500, "frecuencia": "mensual", "notas": "Color azul" }, ... ]
   insumosInteres   Json?    
-  
-  // Seguimiento de Mantenimientos (¡NUEVO!)
-  // Estructura: [ { "equipo": "Filtro Carbón", "frecuencia": "6 meses", "ultimaFecha": "2026-01-01", "proximaFecha": "2026-07-01" }, ... ]
   mantenimientos   Json?
-
   notas            String?
   status           String   @default("NUEVO") 
-  tipo             String   @default("PROSPECTO") // PROSPECTO o CLIENTE_VENTA
-  
-  // Datos de contacto opcionales
+  tipo             String   @default("PROSPECTO") 
   direccion        String?
   ciudad           String?
 
-  // Relación con el vendedor que lo captó
   vendedor         User     @relation("VendedorLeads", fields: [vendedorId], references: [id])
   vendedorId       String
   
@@ -283,13 +199,12 @@ model Lead {
   updatedAt        DateTime @updatedAt
 }
 
-// Historial de puntos de fidelidad
 model LoyaltyTransaction {
   id          String   @id @default(cuid())
-  amount      Int      // Positivo (ganado) o negativo (gastado)
-  type        String   // EARNED, REDEEMED, ADJUSTMENT
+  amount      Int      
+  type        String   
   description String?
-  orderId     String?  // Opcional: ID del pedido relacionado
+  orderId     String?  
   createdAt   DateTime @default(now())
   
   user        User     @relation(fields: [userId], references: [id])
@@ -307,39 +222,113 @@ model UserJugPreference {
   @@unique([userId, jugBrandId])
 }
 
-// Renombrado de "Producto" a "Product" para seguir convenciones.
+// =====================================================================
+// MODELOS DE CONFIGURACIÓN DEL NEGOCIO
+// =====================================================================
+
+model WaterType {
+  id       String         @id @default(cuid())
+  name     String         @unique
+  services ServicePrice[]
+}
+
+model ServicePrice {
+  id     String @id @default(cuid())
+  name   String 
+  method String 
+  price  Float
+
+  waterType   WaterType? @relation(fields: [waterTypeId], references: [id])
+  waterTypeId String?
+
+  jugBrands JugBrand[] 
+  itemsPedido PedidoItem[]
+
+  @@unique([name, method, waterTypeId])
+}
+
+model JugBrand {
+  id   String @id @default(cuid())
+  name String @unique
+  imageUrl String? 
+
+  compatibleCap   Product? @relation(fields: [compatibleCapId], references: [id])
+  compatibleCapId String?
+  
+  servicePrices ServicePrice[] 
+  userPreferences UserJugPreference[]
+}
+
+// =====================================================================
+// MODELOS DE ESTRUCTURA
+// =====================================================================
+
+model Franchise {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  stores    Store[]
+  createdAt DateTime @default(now())
+}
+
+model Store {
+  id           String        @id @default(cuid())
+  name         String
+  address      String
+  latitud      Float?        
+  longitud     Float?
+  franchise    Franchise     @relation(fields: [franchiseId], references: [id])
+  franchiseId  String
+  
+  users        User[]
+  pedidos      Pedido[]
+  sesionesCaja SesionCaja[]
+  inventory    StoreInventory[] 
+  
+  gastos       Gasto[]
+  ingresos     Ingreso[]
+}
+
+model StoreInventory {
+  id        String   @id @default(cuid())
+  store     Store    @relation(fields: [storeId], references: [id])
+  storeId   String
+  product   Product  @relation(fields: [productId], references: [id])
+  productId String
+  stock     Int      @default(0)
+
+  @@unique([storeId, productId]) 
+}
+
+// =====================================================================
+// OPERACIÓN
+// =====================================================================
+
 model Product {
   id          String       @id @default(cuid())
   name        String       @unique
-  // Precio de VENTA del artículo físico (ej: garrafón vacío)
   price       Float
-  stock       Int          @default(0) // Stock global o legacy
+  stock       Int          @default(0) 
   imageUrl    String?
-  // Categorías como: "Garrafones Vacíos", "Tapas"
   category    String?
   itemsPedido PedidoItem[]
 
-  // Relación inversa para las tapas
   jugBrandsAsCap JugBrand[]
-
-  // Relación con inventarios de sucursal
   storeInventories StoreInventory[]
 }
 
 model Pedido {
   id                  String           @id @default(cuid())
-  customId            String           @unique // Ej: ORD-0001
+  customId            String           @unique 
   total               Float
   status              PedidoStatus     @default(PENDIENTE)
-  deliveryMethod      String // ej: "domicilio", "recoleccion", "sucursal"
-  paymentMethod       String? // ej: "efectivo", "tarjeta"
+  deliveryMethod      String 
+  paymentMethod       String? 
   paymentStatus       PaymentStatus    @default(NO_PAGADO)
-  deliveryDate        DateTime? // Fecha de entrega preferida
-  deliveryTimeSlot    String? // Franja horaria de entrega preferida (ej: "9am-12pm")
+  deliveryDate        DateTime? 
+  deliveryTimeSlot    String? 
   createdAt           DateTime         @default(now())
   updatedAt           DateTime         @updatedAt
 
-  // Relaciones existentes
   cliente             User             @relation(fields: [clienteId], references: [id])
   clienteId           String
   items               PedidoItem[]
@@ -348,45 +337,35 @@ model Pedido {
   ingreso             Ingreso?         @relation("PedidoToIngreso")
   transaccionCaja     TransaccionCaja?
 
-  // --- NUEVOS CAMPOS DE LOGÍSTICA ---
   deliverySpeed    DeliverySpeed @default(ESTANDAR)
   expressSurcharge Float         @default(0.0)
   deliveryLat      Float?
   deliveryLng      Float?
   
-  // Relación con el repartidor
   repartidor       User?         @relation("RepartidorPedidos", fields: [repartidorId], references: [id])
   repartidorId     String?
 
-  // Relación con la sucursal (Requerido para saber quién atiende)
   store            Store         @relation(fields: [storeId], references: [id])
   storeId          String
 }
 
-// Modificado para poder registrar la venta de un Producto físico o un Servicio
 model PedidoItem {
   id       String @id @default(cuid())
   quantity Int
-  price    Float // Precio del producto/servicio en el momento de la compra
+  price    Float 
 
   pedido   Pedido @relation(fields: [pedidoId], references: [id])
   pedidoId String
 
-  // Un item del pedido puede ser UN producto físico O UN servicio de precio
   product        Product?      @relation(fields: [productId], references: [id])
   productId      String?
   servicePrice   ServicePrice? @relation(fields: [servicePriceId], references: [id])
   servicePriceId String?
 
-  // Campos para almacenar la información específica del garrafón
   jugBrandId       String?
   jugBrandName     String?
   jugBrandImageUrl String?
 }
-
-// =====================================================================
-// MODELOS PARA EL DASHBOARD DE GESTIÓN
-// =====================================================================
 
 model SesionCaja {
   id              String           @id @default(cuid())
@@ -397,14 +376,12 @@ model SesionCaja {
   expectedBalance Float?
   estado          EstadoSesionCaja @default(ABIERTA)
   
-  // Tag tracking
   initialTags     Int              @default(0)
   damagedTags     Int              @default(0)
   
   vendedor        User             @relation(fields: [vendedorId], references: [id])
   vendedorId      String
   
-  // Relación con la sucursal (Requerido)
   store           Store            @relation(fields: [storeId], references: [id])
   storeId         String
 
@@ -430,7 +407,6 @@ model Gasto {
   amount      Float
   date        DateTime
   
-  // Relación con la sucursal (Opcional para compatibilidad con datos viejos, pero idealmente requerido)
   store       Store?   @relation(fields: [storeId], references: [id])
   storeId     String?
 }
@@ -443,40 +419,20 @@ model Ingreso {
   pedido             Pedido?           @relation("PedidoToIngreso", fields: [pedidoId], references: [id])
   pedidoId           String?           @unique
   
-  // Relación con la sucursal
   store              Store?            @relation(fields: [storeId], references: [id])
   storeId            String?
 }
 
 // =====================================================================
-// MODELOS PARA EL MÓDULO DE RECURSOS HUMANOS (RRHH)
+// MODELOS DE RECURSOS HUMANOS (RRHH)
 // =====================================================================
-
-enum EstatusEmpleado {
-  ACTIVO
-  INACTIVO
-}
-
-enum TipoTerminacion {
-  RENUNCIA
-  DESPIDO
-  LIQUIDACION
-}
-
-enum TipoDocumento {
-  INE
-  CONTRATO
-  COMPROBANTE_DOMICILIO
-  OTRO
-}
 
 model Empleado {
   id             String @id @default(cuid())
   nombreCompleto String
   puesto         String
-  sueldo         Float // Sueldo actual
+  sueldo         Float 
 
-  // Información de contacto y dirección
   telefono      String?
   emailPersonal String? @unique
   street        String?
@@ -484,23 +440,18 @@ model Empleado {
   city          String?
   postalCode    String?
 
-  // Fechas y estatus de RRHH
   fechaContratacion DateTime
   fechaTerminacion  DateTime?
   tipoTerminacion   TipoTerminacion?
   estatus           EstatusEmpleado  @default(ACTIVO)
 
-  // Relación con la tabla de autenticación (User)
-  // Un registro de empleado puede estar asociado con una cuenta de usuario
   user   User?   @relation(fields: [userId], references: [id])
   userId String? @unique
 
-  // Relación para el organigrama (auto-referencial)
   manager      Empleado?  @relation("DirectReports", fields: [managerId], references: [id])
   managerId    String?
   subordinados Empleado[] @relation("DirectReports")
 
-  // Relación con sus documentos y historial de sueldos
   documentos       Documento[]
   historialSueldos HistorialSueldo[]
 
@@ -510,12 +461,11 @@ model Empleado {
 
 model Documento {
   id        String        @id @default(cuid())
-  nombre    String // Ej: "Contrato Laboral", "INE Frente"
-  url       String // URL del archivo almacenado (ej: en S3, Cloudinary, etc.)
-  tipo      TipoDocumento // Usar el enum
+  nombre    String 
+  url       String 
+  tipo      TipoDocumento 
   createdAt DateTime      @default(now())
 
-  // Relación con el empleado
   empleado   Empleado @relation(fields: [empleadoId], references: [id])
   empleadoId String
 }
@@ -526,67 +476,48 @@ model HistorialSueldo {
   empleadoId  String
   sueldo      Float
   fechaInicio DateTime
-  fechaFin    DateTime? // Opcional, si hay una fecha de finalización para este sueldo
-  motivo      String? // Ej: "Aumento por desempeño", "Ajuste anual"
+  fechaFin    DateTime? 
+  motivo      String? 
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 }
 
 // =====================================================================
-
-// MODELO DE COTIZACIONES
-
+// OTROS MODELOS
 // =====================================================================
-
-
 
 model Cotizacion {
   id            String   @id @default(cuid())
-  folio         Int      @default(autoincrement()) // Número de folio secuencial
+  folio         Int      @default(autoincrement()) 
   fecha         DateTime @default(now())
-  diasValidez   Int      @default(5) // Nuevo campo para la validez de la cotización
-  // Datos del Cliente
+  diasValidez   Int      @default(5) 
   nombreCliente String
   telefono      String?
   correo        String?
   cp            String?
-  // Costos Base
   modeloNombre  String?
   modeloPrecio  Float    @default(0)
   fleteTinacos  Float    @default(0)
   viaticos      Float    @default(0)
-  // Extras (Guardados como JSON para flexibilidad)
-  // Estructura esperada: [{ name: "Extra 1", price: 500 }, ...]
   extras        Json? 
-  // Promo
   promoTexto    String?
   promoCosto    Float?
-  promoImagen   String? // Base64 o URL
-  // Firma
-  firma         String? // Base64 de la firma
+  promoImagen   String? 
+  firma         String? 
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 }
-
-// =====================================================================
-// MODELO DE MARKETING (¡NUEVO!)
-// =====================================================================
 
 model MarketingPost {
   id               String   @id @default(cuid())
   titulo           String
   descripcion      String?
-  url              String?  // Link de Canva, Borrador o Post Publicado
-  status           String   @default("BORRADOR") // BORRADOR, EN_PROCESO, PENDIENTE_APROBACION, APROBADO, PUBLICADO
-  
-  // Fechas de planificación
+  url              String?  
+  status           String   @default("BORRADOR") 
   fechaEntrega     DateTime?
   fechaPublicacion DateTime?
-  
-  // Feedback del Administrador
   comentariosAdmin String?
   
-  // Relación con el creador (Usuario con rol Marketing)
   creador          User     @relation(fields: [creadorId], references: [id])
   creadorId        String
   
@@ -600,18 +531,11 @@ model Notification {
   user      User     @relation(fields: [userId], references: [id])
   title     String
   message   String
-  type      String   @default("INFO") // INFO, SUCCESS, WARNING, ERROR
-  link      String?  // Ej: "/gestion/marketing"
+  type      String   @default("INFO") 
+  link      String?  
   read      Boolean  @default(false)
   createdAt DateTime @default(now())
 }
-
-// =====================================================================
-
-// MODELO DE SOLICITUDES DE PRODUCTO (NUEVO)
-
-// =====================================================================
-
 
 model SolicitudProducto {
   id            String   @id @default(cuid())

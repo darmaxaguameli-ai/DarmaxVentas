@@ -1,7 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import Swal from 'sweetalert2';
-import axios from 'axios';
+import apiClient from '../api/apiClient';
+import MainLayout from "../layouts/MainLayout";
+import Button from "../components/common/Button";
+import { MdLock, MdVisibility, MdVisibilityOff, MdSecurity } from 'react-icons/md';
 
 const ResetPassword = () => {
   const [searchParams] = useSearchParams();
@@ -10,6 +13,7 @@ const ResetPassword = () => {
 
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -38,12 +42,12 @@ const ResetPassword = () => {
 
     setLoading(true);
     try {
-      await axios.post('/api/reset-password', { token, newPassword: password });
+      await apiClient.post('/reset-password', { token, newPassword: password });
       
       await Swal.fire({
         icon: 'success',
         title: '¡Contraseña Restablecida!',
-        text: 'Ahora puedes iniciar sesión con tu nueva contraseña.',
+        text: 'Tu seguridad es nuestra prioridad. Ya puedes iniciar sesión con tu nueva clave.',
         confirmButtonColor: '#3b82f6'
       });
       navigate('/login');
@@ -52,9 +56,9 @@ const ResetPassword = () => {
       console.error(error);
       Swal.fire({
         icon: 'error',
-        title: 'Error',
-        text: error.response?.data?.error || 'El token ha expirado o es inválido.',
-        confirmButtonColor: '#3b82f6'
+        title: 'Token Inválido',
+        text: error.response?.data?.error || 'El enlace ha expirado o ya ha sido utilizado.',
+        confirmButtonColor: '#ef4444'
       });
     } finally {
       setLoading(false);
@@ -64,67 +68,81 @@ const ResetPassword = () => {
   if (!token) return null;
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 px-4">
-      <div className="max-w-md w-full bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 border border-gray-100 dark:border-gray-700">
-        <div className="text-center mb-8">
-          <h2 className="text-3xl font-black text-gray-900 dark:text-white">Nueva Contraseña</h2>
-          <p className="text-gray-500 dark:text-gray-400 mt-2 text-sm">
-            Ingresa tu nueva contraseña a continuación.
-          </p>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
-              Nueva Contraseña
-            </label>
-            <input
-              type="password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
-              placeholder="••••••••"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
-              Confirmar Contraseña
-            </label>
-            <input
-              type="password"
-              required
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
-              placeholder="••••••••"
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-3 px-4 bg-primary hover:bg-primary-dark text-white font-bold rounded-xl shadow-lg shadow-primary/30 transition-all active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed flex justify-center items-center gap-2"
-          >
-            {loading ? (
-              <>
-                <span className="material-symbols-outlined animate-spin text-lg">progress_activity</span>
-                Actualizando...
-              </>
-            ) : (
-              'Cambiar Contraseña'
-            )}
-          </button>
+    <MainLayout>
+      <div className="min-h-[85vh] flex flex-col justify-center items-center px-4 py-12 w-full font-display bg-gray-50 dark:bg-dark">
+        <div className="w-full max-w-md bg-white dark:bg-gray-800 rounded-[2.5rem] shadow-2xl border border-gray-100 dark:border-gray-700 p-10 animate-in zoom-in-95 duration-300">
           
-          <div className="text-center mt-4">
-              <Link to="/login" className="text-sm font-bold text-gray-500 hover:text-primary transition-colors">
-                Cancelar
-              </Link>
+          <div className="text-center mb-10">
+            <div className="w-20 h-20 bg-primary/10 rounded-3xl flex items-center justify-center mx-auto mb-6 text-primary">
+                <MdSecurity size={40} />
             </div>
-        </form>
+            <h1 className="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white tracking-tight">
+                Nueva Contraseña
+            </h1>
+            <p className="mt-3 text-gray-500 dark:text-gray-400 text-sm leading-relaxed">
+                Establece una contraseña segura para recuperar el acceso a tu cuenta.
+            </p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="space-y-4">
+                <div className="relative">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1.5 ml-1 italic">Contraseña Nueva</label>
+                    <div className="relative flex items-center bg-gray-50 dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all">
+                        <div className="pl-4 text-gray-400"><MdLock size={20} /></div>
+                        <input
+                            type={showPassword ? "text" : "password"}
+                            className="w-full py-4 px-4 bg-transparent outline-none text-gray-800 dark:text-white font-bold"
+                            placeholder="••••••••"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            required
+                        />
+                        <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="p-4 text-gray-400 hover:text-primary transition-colors"
+                        >
+                            {showPassword ? <MdVisibilityOff size={20}/> : <MdVisibility size={20}/>}
+                        </button>
+                    </div>
+                </div>
+
+                <div className="relative">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1.5 ml-1 italic">Confirmar Contraseña</label>
+                    <div className="relative flex items-center bg-gray-50 dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all">
+                        <div className="pl-4 text-gray-400"><MdLock size={20} /></div>
+                        <input
+                            type={showPassword ? "text" : "password"}
+                            className="w-full py-4 px-4 bg-transparent outline-none text-gray-800 dark:text-white font-bold"
+                            placeholder="••••••••"
+                            value={confirmPassword}
+                            onChange={(e) => setConfirmPassword(e.target.value)}
+                            required
+                        />
+                    </div>
+                </div>
+            </div>
+
+            <div className="pt-4">
+                <Button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full py-4 text-lg shadow-xl shadow-primary/20"
+                >
+                    {loading ? 'Procesando...' : 'Cambiar Contraseña'}
+                </Button>
+            </div>
+          </form>
+
+          <div className="mt-8 pt-6 border-t border-gray-100 dark:border-gray-700 text-center">
+              <Link to="/login" className="text-xs font-bold text-gray-400 hover:text-primary uppercase tracking-widest transition-colors">
+                Cancelar y volver
+              </Link>
+          </div>
+        </div>
       </div>
-    </div>
+    </MainLayout>
   );
 };
 

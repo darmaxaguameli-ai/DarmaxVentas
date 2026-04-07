@@ -18,7 +18,9 @@ const ProtectedRoute = ({ children, allowedRoles, permission }) => {
 
     // --- Lógica de Mantenimiento ---
     if (isMaintenanceMode) {
-        const isAuthorized = user?.role === 'ADMIN' || user?.roleRelation?.isSystem;
+        // Verificar si el usuario tiene el rol ADMIN o es personal de SISTEMA (usando la nueva estructura)
+        const isAuthorized = user?.roles?.some(r => r.name === 'ADMIN' || r.isSystem === true) || user?.role === 'ADMIN';
+
         if (!isAuthorized && window.location.pathname !== '/mantenimiento') {
             return <Navigate to="/mantenimiento" replace />;
         }
@@ -28,16 +30,21 @@ const ProtectedRoute = ({ children, allowedRoles, permission }) => {
         return <Navigate to="/login" replace />;
     }
 
-    // 1. Verificación por Permiso Dinámico (RECOMENDADO)
+    // 1. Verificación por Permiso Específico (RBAC v2)
     if (permission && !hasPermission(permission)) {
-        console.warn(`Acceso denegado: El usuario no tiene el permiso [${permission}]`);
+        console.warn(`Acceso Denegado: El usuario no tiene el permiso [${permission}]`);
         return <Navigate to="/pedidos" replace />;
     }
 
     // 2. Verificación por Rol (Legacy / Fallback)
-    if (allowedRoles && !allowedRoles.includes(user.role)) {
-        return <Navigate to="/pedidos" replace />;
+    // Ahora buscamos si el nombre del rol está en la lista de roles del usuario
+    if (allowedRoles) {
+        const hasRequiredRole = user.roles?.some(r => allowedRoles.includes(r.name)) || allowedRoles.includes(user.role);
+        if (!hasRequiredRole) {
+            return <Navigate to="/pedidos" replace />;
+        }
     }
+
 
     return children ? children : <Outlet />;
 };

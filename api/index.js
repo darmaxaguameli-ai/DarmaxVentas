@@ -31,36 +31,42 @@ app.get('/api/health', (req, res) => {
 // =====================================================
 app.post('/api/login', async (req, res) => {
   try {
-    const { email, password } = req.body;
-    if (!email || !password) return res.status(400).json({ error: 'Email y contraseña requeridos.' });
+    const { email: identifier, password } = req.body;
+    if (!identifier || !password) return res.status(400).json({ error: 'Usuario y contraseña requeridos.' });
 
-    const normalizedEmail = email.toLowerCase().trim();
-    console.log(`[Login] Intento de acceso para: ${normalizedEmail}`);
+    const cleanIdentifier = identifier.trim();
+    const isEmail = cleanIdentifier.includes('@');
 
     const user = await prisma.user.findUnique({
-      where: { email: normalizedEmail },
-      include: { store: true, roleRelation: true }
+      where: isEmail ? { email: cleanIdentifier.toLowerCase() } : { customId: cleanIdentifier.toUpperCase() },
+      include: { 
+        store: true, 
+        roles: true // Nueva relación Muchos-a-Muchos
+      }
     });
 
     if (!user) {
-        console.warn(`[Login] Usuario no encontrado: ${normalizedEmail}`);
         return res.status(401).json({ error: 'Credenciales inválidas.' });
     }
 
     if (!user.password) {
-        console.warn(`[Login] Usuario sin contraseña guardada: ${normalizedEmail}`);
-        return res.status(401).json({ error: 'Usuario sin contraseña configurada.' });
+        return res.status(401).json({ error: 'Usuario sin contraseña configurada. Por favor, completa tu registro.' });
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
-        console.warn(`[Login] Contraseña incorrecta para: ${normalizedEmail}`);
         return res.status(401).json({ error: 'Credenciales inválidas.' });
     }
 
-    console.log(`[Login] ÉXITO para: ${normalizedEmail} [ID: ${user.id}]`);
+    // Generar Token con permisos consolidados (opcional para el payload, pero útil)
     const token = jwt.sign(
-      { id: user.id, name: user.name, role: user.role, roleId: user.roleId, permissions: user.roleRelation || {} },
+      { 
+        id: user.id, 
+        name: user.name, 
+        type: user.type,
+        customId: user.customId,
+        mustChangePassword: user.mustChangePassword // Añadir al token
+      },
       process.env.JWT_SECRET,
       { expiresIn: '8h' }
     );
@@ -1674,26 +1680,17 @@ app.delete('/api/leads/:id', verifyToken, async (req, res) => {
 // =====================================================
 app.get('/api/roles', verifyToken, async (req, res) => {
   try {
-    console.log("[Backend] Intentando obtener roles...");
-    const roles = await prisma.role.findMany({ orderBy: { name: 'asc' } });
-    console.log(`[Backend] ${roles.length} roles encontrados.`);
+    const roles = await prisma.role.findMany({ 
+        include: {
+            _count: {
+                select: { users: true }
+            }
+        },
+        orderBy: { name: 'asc' } 
+    });
     res.json(roles);
   } catch (error) {
-    console.error('[Backend] Error crítico al obtener roles:', error);
-    res.status(500).json({ 
-        error: 'Error al obtener roles', 
-        details: error.message,
-        code: error.code 
-    });
-  }
-});
-
-app.post('/api/roles', verifyToken, async (req, res) => {
-  try {
-    const newRole = await prisma.role.create({ data: req.body });
-    res.status(201).json(newRole);
-  } catch (error) {
-    res.status(500).json({ error: 'Error al crear rol' });
+    res.status(500).json({ error: 'Error al obtener roles' });
   }
 });
 
@@ -1703,44 +1700,40 @@ app.put('/api/roles/:id', verifyToken, async (req, res) => {
     const { 
       name, 
       description, 
-      canAccessPOS, 
-      canAccessOrders, 
-      canAccessDelivery, 
-      canAccessManagement, 
-      canAccessInventory, 
-      canAccessRH,
-      canAccessFinances,
-      canAccessConfig,
-      canAccessQuotes,
-      canAccessLeads,
-      canAccessMarketing
-      } = req.body;
+      userIds, 
+      _count, 
+      users,  
+      createdAt, 
+      updatedAt, 
+      ...permissions
+    } = req.body;
 
-      const updatedRole = await prisma.role.update({
-      where: { id },
-      data: {
+    const updateData = {
+        ...permissions,
         name,
-        description,
-        canAccessPOS,
-        canAccessOrders,
-        canAccessDelivery,
-        canAccessManagement,
-        canAccessInventory,
-        canAccessRH,
-        canAccessFinances,
-        canAccessConfig,
-        canAccessQuotes,
-        canAccessLeads,
-        canAccessMarketing
+        description
+    };
+
+    // Eliminar cualquier campo nulo o indefinido que no deba estar en updateData
+    Object.keys(updateData).forEach(key => (updateData[key] === undefined) && delete updateData[key]);
+
+    // Si se envían userIds, sincronizar la relación Muchos-a-Muchos
+    if (userIds && Array.isArray(userIds)) {
+        updateData.users = {
+            set: userIds.map(uid => ({ id: uid }))
+        };
+    }
+
+    const updatedRole = await prisma.role.update({
+      where: { id },
+      data: updateData,
+      include: {
+          _count: { select: { users: true } }
       }
-      });
+    });
     res.json(updatedRole);
   } catch (error) {
-    console.error(`Error updating role ${req.params.id}:`, error);
-    if (error.code === 'P2025') {
-      return res.status(404).json({ error: 'Rol no encontrado.' });
-    }
-    res.status(500).json({ error: 'Error al actualizar el rol.' });
+    res.status(500).json({ error: 'Error al actualizar el rol' });
   }
 });
 
@@ -2245,7 +2238,7 @@ app.get('/api/empleados', verifyToken, async (req, res) => {
   try {
     const empleados = await prisma.empleado.findMany({
       include: {
-        user: { include: { roleRelation: true } }, 
+        user: { include: { roles: true } }, 
         documentos: true,
         manager: true,
       },
@@ -2267,7 +2260,7 @@ app.get('/api/empleados/:id', verifyToken, async (req, res) => {
     const empleado = await prisma.empleado.findUnique({
       where: { id },
       include: {
-        user: { include: { roleRelation: true } }, 
+        user: { include: { roles: true } }, 
         documentos: true,
         manager: true,
         subordinados: true,
@@ -2354,22 +2347,24 @@ app.put('/api/empleados/:id', verifyToken, async (req, res) => {
     fechaContratacion,
     fechaTerminacion,
     managerId,
-    roleId,
+    roleId,  // Legacy
+    roleIds, // Nuevo (RBAC v2)
     emailPersonal,
     nombreCompleto,
+    sexo, // ✅ Extraer aquí para que no entre en 'data'
     newPassword,
     _createAccount,
+    // Extraer campos para evitar enviarlos a Prisma en el spread de 'data'
     documentos, user, manager, subordinados, historialSueldos, createdAt, updatedAt, id: employeeId, role, accessEmail, password,
     ...data
   } = req.body;
-
-  const VALID_ENUM_ROLES = ['ADMIN', 'VENDEDOR', 'VENTA', 'REPARTIDOR', 'CLIENTE'];
 
   try {
     const result = await prisma.$transaction(async (tx) => {
         const empleadoData = { ...data };
         if (nombreCompleto) empleadoData.nombreCompleto = nombreCompleto;
         if (emailPersonal) empleadoData.emailPersonal = emailPersonal;
+        // ❌ NO añadir sexo aquí, Empleado no tiene ese campo.
 
         if (fechaContratacion) empleadoData.fechaContratacion = new Date(fechaContratacion);
         if (fechaTerminacion) empleadoData.fechaTerminacion = new Date(fechaTerminacion);
@@ -2388,33 +2383,49 @@ app.put('/api/empleados/:id', verifyToken, async (req, res) => {
         const currentEmpleado = await tx.empleado.findUnique({ where: { id }, select: { userId: true, nombreCompleto: true } });
         let finalUserId = (userId !== undefined) ? userId : currentEmpleado?.userId;
 
+        // --- LÓGICA DE CREACIÓN DE CUENTA DE ACCESO ---
         if (!finalUserId && _createAccount) {
-            const roleRec = await tx.role.findUnique({ where: { id: _createAccount.roleId } });
-            const legacyRole = VALID_ENUM_ROLES.includes(roleRec?.name) ? roleRec.name : (roleRec?.canAccessPOS ? 'VENDEDOR' : 'VENTA');
+            // Determinar roles iniciales
+            const idsToConnect = _createAccount.roleIds || (_createAccount.roleId ? [_createAccount.roleId] : []);
+
             const newUser = await tx.user.create({
                 data: {
                     name: nombreCompleto || currentEmpleado.nombreCompleto,
                     email: _createAccount.email,
                     password: await bcrypt.hash(_createAccount.password, 10),
-                    roleId: _createAccount.roleId,
-                    role: legacyRole,
-                    customId: `EMP-${Math.floor(Math.random() * 900) + 100}`
+                    sexo: _createAccount.sexo, // ✅ Nuevo campo
+                    type: 'COLABORADOR',
+                    roles: { 
+                        connect: idsToConnect.map(rid => ({ id: rid }))
+                    },
+                    customId: '', // Trigger genera CO-XXXX
+                    mustChangePassword: true, // ✅ Obligar a cambiar contraseña inicial
                 }
             });
             finalUserId = newUser.id;
             empleadoData.userId = newUser.id;
-        } else if (finalUserId && finalUserId !== "null" && finalUserId !== null) {
+        } 
+        
+        // --- LÓGICA DE ACTUALIZACIÓN DE CUENTA EXISTENTE ---
+        else if (finalUserId && finalUserId !== "null" && finalUserId !== null) {
             const userUpdateData = {};
             if (nombreCompleto) userUpdateData.name = nombreCompleto;
             if (emailPersonal) userUpdateData.email = emailPersonal;
-            if (newPassword) userUpdateData.password = await bcrypt.hash(newPassword, 10);
-            if (roleId) {
-                userUpdateData.roleId = roleId;
-                const roleRec = await tx.role.findUnique({ where: { id: roleId } });
-                if (roleRec) {
-                    userUpdateData.role = VALID_ENUM_ROLES.includes(roleRec.name) ? roleRec.name : (roleRec.canAccessPOS ? 'VENDEDOR' : 'VENTA');
-                }
+            if (req.body.sexo) userUpdateData.sexo = req.body.sexo; // ✅ Actualizar sexo del usuario vinculado
+            
+            if (newPassword) {
+                userUpdateData.password = await bcrypt.hash(newPassword, 10);
+                userUpdateData.mustChangePassword = true; // ✅ Forzar cambio tras reset manual
             }
+            
+            // Sincronizar roles (Multi-rol)
+            const targetRoleIds = roleIds || (roleId ? [roleId] : null);
+            if (targetRoleIds) {
+                userUpdateData.roles = {
+                    set: targetRoleIds.map(rid => ({ id: rid }))
+                };
+            }
+            
             if (Object.keys(userUpdateData).length > 0) {
                 await tx.user.update({ where: { id: finalUserId }, data: userUpdateData });
             }
@@ -2424,7 +2435,7 @@ app.put('/api/empleados/:id', verifyToken, async (req, res) => {
             where: { id },
             data: empleadoData,
             include: { 
-                user: { include: { roleRelation: true } },
+                user: { include: { roles: true } },
                 manager: true 
             },
         });

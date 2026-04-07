@@ -10,7 +10,7 @@ const menuStructure = [
     name: "Resumen",
     path: "/gestion",
     icon: "dashboard",
-    permission: "canAccessManagement",
+    permission: "canViewSummary", // ✅ Cambiado de canAccessManagement
   },
   {
     type: "group",

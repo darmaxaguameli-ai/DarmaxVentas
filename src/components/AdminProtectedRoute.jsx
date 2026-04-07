@@ -18,21 +18,27 @@ const AdminProtectedRoute = ({ children }) => {
 
   // --- Lógica de Mantenimiento ---
   if (isMaintenanceMode) {
-      const isAuthorized = user?.role === 'ADMIN' || user?.roleRelation?.isSystem;
+      // Verificar en la nueva lista de roles
+      const isAuthorized = user?.roles?.some(r => r.name === 'ADMIN' || r.isSystem === true) || user?.role === 'ADMIN';
+
       if (!isAuthorized && window.location.pathname !== '/mantenimiento') {
           return <Navigate to="/mantenimiento" replace />;
       }
   }
 
+  // 1. Verificación de Autenticación
   if (!isAuthenticated) {
-    // Si no está autenticado, redirige a la página de login
-    return <Navigate to="/login" />;
+    return <Navigate to="/login" replace />;
   }
 
-  // Verificar si tiene el permiso maestro de gestión
+  // 2. Verificación de Permiso Maestro de Gestión
+  // hasPermission ahora suma los permisos de todos los roles del usuario (RBAC v2)
   if (!hasPermission('canAccessManagement')) {
-    console.warn(`Acceso denegado a Gestión: El usuario ${user.name} no tiene el permiso [canAccessManagement]`);
-    return <Navigate to="/pedidos" />;
+    console.error(`Acceso Denegado a Gestión: El usuario ${user?.name} no cuenta con el permiso [canAccessManagement]`);
+    
+    // Si es un cliente, mandarlo a pedidos. Si es staff sin gestión, mandarlo al selector o inicio.
+    const redirectPath = user?.type === 'CLIENTE' ? '/pedidos' : '/role-selector';
+    return <Navigate to={redirectPath} replace />;
   }
 
   // Si tiene el permiso, permite el acceso a la ruta
