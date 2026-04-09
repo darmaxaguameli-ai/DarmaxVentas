@@ -1692,7 +1692,17 @@ app.post('/api/leads', verifyToken, async (req, res) => {
 app.put('/api/leads/:id', verifyToken, async (req, res) => {
   try {
     const { id } = req.params;
-    const { vendedorId, createdAt, updatedAt, id: _, ...data } = req.body; // Evitar sobrescribir campos protegidos
+    const { 
+        vendedorId, 
+        createdAt, 
+        updatedAt, 
+        vendedor, // Extraer para omitir
+        id: _, 
+        ...data 
+    } = req.body;
+
+    // Limpieza de campos nulos o vacíos
+    Object.keys(data).forEach(key => (data[key] === undefined) && delete data[key]);
 
     const updatedLead = await prisma.lead.update({
       where: { id },
@@ -1705,7 +1715,7 @@ app.put('/api/leads/:id', verifyToken, async (req, res) => {
     res.json(updatedLead);
   } catch (error) {
     console.error('Error updating lead:', error);
-    res.status(500).json({ error: 'Error al actualizar el prospecto.' });
+    res.status(500).json({ error: 'Error al actualizar el prospecto.', details: error.message });
   }
 });
 
