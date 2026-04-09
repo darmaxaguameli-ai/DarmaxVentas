@@ -22,6 +22,9 @@ console.log("========================================");
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
+// ✅ Servir archivos estáticos desde la carpeta public (para los PDFs)
+app.use('/pdfs', express.static(path.join(__dirname, '../public/pdfs')));
+
 // ------------------------------
 // HEALTHCHECK
 // ------------------------------
@@ -239,7 +242,7 @@ app.get('/api/utils/pdfs', (req, res) => {
         return {
           id: index + 1,
           name: cleanName,
-          file: `/pdfs/${file}`,
+          file: `/pdfs/${encodeURIComponent(file)}`, // ✅ Codificar para manejar acentos/espacios
           icon: 'description',
           color: 'text-primary'
         };
