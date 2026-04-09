@@ -2,7 +2,10 @@ const express = require('express');
 const prisma = require('./lib/prisma');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const axios = require('axios'); // <-- Importar axios
+const fs = require('fs');
+const path = require('path');
+const axios = require('axios');
+ // <-- Importar axios
 const crypto = require('crypto'); // <-- Importar crypto
 const { sendEmail } = require('./utils/emailService'); // <-- Importar servicio de email
 const { getResetPasswordEmailTemplate, getVerificationEmailTemplate } = require('./utils/templates/authEmailTemplates'); // <-- Importar plantilla
@@ -207,6 +210,44 @@ app.post('/api/verify-email', async (req, res) => {
   } catch (error) {
     console.error('Error verifying email:', error);
     res.status(500).json({ error: 'Error al verificar el correo.' });
+  }
+});
+
+// =====================================================
+// UTILS / FILES API
+// =====================================================
+
+// Endpoint para listar PDFs de herramientas
+app.get('/api/utils/pdfs', (req, res) => {
+  const pdfsDir = path.join(__dirname, '../public/pdfs');
+  
+  if (!fs.existsSync(pdfsDir)) {
+    console.warn("[PDFs] La carpeta public/pdfs no existe.");
+    return res.json([]);
+  }
+
+  try {
+    const files = fs.readdirSync(pdfsDir);
+    const pdfFiles = files
+      .filter(file => file.toLowerCase().endsWith('.pdf'))
+      .map((file, index) => {
+        const cleanName = file
+          .replace('.pdf', '')
+          .replace(/_/g, ' ')
+          .replace(/\b\w/g, l => l.toUpperCase());
+
+        return {
+          id: index + 1,
+          name: cleanName,
+          file: `/pdfs/${file}`,
+          icon: 'description',
+          color: 'text-primary'
+        };
+      });
+    res.json(pdfFiles);
+  } catch (error) {
+    console.error('Error reading PDFs dir:', error);
+    res.status(500).json({ error: 'Error al leer archivos' });
   }
 });
 

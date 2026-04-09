@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { 
     FaUserPlus, FaPhone, FaBox, FaChartLine, FaFilter, FaPlus, FaSave, 
-    FaTrash, FaTools, FaUserClock, FaCheckCircle, FaExchangeAlt, FaCalendarAlt
+    FaTrash, FaTools, FaUserClock, FaCheckCircle, FaExchangeAlt, FaCalendarAlt,
+    FaWhatsapp, FaFilePdf, FaShareAlt, FaTimes
 } from 'react-icons/fa';
 import apiClient from '../../api/apiClient';
 import Swal from 'sweetalert2';
@@ -10,13 +11,16 @@ import Swal from 'sweetalert2';
 const Leads = () => {
     const { user } = useAuth();
     const isAdmin = user?.role === 'ADMIN';
-    
+
     const [leads, setLeads] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState('PROSPECTO'); // 'PROSPECTO' o 'CLIENTE_VENTA'
+    const [packages, setPackages] = useState([]); // Estado para PDFs dinámicos
+    const [activeTab, setActiveTab] = useState('PROSPECTO'); 
     const [showModal, setShowModal] = useState(false);
+    const [showToolsModal, setShowToolsModal] = useState(false); // Modal de Herramientas
     const [editingLead, setEditingLead] = useState(null);
-    
+
+
     // Form state
     const [formData, setFormData] = useState({
         nombre: '',
@@ -34,9 +38,31 @@ const Leads = () => {
     const [newInsumo, setNewInsumo] = useState({ item: '', cantidad: '', notas: '' });
     const [newManto, setNewManto] = useState({ equipo: '', frecuencia: '', proximaFecha: '' });
 
+    const fetchPackages = async () => {
+        try {
+            const response = await apiClient.get('/utils/pdfs');
+            // Mapear iconos y colores según el nombre para que se vea mejor
+            const mapped = (response.data || []).map(p => {
+                const isPackage = p.name.toLowerCase().includes('paquete');
+                const isCatalog = p.name.toLowerCase().includes('catalogo') || p.name.toLowerCase().includes('insumo');
+                
+                return {
+                    ...p,
+                    icon: isPackage ? 'rocket_launch' : (isCatalog ? 'inventory_2' : 'description'),
+                    color: isPackage ? 'text-blue-600' : (isCatalog ? 'text-indigo-600' : 'text-emerald-600')
+                };
+            });
+            setPackages(mapped);
+        } catch (error) {
+            console.error('Error al obtener paquetes:', error);
+        }
+    };
+
     useEffect(() => {
         fetchLeads();
+        fetchPackages();
     }, []);
+
 
     const fetchLeads = async () => {
         try {
@@ -142,6 +168,23 @@ const Leads = () => {
     const totalVentas = leads.filter(l => l.tipo === 'CLIENTE_VENTA').length;
     const totalProspectos = leads.filter(l => l.tipo === 'PROSPECTO').length;
 
+    const handleSendWhatsApp = (lead, pkg = null) => {
+        const phone = lead.telefono.replace(/\D/g, '');
+        
+        let message = `Hola *${lead.nombre}*, un gusto saludarte de *Darmax Agua Purificada* 💧\n\n`;
+        
+        if (pkg) {
+            message += `Tal como platicamos, te adjunto la información detallada del *${pkg.name}*.\n\n`;
+            message += `📂 *Puedes descargar el catálogo aquí:* \n${window.location.origin}${pkg.file}\n\n`;
+            message += `Quedo atento a tus dudas para ayudarte a iniciar tu proyecto. 🚀`;
+        } else {
+            message += `Te contacto para dar seguimiento a tu interés en nuestros equipos de purificación. ¿En qué podemos apoyarte hoy?`;
+        }
+        
+        const url = `https://wa.me/52${phone}?text=${encodeURIComponent(message)}`;
+        window.open(url, '_blank');
+    };
+
     if (loading) return (
         <div className="p-8 text-center flex flex-col items-center justify-center min-h-[400px]">
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mb-4"></div>
@@ -159,14 +202,22 @@ const Leads = () => {
                     </h1>
                     <p className="text-sm text-gray-500 font-medium italic">Gestión de prospectos y mantenimientos post-venta.</p>
                 </div>
-                {!isAdmin && (
+                <div className="flex gap-2">
                     <button 
-                        onClick={() => { resetForm(); setShowModal(true); }}
-                        className="btn-primary flex items-center gap-2 py-3 px-6 shadow-xl shadow-primary/20"
+                        onClick={() => setShowToolsModal(true)}
+                        className="flex items-center gap-2 px-4 py-2 bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 rounded-xl font-bold text-xs uppercase hover:bg-amber-200 transition-all shadow-sm"
                     >
-                        <FaPlus /> {activeTab === 'PROSPECTO' ? 'Nuevo Prospecto' : 'Nueva Venta Directa'}
+                        <FaTools /> Herramientas
                     </button>
-                )}
+                    {!isAdmin && (
+                        <button 
+                            onClick={() => { resetForm(); setShowModal(true); }}
+                            className="btn-primary flex items-center gap-2 py-3 px-6 shadow-xl shadow-primary/20"
+                        >
+                            <FaPlus /> {activeTab === 'PROSPECTO' ? 'Nuevo Prospecto' : 'Nueva Venta Directa'}
+                        </button>
+                    )}
+                </div>
             </div>
 
             {/* Quick Stats Banner */}
@@ -274,6 +325,12 @@ const Leads = () => {
                                     Editar
                                 </button>
                                 <button 
+                                    onClick={() => { setEditingLead(lead); setShowToolsModal(true); }}
+                                    className="text-green-600 hover:scale-110 transition-transform text-[10px] font-black uppercase flex items-center gap-1"
+                                >
+                                    <FaWhatsapp size={14} /> Enviar Info
+                                </button>
+                                <button 
                                     onClick={() => handleDelete(lead.id, lead.nombre)}
                                     className="text-red-500 hover:scale-110 transition-transform text-[10px] font-black uppercase"
                                 >
@@ -289,6 +346,72 @@ const Leads = () => {
             {filteredLeads.length === 0 && (
                 <div className="py-20 text-center bg-gray-50 dark:bg-gray-900/30 rounded-[40px] border-4 border-dashed border-gray-100 dark:border-gray-800">
                     <p className="text-gray-400 font-bold italic">No hay registros en esta sección.</p>
+                </div>
+            )}
+
+            {/* Tools Modal (PDF Packages) */}
+            {showToolsModal && (
+                <div className="fixed inset-0 bg-black/70 backdrop-blur-md z-50 flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-gray-800 w-full max-w-4xl rounded-[32px] shadow-2xl overflow-hidden animate-in zoom-in duration-300 flex flex-col max-h-[90vh]">
+                        <div className="p-6 border-b dark:border-gray-700 flex justify-between items-center bg-amber-500 text-white shrink-0">
+                            <div>
+                                <h2 className="text-xl font-black uppercase tracking-widest flex items-center gap-3">
+                                    <FaTools /> Herramientas de Venta
+                                </h2>
+                                {editingLead && <p className="text-[10px] font-bold opacity-80 uppercase mt-1">Enviar a: {editingLead.nombre}</p>}
+                            </div>
+                            <button onClick={() => { setShowToolsModal(false); setEditingLead(null); }} className="text-2xl hover:rotate-90 transition-transform">&times;</button>
+                        </div>
+                        
+                        <div className="p-6 overflow-y-auto custom-scrollbar flex-1 bg-gray-50/30 dark:bg-gray-900/20">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                {packages.length > 0 ? (
+                                    packages.map((pkg) => (
+                                        <div key={pkg.id} className="group flex items-center justify-between p-4 bg-white dark:bg-gray-800 rounded-2xl border-2 border-transparent hover:border-amber-500 transition-all shadow-sm">
+                                            <div className="flex items-center gap-4 min-w-0">
+                                                <div className={`w-10 h-10 rounded-xl bg-gray-50 dark:bg-gray-700 flex items-center justify-center shadow-inner shrink-0 ${pkg.color}`}>
+                                                    <span className="material-symbols-outlined text-xl">{pkg.icon}</span>
+                                                </div>
+                                                <div className="min-w-0">
+                                                    <p className="font-black text-gray-800 dark:text-white text-xs truncate">{pkg.name}</p>
+                                                    <p className="text-[9px] text-gray-400 font-bold uppercase">PDF • Herramienta</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex gap-2 shrink-0">
+                                                <a 
+                                                    href={pkg.file} target="_blank" rel="noopener noreferrer"
+                                                    className="p-2.5 bg-gray-100 dark:bg-gray-700 text-gray-400 hover:text-red-500 rounded-xl transition-colors border border-transparent hover:border-red-100"
+                                                    title="Ver PDF"
+                                                >
+                                                    <FaFilePdf size={16} />
+                                                </a>
+                                                {editingLead && (
+                                                    <button 
+                                                        onClick={() => handleSendWhatsApp(editingLead, pkg)}
+                                                        className="p-2.5 bg-green-500 text-white rounded-xl shadow-lg shadow-green-500/20 hover:scale-110 active:scale-95 transition-all flex items-center gap-2"
+                                                    >
+                                                        <FaWhatsapp size={16} />
+                                                        <span className="text-[9px] font-black uppercase">Enviar</span>
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))
+                                ) : (
+                                    <div className="col-span-full text-center py-20 opacity-50 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-[2rem]">
+                                        <span className="material-symbols-outlined text-4xl text-gray-300 mb-2">folder_off</span>
+                                        <p className="text-sm font-bold text-gray-400 italic">No hay herramientas PDF cargadas en el servidor.</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="p-4 bg-white dark:bg-gray-800 text-center border-t dark:border-gray-700 shrink-0">
+                            <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">
+                                Mostrando {packages.length} archivos disponibles • Darmax CRM
+                            </p>
+                        </div>
+                    </div>
                 </div>
             )}
 
