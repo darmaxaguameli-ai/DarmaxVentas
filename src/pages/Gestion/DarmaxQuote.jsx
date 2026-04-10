@@ -36,28 +36,49 @@ const ResultsModal = ({ results, onClose, onSelect }) => {
   if (!results.length) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-      <div className="bg-white dark:bg-gray-900 rounded-lg shadow-xl p-6 w-full max-w-lg max-h-[80vh] overflow-y-auto">
-        <h2 className="text-lg font-bold mb-4">Resultados de Búsqueda</h2>
-        <ul className="divide-y divide-gray-200 dark:divide-gray-700">
-          {results.map((quote) => (
-            <li
-              key={quote.id}
-              onClick={() => onSelect(quote)}
-              className="py-3 px-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md"
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-end sm:items-center justify-center z-[9999] p-0 sm:p-4">
+      <div className="bg-white dark:bg-gray-900 rounded-t-3xl sm:rounded-2xl shadow-2xl w-full max-w-lg max-h-[85vh] overflow-hidden flex flex-col animate-in slide-in-from-bottom duration-300">
+        <div className="p-4 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center">
+            <h2 className="text-lg font-black text-gray-800 dark:text-white uppercase tracking-tight">Cotizaciones Encontradas</h2>
+            <button onClick={onClose} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors">
+                <span className="material-symbols-outlined text-gray-400">close</span>
+            </button>
+        </div>
+        
+        <div className="overflow-y-auto flex-1 p-4 custom-scrollbar">
+            <ul className="space-y-3">
+            {results.map((quote) => (
+                <li
+                    key={quote.id}
+                    onClick={() => onSelect(quote)}
+                    className="p-4 cursor-pointer bg-gray-50 dark:bg-gray-800/50 hover:bg-primary/5 dark:hover:bg-primary/10 border border-gray-100 dark:border-gray-700 rounded-2xl transition-all active:scale-[0.98] group"
+                >
+                    <div className="flex justify-between items-start mb-1">
+                        <span className="text-xs font-black text-primary bg-primary/10 px-2 py-0.5 rounded-md">
+                            FOLIO {String(quote.folio).padStart(4, '0')}
+                        </span>
+                        <span className="text-[10px] font-bold text-gray-400 uppercase">
+                            {new Date(quote.fecha).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })}
+                        </span>
+                    </div>
+                    <p className="font-bold text-gray-800 dark:text-gray-100 group-hover:text-primary transition-colors">{quote.nombreCliente}</p>
+                    <div className="flex items-center gap-2 mt-1">
+                        <span className="material-symbols-outlined text-xs text-gray-400">person</span>
+                        <p className="text-[10px] text-gray-500 dark:text-gray-400 truncate">Asesor: {quote.nombreAsesor || 'No especificado'}</p>
+                    </div>
+                </li>
+            ))}
+            </ul>
+        </div>
+        
+        <div className="p-4 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-800">
+            <button
+                onClick={onClose}
+                className="w-full bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-200 py-3 rounded-xl font-bold border border-gray-200 dark:border-gray-700 active:scale-95 transition-all text-sm"
             >
-              <p className="font-semibold">Folio: {String(quote.folio).padStart(4, '0')}</p>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Cliente: {quote.nombreCliente}</p>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Fecha: {new Date(quote.fecha).toLocaleDateString()}</p>
-            </li>
-          ))}
-        </ul>
-        <button
-          onClick={onClose}
-          className="mt-6 bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-colors w-full"
-        >
-          Cerrar
-        </button>
+                Cerrar
+            </button>
+        </div>
       </div>
     </div>
   );
@@ -287,7 +308,14 @@ export default function DarmaxQuote() {
           Swal.fire("¡Guardado!", `Cotización guardada con Folio: ${String(response.folio).padStart(4, '0')}`, "success");
       } catch (error) {
           console.error("Error saving quote:", error);
-          Swal.fire("Error", "No se pudo guardar la cotización.", "error");
+          const serverError = error.response?.data?.error || "No se pudo guardar la cotización.";
+          const serverDetails = error.response?.data?.details || "";
+          
+          Swal.fire({
+              title: "Error al Guardar",
+              html: `<p>${serverError}</p>${serverDetails ? `<p className="text-xs text-gray-400 mt-2">${serverDetails}</p>` : ""}`,
+              icon: "error"
+          });
       } finally {
           setIsSaving(false);
       }
@@ -370,42 +398,48 @@ export default function DarmaxQuote() {
                 <div className="space-y-4 sm:space-y-6">
                     
                                         {/* Tarjeta: Buscar Cotización */}
-                                        <div className="bg-white dark:bg-gray-900 p-4 sm:p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800">
+                                        <div className="bg-white dark:bg-gray-900 p-3 sm:p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800">
                                             <SectionTitle>Buscar Cotización</SectionTitle>
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                <div className="flex items-center gap-3">
-                                                    <InputGroup
-                                                        label="Número de Folio"
-                                                        value={searchFolio}
-                                                        onChange={(e) => setSearchFolio(e.target.value)}
-                                                        placeholder="Ej. 123"
-                                                        type="number"
-                                                    />
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                                <div className="flex items-end gap-2">
+                                                    <div className="flex-1">
+                                                        <InputGroup
+                                                            label="Número de Folio"
+                                                            value={searchFolio}
+                                                            onChange={(e) => setSearchFolio(e.target.value)}
+                                                            placeholder="Ej. 123"
+                                                            type="number"
+                                                        />
+                                                    </div>
                                                     <button
                                                         onClick={() => handleFetchQuote()}
-                                                        className="mt-5 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors"
+                                                        className="bg-blue-500 text-white p-2 rounded-lg hover:bg-blue-600 transition-colors flex items-center justify-center min-w-[40px] h-[38px]"
+                                                        title="Buscar por Folio"
                                                     >
-                                                        Buscar
+                                                        <span className="material-symbols-outlined text-xl">search</span>
                                                     </button>
                                                 </div>
-                                                <div className="flex items-center gap-3">
-                                                    <InputGroup
-                                                        label="Nombre del Cliente"
-                                                        value={searchCliente}
-                                                        onChange={(e) => setSearchCliente(e.target.value)}
-                                                        placeholder="Ej. Juan Pérez"
-                                                    />
+                                                <div className="flex items-end gap-2">
+                                                    <div className="flex-1">
+                                                        <InputGroup
+                                                            label="Nombre del Cliente"
+                                                            value={searchCliente}
+                                                            onChange={(e) => setSearchCliente(e.target.value)}
+                                                            placeholder="Ej. Juan Pérez"
+                                                        />
+                                                    </div>
                                                     <button
                                                         onClick={handleSearchByCliente}
-                                                        className="mt-5 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors"
+                                                        className="bg-blue-500 text-white p-2 rounded-lg hover:bg-blue-600 transition-colors flex items-center justify-center min-w-[40px] h-[38px]"
+                                                        title="Buscar por Cliente"
                                                     >
-                                                        Buscar
+                                                        <span className="material-symbols-outlined text-xl">person_search</span>
                                                     </button>
                                                 </div>
                                             </div>
                                         </div>
                     {/* Tarjeta: Datos Generales */}
-                    <div className="bg-white dark:bg-gray-900 p-4 sm:p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800">
+                    <div className="bg-white dark:bg-gray-900 p-3 sm:p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800">
                         <SectionTitle>Información General</SectionTitle>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                             <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
@@ -422,7 +456,7 @@ export default function DarmaxQuote() {
                     </div>
 
                     {/* Tarjeta: Cliente */}
-                    <div className="bg-white dark:bg-gray-900 p-4 sm:p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800">
+                    <div className="bg-white dark:bg-gray-900 p-3 sm:p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800">
                         <SectionTitle>Datos del Cliente</SectionTitle>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                             <InputGroup label="Nombre" value={form.cliente.nombre} onChange={onChange("cliente.nombre")} placeholder="Ej. Juan Pérez" horizontal />
@@ -433,7 +467,7 @@ export default function DarmaxQuote() {
                     </div>
 
                     {/* Tarjeta: Costos */}
-                    <div className="bg-white dark:bg-gray-900 p-4 sm:p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800">
+                    <div className="bg-white dark:bg-gray-900 p-3 sm:p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800">
                         <SectionTitle>Desglose de Costos (MXN)</SectionTitle>
                         <div className="space-y-4 sm:space-y-6">
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
@@ -448,7 +482,7 @@ export default function DarmaxQuote() {
                     </div>
 
                     {/* Tarjeta: Equipamiento Extra */}
-                    <div className="bg-white dark:bg-gray-900 p-4 sm:p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800">
+                    <div className="bg-white dark:bg-gray-900 p-3 sm:p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800">
                         <SectionTitle>Equipamiento Extra</SectionTitle>
                         {loadingExtras ? (
                             <p className="text-xs text-gray-500 animate-pulse">Cargando...</p>
@@ -487,7 +521,7 @@ export default function DarmaxQuote() {
                     </div>
 
                     {/* Tarjeta: Promoción */}
-                    <div className="bg-white dark:bg-gray-900 p-4 sm:p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800">
+                    <div className="bg-white dark:bg-gray-900 p-3 sm:p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800">
                         <SectionTitle>Promoción (Opcional)</SectionTitle>
                         <div className="space-y-4">
                             <div>
@@ -554,7 +588,7 @@ export default function DarmaxQuote() {
                     </div>
 
                     {/* Tarjeta: Firma */}
-                    <div className="bg-white dark:bg-gray-900 p-4 sm:p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800">
+                    <div className="bg-white dark:bg-gray-900 p-3 sm:p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800">
                         <SectionTitle>Firma del Asesor</SectionTitle>
                         
                         <div className="mb-4 pt-1">

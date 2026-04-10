@@ -491,6 +491,7 @@ model Cotizacion {
   folio         Int      @default(autoincrement()) 
   fecha         DateTime @default(now())
   diasValidez   Int      @default(5) 
+  nombreAsesor  String?
   nombreCliente String
   telefono      String?
   correo        String?

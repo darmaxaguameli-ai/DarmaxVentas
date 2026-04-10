@@ -3423,37 +3423,55 @@ app.get('/api/external/dipomex/codigo_postal', async (req, res) => {
 app.post('/api/cotizaciones', verifyToken, async (req, res) => {
   try {
     const data = req.body;
+
+    // Validación básica de estructura
+    if (!data.cliente || !data.cliente.nombre) {
+      return res.status(400).json({ error: 'El nombre del cliente es obligatorio.' });
+    }
     
     const newQuote = await prisma.cotizacion.create({
       data: {
+        nombreAsesor: data.nombreAsesor || 'No especificado',
         nombreCliente: data.cliente.nombre,
-        telefono: data.cliente.telefono,
-        correo: data.cliente.correo,
-        cp: data.cliente.cp,
+        telefono: data.cliente.telefono || null,
+        correo: data.cliente.correo || null,
+        cp: data.cliente.cp || null,
         
-        modeloNombre: data.costos.modeloNombre,
-        modeloPrecio: parseFloat(data.costos.modelo) || 0,
-        fleteTinacos: parseFloat(data.costos.fleteTinacos) || 0,
-        viaticos: parseFloat(data.costos.viaticos) || 0,
+        modeloNombre: data.costos?.modeloNombre || 'Sin modelo',
+        modeloPrecio: parseFloat(data.costos?.modelo) || 0,
+        fleteTinacos: parseFloat(data.costos?.fleteTinacos) || 0,
+        viaticos: parseFloat(data.costos?.viaticos) || 0,
         
-        // Prisma maneja arrays JSON automáticamente
         extras: data.extrasSeleccionados || [], 
         
-        promoTexto: data.promo.texto,
-        promoCosto: data.promo.costo ? parseFloat(data.promo.costo) : null,
-        promoImagen: data.promo.imagenUrl,
+        promoTexto: data.promo?.texto || null,
+        promoCosto: data.promo?.costo ? parseFloat(data.promo.costo) : null,
+        promoImagen: data.promo?.imagenUrl || null,
         
-        firma: data.firma,
+        firma: data.firma || null,
         
-        fecha: data.fecha ? new Date(data.fecha) : new Date(), // Usar fecha del servidor para consistencia
-        diasValidez: parseInt(data.diasValidez) || 5, // Añadir diasValidez
+        fecha: data.fecha ? new Date(date) : new Date(), 
+        diasValidez: parseInt(data.diasValidez) || 5,
       }
     });
     
     res.status(201).json(newQuote);
   } catch (error) {
-    console.error('Error creating quote:', error);
-    res.status(500).json({ error: 'Error al guardar la cotización' });
+    console.error('❌ ERROR AL CREAR COTIZACIÓN:', {
+      message: error.message,
+      code: error.code,
+      meta: error.meta
+    });
+
+    // Manejo de errores específicos de Prisma
+    if (error.code === 'P2002') {
+      return res.status(409).json({ error: 'Conflicto de folio. Por favor intente de nuevo.' });
+    }
+
+    res.status(500).json({ 
+      error: 'Error interno al guardar la cotización',
+      details: error.message 
+    });
   }
 });
 
