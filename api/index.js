@@ -234,10 +234,12 @@ app.get('/api/utils/pdfs', (req, res) => {
     const pdfFiles = files
       .filter(file => file.toLowerCase().endsWith('.pdf'))
       .map((file, index) => {
+        // Formatear nombre: "paquete_600.pdf" -> "Paquete 600"
         const cleanName = file
-          .replace('.pdf', '')
+          .replace(/\.pdf$/i, '')
           .replace(/_/g, ' ')
-          .replace(/\b\w/g, l => l.toUpperCase());
+          .toLowerCase() // Primero a minúsculas para estandarizar
+          .replace(/(^|\s)\S/g, l => l.toUpperCase()); // Solo mayúscula al inicio de cada palabra
 
         return {
           id: index + 1,
