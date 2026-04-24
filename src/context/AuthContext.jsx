@@ -126,10 +126,16 @@ export const AuthProvider = ({ children }) => {
         localStorage.setItem('logout', Date.now());
     };
 
-    const updateUser = (newUserData) => {
+    const updateUser = (newUserData, newToken = null) => {
         setUser(newUserData);
         if (localStorage.getItem('user')) {
             localStorage.setItem('user', JSON.stringify(newUserData));
+        }
+
+        if (newToken) {
+            setToken(newToken);
+            localStorage.setItem('token', newToken);
+            apiClient.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
         }
     };
 

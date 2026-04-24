@@ -69,9 +69,10 @@ app.post('/api/login', async (req, res) => {
       { 
         id: user.id, 
         name: user.name, 
+        role: user.role,
         type: user.type,
         customId: user.customId,
-        mustChangePassword: user.mustChangePassword // Añadir al token
+        mustChangePassword: user.mustChangePassword
       },
       process.env.JWT_SECRET,
       { expiresIn: '8h' }
@@ -1736,13 +1737,13 @@ app.delete('/api/leads/:id', verifyToken, async (req, res) => {
 // =====================================================
 app.get('/api/roles', verifyToken, async (req, res) => {
   try {
-    const roles = await prisma.role.findMany({ 
+    const roles = await prisma.role.findMany({
         include: {
             _count: {
                 select: { users: true }
             }
         },
-        orderBy: { name: 'asc' } 
+        orderBy: { name: 'asc' }
     });
     res.json(roles);
   } catch (error) {
@@ -1750,8 +1751,31 @@ app.get('/api/roles', verifyToken, async (req, res) => {
   }
 });
 
-app.put('/api/roles/:id', verifyToken, async (req, res) => {
+// CREATE a new role
+app.post('/api/roles', verifyToken, async (req, res) => {
   try {
+    const { name, description, ...permissions } = req.body;
+
+    // Check if role name already exists
+    const existing = await prisma.role.findUnique({ where: { name } });
+    if (existing) return res.status(400).json({ error: 'Ya existe un rol con ese nombre.' });
+
+    const newRole = await prisma.role.create({
+      data: {
+        name,
+        description,
+        isSystem: false,
+        ...permissions
+      }
+    });
+    res.status(201).json(newRole);
+  } catch (error) {
+    console.error("Error creating role:", error);
+    res.status(500).json({ error: 'Error al crear el rol' });
+  }
+});
+
+app.put('/api/roles/:id', verifyToken, async (req, res) => {  try {
     const { id } = req.params;
     const { 
       name, 
@@ -2088,6 +2112,14 @@ app.put('/api/users/:id', verifyToken, async (req, res) => {
           : undefined
     };
 
+    // 1.5 Handle password and mustChangePassword
+    if (data.password) {
+        updateData.password = await bcrypt.hash(data.password, 10);
+    }
+    if (data.mustChangePassword !== undefined) {
+        updateData.mustChangePassword = data.mustChangePassword;
+    }
+
     // 2. Role Change Logic (Admin only)
     if (requesterIsAdmin && data.role && data.role !== currentUser.role) {
         updateData.role = data.role;
@@ -2115,6 +2147,8 @@ app.put('/api/users/:id', verifyToken, async (req, res) => {
       where: { id },
       data: updateData,
       include: {
+        store: true,
+        roles: true,
         loyaltyTransactions: {
             orderBy: { createdAt: 'desc' },
             take: 5
@@ -2123,8 +2157,26 @@ app.put('/api/users/:id', verifyToken, async (req, res) => {
     });
     
     // Remove password from response
-    const { password, ...userWithoutPassword } = updatedUser;
-    res.json(userWithoutPassword);
+    const { password: _, ...userWithoutPassword } = updatedUser;
+
+    // 4. Generate a new token if the user is updating themselves
+    // This ensures flags like mustChangePassword are updated in the token payload
+    let token = undefined;
+    if (id === req.user.id) {
+        token = jwt.sign(
+            { 
+                id: updatedUser.id, 
+                name: updatedUser.name, 
+                type: updatedUser.type,
+                customId: updatedUser.customId,
+                mustChangePassword: updatedUser.mustChangePassword
+            },
+            process.env.JWT_SECRET,
+            { expiresIn: '8h' }
+        );
+    }
+
+    res.json({ user: userWithoutPassword, token });
 
   } catch (error) {
     console.error(`Error updating user ${id}:`, error);
@@ -2415,6 +2467,16 @@ app.put('/api/empleados/:id', verifyToken, async (req, res) => {
     ...data
   } = req.body;
 
+  // 0. Pre-process sensitive/slow data outside transaction
+  let hashedAccountPassword = null;
+  if (_createAccount?.password) {
+      hashedAccountPassword = await bcrypt.hash(_createAccount.password, 10);
+  }
+  let hashedNewPassword = null;
+  if (newPassword) {
+      hashedNewPassword = await bcrypt.hash(newPassword, 10);
+  }
+
   try {
     const result = await prisma.$transaction(async (tx) => {
         const empleadoData = { ...data };
@@ -2448,7 +2510,7 @@ app.put('/api/empleados/:id', verifyToken, async (req, res) => {
                 data: {
                     name: nombreCompleto || currentEmpleado.nombreCompleto,
                     email: _createAccount.email,
-                    password: await bcrypt.hash(_createAccount.password, 10),
+                    password: hashedAccountPassword, // ✅ Usar hash pre-calculado
                     sexo: _createAccount.sexo, // ✅ Nuevo campo
                     type: 'COLABORADOR',
                     roles: { 
@@ -2469,8 +2531,8 @@ app.put('/api/empleados/:id', verifyToken, async (req, res) => {
             if (emailPersonal) userUpdateData.email = emailPersonal;
             if (req.body.sexo) userUpdateData.sexo = req.body.sexo; // ✅ Actualizar sexo del usuario vinculado
             
-            if (newPassword) {
-                userUpdateData.password = await bcrypt.hash(newPassword, 10);
+            if (hashedNewPassword) { // ✅ Usar hash pre-calculado
+                userUpdateData.password = hashedNewPassword;
                 userUpdateData.mustChangePassword = true; // ✅ Forzar cambio tras reset manual
             }
             
@@ -2487,19 +2549,42 @@ app.put('/api/empleados/:id', verifyToken, async (req, res) => {
             }
         }
 
+        // --- LIMPIEZA FINAL DE DATA PARA PRISMA ---
+        // Eliminar campos que NO pertenecen al modelo Empleado para evitar errores 500
+        const prismaEmpleadoFields = [
+            'nombreCompleto', 'puesto', 'sueldo', 'telefono', 'emailPersonal', 
+            'street', 'neighborhood', 'city', 'postalCode', 'fechaContratacion', 
+            'fechaTerminacion', 'estatus', 'userId', 'managerId'
+        ];
+        
+        const finalEmpleadoData = {};
+        prismaEmpleadoFields.forEach(field => {
+            if (empleadoData[field] !== undefined) {
+                finalEmpleadoData[field] = empleadoData[field];
+            }
+        });
+
         return await tx.empleado.update({
             where: { id },
-            data: empleadoData,
+            data: finalEmpleadoData,
             include: { 
                 user: { include: { roles: true } },
                 manager: true 
             },
         });
+    }, {
+        maxWait: 5000, // Aumentar tiempo de espera
+        timeout: 10000  // Aumentar tiempo de ejecución
     });
     res.json(result);
   } catch (error) {
     console.error(`Error updating empleado ${id}:`, error);
-    res.status(500).json({ error: 'Error al actualizar el empleado.', details: error.message });
+    // Devolver el mensaje real del error para depuración
+    res.status(500).json({ 
+        error: 'Error al actualizar el empleado.', 
+        message: error.message,
+        prismaCode: error.code 
+    });
   }
 });
 // DELETE an employee

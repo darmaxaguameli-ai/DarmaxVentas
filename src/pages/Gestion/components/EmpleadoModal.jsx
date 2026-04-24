@@ -48,6 +48,13 @@ const EmpleadoModal = ({ onClose, empleadoToEdit, onSave, empleados = [], users 
   });
 
   useEffect(() => {
+    if (roles && roles.length > 0) {
+        setLocalRoles(roles);
+    }
+  }, [roles]);
+
+  useEffect(() => {
+    // Si por alguna razón no hay roles y el contexto no los cargó, fetch de respaldo
     if (!localRoles || localRoles.length === 0) {
         const fetchRoles = async () => {
             try {
@@ -62,7 +69,7 @@ const EmpleadoModal = ({ onClose, empleadoToEdit, onSave, empleados = [], users 
         };
         fetchRoles();
     }
-  }, [roles]);
+  }, []); // Solo al montar como respaldo extremo
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;

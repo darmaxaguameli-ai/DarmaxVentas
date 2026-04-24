@@ -5,6 +5,7 @@ import Swal from 'sweetalert2';
 import apiClient from '@/api/apiClient';
 
 const Roles = () => {
+    const { fetchManagementData } = useGestion();
     const [roles, setRoles] = useState([]);
     const [users, setUsers] = useState([]); // Lista global de usuarios (Colaboradores)
     const [loading, setLoading] = useState(true);
@@ -136,6 +137,8 @@ const Roles = () => {
                 await apiClient.post('/roles', formData);
                 Swal.fire('Éxito', 'Rol creado correctamente', 'success');
             }
+            // Refrescar el contexto global para que otros módulos (como Empleados) vean los cambios
+            await fetchManagementData();
             handleCloseModal();
             fetchRoles();
         } catch (error) {

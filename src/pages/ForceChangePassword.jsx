@@ -35,7 +35,10 @@ const ForceChangePassword = () => {
                 mustChangePassword: false
             });
             
-            updateUser(response.data);
+            // El backend ahora devuelve { user, token }
+            const { user: updatedUser, token: newToken } = response.data;
+            
+            updateUser(updatedUser, newToken);
             
             await Swal.fire({
                 icon: 'success',
