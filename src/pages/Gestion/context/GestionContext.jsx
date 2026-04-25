@@ -200,7 +200,9 @@ export const GestionProvider = ({ children }) => {
                     name: data.nombreCompleto,
                     email: data._createAccount.email,
                     password: data._createAccount.password,
-                    roleId: data._createAccount.roleId,
+                    roleIds: data._createAccount.roleIds,
+                    sexo: data._createAccount.sexo,
+                    type: 'COLABORADOR', // ✅ Asegurar que el backend sepa que es colaborador
                     phone: data.telefono,
                     street: data.street,
                     neighborhood: data.neighborhood,

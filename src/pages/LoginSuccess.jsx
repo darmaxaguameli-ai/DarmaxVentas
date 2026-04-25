@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 const LoginSuccess = () => {
     const navigate = useNavigate();
     const location = useLocation();
-    const { hasPermission, loading, user } = useAuth();
+    const { hasPermission, hasModuleAccess, loading, user } = useAuth();
     const name = location.state?.name || user?.name || 'Usuario';
     const sexo = location.state?.sexo || user?.sexo;
 
@@ -20,16 +20,16 @@ const LoginSuccess = () => {
             return;
         }
 
-        // Definir permisos maestros para detectar multi-rol
-        const masterPermissions = [
-            { key: 'canAccessManagement', path: '/gestion' },
-            { key: 'canAccessPOS', path: '/ventas/mostrador' },
-            { key: 'canAccessDelivery', path: '/repartidor/dashboard' },
-            { key: 'canAccessOrders', path: '/pedidos' }
+        // Definir módulos maestros
+        const modules = [
+            { key: 'management', path: '/gestion' },
+            { key: 'pos', path: '/ventas/mostrador' },
+            { key: 'delivery', path: '/repartidor/dashboard' },
+            { key: 'orders', path: '/pedidos' }
         ];
 
         // Contar a cuántos módulos tiene acceso real
-        const authorizedModules = masterPermissions.filter(p => hasPermission(p.key));
+        const authorizedModules = modules.filter(m => hasModuleAccess(m.key));
 
         let redirectPath = '/pedidos';
 
@@ -49,16 +49,16 @@ const LoginSuccess = () => {
         }, 2000); 
 
         return () => clearTimeout(timer);
-    }, [navigate, hasPermission, loading]);
+    }, [navigate, hasModuleAccess, loading, user]);
 
     const getRedirectMessage = () => {
-        const masterPermissions = ['canAccessManagement', 'canAccessPOS', 'canAccessDelivery', 'canAccessOrders'];
-        const count = masterPermissions.filter(p => hasPermission(p)).length;
+        const modules = ['management', 'pos', 'delivery', 'orders'];
+        const count = modules.filter(m => hasModuleAccess(m)).length;
 
         if (count > 1) return 'Preparando selector de modo...';
-        if (hasPermission('canAccessManagement')) return 'Redirigiendo al Panel de Gestión...';
-        if (hasPermission('canAccessPOS')) return 'Redirigiendo a Caja y Ventas...';
-        if (hasPermission('canAccessDelivery')) return 'Redirigiendo al Dashboard de Reparto...';
+        if (hasModuleAccess('management')) return 'Redirigiendo al Panel de Gestión...';
+        if (hasModuleAccess('pos')) return 'Redirigiendo a Caja y Ventas...';
+        if (hasModuleAccess('delivery')) return 'Redirigiendo al Dashboard de Reparto...';
         return 'Redirigiendo a tus pedidos...';
     };
 

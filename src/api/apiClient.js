@@ -155,9 +155,12 @@ export const geocodeAddress = (query) => apiClient.get('/external/geocode', { pa
 //  COTIZACIONES
 // ====================================================================
 export const createCotizacion = (data) => apiClient.post('/cotizaciones', data).then(res => res.data);
+export const updateCotizacion = (id, data) => apiClient.put(`/cotizaciones/${id}`, data).then(res => res.data);
+export const fetchCotizaciones = () => apiClient.get('/cotizaciones').then(res => res.data);
 export const fetchCotizacion = (id) => apiClient.get(`/cotizaciones/${id}`).then(res => res.data);
 export const fetchCotizacionByFolio = (folio) => apiClient.get(`/cotizaciones/folio/${folio}`).then(res => res.data);
 export const fetchCotizacionesByCliente = (nombre) => apiClient.get(`/cotizaciones/cliente/${nombre}`).then(res => res.data);
+export const deleteCotizacion = (id) => apiClient.delete(`/cotizaciones/${id}`).then(res => res.data);
 
 // ====================================================================
 //  SOLICITUDES DE PRODUCTO (NUEVO)

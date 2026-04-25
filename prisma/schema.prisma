@@ -25,6 +25,7 @@ enum UserRole {
   VENTA
   REPARTIDOR
   CLIENTE
+  COLABORADOR
 }
 
 enum ClientCategory {

@@ -1,8 +1,8 @@
 import React, { useMemo, useState, useEffect } from "react";
-import { PDFDownloadLink, PDFViewer } from "@react-pdf/renderer";
+import { PDFDownloadLink, PDFViewer, pdf } from "@react-pdf/renderer";
 import DarmaxWaterQuotePDF from "./components/pdf/DarmaxWaterQuotePDF";
 import SignaturePad from "@/pages/sistemasDeVentas/Repartidor/components/SignaturePad";
-import { createCotizacion, fetchCotizacionByFolio, fetchCotizacionesByCliente } from "../../api/apiClient";
+import { createCotizacion, updateCotizacion, fetchCotizacionByFolio, fetchCotizacionesByCliente, fetchCotizaciones, deleteCotizacion } from "../../api/apiClient";
 import Swal from "sweetalert2";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
@@ -11,6 +11,11 @@ import "@/date-picker.css"; // Estilos personalizados para el DatePicker
 const todayMX = () => {
   return new Date();
 };
+
+function money(n) {
+    const num = Number(n || 0);
+    return `$${num.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
 
 const SectionTitle = ({ children }) => (
     <h3 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider mb-3 border-b border-gray-100 dark:border-gray-700 pb-2">
@@ -32,43 +37,78 @@ const InputGroup = ({ label, value, onChange, placeholder, type = "text", horizo
     </div>
 );
 
-const ResultsModal = ({ results, onClose, onSelect }) => {
-  if (!results.length) return null;
-
+const ResultsModal = ({ results, isLoading, title, onClose, onSelect, onDelete }) => {
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-end sm:items-center justify-center z-[9999] p-0 sm:p-4">
-      <div className="bg-white dark:bg-gray-900 rounded-t-3xl sm:rounded-2xl shadow-2xl w-full max-w-lg max-h-[85vh] overflow-hidden flex flex-col animate-in slide-in-from-bottom duration-300">
+      <div className="bg-white dark:bg-gray-900 rounded-t-3xl sm:rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] overflow-hidden flex flex-col animate-in slide-in-from-bottom duration-300">
         <div className="p-4 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center">
-            <h2 className="text-lg font-black text-gray-800 dark:text-white uppercase tracking-tight">Cotizaciones Encontradas</h2>
+            <h2 className="text-lg font-black text-gray-800 dark:text-white uppercase tracking-tight">{title || "Cotizaciones Encontradas"}</h2>
             <button onClick={onClose} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors">
                 <span className="material-symbols-outlined text-gray-400">close</span>
             </button>
         </div>
         
         <div className="overflow-y-auto flex-1 p-4 custom-scrollbar">
-            <ul className="space-y-3">
-            {results.map((quote) => (
-                <li
-                    key={quote.id}
-                    onClick={() => onSelect(quote)}
-                    className="p-4 cursor-pointer bg-gray-50 dark:bg-gray-800/50 hover:bg-primary/5 dark:hover:bg-primary/10 border border-gray-100 dark:border-gray-700 rounded-2xl transition-all active:scale-[0.98] group"
-                >
-                    <div className="flex justify-between items-start mb-1">
-                        <span className="text-xs font-black text-primary bg-primary/10 px-2 py-0.5 rounded-md">
-                            FOLIO {String(quote.folio).padStart(4, '0')}
-                        </span>
-                        <span className="text-[10px] font-bold text-gray-400 uppercase">
-                            {new Date(quote.fecha).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })}
-                        </span>
-                    </div>
-                    <p className="font-bold text-gray-800 dark:text-gray-100 group-hover:text-primary transition-colors">{quote.nombreCliente}</p>
-                    <div className="flex items-center gap-2 mt-1">
-                        <span className="material-symbols-outlined text-xs text-gray-400">person</span>
-                        <p className="text-[10px] text-gray-500 dark:text-gray-400 truncate">Asesor: {quote.nombreAsesor || 'No especificado'}</p>
-                    </div>
-                </li>
-            ))}
-            </ul>
+            {isLoading ? (
+                <div className="flex flex-col items-center justify-center py-12">
+                    <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
+                    <p className="text-sm text-gray-500 font-bold">Cargando cotizaciones...</p>
+                </div>
+            ) : results.length === 0 ? (
+                <div className="text-center py-12">
+                    <span className="material-symbols-outlined text-4xl text-gray-300 mb-2">search_off</span>
+                    <p className="text-sm text-gray-500 font-bold">No se encontraron cotizaciones.</p>
+                </div>
+            ) : (
+                <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-800">
+                        <thead className="bg-gray-50 dark:bg-gray-800/50">
+                            <tr>
+                                <th className="px-4 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Folio</th>
+                                <th className="px-4 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Cliente</th>
+                                <th className="px-4 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Fecha</th>
+                                <th className="px-4 py-3 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                            {results.map((quote) => (
+                                <tr key={quote.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors group">
+                                    <td className="px-4 py-4 whitespace-nowrap">
+                                        <span className="text-xs font-black text-primary bg-primary/10 px-2 py-0.5 rounded-md">
+                                            #{String(quote.folio).padStart(4, '0')}
+                                        </span>
+                                    </td>
+                                    <td className="px-4 py-4">
+                                        <div className="text-sm font-bold text-gray-800 dark:text-gray-100">{quote.nombreCliente}</div>
+                                        <div className="text-[10px] text-gray-400 truncate max-w-[150px]">Asesor: {quote.nombreAsesor || 'N/A'}</div>
+                                    </td>
+                                    <td className="px-4 py-4 whitespace-nowrap">
+                                        <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase">
+                                            {new Date(quote.fecha).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                        </span>
+                                    </td>
+                                    <td className="px-4 py-4 whitespace-nowrap text-right space-x-2">
+                                        <button 
+                                            onClick={() => onSelect(quote)} 
+                                            className="p-1.5 bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400 rounded-lg hover:bg-blue-100 transition-colors"
+                                            title="Cargar"
+                                        >
+                                            <span className="material-symbols-outlined text-sm">open_in_new</span>
+                                        </button>
+                                        <button 
+                                            onClick={() => onDelete(quote.id)} 
+                                            className="p-1.5 bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400 rounded-lg hover:bg-red-100 transition-colors"
+                                            title="Borrar"
+                                        >
+                                            <span className="material-symbols-outlined text-sm">delete</span>
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            )}
         </div>
         
         <div className="p-4 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-800">
@@ -106,10 +146,10 @@ export default function DarmaxQuote() {
   const [savedQuote, setSavedQuote] = useState(null); // Almacena la cotización guardada con folio
   const [isSaving, setIsSaving] = useState(false);
   const [signatureMode, setSignatureMode] = useState('pad'); // 'pad' | 'upload'
-  const [searchFolio, setSearchFolio] = useState("");
-  const [searchCliente, setSearchCliente] = useState("");
   const [searchResults, setSearchResults] = useState([]);
   const [showResultsModal, setShowResultsModal] = useState(false);
+  const [loadingResults, setLoadingResults] = useState(false);
+  const [modalTitle, setModalTitle] = useState("");
 
   // Cargar catálogo completo de extras al montar el componente
   useEffect(() => {
@@ -204,62 +244,61 @@ export default function DarmaxQuote() {
       setSavedQuote(null);
   };
 
-  const handleFetchQuote = async () => {
-    if (!searchFolio) {
-      Swal.fire("Error", "Por favor, ingrese un número de folio.", "error");
-      return;
-    }
-    try {
-      const quote = await fetchCotizacionByFolio(searchFolio);
-      setForm({
-        fecha: new Date(quote.fecha),
-        diasValidez: String(quote.diasValidez),
-        nombreAsesor: quote.nombreAsesor || "",
-        cliente: {
-          nombre: quote.nombreCliente || "",
-          telefono: quote.telefono || "",
-          correo: quote.correo || "",
-          cp: quote.cp || "",
+  const handleNewQuote = () => {
+    setSavedQuote(null);
+    setForm({
+        fecha: todayMX(),
+        diasValidez: "5",
+        nombreAsesor: "",
+        cliente: { nombre: "", telefono: "", correo: "", cp: "" },
+        costos: { 
+            modelo: 0, 
+            modeloNombre: "", 
+            fleteTinacos: 0, 
+            viaticos: 0 
         },
-        costos: {
-          modelo: quote.modeloPrecio || 0,
-          modeloNombre: quote.modeloNombre || "",
-          fleteTinacos: quote.fleteTinacos || 0,
-          viaticos: quote.viaticos || 0,
-        },
-        extrasSeleccionados: quote.extras || [],
-        promo: {
-          texto: quote.promoTexto || "",
-          costo: quote.promoCosto || "",
-          imagenUrl: quote.promoImagen || "",
-        },
-        firma: quote.firma || "",
-      });
-      setSavedQuote(quote);
-      Swal.fire("Cargado", `Cotización con Folio ${String(quote.folio).padStart(4, '0')} cargada.`, "success");
-    } catch (error) {
-      console.error("Error fetching quote by folio:", error);
-      Swal.fire("Error", "No se pudo encontrar la cotización con ese folio.", "error");
-    }
+        extrasSeleccionados: [], 
+        promo: { texto: "", costo: "", imagenUrl: "" },
+        firma: "",
+    });
+    Swal.fire("Limpiado", "Puedes crear una nueva cotización.", "info");
   };
 
-  const handleSearchByCliente = async () => {
-    if (!searchCliente) {
-      Swal.fire("Error", "Por favor, ingrese un nombre de cliente.", "error");
-      return;
-    }
-    try {
-      const results = await fetchCotizacionesByCliente(searchCliente);
-      if (results && results.length > 0) {
-        setSearchResults(results);
-        setShowResultsModal(true);
-      } else {
-        Swal.fire("Sin resultados", "No se encontraron cotizaciones para ese cliente.", "info");
+  const handleOpenFolioList = async () => {
+      setModalTitle("Todas las Cotizaciones");
+      setShowResultsModal(true);
+      setLoadingResults(true);
+      try {
+          const data = await fetchCotizaciones();
+          setSearchResults(data);
+      } catch (error) {
+          Swal.fire("Error", "No se pudieron cargar las cotizaciones.", "error");
+      } finally {
+          setLoadingResults(false);
       }
-    } catch (error) {
-      console.error("Error fetching quotes by cliente:", error);
-      Swal.fire("Error", "No se pudo realizar la búsqueda.", "error");
-    }
+  };
+
+  const handleDeleteQuote = async (id) => {
+      const result = await Swal.fire({
+          title: '¿Estás seguro?',
+          text: "¡No podrás revertir esto!",
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonColor: '#3085d6',
+          cancelButtonColor: '#d33',
+          confirmButtonText: 'Sí, ¡bórralo!',
+          cancelButtonText: 'Cancelar'
+      });
+
+      if (result.isConfirmed) {
+          try {
+              await deleteCotizacion(id);
+              Swal.fire('¡Borrado!', 'La cotización ha sido borrada.', 'success');
+              setSearchResults(prev => prev.filter(q => q.id !== id));
+          } catch (error) {
+              Swal.fire('Error', 'No se pudo borrar la cotización.', 'error');
+          }
+      }
   };
 
   const handleSelectQuote = (quote) => {
@@ -289,8 +328,43 @@ export default function DarmaxQuote() {
     });
     setSavedQuote(quote);
     setShowResultsModal(false);
-    setSearchCliente("");
     Swal.fire("Cargado", `Cotización con Folio ${String(quote.folio).padStart(4, '0')} cargada.`, "success");
+  };
+
+  const handleSendWhatsApp = async (quoteData) => {
+    const telefono = quoteData.cliente.telefono.replace(/\s/g, "");
+    if (!telefono || telefono.length < 10) {
+        Swal.fire("Error", "El cliente no tiene un número de teléfono válido.", "error");
+        return;
+    }
+
+    const folioStr = quoteData.folio ? `#${String(quoteData.folio).padStart(4, '0')}` : "(Borrador)";
+    const total = quoteData.costos.modelo + quoteData.costos.fleteTinacos + quoteData.costos.viaticos + quoteData.totalExtras;
+    const mensaje = `¡Hola *${quoteData.cliente.nombre}*! 👋\nTe envío la cotización de *Darmax Agua* con Folio *${folioStr}* por un total de *${money(total)}*.\n\nQuedamos a tus órdenes. ✨`;
+
+    try {
+        // Intentar compartir el archivo directamente (mejor para móviles)
+        if (navigator.canShare) {
+            const blob = await pdf(<DarmaxWaterQuotePDF data={quoteData} />).toBlob();
+            const file = new File([blob], `Cotizacion-Darmax-${quoteData.cliente.nombre}-${folioStr}.pdf`, { type: "application/pdf" });
+            
+            if (navigator.canShare({ files: [file] })) {
+                await navigator.share({
+                    files: [file],
+                    title: `Cotización Darmax ${folioStr}`,
+                    text: mensaje,
+                });
+                return;
+            }
+        }
+    } catch (error) {
+        console.error("Error sharing file:", error);
+    }
+
+    // Fallback: Abrir WhatsApp con el mensaje (Desktop o si falla navigator.share)
+    const encodedMessage = encodeURIComponent(mensaje);
+    const whatsappUrl = `https://wa.me/52${telefono}?text=${encodedMessage}`;
+    window.open(whatsappUrl, "_blank");
   };
 
   const handleSaveQuote = async () => {
@@ -299,13 +373,73 @@ export default function DarmaxQuote() {
           return;
       }
 
+      const quoteToSave = { ...data, diasValidez: form.diasValidez };
+
+      if (savedQuote?.id) {
+          const result = await Swal.fire({
+              title: '¿Qué deseas hacer?',
+              text: `La cotización con Folio ${String(savedQuote.folio).padStart(4, '0')} ya existe.`,
+              icon: 'question',
+              showCancelButton: true,
+              showDenyButton: true,
+              confirmButtonText: 'Actualizar Existente',
+              denyButtonText: 'Generar Nueva',
+              cancelButtonText: 'Cancelar',
+              confirmButtonColor: '#3085d6',
+              denyButtonColor: '#28a745',
+          });
+
+          if (result.isConfirmed) {
+              // Actualizar
+              setIsSaving(true);
+              try {
+                  const response = await updateCotizacion(savedQuote.id, quoteToSave);
+                  const updatedData = { ...quoteToSave, folio: response.folio };
+                  setSavedQuote(response);
+                  
+                  const sendResult = await Swal.fire({
+                      title: "¡Actualizado!",
+                      text: `Cotización actualizada. ¿Deseas enviarla por WhatsApp?`,
+                      icon: "success",
+                      showCancelButton: true,
+                      confirmButtonText: "Sí, enviar",
+                      cancelButtonText: "No por ahora"
+                  });
+
+                  if (sendResult.isConfirmed) handleSendWhatsApp(updatedData);
+
+              } catch (error) {
+                  console.error("Error updating quote:", error);
+                  Swal.fire("Error", "No se pudo actualizar la cotización.", "error");
+              } finally {
+                  setIsSaving(false);
+              }
+              return;
+          } else if (result.isDenied) {
+              // Generar nueva (continuar al flujo normal de creación)
+          } else {
+              return; // Cancelado
+          }
+      }
+
+      // Flujo de creación de nueva cotización
       setIsSaving(true);
       try {
-          // Usamos 'data' que ya tiene los números procesados
-          const quoteToSave = { ...data, diasValidez: form.diasValidez };
           const response = await createCotizacion(quoteToSave);
+          const savedData = { ...quoteToSave, folio: response.folio };
           setSavedQuote(response);
-          Swal.fire("¡Guardado!", `Cotización guardada con Folio: ${String(response.folio).padStart(4, '0')}`, "success");
+          
+          const sendResult = await Swal.fire({
+              title: "¡Guardado!",
+              text: `Cotización guardada con Folio: ${String(response.folio).padStart(4, '0')}. ¿Deseas enviarla por WhatsApp?`,
+              icon: "success",
+              showCancelButton: true,
+              confirmButtonText: "Sí, enviar",
+              cancelButtonText: "No por ahora"
+          });
+
+          if (sendResult.isConfirmed) handleSendWhatsApp(savedData);
+
       } catch (error) {
           console.error("Error saving quote:", error);
           const serverError = error.response?.data?.error || "No se pudo guardar la cotización.";
@@ -341,8 +475,11 @@ export default function DarmaxQuote() {
         {showResultsModal && (
           <ResultsModal 
             results={searchResults}
+            isLoading={loadingResults}
+            title={modalTitle}
             onClose={() => setShowResultsModal(false)}
             onSelect={handleSelectQuote}
+            onDelete={handleDeleteQuote}
           />
         )}
         {/* Header Responsivo */}
@@ -352,6 +489,20 @@ export default function DarmaxQuote() {
                 <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">Genera cotizaciones en PDF.</p>
             </div>
             <div className="flex gap-2 w-full sm:w-auto grid grid-cols-2 sm:flex">
+                <button
+                    onClick={handleNewQuote}
+                    className="flex items-center justify-center gap-2 px-3 py-2 sm:px-4 rounded-xl font-bold shadow-md transition-all active:scale-95 text-xs sm:text-sm bg-white text-gray-700 hover:bg-gray-50 border border-gray-200"
+                >
+                    <span className="material-symbols-outlined text-lg sm:text-xl">add_circle</span>
+                    Nuevo
+                </button>
+                <button
+                    onClick={handleOpenFolioList}
+                    className="flex items-center justify-center gap-2 px-3 py-2 sm:px-4 rounded-xl font-bold shadow-md transition-all active:scale-95 text-xs sm:text-sm bg-white text-gray-700 hover:bg-gray-50 border border-gray-200"
+                >
+                    <span className="material-symbols-outlined text-lg sm:text-xl">list_alt</span>
+                    Ver Folios
+                </button>
                 <button
                     onClick={handleSaveQuote}
                     disabled={isSaving}
@@ -376,6 +527,14 @@ export default function DarmaxQuote() {
                     )}
                 </button>
 
+                <button
+                    onClick={() => handleSendWhatsApp(pdfData)}
+                    className="flex items-center justify-center gap-2 px-3 py-2 sm:px-4 rounded-xl font-bold shadow-md transition-all active:scale-95 text-xs sm:text-sm bg-[#25D366] text-white hover:bg-[#128C7E]"
+                    title="Enviar por WhatsApp"
+                >
+                    <span className="material-symbols-outlined text-lg sm:text-xl">send</span>
+                    WhatsApp
+                </button>
                 <PDFDownloadLink
                     document={doc}
                     fileName={`Cotizacion-DarmaxAgua-${form.cliente.nombre || "cliente"}-${savedQuote?.folio ? String(savedQuote.folio).padStart(4, '0') : "Borrador"}.pdf`}
@@ -397,47 +556,6 @@ export default function DarmaxQuote() {
             <div className="w-full lg:w-1/2 overflow-y-auto custom-scrollbar pr-1 sm:pr-2 pb-24 lg:pb-20">
                 <div className="space-y-4 sm:space-y-6">
                     
-                                        {/* Tarjeta: Buscar Cotización */}
-                                        <div className="bg-white dark:bg-gray-900 p-3 sm:p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800">
-                                            <SectionTitle>Buscar Cotización</SectionTitle>
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                                <div className="flex items-end gap-2">
-                                                    <div className="flex-1">
-                                                        <InputGroup
-                                                            label="Número de Folio"
-                                                            value={searchFolio}
-                                                            onChange={(e) => setSearchFolio(e.target.value)}
-                                                            placeholder="Ej. 123"
-                                                            type="number"
-                                                        />
-                                                    </div>
-                                                    <button
-                                                        onClick={() => handleFetchQuote()}
-                                                        className="bg-blue-500 text-white p-2 rounded-lg hover:bg-blue-600 transition-colors flex items-center justify-center min-w-[40px] h-[38px]"
-                                                        title="Buscar por Folio"
-                                                    >
-                                                        <span className="material-symbols-outlined text-xl">search</span>
-                                                    </button>
-                                                </div>
-                                                <div className="flex items-end gap-2">
-                                                    <div className="flex-1">
-                                                        <InputGroup
-                                                            label="Nombre del Cliente"
-                                                            value={searchCliente}
-                                                            onChange={(e) => setSearchCliente(e.target.value)}
-                                                            placeholder="Ej. Juan Pérez"
-                                                        />
-                                                    </div>
-                                                    <button
-                                                        onClick={handleSearchByCliente}
-                                                        className="bg-blue-500 text-white p-2 rounded-lg hover:bg-blue-600 transition-colors flex items-center justify-center min-w-[40px] h-[38px]"
-                                                        title="Buscar por Cliente"
-                                                    >
-                                                        <span className="material-symbols-outlined text-xl">person_search</span>
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
                     {/* Tarjeta: Datos Generales */}
                     <div className="bg-white dark:bg-gray-900 p-3 sm:p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800">
                         <SectionTitle>Información General</SectionTitle>

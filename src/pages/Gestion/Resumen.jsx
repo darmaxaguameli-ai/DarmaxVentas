@@ -33,22 +33,31 @@ const Resumen = () => {
     const { state } = useGestion();
     const { user, hasPermission } = useAuth();
     const navigate = useNavigate();
-    const { income, expenses, inventory, dailySalesRecords } = state;
+    const { income, expenses, inventory, dailySalesRecords, loading } = state;
     const [timePeriod, setTimePeriod] = useState('monthly'); // 'monthly' or 'annual'
     const [viewMode, setViewMode] = useState('local'); // 'local' or 'consolidated'
 
     // El control de acceso ahora se maneja centralmente en AdminProtectedRoute
     // Pero si entra aquí y no tiene permiso de ver el resumen, lo mandamos al primer módulo que sí tenga
     useEffect(() => {
+        if (loading) return;
+        
         if (!hasPermission('canViewSummary')) {
-            console.log("No tienes permiso para ver el resumen. Redirigiendo...");
+            console.log("No tienes permiso para ver el resumen. Buscando módulo alternativo...");
+            
             if (hasPermission('canAccessInventory')) navigate('/gestion/inventario', { replace: true });
-            else if (hasPermission('canAccessRH')) navigate('/gestion/usuarios', { replace: true });
+            else if (hasPermission('canAccessRH')) navigate('/gestion/recursos-humanos', { replace: true });
+            else if (hasPermission('canAccessFinances')) navigate('/gestion/ingresos', { replace: true });
             else if (hasPermission('canAccessLeads')) navigate('/gestion/prospeccion', { replace: true });
             else if (hasPermission('canAccessQuotes')) navigate('/gestion/cotizador-distribuidores', { replace: true });
-            else navigate('/role-selector', { replace: true });
+            else if (hasPermission('canAccessMarketing')) navigate('/gestion/marketing', { replace: true });
+            else if (hasPermission('canAccessConfig')) navigate('/gestion/configuracion', { replace: true });
+            else {
+                console.warn("Usuario sin sub-módulos de gestión disponibles. Enviando a selector.");
+                navigate('/role-selector', { replace: true });
+            }
         }
-    }, [hasPermission, navigate]);
+    }, [hasPermission, navigate, loading]);
 
     const isAdmin = user?.roles?.some(r => r.name === 'ADMIN') || user?.role === 'ADMIN';
 

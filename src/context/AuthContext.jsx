@@ -44,6 +44,33 @@ export const AuthProvider = ({ children }) => {
         return false;
     }, [user]);
 
+    // Nueva función para verificar acceso a módulos de forma inteligente
+    const hasModuleAccess = useCallback((moduleName) => {
+        if (!user) return false;
+
+        switch (moduleName) {
+            case 'management':
+                // Acceso a Gestión si tiene el permiso maestro O cualquier permiso de sub-módulo
+                return hasPermission('canAccessManagement') || 
+                       hasPermission('canViewSummary') ||
+                       hasPermission('canAccessInventory') ||
+                       hasPermission('canAccessRH') ||
+                       hasPermission('canAccessFinances') ||
+                       hasPermission('canAccessConfig') ||
+                       hasPermission('canAccessQuotes') ||
+                       hasPermission('canAccessLeads') ||
+                       hasPermission('canAccessMarketing');
+            case 'pos':
+                return hasPermission('canAccessPOS');
+            case 'delivery':
+                return hasPermission('canAccessDelivery');
+            case 'orders':
+                return hasPermission('canAccessOrders') || user.type === 'CLIENTE';
+            default:
+                return false;
+        }
+    }, [user, hasPermission]);
+
     useEffect(() => {
         try {
             const storedUser = localStorage.getItem('user');
@@ -148,6 +175,7 @@ export const AuthProvider = ({ children }) => {
         logout,
         updateUser,
         hasPermission, // Exponer la función de permisos
+        hasModuleAccess, // Exponer la función de acceso a módulos
     };
 
     return (

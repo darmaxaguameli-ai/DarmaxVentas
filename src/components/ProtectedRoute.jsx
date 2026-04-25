@@ -30,6 +30,11 @@ const ProtectedRoute = ({ children, allowedRoles, permission }) => {
         return <Navigate to="/login" replace />;
     }
 
+    // --- Lógica de Cambio de Contraseña Obligatorio ---
+    if (user?.mustChangePassword && window.location.pathname !== '/change-password-force') {
+        return <Navigate to="/change-password-force" replace />;
+    }
+
     // 1. Verificación por Permiso Específico (RBAC v2)
     if (permission && !hasPermission(permission)) {
         console.warn(`Acceso Denegado: El usuario no tiene el permiso [${permission}]`);

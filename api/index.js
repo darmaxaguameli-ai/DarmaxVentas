@@ -325,27 +325,14 @@ app.post('/api/register-client', async (req, res) => {
       lat: coordinates.lat ? parseFloat(coordinates.lat) : null, 
       lng: coordinates.lng ? parseFloat(coordinates.lng) : null, 
       role: 'CLIENTE',
-      roleId: roleRecord ? roleRecord.id : null, // ✅ Asignar el ID dinámico
       clientCategory: data.clientCategory || 'PARTICULAR',
     };
 
-    // Generar un customId único
-    let customId;
-    let isIdUnique = false;
-    while (!isIdUnique) {
-      const rolePrefix = 'CLI';
-      const random = String(Math.floor(Math.random() * 9000) + 1000);
-      customId = `${rolePrefix}-${random}`;
-      const existingUser = await prisma.user.findUnique({ where: { customId } });
-      if (!existingUser) {
-        isIdUnique = true;
-      }
-    }
-    
     const newUser = await prisma.user.create({
       data: {
         ...userData,
-        customId,
+        customId: '', // Dejar vacío para que el Trigger de DB genere CLI-0001
+        roles: roleRecord ? { connect: [{ id: roleRecord.id }] } : undefined,
       },
     });
 
@@ -1851,17 +1838,19 @@ app.post('/api/users', async (req, res) => {
   try {
     const data = req.body;
     
-    // --- ROLE & AUTH CONFIGURATION ---
-    let finalRole = 'CLIENTE';
-    let finalStoreId = null;
-    let requestedRole = (data.role || 'CLIENTE').toUpperCase().trim();
-
-    // Mapeo de conveniencia para variaciones de nombres de roles
+    // ✅ DETERMINAR ROL Y TIPO
+    const isExplicitCollaborator = data.type === 'COLABORADOR';
+    let requestedRole = (data.role || (isExplicitCollaborator ? 'COLABORADOR' : (data.roleIds && data.roleIds.length > 0 ? 'COLABORADOR' : 'CLIENTE'))).toUpperCase().trim();
     if (requestedRole === 'VENTAS') requestedRole = 'VENTA';
     if (requestedRole === 'REPARTIDORES') requestedRole = 'REPARTIDOR';
 
-    // If attempting to create a non-CLIENT user (Admin, Vendedor, Repartidor), verify permissions
-    if (requestedRole !== 'CLIENTE') {
+    let finalRole = requestedRole;
+    let finalStoreId = data.storeId || null;
+
+    // Si se intenta crear un usuario que no es CLIENTE, verificar permisos de ADMIN
+    const isCollaborator = finalRole !== 'CLIENTE' || isExplicitCollaborator;
+    
+    if (isCollaborator) {
         const authHeader = req.headers['authorization'];
         let isAdmin = false;
 
@@ -1870,115 +1859,67 @@ app.post('/api/users', async (req, res) => {
             if (token) {
                 try {
                     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-                    if (decoded.role === 'ADMIN') {
-                        isAdmin = true;
-                    }
-                } catch (err) {
-                    console.warn("Token verification failed during privileged user creation:", err.message);
-                }
+                    if (decoded.role === 'ADMIN') isAdmin = true;
+                } catch (err) {}
             }
         }
 
-        // Permitimos crear el usuario si es ADMIN o si viene del flujo de RRHH (verificado por el token)
         if (!isAdmin) {
-            return res.status(403).json({
-                error: 'Permisos insuficientes.',
-                message: 'Solo los administradores pueden crear usuarios con roles especiales.'
-            });
-        }
-
-        finalRole = requestedRole;
-        finalStoreId = data.storeId || null;
-    } else {
-        finalRole = 'CLIENTE';
-        finalStoreId = null;
-    }
-
-    // 🔍 BUSCAR ROLE ID DINÁMICO
-    let roleRecord = await prisma.role.findUnique({
-        where: { name: finalRole }
-    });
-
-    let foundRoleId = roleRecord ? roleRecord.id : null;
-
-    if (!roleRecord && finalRole !== 'CLIENTE') {
-        const possibleRole = await prisma.role.findFirst({
-            where: { name: { contains: finalRole, mode: 'insensitive' } }
-        });
-        if (possibleRole) {
-            foundRoleId = possibleRole.id;
+            return res.status(403).json({ error: 'Permisos insuficientes para crear colaboradores.' });
         }
     }
 
-    // ✅ GENERAR customId
-    let customId = data.customId;
-    if (!customId) {
-      let rolePrefix = 'CLI';
-      const normalizedRole = finalRole.toUpperCase();
-      
-      if (normalizedRole.includes('ADMIN')) rolePrefix = 'ADM';
-      else if (normalizedRole.includes('VENDEDOR')) rolePrefix = 'VEN';
-      else if (normalizedRole.includes('VENTA')) rolePrefix = 'VTA';
-      else if (normalizedRole.includes('REPARTIDOR')) rolePrefix = 'REP';
-      else rolePrefix = 'CLI';
-
-      const random = String(Math.floor(Math.random() * 900) + 100); 
-      customId = `${rolePrefix}-${random}`; 
-    }
-
-    // Normalizar email si existe
     const normalizedEmail = data.email ? data.email.toLowerCase().trim() : null;
     
-    console.log(`[CreateUser] Intentando crear en DB: ${normalizedEmail} con CustomID: ${customId}`);
-
-    // Explicitly convert empty strings to null for optional fields
     const userData = {
       name: data.name,
       email: normalizedEmail,
-      phone: data.phone === '' ? null : data.phone,
-      street: data.street === '' ? null : data.street,
-      neighborhood: data.neighborhood === '' ? null : data.neighborhood,
-      city: data.city === '' ? null : data.city,
-      municipality: data.municipality === '' ? null : data.municipality,
-      state: data.state === '' ? null : data.state,
-      postalCode: data.postalCode === '' ? null : data.postalCode,
-      references: data.references === '' ? null : data.references,
-      lat: data.lat ? parseFloat(data.lat) : null,
-      lng: data.lng ? parseFloat(data.lng) : null,
-      sexo: data.sexo === '' ? null : data.sexo, 
+      phone: data.phone || null,
+      street: data.street || null,
+      neighborhood: data.neighborhood || null,
+      city: data.city || null,
+      postalCode: data.postalCode || null,
+      sexo: data.sexo || null, 
       clientCategory: data.clientCategory || 'PARTICULAR',
       role: finalRole,
-      roleId: foundRoleId, 
     };
 
-    // Connect store if provided
-    if (finalStoreId) {
-        userData.store = { connect: { id: finalStoreId } };
+    if (finalStoreId) userData.store = { connect: { id: finalStoreId } };
+
+    // Hash password
+    const hashedPassword = data.password ? await bcrypt.hash(data.password, 10) : null;
+
+    // Roles a conectar
+    const roleConnections = [];
+    // 1. Rol principal por nombre (si existe en DB)
+    try {
+        const mainRole = await prisma.role.findUnique({ where: { name: finalRole } });
+        if (mainRole) roleConnections.push({ id: mainRole.id });
+    } catch (e) {}
+
+    // 2. Roles adicionales por ID
+    if (data.roleIds && Array.isArray(data.roleIds)) {
+        data.roleIds.forEach(id => {
+            if (!roleConnections.some(rc => rc.id === id)) roleConnections.push({ id });
+        });
     }
 
-    // Hash password if provided
-    if (data.password) {
-      console.log(`[CreateUser] Hasheando contraseña para: ${normalizedEmail}`);
-      const hashedPassword = await bcrypt.hash(data.password, 10);
-      userData.password = hashedPassword;
-    } else {
-      console.warn(`[CreateUser] Registro sin contraseña para: ${normalizedEmail}`);
-      userData.password = null;
-    }
-
-    // Generate Verification Token
     const verificationToken = crypto.randomBytes(32).toString('hex');
 
     const newUser = await prisma.user.create({
       data: {
         ...userData,
-        customId,
+        password: hashedPassword,
+        customId: data.customId || '', // Dejar vacío para que el Trigger de DB genere CO-0001 o CLI-0001
         verificationToken,
-        emailVerified: null
+        emailVerified: null,
+        roles: roleConnections.length > 0 ? { connect: roleConnections } : undefined,
+        type: isCollaborator ? 'COLABORADOR' : 'CLIENTE',
+        mustChangePassword: !!hashedPassword, // ✅ Forzar cambio si tiene password inicial
       },
     });
 
-    console.log(`[CreateUser] USUARIO CREADO EXITOSAMENTE: ${newUser.id}`);
+    console.log(`[CreateUser] USUARIO CREADO EXITOSAMENTE: ${newUser.id} con CustomID: ${newUser.customId}`);
 
     // Send Verification Email if email exists
     if (userData.email) {
@@ -2124,15 +2065,9 @@ app.put('/api/users/:id', verifyToken, async (req, res) => {
     if (requesterIsAdmin && data.role && data.role !== currentUser.role) {
         updateData.role = data.role;
         
-        // Regenerate customId with new prefix
-        let rolePrefix = 'CLI';
-        switch (data.role) {
-            case 'ADMIN': rolePrefix = 'ADM'; break;
-            case 'VENDEDOR': rolePrefix = 'VEN'; break;
-            case 'VENTA': rolePrefix = 'VTA'; break;
-            case 'REPARTIDOR': rolePrefix = 'REP'; break;
-            default: rolePrefix = 'CLI';
-        }
+        // Regenerate customId with generic prefix
+        const isCollaborator = data.role.toUpperCase() !== 'CLIENTE';
+        const rolePrefix = isCollaborator ? 'CO' : 'CLI';
         
         const random = String(Math.floor(Math.random() * 900) + 100);
         updateData.customId = `${rolePrefix}-${random}`;
@@ -2406,12 +2341,24 @@ app.post('/api/empleados', verifyToken, async (req, res) => {
   } = req.body;
 
   try {
-    const empleadoData = {
-      ...data,
-      fechaContratacion: new Date(fechaContratacion),
-    };
+    const prismaEmpleadoFields = [
+        'nombreCompleto', 'puesto', 'sueldo', 'telefono', 'emailPersonal', 
+        'street', 'neighborhood', 'city', 'postalCode', 'fechaContratacion', 
+        'fechaTerminacion', 'estatus'
+    ];
 
-    if (userId) {
+    const empleadoData = {};
+    prismaEmpleadoFields.forEach(field => {
+        if (req.body[field] !== undefined) {
+            empleadoData[field] = req.body[field];
+        }
+    });
+
+    // Sobrescribir o ajustar campos específicos
+    if (fechaContratacion) empleadoData.fechaContratacion = new Date(fechaContratacion);
+    if (empleadoData.sueldo) empleadoData.sueldo = parseFloat(empleadoData.sueldo);
+
+    if (userId && userId !== "null") {
       empleadoData.user = { connect: { id: userId } };
       
       // Si se proporcionó un nuevo password o roleId, actualizamos el usuario
@@ -2421,7 +2368,9 @@ app.post('/api/empleados', verifyToken, async (req, res) => {
             userUpdateData.password = await bcrypt.hash(password || newPassword, 10);
         }
         if (roleId) {
-            userUpdateData.roleId = roleId;
+            userUpdateData.roles = {
+                set: [{ id: roleId }]
+            };
         }
 
         await prisma.user.update({
@@ -2431,7 +2380,9 @@ app.post('/api/empleados', verifyToken, async (req, res) => {
       }
     }
     
-    if (managerId) empleadoData.manager = { connect: { id: managerId } };
+    if (managerId && managerId !== "null") {
+        empleadoData.manager = { connect: { id: managerId } };
+    }
 
     const newEmpleado = await prisma.empleado.create({
       data: empleadoData,
@@ -3504,6 +3455,21 @@ app.get('/api/external/dipomex/codigo_postal', async (req, res) => {
 // COTIZACIONES API
 // =====================================================
 
+// GET: Obtener todas las cotizaciones
+app.get('/api/cotizaciones', verifyToken, async (req, res) => {
+    try {
+        const quotes = await prisma.cotizacion.findMany({
+            orderBy: {
+                folio: 'desc'
+            }
+        });
+        res.json(quotes);
+    } catch (error) {
+        console.error('Error fetching quotes:', error);
+        res.status(500).json({ error: 'Error al obtener las cotizaciones.' });
+    }
+});
+
 // POST: Crear nueva cotización
 app.post('/api/cotizaciones', verifyToken, async (req, res) => {
   try {
@@ -3535,7 +3501,7 @@ app.post('/api/cotizaciones', verifyToken, async (req, res) => {
         
         firma: data.firma || null,
         
-        fecha: data.fecha ? new Date(date) : new Date(), 
+        fecha: data.fecha ? new Date(data.fecha) : new Date(), 
         diasValidez: parseInt(data.diasValidez) || 5,
       }
     });
@@ -3558,6 +3524,39 @@ app.post('/api/cotizaciones', verifyToken, async (req, res) => {
       details: error.message 
     });
   }
+});
+
+// PUT: Actualizar una cotización existente
+app.put('/api/cotizaciones/:id', verifyToken, async (req, res) => {
+    const { id } = req.params;
+    const data = req.body;
+    try {
+        const updatedQuote = await prisma.cotizacion.update({
+            where: { id },
+            data: {
+                fecha: data.fecha ? new Date(data.fecha) : undefined,
+                diasValidez: parseInt(data.diasValidez) || 5,
+                nombreAsesor: data.nombreAsesor,
+                nombreCliente: data.cliente?.nombre || data.nombreCliente,
+                telefono: data.cliente?.telefono || data.telefono,
+                correo: data.cliente?.correo || data.correo,
+                cp: data.cliente?.cp || data.cp,
+                modeloNombre: data.costos?.modeloNombre || data.modeloNombre,
+                modeloPrecio: parseFloat(data.costos?.modelo) || parseFloat(data.modeloPrecio) || 0,
+                fleteTinacos: parseFloat(data.costos?.fleteTinacos) || parseFloat(data.fleteTinacos) || 0,
+                viaticos: parseFloat(data.costos?.viaticos) || parseFloat(data.viaticos) || 0,
+                extras: data.extrasSeleccionados || data.extras,
+                promoTexto: data.promo?.texto || data.promoTexto,
+                promoCosto: data.promo?.costo === null ? null : (parseFloat(data.promo?.costo) || parseFloat(data.promoCosto) || null),
+                promoImagen: data.promo?.imagenUrl || data.promoImagen,
+                firma: data.firma,
+            }
+        });
+        res.json(updatedQuote);
+    } catch (error) {
+        console.error('Error updating quote:', error);
+        res.status(500).json({ error: 'Error al actualizar la cotización.' });
+    }
 });
 
 // GET: Obtener una cotización por ID (para reimprimir)
@@ -3609,6 +3608,23 @@ app.get('/api/cotizaciones/cliente/:nombre', verifyToken, async (req, res) => {
     } catch (error) {
         console.error('Error fetching quotes by client name:', error);
         res.status(500).json({ error: 'Error al obtener las cotizaciones por nombre de cliente.' });
+    }
+});
+
+// DELETE: Borrar una cotización por ID
+app.delete('/api/cotizaciones/:id', verifyToken, async (req, res) => {
+    const { id } = req.params;
+    try {
+        await prisma.cotizacion.delete({
+            where: { id }
+        });
+        res.status(204).send(); // No content
+    } catch (error) {
+        console.error(`Error deleting quote ${id}:`, error);
+        if (error.code === 'P2025') {
+            return res.status(404).json({ error: 'Cotización no encontrada.' });
+        }
+        res.status(500).json({ error: 'Error al borrar la cotización.' });
     }
 });
 

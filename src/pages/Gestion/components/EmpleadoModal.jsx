@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
-import { FaUserShield, FaKey, FaUserCheck, FaTimes, FaEnvelope, FaMapMarkerAlt, FaBriefcase, FaCheck, FaInfoCircle } from "react-icons/fa";
+import { FaUserShield, FaKey, FaUserCheck, FaTimes, FaEnvelope, FaMapMarkerAlt, FaBriefcase, FaCheck, FaInfoCircle, FaEye, FaEyeSlash } from "react-icons/fa";
 import apiClient from "@/api/apiClient";
 
 const EmpleadoModal = ({ onClose, empleadoToEdit, onSave, empleados = [], users = [], roles = [] }) => {
   const [systemAccessEnabled, setSystemAccessEnabled] = useState(!!empleadoToEdit?.userId);
   const [changePassword, setChangePassword] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [localRoles, setLocalRoles] = useState(roles || []);
   const [loadingRoles, setLoadingRoles] = useState(false);
   
@@ -273,7 +274,22 @@ const EmpleadoModal = ({ onClose, empleadoToEdit, onSave, empleados = [], users 
                                     <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1.5 ml-1 italic">Contraseña Temporal</label>
                                     <div className="relative">
                                         <FaKey className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300" />
-                                        <input name="password" type="password" value={empleado.password || ""} onChange={handleChange} required={systemAccessEnabled} placeholder="Mínimo 6 caracteres" className="w-full pl-11 pr-4 py-3 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700 rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500 shadow-sm" />
+                                        <input 
+                                            name="password" 
+                                            type={showPassword ? "text" : "password"} 
+                                            value={empleado.password || ""} 
+                                            onChange={handleChange} 
+                                            required={systemAccessEnabled} 
+                                            placeholder="Mínimo 6 caracteres" 
+                                            className="w-full pl-11 pr-12 py-3 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700 rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500 shadow-sm" 
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowPassword(!showPassword)}
+                                            className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-blue-500 transition-colors"
+                                        >
+                                            {showPassword ? <FaEyeSlash size={16} /> : <FaEye size={16} />}
+                                        </button>
                                     </div>
                                 </div>
                             ) : (
@@ -285,10 +301,26 @@ const EmpleadoModal = ({ onClose, empleadoToEdit, onSave, empleados = [], users 
                                     ) : (
                                         <div className="relative animate-in zoom-in-95 duration-200">
                                             <FaKey className="absolute left-4 top-1/2 -translate-y-1/2 text-blue-500" />
-                                            <input name="password" type="password" value={empleado.password || ""} onChange={handleChange} placeholder="Nueva contraseña" className="w-full pl-11 pr-12 py-3 bg-white dark:bg-gray-900 border-2 border-blue-500 rounded-xl text-sm font-bold outline-none shadow-lg shadow-blue-500/10" />
-                                            <button type="button" onClick={() => {setChangePassword(false); setEmpleado({...empleado, password: ""})}} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500">
-                                                <FaTimes size={14} />
-                                            </button>
+                                            <input 
+                                                name="password" 
+                                                type={showPassword ? "text" : "password"} 
+                                                value={empleado.password || ""} 
+                                                onChange={handleChange} 
+                                                placeholder="Nueva contraseña" 
+                                                className="w-full pl-11 pr-20 py-3 bg-white dark:bg-gray-900 border-2 border-blue-500 rounded-xl text-sm font-bold outline-none shadow-lg shadow-blue-500/10" 
+                                            />
+                                            <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setShowPassword(!showPassword)}
+                                                    className="text-gray-400 hover:text-blue-500 transition-colors"
+                                                >
+                                                    {showPassword ? <FaEyeSlash size={16} /> : <FaEye size={16} />}
+                                                </button>
+                                                <button type="button" onClick={() => {setChangePassword(false); setEmpleado({...empleado, password: ""})}} className="text-gray-400 hover:text-red-500">
+                                                    <FaTimes size={14} />
+                                                </button>
+                                            </div>
                                         </div>
                                     )}
                                 </div>

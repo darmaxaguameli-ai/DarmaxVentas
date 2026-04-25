@@ -12,7 +12,7 @@ import {
 } from 'react-icons/md';
 
 const RoleSelector = () => {
-    const { hasPermission, user, logout } = useAuth();
+    const { hasModuleAccess, user, logout } = useAuth();
     const navigate = useNavigate();
 
     // Definición de Opciones Maestras
@@ -23,7 +23,7 @@ const RoleSelector = () => {
             desc: 'Administración, RRHH y Finanzas',
             icon: <MdAdminPanelSettings size={32} />,
             path: '/gestion',
-            permission: 'canAccessManagement',
+            module: 'management',
             color: 'bg-blue-600',
             lightColor: 'bg-blue-50 dark:bg-blue-900/20',
             textColor: 'text-blue-600 dark:text-blue-400'
@@ -34,9 +34,9 @@ const RoleSelector = () => {
             desc: 'Vender en mostrador y cobrar',
             icon: <MdStorefront size={32} />,
             path: '/ventas/mostrador',
-            permission: 'canAccessPOS',
+            module: 'pos',
             color: 'bg-emerald-600',
-            lightColor: 'bg-emerald-50 dark:bg-emerald-900/20',
+            lightColor: 'bg-emerald-50 dark:bg-blue-900/20',
             textColor: 'text-emerald-600 dark:text-emerald-400'
         },
         {
@@ -45,9 +45,9 @@ const RoleSelector = () => {
             desc: 'Ver rutas y entregar pedidos',
             icon: <MdLocalShipping size={32} />,
             path: '/repartidor/dashboard',
-            permission: 'canAccessDelivery',
+            module: 'delivery',
             color: 'bg-amber-600',
-            lightColor: 'bg-amber-50 dark:bg-amber-900/20',
+            lightColor: 'bg-amber-50 dark:bg-blue-900/20',
             textColor: 'text-amber-600 dark:text-amber-400'
         },
         {
@@ -56,15 +56,15 @@ const RoleSelector = () => {
             desc: 'Hacer pedidos y ver mis compras',
             icon: <MdShoppingBag size={32} />,
             path: '/pedidos',
-            permission: 'canAccessOrders',
+            module: 'orders',
             color: 'bg-indigo-600',
-            lightColor: 'bg-indigo-50 dark:bg-indigo-900/20',
+            lightColor: 'bg-indigo-50 dark:bg-blue-900/20',
             textColor: 'text-indigo-600 dark:text-indigo-400'
         }
     ];
 
     // Filtrar opciones según permisos reales del usuario
-    const availableOptions = options.filter(opt => hasPermission(opt.permission));
+    const availableOptions = options.filter(opt => hasModuleAccess(opt.module));
 
     const handleSelect = (path) => {
         navigate(path);
