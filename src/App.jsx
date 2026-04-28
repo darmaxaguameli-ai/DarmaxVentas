@@ -41,6 +41,7 @@ import Marketing from "./pages/Gestion/Marketing.jsx";
 import Configuracion from "./pages/Gestion/Configuracion.jsx";
 import CotizadorDistribuidoresPage from "./pages/Gestion/CotizadorDistribuidoresPage.jsx";
 import DarmaxQuote from "./pages/Gestion/DarmaxQuote.jsx";
+import PublicQuoteView from "./pages/Gestion/PublicQuoteView.jsx";
 
 // Cliente – flujo de pedidos
 import OrderSelection from "./pages/Client/orders/OrderSelection.jsx";
@@ -146,6 +147,7 @@ function App() {
         <Route path="/change-password-force" element={<ProtectedRoute><ForceChangePassword /></ProtectedRoute>} />
         <Route path="/logout-success" element={<LogoutSuccess />} />
         <Route path="/registro" element={<Register />} />
+        <Route path="/cotizacion/ver/:id" element={<PublicQuoteView />} />
 
         {/* Cliente Profile & Pedidos */}
         <Route path="/profile" element={<ProtectedRoute><ClientProfile /></ProtectedRoute>} />

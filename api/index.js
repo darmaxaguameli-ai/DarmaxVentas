@@ -3455,6 +3455,24 @@ app.get('/api/external/dipomex/codigo_postal', async (req, res) => {
 // COTIZACIONES API
 // =====================================================
 
+// GET: Obtener cotización por ID (PÚBLICO para clientes)
+app.get('/api/cotizaciones/public/:id', async (req, res) => {
+  try {
+    const quote = await prisma.cotizacion.findUnique({
+      where: { id: req.params.id }
+    });
+
+    if (!quote) {
+      return res.status(404).json({ error: 'Cotización no encontrada.' });
+    }
+
+    res.json(quote);
+  } catch (error) {
+    console.error('Error fetching public quote:', error);
+    res.status(500).json({ error: 'Error al obtener la cotización.' });
+  }
+});
+
 // GET: Obtener todas las cotizaciones
 app.get('/api/cotizaciones', verifyToken, async (req, res) => {
     try {

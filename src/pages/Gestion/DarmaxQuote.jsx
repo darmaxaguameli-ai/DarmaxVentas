@@ -159,7 +159,18 @@ export default function DarmaxQuote() {
         const response = await fetch('https://darmaxagua.com.mx/api/configurador/extras');
         if (!response.ok) throw new Error('Error al cargar catálogo de extras');
         const data = await response.json();
-        setExtrasDisponibles(data);
+        
+        // Eliminar duplicados por ID
+        const uniqueExtras = data.reduce((acc, current) => {
+          const x = acc.find(item => item.id === current.id);
+          if (!x) {
+            return acc.concat([current]);
+          } else {
+            return acc;
+          }
+        }, []);
+
+        setExtrasDisponibles(uniqueExtras);
       } catch (error) {
         console.error("Error fetching extras catalog:", error);
       } finally {
@@ -340,31 +351,84 @@ export default function DarmaxQuote() {
 
     const folioStr = quoteData.folio ? `#${String(quoteData.folio).padStart(4, '0')}` : "(Borrador)";
     const total = quoteData.costos.modelo + quoteData.costos.fleteTinacos + quoteData.costos.viaticos + quoteData.totalExtras;
-    const mensaje = `¡Hola *${quoteData.cliente.nombre}*! 👋\nTe envío la cotización de *Darmax Agua* con Folio *${folioStr}* por un total de *${money(total)}*.\n\nQuedamos a tus órdenes. ✨`;
+    
+    // Generar el link público si tenemos el ID (la cotización debe estar guardada)
+    const publicLink = quoteData.id ? `${window.location.origin}/cotizacion/ver/${quoteData.id}` : null;
+    
+    let mensaje = `¡Hola *${quoteData.cliente.nombre}*! 👋\nTe envío la cotización de *Darmax Agua* con Folio *${folioStr}* por un total de *${money(total)}*.\n\n`;
+    if (publicLink) {
+        mensaje += `📄 *Puedes verla aquí:* ${publicLink}\n\n`;
+    }
+    mensaje += `Quedamos a tus órdenes. ✨`;
+
+    Swal.fire({
+        title: 'Preparando envío...',
+        text: 'Generando PDF y conectando con WhatsApp',
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
 
     try {
+        const blob = await pdf(<DarmaxWaterQuotePDF data={quoteData} />).toBlob();
+        const cleanName = quoteData.cliente.nombre.replace(/[^a-zA-Z0-9]/g, "_");
+        const fileName = `Cotizacion_Darmax_${cleanName}_${quoteData.folio || 'Borrador'}.pdf`;
+        const file = new File([blob], fileName, { type: "application/pdf" });
+
+        Swal.close();
+
         // Intentar compartir el archivo directamente (mejor para móviles)
-        if (navigator.canShare) {
-            const blob = await pdf(<DarmaxWaterQuotePDF data={quoteData} />).toBlob();
-            const file = new File([blob], `Cotizacion-Darmax-${quoteData.cliente.nombre}-${folioStr}.pdf`, { type: "application/pdf" });
-            
-            if (navigator.canShare({ files: [file] })) {
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            try {
                 await navigator.share({
                     files: [file],
                     title: `Cotización Darmax ${folioStr}`,
                     text: mensaje,
                 });
                 return;
+            } catch (shareError) {
+                console.error("Error en navigator.share:", shareError);
             }
         }
-    } catch (error) {
-        console.error("Error sharing file:", error);
-    }
 
-    // Fallback: Abrir WhatsApp con el mensaje (Desktop o si falla navigator.share)
-    const encodedMessage = encodeURIComponent(mensaje);
-    const whatsappUrl = `https://wa.me/52${telefono}?text=${encodedMessage}`;
-    window.open(whatsappUrl, "_blank");
+        // Fallback para Desktop o si navigator.share falla
+        // Descargar el archivo primero
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+
+        const encodedMessage = encodeURIComponent(mensaje);
+        const whatsappUrl = `https://wa.me/52${telefono}?text=${encodedMessage}`;
+        
+        Swal.fire({
+            title: 'PDF Descargado',
+            html: `
+                <div class="text-left text-sm space-y-2">
+                    <p>1. Hemos descargado el PDF en tu equipo.</p>
+                    <p>2. El link de visualización rápida ya va en el mensaje.</p>
+                    <p>3. En computadoras, debes adjuntar el archivo manualmente si el cliente prefiere el PDF directo.</p>
+                </div>
+            `,
+            icon: 'info',
+            confirmButtonText: 'Ir a WhatsApp',
+            showCancelButton: true,
+            cancelButtonText: 'Cerrar'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                window.open(whatsappUrl, "_blank");
+            }
+        });
+
+    } catch (error) {
+        console.error("Error al preparar WhatsApp:", error);
+        Swal.fire("Error", "No se pudo generar el PDF para enviar.", "error");
+    }
   };
 
   const handleSaveQuote = async () => {
@@ -605,32 +669,59 @@ export default function DarmaxQuote() {
                         {loadingExtras ? (
                             <p className="text-xs text-gray-500 animate-pulse">Cargando...</p>
                         ) : extrasDisponibles.length > 0 ? (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
-                                {extrasDisponibles.map((extra) => (
-                                    <label key={extra.id} className="flex items-center gap-3 p-2 rounded-lg border border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition-colors group">
-                                        <input 
-                                            type="checkbox"
-                                            className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary flex-shrink-0"
-                                            checked={form.extrasSeleccionados.some(ex => ex.id === extra.id)}
-                                            onChange={(e) => {
-                                                const checked = e.target.checked;
-                                                setForm(prev => ({
-                                                    ...prev,
-                                                    extrasSeleccionados: checked 
-                                                        ? [...prev.extrasSeleccionados, extra]
-                                                        : prev.extrasSeleccionados.filter(ex => ex.id !== extra.id)
-                                                }));
-                                            }}
-                                        />
-                                        <div className="flex flex-col min-w-0">
-                                            <span className="text-xs font-bold text-gray-700 dark:text-gray-300 group-hover:text-primary transition-colors truncate">
-                                                {extra.name}
-                                            </span>
-                                            <span className="text-[10px] text-gray-500 dark:text-gray-400">
-                                                +${extra.basePrice}
-                                            </span>
+                            <div className="space-y-4">
+                                {[
+                                    { 
+                                        id: "alcalina", 
+                                        title: "Sistema de Agua Alcalina", 
+                                        items: extrasDisponibles.filter(ex => ex.code === "agua-alcalina") 
+                                    },
+                                    { 
+                                        id: "tinacos", 
+                                        title: "Tinacos (Almacenamiento)", 
+                                        items: extrasDisponibles.filter(ex => ex.isTinaco) 
+                                    },
+                                    { 
+                                        id: "otros", 
+                                        title: "Otros Componentes", 
+                                        items: extrasDisponibles.filter(ex => !ex.isTinaco && ex.code !== "agua-alcalina") 
+                                    }
+                                ].map((group) => (
+                                    group.items.length > 0 && (
+                                        <div key={group.id} className="space-y-2">
+                                            <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">
+                                                {group.title}
+                                            </h4>
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
+                                                {group.items.map((extra) => (
+                                                    <label key={extra.id} className="flex items-center gap-3 p-2 rounded-lg border border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition-colors group">
+                                                        <input 
+                                                            type="checkbox"
+                                                            className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary flex-shrink-0"
+                                                            checked={form.extrasSeleccionados.some(ex => ex.id === extra.id)}
+                                                            onChange={(e) => {
+                                                                const checked = e.target.checked;
+                                                                setForm(prev => ({
+                                                                    ...prev,
+                                                                    extrasSeleccionados: checked 
+                                                                        ? [...prev.extrasSeleccionados, extra]
+                                                                        : prev.extrasSeleccionados.filter(ex => ex.id !== extra.id)
+                                                                }));
+                                                            }}
+                                                        />
+                                                        <div className="flex flex-col min-w-0">
+                                                            <span className="text-xs font-bold text-gray-700 dark:text-gray-300 group-hover:text-primary transition-colors truncate">
+                                                                {extra.name}
+                                                            </span>
+                                                            <span className="text-[10px] text-gray-500 dark:text-gray-400">
+                                                                +${extra.basePrice}
+                                                            </span>
+                                                        </div>
+                                                    </label>
+                                                ))}
+                                            </div>
                                         </div>
-                                    </label>
+                                    )
                                 ))}
                             </div>
                         ) : (

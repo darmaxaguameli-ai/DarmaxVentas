@@ -160,6 +160,7 @@ export const fetchCotizaciones = () => apiClient.get('/cotizaciones').then(res =
 export const fetchCotizacion = (id) => apiClient.get(`/cotizaciones/${id}`).then(res => res.data);
 export const fetchCotizacionByFolio = (folio) => apiClient.get(`/cotizaciones/folio/${folio}`).then(res => res.data);
 export const fetchCotizacionesByCliente = (nombre) => apiClient.get(`/cotizaciones/cliente/${nombre}`).then(res => res.data);
+export const fetchPublicCotizacion = (id) => apiClient.get(`/cotizaciones/public/${id}`).then(res => res.data);
 export const deleteCotizacion = (id) => apiClient.delete(`/cotizaciones/${id}`).then(res => res.data);
 
 // ====================================================================
