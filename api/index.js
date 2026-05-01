@@ -1720,6 +1720,113 @@ app.delete('/api/leads/:id', verifyToken, async (req, res) => {
 });
 
 // =====================================================
+// BLOG API
+// =====================================================
+
+app.get('/api/blog', async (req, res) => {
+  const { slug } = req.query;
+  try {
+    if (slug) {
+      const post = await prisma.blogPost.findUnique({
+        where: { slug }
+      });
+      if (!post) return res.status(404).json({ error: 'Artículo no encontrado.' });
+      return res.json(post);
+    }
+
+    const posts = await prisma.blogPost.findMany({
+      orderBy: { createdAt: 'desc' }
+    });
+    res.json(posts);
+  } catch (error) {
+    console.error('Error fetching blog posts:', error);
+    res.status(500).json({ error: 'Error al obtener los artículos.' });
+  }
+});
+
+app.post('/api/blog', verifyToken, async (req, res) => {
+  try {
+    const data = req.body;
+    
+    // Generar slug si no viene
+    const slug = data.slug || data.title.toLowerCase().trim()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, "") // Quitar acentos
+      .replace(/[^\w\s-]/g, '')
+      .replace(/[\s_-]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+
+    const newPost = await prisma.blogPost.create({
+      data: {
+        title: data.title,
+        excerpt: data.excerpt,
+        content: data.content,
+        blocks: data.blocks,
+        image: data.image,
+        videoUrl: data.videoUrl,
+        category: data.category,
+        author: data.author,
+        published: data.published !== undefined ? data.published : true,
+        slug
+      }
+    });
+    res.status(201).json(newPost);
+  } catch (error) {
+    console.error('Error creating blog post:', error);
+    if (error.code === 'P2002') {
+      return res.status(409).json({ error: 'Ya existe un artículo con ese título o slug.' });
+    }
+    res.status(500).json({ error: 'Error al crear el artículo.' });
+  }
+});
+
+app.put('/api/blog', verifyToken, async (req, res) => {
+  const { id } = req.query;
+  const data = req.body;
+  
+  if (!id) return res.status(400).json({ error: 'ID de artículo requerido.' });
+
+  try {
+    // Si cambia el título y no viene slug, regenerarlo
+    let slug = data.slug;
+    if (!slug && data.title) {
+        slug = data.title.toLowerCase().trim()
+          .normalize('NFD').replace(/[\u0300-\u036f]/g, "")
+          .replace(/[^\w\s-]/g, '')
+          .replace(/[\s_-]+/g, '-')
+          .replace(/^-+|-+$/g, '');
+    }
+
+    const updatedPost = await prisma.blogPost.update({
+      where: { id },
+      data: {
+        ...data,
+        slug: slug || undefined
+      }
+    });
+    res.json(updatedPost);
+  } catch (error) {
+    console.error(`Error updating blog post ${id}:`, error);
+    res.status(500).json({ error: 'Error al actualizar el artículo.' });
+  }
+});
+
+app.delete('/api/blog', verifyToken, async (req, res) => {
+  const { id } = req.query;
+  
+  if (!id) return res.status(400).json({ error: 'ID de artículo requerido.' });
+
+  try {
+    await prisma.blogPost.delete({
+      where: { id }
+    });
+    res.status(204).send();
+  } catch (error) {
+    console.error(`Error deleting blog post ${id}:`, error);
+    res.status(500).json({ error: 'Error al eliminar el artículo.' });
+  }
+});
+
+// =====================================================
 // ROLES API
 // =====================================================
 app.get('/api/roles', verifyToken, async (req, res) => {

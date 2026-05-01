@@ -175,6 +175,18 @@ export const deleteSolicitud = (id) => apiClient.delete(`/solicitudes/${id}`).th
 
 
 // ====================================================================
+//  BLOG (GESTIÓN DIRECTA DARMAXAGUA.COM.MX)
+// ====================================================================
+const BLOG_API_URL = 'https://darmaxagua.com.mx/api/blog'; 
+
+export const fetchBlogPosts = () => axios.get(BLOG_API_URL).then(res => res.data);
+export const fetchBlogPost = (slug) => axios.get(BLOG_API_URL, { params: { slug } }).then(res => res.data);
+export const createBlogPost = (data) => axios.post(BLOG_API_URL, data).then(res => res.data);
+export const updateBlogPost = (id, data) => axios.put(BLOG_API_URL, data, { params: { id } }).then(res => res.data);
+export const deleteBlogPost = (id) => axios.delete(BLOG_API_URL, { params: { id } }).then(res => res.data);
+
+
+// ====================================================================
 //  REPORTS
 // ====================================================================
 export const fetchConsolidatedReport = () => apiClient.get('/reports/consolidated').then(res => res.data);

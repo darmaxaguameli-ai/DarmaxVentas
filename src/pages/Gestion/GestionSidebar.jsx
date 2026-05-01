@@ -21,11 +21,13 @@ const menuStructure = [
     ],
   },
   {
-    type: "link",
-    name: "Marketing Planner",
-    path: "marketing",
+    type: "group",
+    name: "Marketing & Contenido",
     icon: "ads_click",
-    permission: "canAccessMarketing",
+    children: [
+      { name: "Marketing Planner", path: "marketing", icon: "campaign", permission: "canAccessMarketing" },
+      { name: "Blog / Artículos", path: "blog", icon: "newspaper", permission: "canAccessMarketing" },
+    ],
   },
   {
     type: "group",
