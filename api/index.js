@@ -3874,8 +3874,12 @@ app.put('/api/solicitudes/:id', verifyToken, async (req, res) => {
 // ====================================================================
 //  START SERVER
 // ====================================================================
-app.listen(port, '0.0.0.0', () => {
-  console.log(`Server listening on port ${port}`);
-});
+if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
+  app.listen(port, '0.0.0.0', () => {
+    console.log(`Server listening on port ${port}`);
+  });
+}
+
+module.exports = app;
 
 // Forced restart trigger for Prisma Client update
