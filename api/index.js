@@ -1764,6 +1764,7 @@ app.post('/api/blog', verifyToken, async (req, res) => {
         image: data.image,
         videoUrl: data.videoUrl,
         category: data.category,
+        tags: data.tags,
         author: data.author,
         published: data.published !== undefined ? data.published : true,
         slug

@@ -564,6 +564,7 @@ model BlogPost {
   image     String?  // Imagen de portada
   videoUrl  String?  // Opcional, para incrustar videos
   category  String   @default("Articulo") // Articulo, Video, Curiosidad
+  tags      String[] @default(["Darmax"])
   published Boolean  @default(true)
   author    String   @default("Darmax")
 }

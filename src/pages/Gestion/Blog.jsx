@@ -10,7 +10,8 @@ import {
     FaPlus, FaEdit, FaTrash, FaEye, FaImage, FaVideo, 
     FaNewspaper, FaCheckCircle, FaTimesCircle, FaArrowLeft, 
     FaSave, FaCode, FaHeading, FaParagraph, FaLightbulb, 
-    FaListUl, FaQuoteLeft, FaChevronUp, FaChevronDown, FaBold, FaItalic
+    FaListUl, FaQuoteLeft, FaChevronUp, FaChevronDown, FaBold, FaItalic,
+    FaUndo, FaRedo, FaColumns
 } from 'react-icons/fa';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -20,61 +21,133 @@ import { v4 as uuidv4 } from 'uuid';
 // Block Editor Helpers & Components
 // ====================================================================
 
+// ✅ UTILIDAD DE VIDEO CENTRALIZADA
+const getEmbedUrl = (url) => {
+  if (!url) return "";
+
+  // 1. YouTube
+  if (url.includes("youtube.com") || url.includes("youtu.be")) {
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=|shorts\/)([^#\&\?]*).*/;
+    const match = url.match(regExp);
+    if (match && match[2].length === 11) return `https://www.youtube.com/embed/${match[2]}`;
+  }
+
+  // 2. Instagram
+  if (url.includes("instagram.com")) {
+    let cleanUrl = url.split("?")[0];
+    if (cleanUrl.endsWith("/")) cleanUrl = cleanUrl.slice(0, -1);
+    return `${cleanUrl}/embed`;
+  }
+
+  // 3. Facebook
+  if (url.includes("facebook.com")) {
+    if (url.includes("plugins/video.php")) return url;
+    return `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(url)}&show_text=0&width=560`;
+  }
+
+  // 4. TikTok
+  if (url.includes("tiktok.com")) {
+    const match = url.match(/\/video\/(\d+)/);
+    if (match && match[1]) return `https://www.tiktok.com/embed/v2/${match[1]}`;
+  }
+
+  return url;
+};
+
+const ACCENT_COLORS = {
+    cyan: { hex: '#06b6d4', bg: 'rgba(6, 182, 212, 0.05)', label: 'Cyan' },
+    teal: { hex: '#168387', bg: 'rgba(22, 131, 135, 0.05)', label: 'Teal' },
+    indigo: { hex: '#6366f1', bg: 'rgba(99, 102, 241, 0.05)', label: 'Indigo' },
+    rose: { hex: '#f43f5e', bg: 'rgba(244, 63, 94, 0.05)', label: 'Rose' },
+    amber: { hex: '#f59e0b', bg: 'rgba(245, 158, 11, 0.05)', label: 'Amber' },
+};
+
 const BLOCK_TYPES = [
     { type: 'heading', label: 'Título H2', icon: <FaHeading />, color: 'text-cyan-600' },
     { type: 'paragraph', label: 'Párrafo', icon: <FaParagraph />, color: 'text-slate-500' },
     { type: 'highlight', label: 'Cita / Destacado', icon: <FaQuoteLeft />, color: 'text-blue-500' },
+    { type: 'video', label: 'Video Central', icon: <FaVideo />, color: 'text-red-500' }, // ✅ NUEVO
+    { type: 'video-sidebar', label: 'Video Lateral', icon: <FaVideo />, color: 'text-orange-500' }, // ✅ NUEVO
     { type: 'tip', label: 'Tip de Darmax', icon: <FaLightbulb />, color: 'text-amber-500' },
     { type: 'image', label: 'Imagen', icon: <FaImage />, color: 'text-emerald-500' },
     { type: 'list', label: 'Lista', icon: <FaListUl />, color: 'text-indigo-500' },
+    { type: 'comparison', label: 'Comparativa', icon: <FaColumns />, color: 'text-indigo-600' }, // ✅ NUEVO
     { type: 'extra', label: 'Producto/Accesorio', icon: <FaPlus />, color: 'text-purple-500' },
 ];
 
 const compileToHTML = (blocks, extras = []) => {
-    return blocks.map(block => {
+    return blocks.map((block, idx) => {
+        // ✅ CORRECCIÓN DE FLUJO: Eliminamos w-full para que los bloques respeten el float del video
+        const contentWrapper = (html) => `<div class="mx-auto px-4 mb-8">${html}</div>`;
+
         switch (block.type) {
             case 'heading':
-                const accentHex = block.accent === 'teal' ? '#168387' : '#06b6d4'; // teal y cyan-500
-                const bgColor = block.accent === 'teal' ? 'rgba(22, 131, 135, 0.05)' : 'rgba(6, 182, 212, 0.05)';
-                
-                // Soporte para salto de línea con color (formato: "Línea 1 // Línea 2")
-                let finalContent = block.content;
+                const accent = ACCENT_COLORS[block.accent] || ACCENT_COLORS.cyan;
+                let finalHeading = block.content;
                 if (block.content.includes('//')) {
                     const [line1, line2] = block.content.split('//').map(s => s.trim());
-                    finalContent = `${line1}<br/><span style="color: ${accentHex}">${line2}</span>`;
+                    finalHeading = `${line1}<br/><span style="color: ${accent.hex}">${line2}</span>`;
                 }
-
-                // Aumentamos pl-10 para dar más aire con la barra lateral
-                return `<h2 style="border-left: 8px solid ${accentHex}; background-color: ${bgColor};" class="pl-10 py-5 text-2xl md:text-3xl font-black text-slate-900 rounded-r-2xl mt-16 mb-8 shadow-sm leading-tight">${finalContent}</h2>`;
+                return contentWrapper(`<h2 style="border-left: 8px solid ${accent.hex}; background-color: ${accent.bg}; font-size: 28px; line-height: 1.3;" class="pl-10 py-6 font-black text-slate-900 rounded-r-2xl mt-16 mb-8 shadow-sm tracking-tight">${finalHeading}</h2>`);
+            
             case 'paragraph':
-                return `<p class="text-slate-600 leading-relaxed mb-6">${block.content}</p>`;
+                const paragraphs = block.content.split('<div>').map(p => {
+                    let text = p.replace('</div>', '').trim();
+                    if (!text || text === '<br>') return '';
+                    return `<p style="font-size: 18px; line-height: 1.8;" class="text-slate-600 mb-6">${text}</p>`;
+                }).filter(p => p !== '').join('');
+                if (!paragraphs && block.content) {
+                    return contentWrapper(`<p style="font-size: 18px; line-height: 1.8;" class="text-slate-600 mb-8">${block.content}</p>`);
+                }
+                return contentWrapper(paragraphs);
+
             case 'highlight':
-                return `<div class="border-l-8 border-cyan-500 rounded-2xl bg-slate-50 pl-6 py-6 pb-8 my-10 shadow-sm"><p class="text-xl md:text-2xl font-medium text-slate-700 italic leading-relaxed">${block.content}</p></div>`;
-            case 'tip':
+                return contentWrapper(`
+                <div class="border-l-8 border-cyan-500 rounded-2xl bg-slate-50 pl-10 pr-10 py-12 pb-14 mt-12 mb-16 shadow-sm mx-2 md:mx-6">
+                    <p style="font-size: 21px; line-height: 1.7;" class="font-bold text-slate-700 italic leading-relaxed">
+                        ${block.content}
+                    </p>
+                </div>`);
+
+            case 'video':
+                return contentWrapper(`
+                <div class="aspect-video w-full rounded-[2.5rem] overflow-hidden my-14 shadow-2xl border border-slate-100 bg-black">
+                    <iframe src="${getEmbedUrl(block.content)}" class="w-full h-full" allowfullscreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"></iframe>
+                </div>`);
+
+            case 'video-sidebar':
+                // ✅ VIDEO LATERAL (VERTICAL): Detectamos si viene después de un título para superponerlo
+                // Solo superponemos si está a la DERECHA para no tapar el inicio del título
+                const isAfterHeading = idx > 0 && blocks[idx-1].type === 'heading';
+                const overlapClass = (isAfterHeading && block.align === 'right') ? 'lg:-mt-40' : '';
+                const alignClass = block.align === 'left' ? `float-left mr-8 ml-0 lg:-ml-12 ${overlapClass}` : `float-right ml-8 mr-0 lg:-mr-12 ${overlapClass}`;
+                
                 return `
-                <div class="bg-cyan-50 p-6 rounded-2xl border border-cyan-100 my-8">
-                    <h4 class="font-black text-cyan-900 mb-2">💡 Tip clave de Darmax:</h4>
-                    <p class="text-cyan-800 text-sm italic">${block.content}</p>
+                <div class="${alignClass} mb-14 w-[320px] sm:w-[360px] aspect-[9/16] rounded-[2.5rem] overflow-hidden shadow-2xl border-4 border-white bg-black z-10 relative ring-1 ring-slate-100">
+                    <iframe src="${getEmbedUrl(block.content)}" class="w-full h-full border-0" allowfullscreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"></iframe>
                 </div>`;
+
+            case 'tip':
+                return contentWrapper(`
+                <div class="bg-cyan-50 p-10 rounded-3xl border border-cyan-100 my-14 shadow-inner shadow-cyan-900/5">
+                    <h4 class="font-black text-cyan-900 mb-4 text-xl flex items-center gap-2">💡 Tip clave de Darmax:</h4>
+                    <p style="font-size: 17px; line-height: 1.7;" class="text-cyan-800 italic">${block.content}</p>
+                </div>`);
             case 'image':
-                return `<div class="rounded-[2.5rem] overflow-hidden my-12 shadow-2xl shadow-slate-900/10"><img src="${block.content}" alt="Blog Image" class="w-full h-auto" /></div>`;
+                return `<div class="max-w-4xl mx-auto rounded-[3rem] overflow-hidden my-20 shadow-2xl shadow-slate-900/15"><img src="${block.content}" alt="Blog Image" class="w-full h-auto" /></div>`;
             case 'list':
-                // Ahora el contenido de la lista ya viene con HTML del editor enriquecido
                 const listItems = block.content.split('<div>').filter(i => i.trim()).map(i => {
                     let cleaned = i.replace('</div>', '').trim();
                     if (!cleaned) return '';
-                    return `<li class="relative pl-0 mb-4 text-slate-600 leading-relaxed list-none">${cleaned}</li>`;
+                    return `<li style="font-size: 18px; line-height: 1.8;" class="relative pl-0 mb-6 text-slate-600 list-none border-l-4 border-cyan-500/20 pl-6">${cleaned}</li>`;
                 }).filter(i => i !== '').join('');
-                
-                // Si no hay divs (texto plano), lo tratamos línea por línea
                 if (!listItems && block.content) {
                     const fallbackItems = block.content.split('\n').filter(i => i.trim()).map(i => {
-                        return `<li class="relative pl-0 mb-4 text-slate-600 leading-relaxed list-none">${i.trim()}</li>`;
+                        return `<li style="font-size: 18px; line-height: 1.8;" class="relative pl-0 mb-6 text-slate-600 list-none border-l-4 border-cyan-500/20 pl-6">${i.trim()}</li>`;
                     }).join('');
-                    return `<ul class="space-y-2 mb-8 pl-0">${fallbackItems}</ul>`;
+                    return contentWrapper(`<ul class="space-y-4 mb-14 pl-0">${fallbackItems}</ul>`);
                 }
-
-                return `<ul class="space-y-2 mb-8 pl-0">${listItems}</ul>`;
+                return contentWrapper(`<ul class="space-y-4 mb-14 pl-0">${listItems}</ul>`);
             case 'extra':
                 const extra = extras.find(ex => ex.id === block.content);
                 if (!extra) return '';
@@ -90,44 +163,92 @@ const compileToHTML = (blocks, extras = []) => {
                         </div>
                     </div>
                 </div>`;
+            case 'comparison':
+                // ✅ NUEVO: BLOQUE DE COMPARATIVA / COLUMNAS (ESTILO FULL COLOR SIN LÍNEAS)
+                let cols = [];
+                try { cols = JSON.parse(block.content); } catch (e) { return ''; }
+                const gridCols = cols.length === 1 ? 'grid-cols-1' : cols.length === 2 ? 'md:grid-cols-2' : cols.length === 3 ? 'md:grid-cols-3' : 'md:grid-cols-4';
+                
+                const colItems = cols.map(col => {
+                    const colorMap = {
+                        cyan: { bg: 'bg-cyan-50/50', heading: 'text-cyan-950', text: 'text-cyan-900', strong: 'prose-strong:text-cyan-950' },
+                        teal: { bg: 'bg-teal-50/50', heading: 'text-teal-950', text: 'text-teal-900', strong: 'prose-strong:text-teal-950' },
+                        indigo: { bg: 'bg-indigo-50/50', heading: 'text-indigo-950', text: 'text-indigo-900', strong: 'prose-strong:text-indigo-950' },
+                        rose: { bg: 'bg-rose-50/50', heading: 'text-rose-950', text: 'text-rose-900', strong: 'prose-strong:text-rose-950' },
+                        amber: { bg: 'bg-amber-50/50', heading: 'text-amber-950', text: 'text-amber-900', strong: 'prose-strong:text-amber-950' },
+                    };
+                    const cls = colorMap[col.accent] || colorMap.cyan;
+                    
+                    return `
+                    <div class="${cls.bg} rounded-[2.5rem] p-8 md:p-10 shadow-sm transition-transform hover:scale-[1.02]">
+                        <h3 class="text-xl font-black ${cls.heading} mb-6 uppercase tracking-tight">${col.title}</h3>
+                        <div class="prose prose-slate prose-sm max-w-none ${cls.text} ${cls.strong} leading-relaxed font-medium">${col.content}</div>
+                    </div>`;
+                }).join('');
+                return `<div class="mx-auto px-4 my-16"><div class="grid grid-cols-1 ${gridCols} gap-6 md:gap-8">${colItems}</div></div>`;
             default:
                 return '';
         }
     }).join('\n');
 };
 
-const RichTextToolbar = ({ onAction }) => (
-    <div className="absolute -top-10 left-0 flex gap-1 bg-white dark:bg-gray-800 p-1 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 z-10 animate-in fade-in slide-in-from-bottom-2">
-        <button 
-            type="button"
-            onMouseDown={(e) => { e.preventDefault(); onAction('bold'); }}
-            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-600 dark:text-gray-300 transition-colors"
-            title="Negrita"
-        >
-            <FaBold size={12} />
-        </button>
-        <button 
-            type="button"
-            onMouseDown={(e) => { e.preventDefault(); onAction('italic'); }}
-            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-600 dark:text-gray-300 transition-colors"
-            title="Cursiva"
-        >
-            <FaItalic size={12} />
-        </button>
-    </div>
-);
+const RichTextToolbar = ({ onAction, onUndo, onRedo, canUndo, canRedo, hideFormatting = false, accent, onAccentChange, containerId }) => {
+    const [activeStyles, setActiveStyles] = useState({ bold: false, italic: false });
+
+    useEffect(() => {
+        const checkStyles = () => {
+            const selection = window.getSelection();
+            if (!selection || selection.rangeCount === 0 || !containerId) return;
+            const container = document.getElementById(containerId);
+            if (!container || !container.contains(selection.anchorNode)) {
+                setActiveStyles({ bold: false, italic: false });
+                return;
+            }
+            setActiveStyles({
+                bold: document.queryCommandState('bold'),
+                italic: document.queryCommandState('italic')
+            });
+        };
+        document.addEventListener('selectionchange', checkStyles);
+        return () => document.removeEventListener('selectionchange', checkStyles);
+    }, [containerId]);
+
+    return (
+        <div className="absolute -top-12 right-0 flex items-center gap-1 bg-white dark:bg-gray-800 p-1.5 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 z-10 animate-in fade-in slide-in-from-bottom-2">
+            {onAccentChange && (
+                <div className="flex items-center gap-1 border-r border-gray-100 dark:border-gray-700 pr-1 mr-1">
+                    <select 
+                        className="text-[8px] font-black bg-gray-50 dark:bg-gray-900 px-2 py-1.5 rounded-lg border-none outline-none uppercase tracking-widest text-primary"
+                        value={accent}
+                        onChange={(e) => onAccentChange(e.target.value)}
+                    >
+                        {Object.entries(ACCENT_COLORS).map(([key, val]) => (
+                            <option key={key} value={key}>{val.label}</option>
+                        ))}
+                    </select>
+                </div>
+            )}
+            <div className={`flex gap-1 ${!hideFormatting ? 'border-r border-gray-100 dark:border-gray-700 pr-1 mr-1' : ''}`}>
+                <button type="button" onClick={(e) => { e.preventDefault(); onUndo(); }} disabled={!canUndo} className={`p-2 rounded-lg transition-colors ${!canUndo ? 'text-gray-200 cursor-not-allowed opacity-30' : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-primary'}`} title="Deshacer (Ctrl+Z)"><FaUndo size={11} /></button>
+                <button type="button" onClick={(e) => { e.preventDefault(); onRedo(); }} disabled={!canRedo} className={`p-2 rounded-lg transition-colors ${!canRedo ? 'text-gray-200 cursor-not-allowed opacity-30' : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-primary'}`} title="Rehacer (Ctrl+Y)"><FaRedo size={11} /></button>
+            </div>
+            {!hideFormatting && (
+                <>
+                    <button type="button" onMouseDown={(e) => { e.preventDefault(); onAction('bold'); }} className={`p-2 rounded-lg transition-colors ${activeStyles.bold ? 'bg-primary text-white shadow-inner' : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300'}`} title="Negrita"><FaBold size={11} /></button>
+                    <button type="button" onMouseDown={(e) => { e.preventDefault(); onAction('italic'); }} className={`p-2 rounded-lg transition-colors ${activeStyles.italic ? 'bg-primary text-white shadow-inner' : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300'}`} title="Cursiva"><FaItalic size={11} /></button>
+                </>
+            )}
+        </div>
+    );
+};
 
 const Blog = () => {
     const [posts, setPosts] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [view, setView] = useState('list'); // 'list' or 'editor'
+    const [view, setView] = useState('list');
     const [editingPost, setEditingPost] = useState(null);
-    
-    // Extras data from Darmax main page
     const [extrasDisponibles, setExtrasDisponibles] = useState([]);
     const [loadingExtras, setLoadingExtras] = useState(false);
-
-    // Form state
     const [formData, setFormData] = useState({
         title: '',
         excerpt: '',
@@ -135,48 +256,66 @@ const Blog = () => {
         author: 'Darmax',
         image: '',
         videoUrl: '',
+        tags: 'Darmax', // ✅ NUEVO
         published: true,
     });
     const [blocks, setBlocks] = useState([]);
+    const [blockHistories, setBlockHistories] = useState({});
 
-    useEffect(() => {
-        loadPosts();
-        loadExtras();
-    }, []);
+    useEffect(() => { loadPosts(); loadExtras(); }, []);
+
+    const saveToBlockHistory = (id, content) => {
+        setBlockHistories(prev => {
+            const current = prev[id] || { undo: [], redo: [] };
+            if (current.undo.length > 0 && current.undo[current.undo.length - 1] === content) return prev;
+            return { ...prev, [id]: { undo: [...current.undo.slice(-19), content], redo: [] } };
+        });
+    };
+
+    const handleBlockUndo = (id) => {
+        const history = blockHistories[id];
+        if (!history || history.undo.length === 0) return;
+        setBlocks(prevBlocks => {
+            const currentBlock = prevBlocks.find(b => b.id === id);
+            if (!currentBlock) return prevBlocks;
+            const previousContent = history.undo[history.undo.length - 1];
+            const newUndo = history.undo.slice(0, -1);
+            const newRedo = [currentBlock.content, ...history.redo.slice(0, 19)];
+            setBlockHistories(prevH => ({ ...prevH, [id]: { undo: newUndo, redo: newRedo } }));
+            return prevBlocks.map(b => b.id === id ? { ...b, content: previousContent } : b);
+        });
+    };
+
+    const handleBlockRedo = (id) => {
+        const history = blockHistories[id];
+        if (!history || history.redo.length === 0) return;
+        setBlocks(prevBlocks => {
+            const currentBlock = prevBlocks.find(b => b.id === id);
+            if (!currentBlock) return prevBlocks;
+            const nextContent = history.redo[0];
+            const newRedo = history.redo.slice(1);
+            const newUndo = [...history.undo, currentBlock.content];
+            setBlockHistories(prevH => ({ ...prevH, [id]: { undo: newUndo, redo: newRedo } }));
+            return prevBlocks.map(b => b.id === id ? { ...b, content: nextContent } : b);
+        });
+    };
 
     const loadPosts = async () => {
         setLoading(true);
         try {
-            // Intentamos cargar local primero
             const localData = await fetchBlogPosts();
-            
-            // También intentamos traer lo que está "en vivo" en la página principal
             try {
                 const liveResponse = await fetch('https://darmaxagua.com.mx/api/blog');
                 if (liveResponse.ok) {
                     const liveData = await liveResponse.json();
-                    
-                    // Mezclamos y evitamos duplicados por slug (priorizando local si existe)
                     const combined = [...localData];
                     liveData.forEach(livePost => {
-                        if (!combined.find(p => p.slug === livePost.slug)) {
-                            combined.push({ ...livePost, isLive: true });
-                        }
+                        if (!combined.find(p => p.slug === livePost.slug)) combined.push({ ...livePost, isLive: true });
                     });
                     setPosts(combined);
-                } else {
-                    setPosts(localData);
-                }
-            } catch (liveError) {
-                console.warn('No se pudo conectar con la web principal:', liveError);
-                setPosts(localData);
-            }
-        } catch (error) {
-            console.error('Error loading posts:', error);
-            setPosts([]);
-        } finally {
-            setLoading(false);
-        }
+                } else setPosts(localData);
+            } catch (liveError) { setPosts(localData); }
+        } catch (error) { setPosts([]); } finally { setLoading(false); }
     };
 
     const loadExtras = async () => {
@@ -185,31 +324,21 @@ const Blog = () => {
             const response = await fetch('https://darmaxagua.com.mx/api/configurador/extras');
             if (!response.ok) throw new Error('Error al cargar catálogo de extras');
             const data = await response.json();
-            
-            // Eliminar duplicados por ID
             const uniqueExtras = data.reduce((acc, current) => {
                 const x = acc.find(item => item.id === current.id);
                 if (!x) return acc.concat([current]);
                 return acc;
             }, []);
-
             setExtrasDisponibles(uniqueExtras);
-        } catch (error) {
-            console.error("Error fetching extras catalog:", error);
-        } finally {
-            setLoadingExtras(false);
-        }
+        } catch (error) { console.error(error); } finally { setLoadingExtras(false); }
     };
 
     const handleSave = async (e) => {
         e.preventDefault();
         const htmlContent = compileToHTML(blocks, extrasDisponibles);
-        const payload = {
-            ...formData,
-            content: htmlContent,
-            blocks: blocks // Guardamos el JSON para poder editarlo después
-        };
-
+        // Convertimos tags string a array
+        const tagsArray = formData.tags.split(',').map(t => t.trim()).filter(t => t !== "");
+        const payload = { ...formData, content: htmlContent, blocks: blocks, tags: tagsArray };
         try {
             if (editingPost) {
                 await updateBlogPost(editingPost.id, payload);
@@ -218,55 +347,58 @@ const Blog = () => {
                 await createBlogPost(payload);
                 Swal.fire('¡Publicado!', 'Tu nuevo artículo está listo.', 'success');
             }
-            setView('list');
-            resetForm();
-            loadPosts();
-        } catch (error) {
-            Swal.fire('Error', 'No se pudo guardar.', 'error');
-        }
+            setView('list'); loadPosts(); resetForm();
+        } catch (error) { Swal.fire('Error', 'No se pudo guardar.', 'error'); }
     };
 
     const resetForm = () => {
-        setFormData({
-            title: '',
-            excerpt: '',
-            category: 'Articulo',
-            author: 'Darmax',
-            image: '',
-            videoUrl: '',
-            published: true,
-        });
-        setBlocks([]);
-        setEditingPost(null);
+        setFormData({ title: '', excerpt: '', category: 'Articulo', author: 'Darmax', image: '', videoUrl: '', tags: 'Darmax', published: true });
+        setBlocks([]); setEditingPost(null);
     };
 
     const handleEdit = (post) => {
         setEditingPost(post);
-        setFormData({
-            title: post.title,
-            excerpt: post.excerpt || '',
-            category: post.category,
-            author: post.author,
-            image: post.image || '',
-            videoUrl: post.videoUrl || '',
-            published: post.published,
+        setFormData({ 
+            title: post.title, 
+            excerpt: post.excerpt || '', 
+            category: post.category, 
+            author: post.author, 
+            image: post.image || '', 
+            videoUrl: post.videoUrl || '', 
+            tags: (post.tags || ["Darmax"]).join(', '), // ✅ NUEVO
+            published: post.published 
         });
-        // Si el post tiene bloques JSON, los usamos. Si no (migración), empezamos con un bloque de párrafo vacío.
         setBlocks(post.blocks || [{ id: uuidv4(), type: 'paragraph', content: '' }]);
         setView('editor');
     };
 
-    // Block Handlers
-    const addBlock = (type) => {
-        setBlocks([...blocks, { id: uuidv4(), type, content: '', accent: 'cyan' }]);
-    };
+const addBlock = (type) => { 
+    let initialContent = '';
+    if (type === 'comparison') {
+        initialContent = JSON.stringify([
+            { id: uuidv4(), title: 'Opción A', content: 'Detalles...', accent: 'cyan' },
+            { id: uuidv4(), title: 'Opción B', content: 'Detalles...', accent: 'teal' }
+        ]);
+    }
 
-    const updateBlock = (id, newContent, accent = 'cyan') => {
-        setBlocks(blocks.map(b => b.id === id ? { ...b, content: newContent, accent } : b));
-    };
+    setBlocks([...blocks, { 
+        id: uuidv4(), 
+        type, 
+        content: initialContent, 
+        accent: 'cyan',
+        align: 'right' // ✅ DEFAULT: Lado derecho
+    }]); 
+};
+
+const updateBlock = (id, newContent, accent = 'cyan', align = 'right') => {
+    const oldBlock = blocks.find(b => b.id === id);
+    if (oldBlock && oldBlock.content !== newContent) saveToBlockHistory(id, oldBlock.content);
+    setBlocks(prev => prev.map(b => b.id === id ? { ...b, content: newContent, accent, align } : b));
+};
 
     const removeBlock = (id) => {
         setBlocks(blocks.filter(b => b.id !== id));
+        setBlockHistories(prev => { const newState = { ...prev }; delete newState[id]; return newState; });
     };
 
     const moveBlock = (index, direction) => {
@@ -281,197 +413,235 @@ const Blog = () => {
         return (
             <div className="animate-fade-in space-y-8 pb-20">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <button onClick={() => setView('list')} className="flex items-center gap-2 text-gray-500 hover:text-primary transition-colors font-black uppercase text-[10px] tracking-widest">
-                        <FaArrowLeft /> Volver al listado
-                    </button>
-                    <div className="flex gap-2">
-                         <button onClick={handleSave} className="btn-primary flex items-center gap-3 py-3 px-8 shadow-xl shadow-primary/20">
-                            <FaSave /> {editingPost ? 'Guardar Cambios' : 'Publicar Artículo'}
-                        </button>
-                    </div>
+                    <button onClick={() => setView('list')} className="flex items-center gap-2 text-gray-500 hover:text-primary transition-colors font-black uppercase text-[10px] tracking-widest"><FaArrowLeft /> Volver al listado</button>
+                    <button onClick={handleSave} className="btn-primary flex items-center gap-3 py-3 px-8 shadow-xl shadow-primary/20"><FaSave /> {editingPost ? 'Guardar' : 'Publicar'}</button>
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                    {/* Lateral Izquierdo: Configuración y Metadatos */}
                     <div className="lg:col-span-4 space-y-6">
                         <div className="bg-white dark:bg-gray-800 p-6 rounded-[2.5rem] border border-gray-100 dark:border-gray-700 shadow-sm sticky top-6">
-                            <h3 className="text-sm font-black text-gray-800 dark:text-white uppercase tracking-widest flex items-center gap-2 mb-6 border-b dark:border-gray-700 pb-4">
-                                <FaNewspaper className="text-primary" /> Ficha Técnica
-                            </h3>
-                            
+                            <h3 className="text-sm font-black text-gray-800 dark:text-white uppercase tracking-widest flex items-center gap-2 mb-6 border-b dark:border-gray-700 pb-4"><FaNewspaper className="text-primary" /> Ficha Técnica</h3>
                             <div className="space-y-4">
-                                <div>
-                                    <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1.5 block italic">Título Principal *</label>
-                                    <input type="text" required className="w-full bg-gray-50 dark:bg-gray-900 p-3 rounded-xl border-none font-bold text-sm outline-none focus:ring-2 focus:ring-primary" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} />
-                                </div>
-                                <div>
-                                    <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1.5 block italic">Extracto (Resumen corto) *</label>
-                                    <textarea rows="3" required className="w-full bg-gray-50 dark:bg-gray-900 p-3 rounded-xl border-none font-medium text-xs outline-none focus:ring-2 focus:ring-primary resize-none" value={formData.excerpt} onChange={e => setFormData({...formData, excerpt: e.target.value})} placeholder="Aparecerá en las tarjetas de la lista..." />
-                                </div>
+                                <div><label className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1.5 block italic">Título Principal *</label><input type="text" required className="w-full bg-gray-50 dark:bg-gray-900 p-3 rounded-xl border-none font-bold text-sm outline-none focus:ring-2 focus:ring-primary" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} /></div>
+                                <div><label className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1.5 block italic">Extracto (Resumen corto) *</label><textarea rows="3" required className="w-full bg-gray-50 dark:bg-gray-900 p-3 rounded-xl border-none font-medium text-xs outline-none focus:ring-2 focus:ring-primary resize-none" value={formData.excerpt} onChange={e => setFormData({...formData, excerpt: e.target.value})} placeholder="Aparecerá en las tarjetas de la lista..." /></div>
                                 <div className="grid grid-cols-2 gap-3">
-                                    <div>
-                                        <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1.5 block italic">Categoría</label>
-                                        <select className="w-full bg-gray-50 dark:bg-gray-900 p-3 rounded-xl border-none font-bold text-[10px] outline-none" value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})}>
-                                            <option value="Articulo">Articulo</option>
-                                            <option value="Emprendimiento">Emprendimiento</option>
-                                            <option value="Tecnología">Tecnología</option>
-                                            <option value="Vending">Vending</option>
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1.5 block italic">Autor</label>
-                                        <input type="text" className="w-full bg-gray-50 dark:bg-gray-900 p-3 rounded-xl border-none font-bold text-[10px] outline-none" value={formData.author} onChange={e => setFormData({...formData, author: e.target.value})} />
-                                    </div>
+                                    <div><label className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1.5 block italic">Categoría</label><select className="w-full bg-gray-50 dark:bg-gray-900 p-3 rounded-xl border-none font-bold text-[10px] outline-none" value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})}><option value="Articulo">Articulo</option><option value="Emprendimiento">Emprendimiento</option><option value="Tecnología">Tecnología</option><option value="Vending">Vending</option></select></div>
+                                    <div><label className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1.5 block italic">Autor</label><input type="text" className="w-full bg-gray-50 dark:bg-gray-900 p-3 rounded-xl border-none font-bold text-[10px] outline-none" value={formData.author} onChange={e => setFormData({...formData, author: e.target.value})} /></div>
                                 </div>
-                                <div>
-                                    <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1.5 block italic">URL Imagen Portada</label>
-                                    <input type="text" className="w-full bg-gray-50 dark:bg-gray-900 p-3 rounded-xl border-none font-bold text-[10px] outline-none" value={formData.image} onChange={e => setFormData({...formData, image: e.target.value})} placeholder="https://..." />
-                                </div>
-                                <div className="pt-4 flex items-center justify-between bg-gray-50 dark:bg-gray-900/40 p-4 rounded-2xl">
-                                    <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Publicar</span>
-                                    <label className="relative inline-flex items-center cursor-pointer">
-                                        <input type="checkbox" checked={formData.published} onChange={e => setFormData({...formData, published: e.target.checked})} className="sr-only peer" />
-                                        <div className="w-11 h-6 bg-gray-200 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary"></div>
-                                    </label>
-                                </div>
+                                <div><label className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1.5 block italic">URL Imagen Portada</label><input type="text" className="w-full bg-gray-50 dark:bg-gray-900 p-3 rounded-xl border-none font-bold text-[10px] outline-none" value={formData.image} onChange={e => setFormData({...formData, image: e.target.value})} placeholder="https://..." /></div>
+                                <div><label className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1.5 block italic">Etiquetas (separadas por coma)</label><input type="text" className="w-full bg-gray-50 dark:bg-gray-900 p-3 rounded-xl border-none font-bold text-[10px] outline-none" value={formData.tags} onChange={e => setFormData({...formData, tags: e.target.value})} placeholder="Emprendimiento, Purificación, Vending..." /></div>
+                                <div className="pt-4 flex items-center justify-between bg-gray-50 dark:bg-gray-900/40 p-4 rounded-2xl"><span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Publicar</span><label className="relative inline-flex items-center cursor-pointer"><input type="checkbox" checked={formData.published} onChange={e => setFormData({...formData, published: e.target.checked})} className="sr-only peer" /><div className="w-11 h-6 bg-gray-200 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary"></div></label></div>
                             </div>
                         </div>
                     </div>
 
-                    {/* Central: Constructor de Bloques */}
                     <div className="lg:col-span-8 space-y-6">
                         <div className="bg-white dark:bg-gray-800 p-6 sm:p-10 rounded-[3rem] border border-gray-100 dark:border-gray-700 shadow-xl min-h-[600px] flex flex-col">
                             <div className="flex flex-wrap gap-2 mb-10 pb-6 border-b dark:border-gray-700">
                                 {BLOCK_TYPES.map(bt => (
-                                    <button key={bt.type} onClick={() => addBlock(bt.type)} className="flex items-center gap-2 px-4 py-2 bg-gray-50 dark:bg-gray-900 hover:bg-primary/10 hover:text-primary rounded-xl text-[10px] font-black uppercase tracking-widest transition-all">
-                                        <span className={bt.color}>{bt.icon}</span>
-                                        {bt.label}
-                                    </button>
+                                    <button key={bt.type} onClick={() => addBlock(bt.type)} className="flex items-center gap-2 px-4 py-2 bg-gray-50 dark:bg-gray-900 hover:bg-primary/10 hover:text-primary rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"><span className={bt.color}>{bt.icon}</span>{bt.label}</button>
                                 ))}
                             </div>
 
                             <div className="space-y-4 flex-1">
                                 {blocks.length === 0 ? (
-                                    <div className="flex flex-col items-center justify-center h-64 border-2 border-dashed border-gray-100 dark:border-gray-700 rounded-3xl opacity-50">
-                                        <FaPlus className="text-2xl mb-4" />
-                                        <p className="text-xs font-bold uppercase tracking-widest text-gray-400">Tu artículo está vacío. Añade un bloque arriba.</p>
-                                    </div>
+                                    <div className="flex flex-col items-center justify-center h-64 border-2 border-dashed border-gray-100 dark:border-gray-700 rounded-3xl opacity-50"><FaPlus className="text-2xl mb-4" /><p className="text-xs font-bold uppercase tracking-widest text-gray-400">Tu artículo está vacío. Añade un bloque arriba.</p></div>
                                 ) : (
                                     blocks.map((block, idx) => (
                                         <div key={block.id} className="group relative bg-gray-50/30 dark:bg-gray-900/20 p-4 sm:p-6 rounded-3xl border border-transparent hover:border-primary/20 transition-all">
-                                            {/* Controles del Bloque */}
                                             <div className="absolute -left-3 top-1/2 -translate-y-1/2 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                                 <button onClick={() => moveBlock(idx, -1)} className="p-2 bg-white dark:bg-gray-800 shadow-md rounded-lg text-gray-400 hover:text-primary"><FaChevronUp size={10}/></button>
                                                 <button onClick={() => moveBlock(idx, 1)} className="p-2 bg-white dark:bg-gray-800 shadow-md rounded-lg text-gray-400 hover:text-primary"><FaChevronDown size={10}/></button>
                                                 <button onClick={() => removeBlock(block.id)} className="p-2 bg-white dark:bg-gray-800 shadow-md rounded-lg text-gray-400 hover:text-red-500"><FaTrash size={10}/></button>
                                             </div>
 
-                                            {/* Renderizado de Inputs según Tipo */}
-                                            <div className="space-y-3">
+                                            <div className="space-y-4">
                                                 <div className="flex justify-between items-center px-1">
-                                                    <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
-                                                        {BLOCK_TYPES.find(t => t.type === block.type)?.icon}
-                                                        {BLOCK_TYPES.find(t => t.type === block.type)?.label}
-                                                    </span>
-                                                    {block.type === 'heading' && (
-                                                        <select className="text-[8px] font-bold bg-transparent outline-none uppercase" value={block.accent} onChange={e => updateBlock(block.id, block.content, e.target.value)}>
-                                                            <option value="cyan">Acento Cyan</option>
-                                                            <option value="teal">Acento Teal</option>
-                                                        </select>
-                                                    )}
+                                                    <div className="flex items-center gap-3"><div className={`p-2 rounded-xl bg-white dark:bg-gray-800 shadow-sm border border-gray-100 dark:border-gray-700 ${BLOCK_TYPES.find(t => t.type === block.type)?.color}`}>{BLOCK_TYPES.find(t => t.type === block.type)?.icon}</div><span className="text-[10px] font-black text-gray-500 dark:text-gray-400 uppercase tracking-[0.2em]">{BLOCK_TYPES.find(t => t.type === block.type)?.label}</span></div>
+                                                    {block.type === 'heading' && ( <div className="flex items-center gap-2"><span className="text-[8px] font-black text-gray-400 uppercase tracking-widest italic">Acento:</span><select className="text-[9px] font-black bg-gray-100 dark:bg-gray-800 px-3 py-1.5 rounded-lg border-none outline-none uppercase tracking-widest" value={block.accent} onChange={e => updateBlock(block.id, block.content, e.target.value)}>{Object.entries(ACCENT_COLORS).map(([key, val]) => ( <option key={key} value={key}>{val.label}</option> ))}</select></div> )}
                                                 </div>
                                                 
                                                 {block.type === 'heading' && (
                                                     <div className="relative group/heading">
-                                                        <div 
-                                                            contentEditable
-                                                            suppressContentEditableWarning
-                                                            onInput={(e) => {
-                                                                const text = e.currentTarget.innerText;
-                                                                updateBlock(block.id, text, block.accent);
-                                                            }}
-                                                            style={{ 
-                                                                borderLeft: `8px solid ${block.accent === 'teal' ? '#168387' : '#06b6d4'}`,
-                                                                backgroundColor: block.accent === 'teal' ? 'rgba(22, 131, 135, 0.05)' : 'rgba(6, 182, 212, 0.05)',
-                                                                minHeight: '3rem'
-                                                            }}
-                                                            className="w-full p-4 pl-10 rounded-r-2xl border-none font-black text-lg text-gray-800 dark:text-white outline-none transition-all whitespace-pre-wrap"
-                                                        >
-                                                            {block.content.includes('//') ? (
-                                                                <>
-                                                                    {block.content.split('//')[0]}
-                                                                    <span className="text-gray-300 mx-1 font-normal opacity-50">//</span>
-                                                                    <span style={{ color: block.accent === 'teal' ? '#168387' : '#06b6d4' }}>
-                                                                        {block.content.split('//')[1]}
-                                                                    </span>
-                                                                </>
-                                                            ) : block.content || <span className="text-gray-400 font-normal italic">Título de sección...</span>}
-                                                        </div>
-                                                        <div className="absolute right-4 top-2 opacity-0 group-hover/heading:opacity-100 transition-opacity flex flex-col items-end pointer-events-none">
-                                                            <span className="text-[7px] font-black text-primary uppercase tracking-widest bg-white dark:bg-gray-800 px-2 py-1 rounded-md shadow-sm border border-primary/10">Usa // para resaltar la 2da línea</span>
-                                                        </div>
+                                                        <RichTextToolbar onAction={() => {}} onUndo={() => handleBlockUndo(block.id)} onRedo={() => handleBlockRedo(block.id)} canUndo={(blockHistories[block.id]?.undo || []).length > 0} canRedo={(blockHistories[block.id]?.redo || []).length > 0} hideFormatting={true} accent={block.accent} onAccentChange={(newAccent) => updateBlock(block.id, block.content, newAccent)} />
+                                                        <textarea rows="2" value={block.content} onChange={(e) => updateBlock(block.id, e.target.value, block.accent)} style={{ borderLeft: `8px solid ${ACCENT_COLORS[block.accent]?.hex || '#06b6d4'}`, backgroundColor: ACCENT_COLORS[block.accent]?.bg || 'rgba(6, 182, 212, 0.05)', fontSize: '28px', lineHeight: '1.3' }} className="w-full p-6 pl-12 rounded-r-2xl border-none font-black text-gray-800 dark:text-white outline-none transition-all resize-none overflow-hidden whitespace-pre-wrap" placeholder="Título de sección... (Usa // para resaltar)" />
+                                                        {block.content.includes('//') && ( <div className="mt-2 pl-12"><p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">Vista Previa:</p><div className="text-xl font-black text-gray-700 dark:text-gray-300">{block.content.split('//')[0]} <span style={{ color: ACCENT_COLORS[block.accent]?.hex }}>{block.content.split('//')[1]}</span></div></div> )}
                                                     </div>
                                                 )}
                                                 {block.type === 'paragraph' && (
                                                     <div className="relative group/rich">
-                                                        <RichTextToolbar onAction={(action) => document.execCommand(action, false, null)} />
-                                                        <div 
-                                                            contentEditable
-                                                            suppressContentEditableWarning
-                                                            onBlur={(e) => updateBlock(block.id, e.currentTarget.innerHTML)}
-                                                            className="w-full bg-white dark:bg-gray-900 p-4 rounded-2xl border-none text-sm text-gray-600 dark:text-gray-300 leading-relaxed outline-none focus:ring-2 focus:ring-primary/20 min-h-[100px]"
-                                                            dangerouslySetInnerHTML={{ __html: block.content }}
-                                                        />
+                                                        <RichTextToolbar onAction={(action) => document.execCommand(action, false, null)} onUndo={() => handleBlockUndo(block.id)} onRedo={() => handleBlockRedo(block.id)} canUndo={(blockHistories[block.id]?.undo || []).length > 0} canRedo={(blockHistories[block.id]?.redo || []).length > 0} />
+                                                        <div contentEditable suppressContentEditableWarning onBlur={(e) => updateBlock(block.id, e.currentTarget.innerHTML)} style={{ fontSize: '18px', lineHeight: '1.7' }} className="w-full bg-white dark:bg-gray-900 p-6 rounded-2xl border-none text-gray-600 dark:text-gray-300 outline-none focus:ring-2 focus:ring-primary/20 min-h-[120px]" dangerouslySetInnerHTML={{ __html: block.content }} />
                                                     </div>
                                                 )}
                                                 {block.type === 'highlight' && (
-                                                    <textarea rows="2" className="w-full bg-white dark:bg-gray-900 p-4 rounded-2xl border-l-4 border-cyan-500 font-medium italic text-gray-500 outline-none" value={block.content} onChange={e => updateBlock(block.id, e.target.value)} placeholder="Frase destacada o cita..." />
-                                                )}
-                                                {block.type === 'tip' && (
-                                                    <textarea rows="2" className="w-full bg-cyan-50 dark:bg-cyan-900/20 p-4 rounded-2xl border border-cyan-100 text-cyan-800 text-sm italic outline-none" value={block.content} onChange={e => updateBlock(block.id, e.target.value)} placeholder="Consejo práctico de Darmax..." />
-                                                )}
-                                                {block.type === 'image' && (
-                                                    <input type="text" className="w-full bg-white dark:bg-gray-900 p-4 rounded-2xl border-none text-xs font-mono text-primary outline-none" value={block.content} onChange={e => updateBlock(block.id, e.target.value)} placeholder="URL de la imagen (https://...)" />
-                                                )}
-                                                {block.type === 'list' && (
-                                                    <div className="relative group/rich">
-                                                        <RichTextToolbar onAction={(action) => document.execCommand(action, false, null)} />
-                                                        <div 
-                                                            contentEditable
-                                                            suppressContentEditableWarning
-                                                            onBlur={(e) => updateBlock(block.id, e.currentTarget.innerHTML)}
-                                                            className="w-full bg-white dark:bg-gray-900 p-4 rounded-2xl border-none text-sm text-gray-600 font-medium outline-none focus:ring-2 focus:ring-primary/20 min-h-[100px]"
-                                                            dangerouslySetInnerHTML={{ __html: block.content }}
-                                                        />
-                                                        <p className="mt-2 text-[8px] text-gray-400 italic px-2">Presiona Enter para añadir un nuevo punto a la lista.</p>
+                                                    <div className="space-y-2">
+                                                        <div className="relative">
+                                                            <RichTextToolbar onAction={() => {}} onUndo={() => handleBlockUndo(block.id)} onRedo={() => handleBlockRedo(block.id)} canUndo={(blockHistories[block.id]?.undo || []).length > 0} canRedo={(blockHistories[block.id]?.redo || []).length > 0} hideFormatting={true} />
+                                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1 italic">" Texto de la Cita / Frase "</p>
+                                                        </div>
+                                                        <textarea rows="3" style={{ fontSize: '22px', lineHeight: '1.6' }} className="w-full bg-white dark:bg-gray-900 p-8 rounded-2xl border-l-8 border-cyan-500 font-bold italic text-slate-700 outline-none focus:ring-2 focus:ring-cyan-500/10 leading-tight" value={block.content} onChange={e => updateBlock(block.id, e.target.value)} placeholder="Frase destacada o cita..." />
                                                     </div>
                                                 )}
-                                                {block.type === 'extra' && (
-                                                    <div className="space-y-2">
-                                                        <select 
-                                                            className="w-full bg-white dark:bg-gray-900 p-4 rounded-2xl border-none text-sm font-bold text-primary outline-none" 
-                                                            value={block.content} 
-                                                            onChange={e => updateBlock(block.id, e.target.value)}
-                                                        >
-                                                            <option value="">Selecciona un producto del catálogo Darmax...</option>
-                                                            {extrasDisponibles.map(ex => (
-                                                                <option key={ex.id} value={ex.id}>{ex.name} (${ex.basePrice})</option>
-                                                            ))}
-                                                        </select>
-                                                        {block.content && extrasDisponibles.find(ex => ex.id === block.content) && (
-                                                            <div className="mt-2 p-4 bg-primary/5 rounded-2xl border border-primary/10 flex items-center gap-4">
-                                                                <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center text-primary shadow-sm">
-                                                                    <FaPlus />
-                                                                </div>
-                                                                <div>
-                                                                    <p className="text-[10px] text-primary font-black uppercase tracking-widest">Bloque de Producto</p>
-                                                                    <p className="text-xs font-bold text-gray-700 dark:text-gray-300">
-                                                                        {extrasDisponibles.find(ex => ex.id === block.content).name} - ${extrasDisponibles.find(ex => ex.id === block.content).basePrice}
-                                                                    </p>
+                                                {/* ✅ NUEVO: INPUT DE VIDEO DINÁMICO (TIPO ELEVADOR) */}
+                                                {(block.type === 'video' || block.type === 'video-sidebar') && (
+                                                    <div className="space-y-4">
+                                                        {block.type === 'video-sidebar' && (
+                                                            <div className="flex items-center gap-4 bg-white dark:bg-gray-800 p-3 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm w-fit">
+                                                                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest italic px-1">Lado:</span>
+                                                                <div className="flex gap-1">
+                                                                    <button 
+                                                                        onClick={() => updateBlock(block.id, block.content, block.accent, 'left')}
+                                                                        className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase transition-all ${block.align === 'left' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'bg-gray-50 text-gray-400 hover:bg-gray-100'}`}
+                                                                    >Izquierda</button>
+                                                                    <button 
+                                                                        onClick={() => updateBlock(block.id, block.content, block.accent, 'right')}
+                                                                        className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase transition-all ${block.align === 'right' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'bg-gray-100 text-gray-400 hover:bg-gray-100'}`}
+                                                                    >Derecha</button>
                                                                 </div>
                                                             </div>
                                                         )}
-                                                        {loadingExtras && <p className="text-[9px] text-gray-400 animate-pulse px-2">Sincronizando catálogo con darmaxagua.com.mx...</p>}
+                                                        <div className="relative">
+                                                            <RichTextToolbar onAction={() => {}} onUndo={() => handleBlockUndo(block.id)} onRedo={() => handleBlockRedo(block.id)} canUndo={(blockHistories[block.id]?.undo || []).length > 0} canRedo={(blockHistories[block.id]?.redo || []).length > 0} hideFormatting={true} />
+                                                            <p className="text-[10px] font-black text-red-500 uppercase tracking-widest px-1 italic">URL DEL VIDEO (Reels, TikTok, YouTube):</p>
+                                                            <input type="text" className="w-full bg-white dark:bg-gray-900 p-4 rounded-2xl border-none text-xs font-mono text-primary outline-none focus:ring-2 focus:ring-red-500/10" value={block.content} onChange={e => updateBlock(block.id, e.target.value, block.accent, block.align)} placeholder="https://..." />
+                                                        </div>
+                                                        {block.content && (
+                                                            <div className={`mt-2 ${block.type === 'video-sidebar' ? 'aspect-[9/16] max-w-[200px]' : 'aspect-video max-w-[320px]'} w-full rounded-2xl overflow-hidden border-4 border-white shadow-xl bg-black ${block.type === 'video-sidebar' && block.align === 'right' ? 'ml-auto' : ''}`}>
+                                                                <iframe src={getEmbedUrl(block.content)} className="w-full h-full" />
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
+                                                {block.type === 'tip' && (
+                                                    <div className="space-y-2">
+                                                        <div className="relative">
+                                                            <RichTextToolbar onAction={() => {}} onUndo={() => handleBlockUndo(block.id)} onRedo={() => handleBlockRedo(block.id)} canUndo={(blockHistories[block.id]?.undo || []).length > 0} canRedo={(blockHistories[block.id]?.redo || []).length > 0} hideFormatting={true} />
+                                                            <h4 className="text-[11px] font-black text-cyan-900 dark:text-cyan-400 px-1 flex items-center gap-2">💡 Tip clave de Darmax:</h4>
+                                                        </div>
+                                                        <textarea rows="2" style={{ fontSize: '16px', lineHeight: '1.6' }} className="w-full bg-cyan-50 dark:bg-cyan-900/20 p-6 rounded-2xl border border-cyan-100 text-cyan-800 italic outline-none focus:ring-2 focus:ring-cyan-500/20" value={block.content} onChange={e => updateBlock(block.id, e.target.value)} placeholder="Escribe aquí el consejo práctico..." />
+                                                    </div>
+                                                )}
+                                                {block.type === 'image' && (
+                                                    <div className="space-y-2">
+                                                        <div className="relative">
+                                                            <RichTextToolbar onAction={() => {}} onUndo={() => handleBlockUndo(block.id)} onRedo={() => handleBlockRedo(block.id)} canUndo={(blockHistories[block.id]?.undo || []).length > 0} canRedo={(blockHistories[block.id]?.redo || []).length > 0} hideFormatting={true} />
+                                                            <p className="text-[10px] font-black text-emerald-500 uppercase tracking-widest px-1">URL DE LA IMAGEN:</p>
+                                                        </div>
+                                                        <input type="text" className="w-full bg-white dark:bg-gray-900 p-4 rounded-2xl border-none text-xs font-mono text-primary outline-none focus:ring-2 focus:ring-emerald-500/10" value={block.content} onChange={e => updateBlock(block.id, e.target.value)} placeholder="https://..." />
+                                                    </div>
+                                                )}
+                                                {block.type === 'list' && (
+                                                    <div className="relative group/rich space-y-2">
+                                                        <div className="relative">
+                                                            <RichTextToolbar onAction={(action) => document.execCommand(action, false, null)} onUndo={() => handleBlockUndo(block.id)} onRedo={() => handleBlockRedo(block.id)} canUndo={(blockHistories[block.id]?.undo || []).length > 0} canRedo={(blockHistories[block.id]?.redo || []).length > 0} />
+                                                            <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest px-1">Puntos de la Lista:</p>
+                                                        </div>
+                                                        <div contentEditable suppressContentEditableWarning onBlur={(e) => updateBlock(block.id, e.currentTarget.innerHTML)} style={{ fontSize: '18px', lineHeight: '1.7' }} className="w-full bg-white dark:bg-gray-900 p-6 rounded-2xl border-none text-gray-600 font-medium outline-none focus:ring-2 focus:ring-primary/20 min-h-[100px]" dangerouslySetInnerHTML={{ __html: block.content }} />
+                                                    </div>
+                                                )}
+                                                {block.type === 'extra' && (
+                                                    <div className="space-y-3">
+                                                        <div className="relative">
+                                                            <RichTextToolbar onAction={() => {}} onUndo={() => handleBlockUndo(block.id)} onRedo={() => handleBlockRedo(block.id)} canUndo={(blockHistories[block.id]?.undo || []).length > 0} canRedo={(blockHistories[block.id]?.redo || []).length > 0} hideFormatting={true} />
+                                                            <p className="text-[10px] font-black text-purple-500 uppercase tracking-widest px-1">Producto del Catálogo:</p>
+                                                        </div>
+                                                        <select className="w-full bg-white dark:bg-gray-900 p-4 rounded-2xl border-none text-sm font-bold text-primary outline-none focus:ring-2 focus:ring-purple-500/10" value={block.content} onChange={e => updateBlock(block.id, e.target.value)}><option value="">Selecciona un producto...</option>{extrasDisponibles.map(ex => ( <option key={ex.id} value={ex.id}>{ex.name} (${ex.basePrice})</option> ))}</select>
+                                                    </div>
+                                                )}
+
+                                                {block.type === 'comparison' && (
+                                                    <div className="space-y-6">
+                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                            {(() => {
+                                                                let columns = [];
+                                                                try { columns = JSON.parse(block.content); } catch (e) { columns = []; }
+                                                                
+                                                                const colorMap = {
+                                                                    cyan: { bg: 'bg-cyan-50/50', heading: 'text-cyan-950', text: 'text-cyan-900' },
+                                                                    teal: { bg: 'bg-teal-50/50', heading: 'text-teal-950', text: 'text-teal-900' },
+                                                                    indigo: { bg: 'bg-indigo-50/50', heading: 'text-indigo-950', text: 'text-indigo-900' },
+                                                                    rose: { bg: 'bg-rose-50/50', heading: 'text-rose-950', text: 'text-rose-900' },
+                                                                    amber: { bg: 'bg-amber-50/50', heading: 'text-amber-950', text: 'text-amber-900' },
+                                                                };
+
+                                                                return columns.map((col, cIdx) => {
+                                                                    const cls = colorMap[col.accent] || colorMap.cyan;
+                                                                    return (
+                                                                        <div key={col.id || cIdx} className={`${cls.bg} p-6 rounded-[2rem] shadow-sm space-y-4 relative group/col`}>
+                                                                            <div className="flex justify-between items-center">
+                                                                                <select 
+                                                                                    className="text-[9px] font-black bg-white/50 dark:bg-black/20 px-3 py-1.5 rounded-lg border-none outline-none uppercase tracking-widest text-primary"
+                                                                                    value={col.accent}
+                                                                                    onChange={(e) => {
+                                                                                        const newCols = [...columns];
+                                                                                        newCols[cIdx].accent = e.target.value;
+                                                                                        updateBlock(block.id, JSON.stringify(newCols));
+                                                                                    }}
+                                                                                >
+                                                                                    {Object.entries(ACCENT_COLORS).map(([key, val]) => (
+                                                                                        <option key={key} value={key}>{val.label}</option>
+                                                                                    ))}
+                                                                                </select>
+                                                                                <button 
+                                                                                    onClick={() => {
+                                                                                        const newCols = columns.filter((_, i) => i !== cIdx);
+                                                                                        updateBlock(block.id, JSON.stringify(newCols));
+                                                                                    }}
+                                                                                    className="p-2 text-gray-400 hover:text-red-500 transition-colors"
+                                                                                >
+                                                                                    <FaTimesCircle size={14} />
+                                                                                </button>
+                                                                            </div>
+                                                                            <input 
+                                                                                type="text" 
+                                                                                className={`w-full bg-transparent border-b border-black/5 font-black text-sm uppercase tracking-tight outline-none focus:border-primary py-1 ${cls.heading}`}
+                                                                                placeholder="Título de columna..."
+                                                                                value={col.title}
+                                                                                onChange={(e) => {
+                                                                                    const newCols = [...columns];
+                                                                                    newCols[cIdx].title = e.target.value;
+                                                                                    updateBlock(block.id, JSON.stringify(newCols));
+                                                                                }}
+                                                                            />
+                                                                            <div className="relative">
+                                                                                <RichTextToolbar 
+                                                                                    onAction={(action) => document.execCommand(action, false, null)} 
+                                                                                    onUndo={() => handleBlockUndo(block.id)} 
+                                                                                    onRedo={() => handleBlockRedo(block.id)} 
+                                                                                    canUndo={(blockHistories[block.id]?.undo || []).length > 0} 
+                                                                                    canRedo={(blockHistories[block.id]?.redo || []).length > 0} 
+                                                                                    containerId={`col-editor-${block.id}-${cIdx}`}
+                                                                                />
+                                                                                <div 
+                                                                                    id={`col-editor-${block.id}-${cIdx}`}
+                                                                                    contentEditable 
+                                                                                    suppressContentEditableWarning 
+                                                                                    onBlur={(e) => {
+                                                                                        const newCols = [...columns];
+                                                                                        newCols[cIdx].content = e.currentTarget.innerHTML;
+                                                                                        updateBlock(block.id, JSON.stringify(newCols));
+                                                                                    }}
+                                                                                    className={`w-full min-h-[100px] text-xs outline-none leading-relaxed ${cls.text}`}
+                                                                                    dangerouslySetInnerHTML={{ __html: col.content }}
+                                                                                />
+                                                                            </div>
+                                                                        </div>
+                                                                    );
+                                                                });
+                                                            })()}
+                                                        </div>
+                                                        <button 
+                                                            onClick={() => {
+                                                                let columns = [];
+                                                                try { columns = JSON.parse(block.content); } catch (e) { columns = []; }
+                                                                const newCols = [...columns, { id: uuidv4(), title: 'Nueva Columna', content: 'Detalles...', accent: 'cyan' }];
+                                                                updateBlock(block.id, JSON.stringify(newCols));
+                                                            }}
+                                                            className="w-full py-4 border-2 border-dashed border-gray-100 dark:border-gray-700 rounded-3xl text-[10px] font-black uppercase tracking-widest text-gray-400 hover:border-primary hover:text-primary transition-all flex items-center justify-center gap-2"
+                                                        >
+                                                            <FaPlus /> Añadir Columna Comparativa
+                                                        </button>
                                                     </div>
                                                 )}
                                             </div>
@@ -490,101 +660,26 @@ const Blog = () => {
         <div className="animate-fade-in space-y-8">
             <div className="flex flex-wrap justify-between items-center gap-6">
                 <div>
-                    <h1 className="text-3xl sm:text-4xl font-black text-gray-800 dark:text-white flex items-center gap-4 tracking-tighter uppercase italic">
-                        <div className="bg-primary p-3 rounded-2xl shadow-lg shadow-primary/20 text-white">
-                            <FaNewspaper className="text-2xl" />
-                        </div>
-                        GESTIÓN DE BLOG
-                    </h1>
-                    <div className="text-xs sm:text-sm text-gray-500 font-bold mt-2 flex items-center gap-2">
-                        <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
-                        Administra tus artículos y contenido educativo
-                    </div>
+                    <h1 className="text-3xl sm:text-4xl font-black text-gray-800 dark:text-white flex items-center gap-4 tracking-tighter uppercase italic"><div className="bg-primary p-3 rounded-2xl shadow-lg shadow-primary/20 text-white"><FaNewspaper className="text-2xl" /></div> GESTIÓN DE BLOG</h1>
+                    <div className="text-xs sm:text-sm text-gray-500 font-bold mt-2 flex items-center gap-2"><div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div> Administra tus artículos y contenido educativo</div>
                 </div>
-                <button onClick={() => { resetForm(); setBlocks([{id: uuidv4(), type: 'heading', content: ''}]); setView('editor'); }} className="btn-primary flex items-center justify-center gap-3 py-4 px-8 rounded-3xl shadow-2xl shadow-primary/30 font-black uppercase text-xs tracking-widest hover:scale-105 active:scale-95 transition-all">
-                    <FaPlus /> Nuevo Artículo
-                </button>
+                <button onClick={() => { resetForm(); setBlocks([{id: uuidv4(), type: 'heading', content: ''}]); setView('editor'); }} className="btn-primary flex items-center justify-center gap-3 py-4 px-8 rounded-3xl shadow-2xl shadow-primary/30 font-black uppercase text-xs tracking-widest hover:scale-105 active:scale-95 transition-all"><FaPlus /> Nuevo Artículo</button>
             </div>
 
             <div className="bg-white dark:bg-gray-800 rounded-[3rem] border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full">
                         <thead>
-                            <tr className="bg-gray-50 dark:bg-gray-900/50 border-b dark:border-gray-700">
-                                <th className="px-8 py-6 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Publicación</th>
-                                <th className="px-8 py-6 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Metadatos</th>
-                                <th className="px-8 py-6 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest">Estatus</th>
-                                <th className="px-8 py-6 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">Acciones</th>
-                            </tr>
+                            <tr className="bg-gray-50 dark:bg-gray-900/50 border-b dark:border-gray-700"><th className="px-8 py-6 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Publicación</th><th className="px-8 py-6 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Metadatos</th><th className="px-8 py-6 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest">Estatus</th><th className="px-8 py-6 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">Acciones</th></tr>
                         </thead>
                         <tbody className="divide-y divide-gray-50 dark:divide-gray-800">
-                            {loading ? (
-                                <tr>
-                                    <td colSpan="4" className="py-20 text-center">
-                                        <div className="flex flex-col items-center gap-4">
-                                            <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-primary"></div>
-                                            <p className="text-gray-400 font-black text-[10px] uppercase tracking-widest">Sincronizando Archivos...</p>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ) : posts.length === 0 ? (
-                                <tr>
-                                    <td colSpan="4" className="py-20 text-center">
-                                        <p className="text-gray-400 font-bold italic text-sm">No hay artículos registrados aún.</p>
-                                    </td>
-                                </tr>
-                            ) : (
+                            {loading ? ( <tr><td colSpan="4" className="py-20 text-center"><div className="flex flex-col items-center gap-4"><div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-primary"></div><p className="text-gray-400 font-black text-[10px] uppercase tracking-widest">Sincronizando Archivos...</p></div></td></tr> ) : posts.length === 0 ? ( <tr><td colSpan="4" className="py-20 text-center"><p className="text-gray-400 font-bold italic text-sm">No hay artículos registrados aún.</p></td></tr> ) : (
                                 posts.map(post => (
                                     <tr key={post.id} className="group hover:bg-gray-50/50 dark:hover:bg-gray-900/20 transition-all">
-                                        <td className="px-8 py-6">
-                                            <div className="flex items-center gap-6">
-                                                <div className="w-20 h-14 bg-gray-100 dark:bg-gray-700 rounded-xl overflow-hidden shrink-0 shadow-inner flex items-center justify-center">
-                                                    {post.image ? (
-                                                        <img src={post.image} alt={post.title} className="w-full h-full object-cover" />
-                                                    ) : (
-                                                        <FaImage className="text-gray-300" />
-                                                    )}
-                                                </div>
-                                                <div className="min-w-0">
-                                                    <h3 className="font-black text-gray-800 dark:text-white uppercase tracking-tight text-sm truncate max-w-xs">{post.title}</h3>
-                                                    <div className="flex items-center gap-2 mt-1">
-                                                        <span className="text-[9px] font-black bg-primary/10 text-primary px-2 py-0.5 rounded uppercase tracking-tighter shadow-sm">{post.category}</span>
-                                                        {post.isLive && (
-                                                            <span className="text-[9px] font-black bg-emerald-100 text-emerald-600 px-2 py-0.5 rounded uppercase tracking-tighter shadow-sm">En Vivo (Sitio Web)</span>
-                                                        )}
-                                                        <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Slug: {post.slug}</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td className="px-8 py-6">
-                                            <div className="space-y-1">
-                                                <p className="text-[10px] font-black text-gray-800 dark:text-gray-200 uppercase tracking-tight italic">Por {post.author}</p>
-                                                <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">
-                                                    {format(new Date(post.createdAt), 'dd MMMM yyyy', { locale: es })}
-                                                </p>
-                                            </div>
-                                        </td>
-                                        <td className="px-8 py-6 text-center">
-                                            {post.published ? (
-                                                <div className="flex flex-col items-center gap-1 text-emerald-500">
-                                                    <FaCheckCircle size={16} />
-                                                    <span className="text-[8px] font-black uppercase tracking-widest">Público</span>
-                                                </div>
-                                            ) : (
-                                                <div className="flex flex-col items-center gap-1 text-gray-400 opacity-50">
-                                                    <FaTimesCircle size={16} />
-                                                    <span className="text-[8px] font-black uppercase tracking-widest">Borrador</span>
-                                                </div>
-                                            )}
-                                        </td>
-                                        <td className="px-8 py-6 text-right">
-                                            <div className="flex justify-end gap-2">
-                                                <a href={`https://darmaxagua.com.mx/blog/${post.slug}`} target="_blank" rel="noopener noreferrer" className="p-3 bg-gray-100 dark:bg-gray-700 text-gray-400 hover:text-primary rounded-xl transition-all" title="Ver en el sitio"><FaEye size={14} /></a>
-                                                <button onClick={() => handleEdit(post)} className="p-3 bg-gray-100 dark:bg-gray-700 text-gray-400 hover:text-blue-500 rounded-xl transition-all" title="Editar"><FaEdit size={14} /></button>
-                                                <button onClick={() => { Swal.fire({ title: '¿Eliminar?', text: 'Borrarás este post permanentemente.', icon: 'warning', showCancelButton: true, confirmButtonText: 'Sí, borrar', cancelButtonText: 'No' }).then(res => { if(res.isConfirmed) { deleteBlogPost(post.id).then(() => loadPosts()); } }); }} className="p-3 bg-gray-100 dark:bg-gray-700 text-gray-400 hover:text-red-500 rounded-xl transition-all" title="Eliminar"><FaTrash size={14} /></button>
-                                            </div>
-                                        </td>
+                                        <td className="px-8 py-6"><div className="flex items-center gap-6"><div className="w-20 h-14 bg-gray-100 dark:bg-gray-700 rounded-xl overflow-hidden shrink-0 shadow-inner flex items-center justify-center">{post.image ? <img src={post.image} alt={post.title} className="w-full h-full object-cover" /> : <FaImage className="text-gray-300" />}</div><div className="min-w-0"><h3 className="font-black text-gray-800 dark:text-white uppercase tracking-tight text-sm truncate max-w-xs">{post.title}</h3><div className="flex items-center gap-2 mt-1"><span className="text-[9px] font-black bg-primary/10 text-primary px-2 py-0.5 rounded uppercase tracking-tighter shadow-sm">{post.category}</span>{post.isLive && <span className="text-[9px] font-black bg-emerald-100 text-emerald-600 px-2 py-0.5 rounded uppercase tracking-tighter shadow-sm">En Vivo (Sitio Web)</span>}<span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Slug: {post.slug}</span></div></div></div></td>
+                                        <td className="px-8 py-6"><div className="space-y-1"><p className="text-[10px] font-black text-gray-800 dark:text-gray-200 uppercase tracking-tight italic">Por {post.author}</p><p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">{format(new Date(post.createdAt), 'dd MMMM yyyy', { locale: es })}</p></div></td>
+                                        <td className="px-8 py-6 text-center">{post.published ? <div className="flex flex-col items-center gap-1 text-emerald-500"><FaCheckCircle size={16} /><span className="text-[8px] font-black uppercase tracking-widest">Público</span></div> : <div className="flex flex-col items-center gap-1 text-gray-400 opacity-50"><FaTimesCircle size={16} /><span className="text-[8px] font-black uppercase tracking-widest">Borrador</span></div>}</td>
+                                        <td className="px-8 py-6 text-right"><div className="flex justify-end gap-2"><a href={`https://darmaxagua.com.mx/blog/${post.slug}`} target="_blank" rel="noopener noreferrer" className="p-3 bg-gray-100 dark:bg-gray-700 text-gray-400 hover:text-primary rounded-xl transition-all" title="Ver en el sitio"><FaEye size={14} /></a><button onClick={() => handleEdit(post)} className="p-3 bg-gray-100 dark:bg-gray-700 text-gray-400 hover:text-blue-500 rounded-xl transition-all" title="Editar"><FaEdit size={14} /></button><button onClick={() => { Swal.fire({ title: '¿Eliminar?', text: 'Borrarás este post permanentemente.', icon: 'warning', showCancelButton: true, confirmButtonText: 'Sí, borrar', cancelButtonText: 'No' }).then(res => { if(res.isConfirmed) { deleteBlogPost(post.id).then(() => loadPosts()); } }); }} className="p-3 bg-gray-100 dark:bg-gray-700 text-gray-400 hover:text-red-500 rounded-xl transition-all" title="Eliminar"><FaTrash size={14} /></button></div></td>
                                     </tr>
                                 ))
                             )}
