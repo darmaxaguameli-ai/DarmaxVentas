@@ -51,6 +51,8 @@ const Resumen = () => {
             else if (hasPermission('canAccessLeads')) navigate('/gestion/prospeccion', { replace: true });
             else if (hasPermission('canAccessQuotes')) navigate('/gestion/cotizador-distribuidores', { replace: true });
             else if (hasPermission('canAccessMarketing')) navigate('/gestion/marketing', { replace: true });
+            else if (hasPermission('canAccessLegal')) navigate('/gestion/legal', { replace: true });
+            else if (hasPermission('canAccessInstallation')) navigate('/gestion/instalacion', { replace: true });
             else if (hasPermission('canAccessConfig')) navigate('/gestion/configuracion', { replace: true });
             else {
                 console.warn("Usuario sin sub-módulos de gestión disponibles. Enviando a selector.");

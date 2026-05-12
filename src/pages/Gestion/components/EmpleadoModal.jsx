@@ -42,7 +42,8 @@ const EmpleadoModal = ({ onClose, empleadoToEdit, onSave, empleados = [], users 
             sexo: empleadoToEdit.sexo || empleadoToEdit.user?.sexo || "", // Cargar de empleado o usuario
             managerId: empleadoToEdit.managerId || null,
             userId: empleadoToEdit.userId || null,
-            roleIds: currentRoleIds
+            roleIds: currentRoleIds,
+            storeId: empleadoToEdit.user?.storeId || "" // Cargar sucursal del usuario vinculado
         };
     }
     return initialEmpleadoState;
@@ -85,7 +86,8 @@ const EmpleadoModal = ({ onClose, empleadoToEdit, onSave, empleados = [], users 
           emailPersonal: prev.emailPersonal || selectedUser.email || "",
           telefono: prev.telefono || selectedUser.phone || "",
           sexo: prev.sexo || selectedUser.sexo || "", // Vincular sexo del usuario
-          roleIds: selectedUser.roles?.map(r => r.id) || (selectedUser.roleId ? [selectedUser.roleId] : [])
+          roleIds: selectedUser.roles?.map(r => r.id) || (selectedUser.roleId ? [selectedUser.roleId] : []),
+          storeId: selectedUser.storeId || "" // Vincular sucursal del usuario
         }));
         setSystemAccessEnabled(true);
         return;
@@ -126,7 +128,8 @@ const EmpleadoModal = ({ onClose, empleadoToEdit, onSave, empleados = [], users 
                 email: empleado.emailPersonal,
                 password: empleado.password,
                 sexo: empleado.sexo, // ✅ Incluir sexo al crear cuenta
-                roleIds: empleado.roleIds 
+                roleIds: empleado.roleIds,
+                storeId: empleado.storeId || null // ✅ Incluir sucursal al crear cuenta
             };
         } else {
             if (changePassword && empleado.password) {
@@ -134,6 +137,7 @@ const EmpleadoModal = ({ onClose, empleadoToEdit, onSave, empleados = [], users 
             }
             empleadoData.sexo = empleado.sexo; // ✅ Incluir sexo en actualización
             empleadoData.roleIds = empleado.roleIds;
+            empleadoData.storeId = empleado.storeId || null; // ✅ Incluir sucursal en actualización
         }
     } else {
         empleadoData.userId = null;
@@ -352,6 +356,15 @@ const EmpleadoModal = ({ onClose, empleadoToEdit, onSave, empleados = [], users 
               <div>
                 <label className="text-[10px] font-black text-gray-400 uppercase block mb-1.5 ml-1 italic">Fecha de Alta</label>
                 <input name="fechaContratacion" type="date" value={empleado.fechaContratacion || ""} onChange={handleChange} required className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-700 rounded-xl px-4 py-2.5 font-bold focus:ring-2 focus:ring-primary outline-none" />
+              </div>
+              <div>
+                <label className="text-[10px] font-black text-gray-400 uppercase block mb-1.5 ml-1 italic">Sucursal Asignada</label>
+                <select name="storeId" value={empleado.storeId || ""} onChange={handleChange} className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-700 rounded-xl px-4 py-2.5 font-bold outline-none focus:ring-2 focus:ring-primary">
+                    <option value="">-- Sin Sucursal (Acceso Global) --</option>
+                    {(stores || []).map(s => (
+                        <option key={s.id} value={s.id}>{s.name}</option>
+                    ))}
+                </select>
               </div>
               <div>
                     <label className="text-[10px] font-black text-gray-400 uppercase block mb-1.5 ml-1 italic">Reporta a (Jefe)</label>

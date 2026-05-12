@@ -56,6 +56,11 @@ import {
   createStore as apiCreateStore,
   updateStore as apiUpdateStore,
   deleteStore as apiDeleteStore,
+  // Instalaciones
+  fetchInstallationModels as apiFetchInstallationModels,
+  createInstallationModel as apiCreateInstallationModel,
+  updateInstallationModel as apiUpdateInstallationModel,
+  deleteInstallationModel as apiDeleteInstallationModel,
 } from "../../../api/apiClient";
 
 const GestionContext = createContext(null);
@@ -80,6 +85,7 @@ const initialState = {
   empleados: [],
   franchises: [],
   stores: [],
+  installationModels: [], // Nuevo
   loading: true,
   error: null,
 };
@@ -104,6 +110,7 @@ const gestionReducer = (state, action) => {
         empleados: action.payload.empleados || state.empleados,
         franchises: action.payload.franchises || state.franchises,
         stores: action.payload.stores || state.stores,
+        installationModels: action.payload.installationModels || state.installationModels, // Nuevo
         loading: false,
       };
     default:
@@ -123,14 +130,14 @@ export const GestionProvider = ({ children }) => {
     try {
       const [
         inventory, users, roles, income, expenses,
-        waterTypes, servicePrices, jugBrands, empleados, franchises, stores
+        waterTypes, servicePrices, jugBrands, empleados, franchises, stores, installationModels
       ] = await Promise.all([
         apiFetchProducts(), apiFetchUsers(), apiFetchRoles(), apiFetchIncomes(), apiFetchExpenses(),
-        apiFetchWaterTypes(), apiFetchServicePrices(), apiFetchJugBrands(), apiFetchEmpleados(), apiFetchFranchises(), apiFetchStores()
+        apiFetchWaterTypes(), apiFetchServicePrices(), apiFetchJugBrands(), apiFetchEmpleados(), apiFetchFranchises(), apiFetchStores(), apiFetchInstallationModels()
       ]);
       dispatch({
         type: "SET_INITIAL_DATA",
-        payload: { inventory, users, roles, income, expenses, waterTypes, servicePrices, jugBrands, empleados, franchises, stores },
+        payload: { inventory, users, roles, income, expenses, waterTypes, servicePrices, jugBrands, empleados, franchises, stores, installationModels },
       });
     } catch (error) {
       dispatch({ type: "SET_ERROR", payload: error.message });
@@ -240,6 +247,7 @@ export const GestionProvider = ({ children }) => {
 
   const franchiseActions = createCrudActions('Franchise', { createFranchise: apiCreateFranchise, updateFranchise: apiUpdateFranchise, deleteFranchise: apiDeleteFranchise });
   const storeActions = createCrudActions('Store', { createStore: apiCreateStore, updateStore: apiUpdateStore, deleteStore: apiDeleteStore });
+  const installationModelActions = createCrudActions('InstallationModel', { createInstallationModel: apiCreateInstallationModel, updateInstallationModel: apiUpdateInstallationModel, deleteInstallationModel: apiDeleteInstallationModel });
 
   const value = {
     state,
@@ -254,6 +262,7 @@ export const GestionProvider = ({ children }) => {
     ...empleadoActions,
     ...franchiseActions,
     ...storeActions,
+    ...installationModelActions,
   };
 
   return (

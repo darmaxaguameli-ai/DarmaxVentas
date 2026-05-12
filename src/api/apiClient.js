@@ -192,6 +192,14 @@ export const deleteBlogPost = (id) => axios.delete(BLOG_API_URL, { params: { id 
 export const fetchConsolidatedReport = () => apiClient.get('/reports/consolidated').then(res => res.data);
 
 // ====================================================================
+//  INSTALACIONES / INGENIERÍA
+// ====================================================================
+export const fetchInstallationModels = () => apiClient.get('/installation-models').then(res => res.data);
+export const createInstallationModel = (data) => apiClient.post('/installation-models', data).then(res => res.data);
+export const updateInstallationModel = (id, data) => apiClient.put(`/installation-models/${id}`, data).then(res => res.data);
+export const deleteInstallationModel = (id) => apiClient.delete(`/installation-models/${id}`).then(res => res.data);
+
+// ====================================================================
 //  USER PREFERENCES
 // ====================================================================
 export const fetchUserPreferences = () => apiClient.get('/user-preferences').then(res => res.data);

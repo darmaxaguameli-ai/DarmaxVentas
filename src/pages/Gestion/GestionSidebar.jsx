@@ -22,10 +22,33 @@ const menuStructure = [
   },
   {
     type: "group",
-    name: "Marketing & Contenido",
-    icon: "ads_click",
+    name: "Darmax Corp",
+    icon: "corporate_fare",
     children: [
-      { name: "Marketing Planner", path: "marketing", icon: "campaign", permission: "canAccessMarketing" },
+      { name: "Área Legal", path: "legal", icon: "balance", permission: "canAccessLegal" },
+    ],
+  },
+  {
+    type: "group",
+    name: "Ingeniería",
+    icon: "engineering",
+    children: [
+      { name: "Instalación", path: "instalacion", icon: "construction", permission: "canAccessInstallation" },
+    ],
+  },
+  {
+    type: "group",
+    name: "Marketing",
+    icon: "campaign",
+    children: [
+      { name: "Marketing Planner", path: "marketing", icon: "ads_click", permission: "canAccessMarketing" },
+    ],
+  },
+  {
+    type: "group",
+    name: "Contenido Web",
+    icon: "web",
+    children: [
       { name: "Blog / Artículos", path: "blog", icon: "newspaper", permission: "canAccessMarketing" },
     ],
   },

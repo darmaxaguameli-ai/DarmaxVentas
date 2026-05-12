@@ -108,6 +108,8 @@ model Role {
   canAccessQuotes     Boolean @default(false)
   canAccessLeads      Boolean @default(false) 
   canAccessMarketing  Boolean @default(false)
+  canAccessLegal      Boolean @default(false)
+  canAccessInstallation Boolean @default(false)
   
   isSystem            Boolean @default(false)
   
@@ -313,8 +315,35 @@ model Product {
   category    String?
   itemsPedido PedidoItem[]
 
-  jugBrandsAsCap JugBrand[]
-  storeInventories StoreInventory[]
+  jugBrandsAsCap        JugBrand[]
+  storeInventories     StoreInventory[]
+  installationMaterials ModelMaterial[] // Nueva relación
+}
+
+// =====================================================================
+// INGENIERÍA / INSTALACIONES
+// =====================================================================
+
+model InstallationModel {
+  id          String          @id @default(cuid())
+  name        String          @unique // Ej: Vending Atlantis 300
+  description String?
+  materials   ModelMaterial[]
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+}
+
+model ModelMaterial {
+  id                  String            @id @default(cuid())
+  quantity            Float             @default(1)
+  
+  installationModel   InstallationModel @relation(fields: [installationModelId], references: [id])
+  installationModelId String
+
+  product             Product           @relation(fields: [productId], references: [id])
+  productId           String
+
+  @@unique([installationModelId, productId])
 }
 
 model Pedido {

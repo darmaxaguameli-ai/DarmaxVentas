@@ -6,6 +6,7 @@ import { ThemeProvider } from "../../context/ThemeContext";
 import { GestionProvider } from "./context/GestionContext";
 import { NotificationProvider } from "./context/NotificationContext"; // Import NotificationProvider
 import NotificationController from "./components/NotificationController"; // Import Controller
+import WelcomeModal from "./components/WelcomeModal";
 import { Toaster } from "react-hot-toast";
 
 const GestionDashboard = () => {
@@ -65,6 +66,7 @@ const GestionDashboard = () => {
           </div>
           <NotificationProvider>
             <GestionProvider>
+              <WelcomeModal />
               <NotificationController />
               <Outlet />
             </GestionProvider>

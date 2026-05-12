@@ -29,6 +29,8 @@ const Roles = () => {
         canAccessQuotes: false,
         canAccessLeads: false,
         canAccessMarketing: false,
+        canAccessLegal: false,
+        canAccessInstallation: false,
     };
 
     const [formData, setFormData] = useState(initialRoleState);
@@ -154,11 +156,15 @@ const Roles = () => {
                 ...editingRole,
                 userIds: selectedUserIds
             });
+            // Refrescar el contexto global para que otros módulos vean los cambios de roles
+            await fetchManagementData();
+            
             Swal.fire('¡Personal Actualizado!', `Se han asignado ${selectedUserIds.length} colaboradores al puesto de ${editingRole.name}`, 'success');
             handleCloseModal();
             fetchRoles();
             fetchUsers();
         } catch (error) {
+            console.error("Error saving users to role:", error);
             Swal.fire('Error', 'No se pudieron guardar los cambios de personal', 'error');
         } finally {
             setLoading(false);
@@ -268,6 +274,8 @@ const Roles = () => {
                                     <PermissionBadge active={role.canAccessRH} label="RRHH" />
                                     <PermissionBadge active={role.canAccessFinances} label="Finanzas" />
                                     <PermissionBadge active={role.canAccessQuotes} label="Cotiz." />
+                                    <PermissionBadge active={role.canAccessLegal} label="Legal" />
+                                    <PermissionBadge active={role.canAccessInstallation} label="Instal." />
                                 </div>
                             </div>
 
@@ -485,6 +493,8 @@ const Roles = () => {
                                             { id: 'canAccessConfig', label: 'Configuración', icon: 'tune' },
                                             { id: 'canAccessQuotes', label: 'Cotizadores', icon: 'request_quote' },
                                             { id: 'canAccessMarketing', label: 'Marketing', icon: 'campaign' },
+                                            { id: 'canAccessLegal', label: 'Área Legal', icon: 'balance' },
+                                            { id: 'canAccessInstallation', label: 'Instalación', icon: 'construction' },
                                         ].map((perm) => (
                                             <label key={perm.id} className="flex items-center justify-between p-3 rounded-xl bg-gray-50 dark:bg-gray-900/40 hover:bg-gray-100 border border-transparent hover:border-gray-200 cursor-pointer transition-all">
                                                 <div className="flex items-center gap-2">

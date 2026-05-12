@@ -1871,8 +1871,9 @@ app.post('/api/roles', verifyToken, async (req, res) => {
 });
 
 app.put('/api/roles/:id', verifyToken, async (req, res) => {  try {
-    const { id } = req.params;
+    const { id: roleIdParam } = req.params;
     const { 
+      id, // Excluir para que no entre en ...permissions
       name, 
       description, 
       userIds, 
@@ -1880,6 +1881,7 @@ app.put('/api/roles/:id', verifyToken, async (req, res) => {  try {
       users,  
       createdAt, 
       updatedAt, 
+      isSystem,
       ...permissions
     } = req.body;
 
@@ -1900,7 +1902,7 @@ app.put('/api/roles/:id', verifyToken, async (req, res) => {  try {
     }
 
     const updatedRole = await prisma.role.update({
-      where: { id },
+      where: { id: roleIdParam },
       data: updateData,
       include: {
           _count: { select: { users: true } }
@@ -1908,6 +1910,7 @@ app.put('/api/roles/:id', verifyToken, async (req, res) => {  try {
     });
     res.json(updatedRole);
   } catch (error) {
+    console.error("Error updating role:", error);
     res.status(500).json({ error: 'Error al actualizar el rol' });
   }
 });
@@ -1934,7 +1937,12 @@ app.delete('/api/roles/:id', verifyToken, async (req, res) => {
 
 app.get('/api/users', verifyToken, async (req, res) => {
   try {
-    const users = await prisma.user.findMany();
+    const users = await prisma.user.findMany({
+      include: {
+        roles: true,
+        store: true
+      }
+    });
     res.json(users);
   } catch (error) {
     console.error('Error fetching users:', error);
@@ -2782,13 +2790,23 @@ app.get('/api/pedidos', verifyToken, async (req, res) => {
     // Construir filtro base
     const where = {};
 
+    // Obtener usuario con sus roles dinámicos para verificación RBAC v2
+    const user = await prisma.user.findUnique({ 
+        where: { id }, 
+        include: { roles: true } 
+    });
+
+    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+
+    const isAdmin = role === 'ADMIN' || user.roles.some(r => r.name === 'ADMIN');
+
     // Si NO es ADMIN, filtrar por la sucursal del usuario
-    if (role !== 'ADMIN') {
-        const user = await prisma.user.findUnique({ where: { id }, select: { storeId: true } });
-        if (user && user.storeId) {
+    if (!isAdmin) {
+        if (user.storeId) {
             where.storeId = user.storeId;
         } else {
-            // Si es vendedor pero no tiene tienda asignada, no debería ver nada por seguridad
+            // Si es colaborador pero no tiene tienda asignada, no debería ver nada por seguridad
+            // a menos que sea un rol global (se podría ampliar esta lógica luego)
             return res.json([]); 
         }
     }
@@ -3870,6 +3888,113 @@ app.put('/api/solicitudes/:id', verifyToken, async (req, res) => {
         }
         res.status(500).json({ error: 'Error al actualizar la solicitud.' });
     }
+});
+
+// =====================================================
+// INSTALACIONES / INGENIERÍA API (NUEVO)
+// =====================================================
+
+// GET all installation models
+app.get('/api/installation-models', verifyToken, async (req, res) => {
+  try {
+    const models = await prisma.installationModel.findMany({
+      include: {
+        materials: {
+          include: {
+            product: true
+          }
+        }
+      },
+      orderBy: { name: 'asc' }
+    });
+    res.json(models);
+  } catch (error) {
+    console.error('Error fetching installation models:', error);
+    res.status(500).json({ error: 'Error al obtener los modelos de instalación.' });
+  }
+});
+
+// POST a new installation model
+app.post('/api/installation-models', verifyToken, async (req, res) => {
+  if (req.user.role !== 'ADMIN') return res.status(403).json({ error: 'Solo administradores pueden crear modelos.' });
+  const { name, description, materials } = req.body;
+  try {
+    const newModel = await prisma.installationModel.create({
+      data: {
+        name,
+        description,
+        materials: {
+          create: materials.map(m => ({
+            quantity: parseFloat(m.quantity),
+            product: { connect: { id: m.productId } }
+          }))
+        }
+      },
+      include: { materials: { include: { product: true } } }
+    });
+    res.status(201).json(newModel);
+  } catch (error) {
+    console.error('Error creating installation model:', error);
+    if (error.code === 'P2002') {
+      return res.status(409).json({ error: 'Ya existe un modelo con ese nombre.' });
+    }
+    res.status(500).json({ error: 'Error al crear el modelo de instalación.' });
+  }
+});
+
+// PUT to update an installation model
+app.put('/api/installation-models/:id', verifyToken, async (req, res) => {
+  if (req.user.role !== 'ADMIN') return res.status(403).json({ error: 'Solo administradores pueden editar modelos.' });
+  const { id } = req.params;
+  const { name, description, materials } = req.body;
+  try {
+    const updatedModel = await prisma.$transaction(async (tx) => {
+      // 1. Update model basic info
+      await tx.installationModel.update({
+        where: { id },
+        data: { name, description }
+      });
+
+      // 2. Delete existing materials
+      await tx.modelMaterial.deleteMany({
+        where: { installationModelId: id }
+      });
+
+      // 3. Create new materials
+      return await tx.installationModel.update({
+        where: { id },
+        data: {
+          materials: {
+            create: materials.map(m => ({
+              quantity: parseFloat(m.quantity),
+              product: { connect: { id: m.productId } }
+            }))
+          }
+        },
+        include: { materials: { include: { product: true } } }
+      });
+    });
+    res.json(updatedModel);
+  } catch (error) {
+    console.error(`Error updating installation model ${id}:`, error);
+    res.status(500).json({ error: 'Error al actualizar el modelo.' });
+  }
+});
+
+// DELETE an installation model
+app.delete('/api/installation-models/:id', verifyToken, async (req, res) => {
+  if (req.user.role !== 'ADMIN') return res.status(403).json({ error: 'Solo administradores pueden eliminar modelos.' });
+  const { id } = req.params;
+  try {
+    await prisma.$transaction(async (tx) => {
+      await tx.modelMaterial.deleteMany({ where: { installationModelId: id } });
+      await tx.installationModel.delete({ where: { id } });
+    });
+    res.status(204).send();
+  } catch (error) {
+    console.error(`Error deleting installation model ${id}:`, error);
+    res.status(500).json({ error: 'Error al eliminar el modelo.' });
+  }
 });
 
 // ====================================================================

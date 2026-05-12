@@ -7,7 +7,7 @@ import { FaUserTie, FaPlus, FaArrowLeft, FaIdCard, FaDollarSign, FaUserShield } 
 
 const Empleados = () => {
   const { state, addEmpleado, updateEmpleado, deleteEmpleado } = useGestion();
-  const { empleados, users, roles, loading, error } = state;
+  const { empleados, users, roles, stores, loading, error } = state;
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [empleadoToEdit, setEmpleadoToEdit] = useState(null);
@@ -77,6 +77,7 @@ const Empleados = () => {
           empleados={empleados}
           users={users}
           roles={roles}
+          stores={stores}
         />
       )}
 

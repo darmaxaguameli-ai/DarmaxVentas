@@ -270,6 +270,8 @@ const EmpleadoDetalle = () => {
                     empleadoToEdit={empleado}
                     empleados={allEmpleados}
                     users={allUsers}
+                    roles={gestionState.roles}
+                    stores={gestionState.stores}
                 />
             )}
         </div>

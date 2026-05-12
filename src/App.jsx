@@ -39,6 +39,8 @@ import Roles from "./pages/Gestion/Roles.jsx";
 import Leads from "./pages/Gestion/Leads.jsx";
 import Marketing from "./pages/Gestion/Marketing.jsx";
 import Blog from "./pages/Gestion/Blog.jsx";
+import Legal from "./pages/Gestion/Legal.jsx";
+import Instalacion from "./pages/Gestion/Instalacion.jsx";
 import Configuracion from "./pages/Gestion/Configuracion.jsx";
 import CotizadorDistribuidoresPage from "./pages/Gestion/CotizadorDistribuidoresPage.jsx";
 import DarmaxQuote from "./pages/Gestion/DarmaxQuote.jsx";
@@ -185,6 +187,8 @@ function App() {
           <Route path="prospeccion" element={<Leads />} />
           <Route path="marketing" element={<Marketing />} />
           <Route path="blog" element={<Blog />} />
+          <Route path="legal" element={<Legal />} />
+          <Route path="instalacion" element={<Instalacion />} />
           <Route path="configuracion" element={<Configuracion />} />
           <Route path="cotizador" element={<DarmaxQuote />} />
           <Route path="cotizador-distribuidores" element={<CotizadorDistribuidoresPage />} />

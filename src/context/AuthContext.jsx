@@ -59,6 +59,8 @@ export const AuthProvider = ({ children }) => {
                        hasPermission('canAccessConfig') ||
                        hasPermission('canAccessQuotes') ||
                        hasPermission('canAccessLeads') ||
+                       hasPermission('canAccessLegal') ||
+                       hasPermission('canAccessInstallation') ||
                        hasPermission('canAccessMarketing');
             case 'pos':
                 return hasPermission('canAccessPOS');
