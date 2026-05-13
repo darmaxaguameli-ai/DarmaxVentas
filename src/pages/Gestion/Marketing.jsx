@@ -13,6 +13,7 @@ import {
 } from 'date-fns';
 import { es } from 'date-fns/locale';
 import apiClient from '../../api/apiClient';
+import { formatDate } from '../../utils/formatters';
 import Swal from 'sweetalert2';
 
 const Marketing = () => {
@@ -139,6 +140,15 @@ const Marketing = () => {
         return true;
     });
 
+    // Función auxiliar para parsear fechas del servidor (UTC) a objetos Date locales a medianoche
+    // Evita el error de "un día antes" al ignorar el offset de zona horaria
+    const parseCalendarDate = (dateInput) => {
+        if (!dateInput) return null;
+        const dateStr = typeof dateInput === 'string' ? dateInput : dateInput.toISOString();
+        const [y, m, d] = dateStr.split('T')[0].split('-').map(Number);
+        return new Date(y, m - 1, d);
+    };
+
     const renderCard = (post) => (
         <div key={post.id} className="bg-white dark:bg-gray-800 p-4 sm:p-5 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 group hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative overflow-hidden">
             {post.status === 'APROBADO' && (
@@ -164,7 +174,7 @@ const Marketing = () => {
                     post.fechaEntrega && new Date(post.fechaEntrega) < new Date() ? 'bg-red-50 text-red-500' : 'bg-gray-50 dark:bg-gray-900 text-gray-400'
                 }`}>
                     <FaCalendarAlt /> 
-                    {post.fechaEntrega ? new Date(post.fechaEntrega).toLocaleDateString('es-MX', { month: 'short', day: 'numeric' }) : 'S/F'}
+                    {post.fechaEntrega ? formatDate(post.fechaEntrega, { month: 'short', day: 'numeric' }) : 'S/F'}
                 </div>
                 <div className="flex items-center gap-1 sm:gap-2">
                     {isAdmin && post.status === 'PENDIENTE_APROBACION' && (
@@ -202,9 +212,7 @@ const Marketing = () => {
         const postId = e.dataTransfer.getData("postId");
         if (!postId) return;
         try {
-            const offset = date.getTimezoneOffset();
-            const adjustedDate = new Date(date.getTime() - (offset * 60 * 1000));
-            const dateStr = adjustedDate.toISOString().split('T')[0];
+            const dateStr = format(date, 'yyyy-MM-dd');
             await apiClient.put(`/marketing/${postId}`, { fechaEntrega: dateStr });
             fetchPosts();
             Swal.fire({
@@ -240,7 +248,7 @@ const Marketing = () => {
         while (day <= endDate) {
             for (let i = 0; i < 7; i++) {
                 const cloneDay = day;
-                const dayPosts = filteredPosts.filter(p => p.fechaEntrega && isSameDay(new Date(p.fechaEntrega), cloneDay));
+                const dayPosts = filteredPosts.filter(p => p.fechaEntrega && isSameDay(parseCalendarDate(p.fechaEntrega), cloneDay));
                 days.push(
                     <div
                         key={day}

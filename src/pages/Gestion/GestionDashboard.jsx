@@ -66,7 +66,7 @@ const GestionDashboard = () => {
           </div>
           <NotificationProvider>
             <GestionProvider>
-              <WelcomeModal />
+              {/* <WelcomeModal /> */}
               <NotificationController />
               <Outlet />
             </GestionProvider>

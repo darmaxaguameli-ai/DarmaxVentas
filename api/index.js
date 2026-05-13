@@ -1023,7 +1023,7 @@ app.post('/api/incomes', verifyToken, async (req, res) => {
     
     const data = {
         ...rest,
-        date: new Date(date),
+        date: new Date(String(date).includes('T') ? date : `${date}T12:00:00Z`),
     };
 
     // Asignar a la sucursal del usuario si existe
@@ -1046,7 +1046,7 @@ app.put('/api/incomes/:id', verifyToken, async (req, res) => {
   const { id } = req.params;
   try {
     const { date, ...rest } = req.body;
-    const data = date ? { ...rest, date: new Date(date) } : rest;
+    const data = date ? { ...rest, date: new Date(String(date).includes('T') ? date : `${date}T12:00:00Z`) } : rest;
     const updatedIncome = await prisma.ingreso.update({
       where: { id },
       data: data,
@@ -1525,7 +1525,7 @@ app.post('/api/marketing', verifyToken, async (req, res) => {
         titulo,
         descripcion,
         url,
-        fechaEntrega: fechaEntrega ? new Date(fechaEntrega) : null,
+        fechaEntrega: fechaEntrega ? new Date(fechaEntrega.includes('T') ? fechaEntrega : `${fechaEntrega}T12:00:00Z`) : null,
         status: status || 'BORRADOR',
         creador: { connect: { id: creadorId } }
       }
@@ -1546,6 +1546,11 @@ app.put('/api/marketing/:id', verifyToken, async (req, res) => {
         status, 
         comentariosAdmin, 
         fechaPublicacion,
+        fechaEntrega,
+        id: bodyId, // Excluir
+        createdAt,
+        updatedAt,
+        creador,
         ...data 
     } = req.body;
 
@@ -1553,7 +1558,10 @@ app.put('/api/marketing/:id', verifyToken, async (req, res) => {
 
     if (status) updateData.status = status;
     if (comentariosAdmin !== undefined) updateData.comentariosAdmin = comentariosAdmin;
-    if (fechaPublicacion) updateData.fechaPublicacion = new Date(fechaPublicacion);
+    
+    // Convertir fechas a objetos Date para Prisma (usar mediodía UTC para evitar saltos de zona horaria)
+    if (fechaPublicacion) updateData.fechaPublicacion = new Date(String(fechaPublicacion).includes('T') ? fechaPublicacion : `${fechaPublicacion}T12:00:00Z`);
+    if (fechaEntrega) updateData.fechaEntrega = new Date(String(fechaEntrega).includes('T') ? fechaEntrega : `${fechaEntrega}T12:00:00Z`);
 
     const updatedPost = await prisma.marketingPost.update({
       where: { id },
@@ -2496,7 +2504,7 @@ app.post('/api/empleados', verifyToken, async (req, res) => {
     });
 
     // Sobrescribir o ajustar campos específicos
-    if (fechaContratacion) empleadoData.fechaContratacion = new Date(fechaContratacion);
+    if (fechaContratacion) empleadoData.fechaContratacion = new Date(String(fechaContratacion).includes('T') ? fechaContratacion : `${fechaContratacion}T12:00:00Z`);
     if (empleadoData.sueldo) empleadoData.sueldo = parseFloat(empleadoData.sueldo);
 
     if (userId && userId !== "null") {
@@ -2576,8 +2584,8 @@ app.put('/api/empleados/:id', verifyToken, async (req, res) => {
         if (emailPersonal) empleadoData.emailPersonal = emailPersonal;
         // ❌ NO añadir sexo aquí, Empleado no tiene ese campo.
 
-        if (fechaContratacion) empleadoData.fechaContratacion = new Date(fechaContratacion);
-        if (fechaTerminacion) empleadoData.fechaTerminacion = new Date(fechaTerminacion);
+        if (fechaContratacion) empleadoData.fechaContratacion = new Date(String(fechaContratacion).includes('T') ? fechaContratacion : `${fechaContratacion}T12:00:00Z`);
+        if (fechaTerminacion) empleadoData.fechaTerminacion = new Date(String(fechaTerminacion).includes('T') ? fechaTerminacion : `${fechaTerminacion}T12:00:00Z`);
         else if (req.body.hasOwnProperty('fechaTerminacion')) empleadoData.fechaTerminacion = null;
 
         if (req.body.hasOwnProperty('userId')) {
@@ -3672,7 +3680,7 @@ app.post('/api/cotizaciones', verifyToken, async (req, res) => {
         
         firma: data.firma || null,
         
-        fecha: data.fecha ? new Date(data.fecha) : new Date(), 
+        fecha: data.fecha ? new Date(String(data.fecha).includes('T') ? data.fecha : `${data.fecha}T12:00:00Z`) : new Date(), 
         diasValidez: parseInt(data.diasValidez) || 5,
       }
     });
@@ -3705,7 +3713,7 @@ app.put('/api/cotizaciones/:id', verifyToken, async (req, res) => {
         const updatedQuote = await prisma.cotizacion.update({
             where: { id },
             data: {
-                fecha: data.fecha ? new Date(data.fecha) : undefined,
+                fecha: data.fecha ? new Date(String(data.fecha).includes('T') ? data.fecha : `${data.fecha}T12:00:00Z`) : undefined,
                 diasValidez: parseInt(data.diasValidez) || 5,
                 nombreAsesor: data.nombreAsesor,
                 nombreCliente: data.cliente?.nombre || data.nombreCliente,
