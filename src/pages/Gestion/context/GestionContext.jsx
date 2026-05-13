@@ -209,6 +209,7 @@ export const GestionProvider = ({ children }) => {
                     password: data._createAccount.password,
                     roleIds: data._createAccount.roleIds,
                     sexo: data._createAccount.sexo,
+                    storeId: data._createAccount.storeId, // ✅ Vincular sucursal
                     type: 'COLABORADOR', // ✅ Asegurar que el backend sepa que es colaborador
                     phone: data.telefono,
                     street: data.street,

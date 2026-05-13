@@ -200,6 +200,14 @@ export const updateInstallationModel = (id, data) => apiClient.put(`/installatio
 export const deleteInstallationModel = (id) => apiClient.delete(`/installation-models/${id}`).then(res => res.data);
 
 // ====================================================================
+//  NOTIFICATIONS
+// ====================================================================
+export const fetchNotifications = () => apiClient.get('/notifications').then(res => res.data);
+export const createNotification = (data) => apiClient.post('/notifications', data).then(res => res.data);
+export const markNotificationAsRead = (id) => apiClient.put(`/notifications/${id}/read`).then(res => res.data);
+export const clearNotifications = () => apiClient.delete('/notifications').then(res => res.data);
+
+// ====================================================================
 //  USER PREFERENCES
 // ====================================================================
 export const fetchUserPreferences = () => apiClient.get('/user-preferences').then(res => res.data);

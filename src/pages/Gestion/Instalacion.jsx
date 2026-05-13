@@ -15,27 +15,28 @@ const InstallationModelModal = ({ isOpen, onClose, modelToEdit, onSave, inventor
         modelToEdit?.materials?.map(m => ({
             productId: m.productId,
             name: m.product?.name,
-            quantity: m.quantity
+            quantity: m.quantity,
+            unit: m.unit || 'Pza'
         })) || []
     );
     const [searchQuery, setSearchQuery] = useState('');
 
     const filteredInventory = useMemo(() => {
         if (!searchQuery) return [];
-        return inventory.filter(p => 
+        return (inventory || []).filter(p => 
             p.name.toLowerCase().includes(searchQuery.toLowerCase()) &&
             !materials.some(m => m.productId === p.id)
         ).slice(0, 5);
     }, [inventory, searchQuery, materials]);
 
     const addMaterial = (product) => {
-        setMaterials([...materials, { productId: product.id, name: product.name, quantity: 1 }]);
+        setMaterials([...materials, { productId: product.id, name: product.name, quantity: 1, unit: 'Pza' }]);
         setSearchQuery('');
     };
 
-    const updateQuantity = (productId, qty) => {
+    const updateMaterialField = (productId, field, value) => {
         setMaterials(materials.map(m => 
-            m.productId === productId ? { ...m, quantity: parseFloat(qty) || 0 } : m
+            m.productId === productId ? { ...m, [field]: field === 'quantity' ? (parseFloat(value) || 0) : value } : m
         ));
     };
 
@@ -142,24 +143,41 @@ const InstallationModelModal = ({ isOpen, onClose, modelToEdit, onSave, inventor
                                     </div>
                                 ) : (
                                     materials.map((m) => (
-                                        <div key={m.productId} className="flex items-center gap-4 bg-white dark:bg-gray-900 p-3 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm animate-in slide-in-from-left-4 duration-300">
+                                        <div key={m.productId} className="flex flex-col sm:flex-row sm:items-center gap-4 bg-white dark:bg-gray-800 p-3 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm animate-in slide-in-from-left-4 duration-300">
                                             <div className="flex-1 min-w-0">
                                                 <p className="text-sm font-black text-gray-800 dark:text-white truncate">{m.name}</p>
                                             </div>
                                             <div className="flex items-center gap-2">
-                                                <span className="text-[9px] font-black text-gray-400 uppercase">Cant:</span>
-                                                <input 
-                                                    type="number"
-                                                    min="0.1"
-                                                    step="0.5"
-                                                    value={m.quantity}
-                                                    onChange={(e) => updateQuantity(m.productId, e.target.value)}
-                                                    className="w-16 bg-gray-50 dark:bg-gray-800 border-none rounded-lg px-2 py-1.5 text-center text-xs font-black text-primary outline-none focus:ring-2 focus:ring-primary/20"
-                                                />
+                                                <div className="flex flex-col">
+                                                    <label className="text-[8px] font-black text-gray-400 uppercase ml-1 mb-0.5">Cant.</label>
+                                                    <input 
+                                                        type="number"
+                                                        min="0.1"
+                                                        step="any"
+                                                        value={m.quantity}
+                                                        onChange={(e) => updateMaterialField(m.productId, 'quantity', e.target.value)}
+                                                        className="w-16 bg-gray-50 dark:bg-gray-800 border-none rounded-lg px-2 py-1.5 text-center text-xs font-black text-primary outline-none focus:ring-2 focus:ring-primary/20"
+                                                    />
+                                                </div>
+                                                <div className="flex flex-col">
+                                                    <label className="text-[8px] font-black text-gray-400 uppercase ml-1 mb-0.5">Unidad</label>
+                                                    <select 
+                                                        value={m.unit}
+                                                        onChange={(e) => updateMaterialField(m.productId, 'unit', e.target.value)}
+                                                        className="bg-gray-50 dark:bg-gray-800 border-none rounded-lg px-2 py-1.5 text-xs font-bold text-gray-700 dark:text-gray-300 outline-none focus:ring-2 focus:ring-primary/20"
+                                                    >
+                                                        <option value="Pza">Pza</option>
+                                                        <option value="Mts">Mts</option>
+                                                        <option value="Lts">Lts</option>
+                                                        <option value="Kg">Kg</option>
+                                                        <option value="Kit">Kit</option>
+                                                        <option value="Serv">Serv</option>
+                                                    </select>
+                                                </div>
                                                 <button 
                                                     type="button"
                                                     onClick={() => removeMaterial(m.productId)}
-                                                    className="p-2 text-gray-400 hover:text-red-500 transition-colors"
+                                                    className="p-2 text-gray-400 hover:text-red-500 transition-colors mt-4 sm:mt-0"
                                                 >
                                                     <FaTrash size={12} />
                                                 </button>
@@ -220,8 +238,11 @@ const ModelDetailsModal = ({ isOpen, onClose, model }) => {
                                         <p className="text-[9px] text-gray-400 font-black uppercase tracking-tighter mt-0.5">{m.product?.category || 'General'}</p>
                                     </div>
                                     <div className="flex flex-col items-end">
-                                        <span className="text-base font-black text-primary">{m.quantity}</span>
-                                        <span className="text-[8px] font-bold text-gray-400 uppercase tracking-widest">Unidades</span>
+                                        <div className="flex items-baseline gap-1">
+                                            <span className="text-lg font-black text-primary">{m.quantity}</span>
+                                            <span className="text-[10px] font-bold text-gray-600 dark:text-gray-400 uppercase">{m.unit || 'Pza'}</span>
+                                        </div>
+                                        <span className="text-[8px] font-bold text-gray-400 uppercase tracking-widest">Requerido</span>
                                     </div>
                                 </div>
                             ))}
@@ -248,8 +269,8 @@ const ModelDetailsModal = ({ isOpen, onClose, model }) => {
 
 const Instalacion = () => {
     const { user } = useAuth();
-    const { state, inventory, addInstallationModel, updateInstallationModel, deleteInstallationModel, loading: contextLoading } = useGestion();
-    const { installationModels } = state;
+    const { state, addInstallationModel, updateInstallationModel, deleteInstallationModel } = useGestion();
+    const { installationModels, inventory, loading: contextLoading } = state;
     
     const [isFormModalOpen, setIsFormModalOpen] = useState(false);
     const [isViewModalOpen, setIsViewModalOpen] = useState(false);
@@ -294,7 +315,7 @@ const Instalacion = () => {
         }
     };
 
-    const filteredModels = installationModels.filter(m => 
+    const filteredModels = (installationModels || []).filter(m => 
         m.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
@@ -346,7 +367,7 @@ const Instalacion = () => {
                 <div className="px-6 py-4 hidden md:flex items-center gap-3 border-l dark:border-gray-700">
                     <div className="text-right">
                         <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none">Modelos</p>
-                        <p className="text-xl font-black text-gray-800 dark:text-white leading-none mt-1">{installationModels.length}</p>
+                        <p className="text-xl font-black text-gray-800 dark:text-white leading-none mt-1">{(installationModels || []).length}</p>
                     </div>
                     <FaLayerGroup className="text-primary text-xl" />
                 </div>

@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { FaUserShield, FaKey, FaUserCheck, FaTimes, FaEnvelope, FaMapMarkerAlt, FaBriefcase, FaCheck, FaInfoCircle, FaEye, FaEyeSlash } from "react-icons/fa";
 import apiClient from "@/api/apiClient";
 
-const EmpleadoModal = ({ onClose, empleadoToEdit, onSave, empleados = [], users = [], roles = [] }) => {
+const EmpleadoModal = ({ onClose, empleadoToEdit, onSave, empleados = [], users = [], roles = [], allStores = [] }) => {
   const [systemAccessEnabled, setSystemAccessEnabled] = useState(!!empleadoToEdit?.userId);
   const [changePassword, setChangePassword] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -361,7 +361,7 @@ const EmpleadoModal = ({ onClose, empleadoToEdit, onSave, empleados = [], users 
                 <label className="text-[10px] font-black text-gray-400 uppercase block mb-1.5 ml-1 italic">Sucursal Asignada</label>
                 <select name="storeId" value={empleado.storeId || ""} onChange={handleChange} className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-700 rounded-xl px-4 py-2.5 font-bold outline-none focus:ring-2 focus:ring-primary">
                     <option value="">-- Sin Sucursal (Acceso Global) --</option>
-                    {(stores || []).map(s => (
+                    {(allStores || []).map(s => (
                         <option key={s.id} value={s.id}>{s.name}</option>
                     ))}
                 </select>

@@ -117,7 +117,9 @@ const NotificationTray = () => {
                                     >
                                         {!n.read && <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary"></div>}
                                         <div className="flex gap-3">
-                                            <div className="mt-1 text-base">{getIcon(n.type)}</div>
+                                            <div className="mt-1 text-base">
+                                                {n.icon ? <span className="text-lg">{n.icon}</span> : getIcon(n.type)}
+                                            </div>
                                             <div className="flex-1">
                                                 <p className={`text-xs font-black uppercase tracking-tight mb-0.5 ${!n.read ? 'text-gray-800 dark:text-white' : 'text-gray-500'}`}>
                                                     {n.title}

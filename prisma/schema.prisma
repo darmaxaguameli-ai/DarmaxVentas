@@ -336,6 +336,7 @@ model InstallationModel {
 model ModelMaterial {
   id                  String            @id @default(cuid())
   quantity            Float             @default(1)
+  unit                String            @default("Pza") // Ej: Pza, Mts, Lts, Kg
   
   installationModel   InstallationModel @relation(fields: [installationModelId], references: [id])
   installationModelId String
@@ -564,6 +565,7 @@ model Notification {
   message   String
   type      String   @default("INFO") 
   link      String?  
+  icon      String?  
   read      Boolean  @default(false)
   createdAt DateTime @default(now())
 }

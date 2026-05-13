@@ -82,6 +82,8 @@ const Roles = () => {
                 canAccessQuotes: !!role.canAccessQuotes,
                 canAccessLeads: !!role.canAccessLeads,
                 canAccessMarketing: !!role.canAccessMarketing,
+                canAccessLegal: !!role.canAccessLegal,
+                canAccessInstallation: !!role.canAccessInstallation,
             });
         } else {
             setEditingRole(null);

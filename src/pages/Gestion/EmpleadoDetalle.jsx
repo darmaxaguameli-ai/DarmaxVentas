@@ -271,7 +271,7 @@ const EmpleadoDetalle = () => {
                     empleados={allEmpleados}
                     users={allUsers}
                     roles={gestionState.roles}
-                    stores={gestionState.stores}
+                    allStores={gestionState.stores}
                 />
             )}
         </div>

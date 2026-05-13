@@ -77,7 +77,7 @@ const Empleados = () => {
           empleados={empleados}
           users={users}
           roles={roles}
-          stores={stores}
+          allStores={stores}
         />
       )}
 

@@ -508,58 +508,59 @@ app.post('/api/products', verifyToken, async (req, res) => {
 // PUT to update a product (Store-aware stock update)
 app.put('/api/products/:id', verifyToken, async (req, res) => {
   const { id: productId } = req.params;
-  const { stock, ...productData } = req.body; // Separar stock del resto de datos
+  const { stock, ...rawData } = req.body; 
   const { id: userId, role } = req.user;
 
   try {
-    // 1. Determinar contexto de tienda
+    // 1. Filtrar y sanear datos básicos del producto
+    const productData = {};
+    if (rawData.name !== undefined) productData.name = String(rawData.name);
+    if (rawData.price !== undefined) productData.price = parseFloat(rawData.price) || 0;
+    if (rawData.imageUrl !== undefined) productData.imageUrl = rawData.imageUrl || null;
+    if (rawData.category !== undefined) productData.category = rawData.category || null;
+
+    // 2. Determinar contexto de tienda
     let storeId = null;
     if (role !== 'ADMIN') {
         const user = await prisma.user.findUnique({ where: { id: userId }, select: { storeId: true } });
         storeId = user?.storeId;
     }
 
-    // 2. Transacción para asegurar integridad
+    // 3. Ejecutar actualización en transacción
     const result = await prisma.$transaction(async (tx) => {
         let updatedProduct;
 
-        // A) Actualizar datos generales del producto (nombre, precio, etc.)
-        // Solo si hay datos para actualizar aparte del stock
+        // A) Actualizar campos base del Producto
         if (Object.keys(productData).length > 0) {
-             updatedProduct = await tx.product.update({
+            updatedProduct = await tx.product.update({
                 where: { id: productId },
-                data: productData,
+                data: productData
             });
         } else {
             updatedProduct = await tx.product.findUnique({ where: { id: productId } });
         }
 
-        // B) Actualizar Stock
-        if (stock !== undefined) {
-            if (storeId) {
-                // Si tiene tienda, actualizar/crear registro en StoreInventory
-                await tx.storeInventory.upsert({
-                    where: {
-                        storeId_productId: { // Clave compuesta
-                            storeId,
-                            productId
-                        }
-                    },
-                    update: { stock: parseInt(stock) },
-                    create: {
-                        storeId,
-                        productId,
-                        stock: parseInt(stock)
-                    }
-                });
-                // Devolver el producto con el stock local actualizado para el frontend
-                updatedProduct.stock = parseInt(stock); 
-            } else {
-                // Si es ADMIN global, actualizar stock global (legacy)
-                updatedProduct = await tx.product.update({
-                    where: { id: productId },
-                    data: { stock: parseInt(stock) }
-                });
+        if (!updatedProduct) throw new Error("Producto no encontrado");
+
+        // B) Actualizar Stock (Local o Global)
+        if (stock !== undefined && stock !== null && stock !== "") {
+            const numStock = parseInt(stock);
+            if (!isNaN(numStock)) {
+                if (storeId) {
+                    await tx.storeInventory.upsert({
+                        where: { storeId_productId: { storeId, productId } },
+                        update: { stock: numStock },
+                        create: { storeId, productId, stock: numStock }
+                    });
+                    // Reflejar stock local en el objeto de retorno de forma segura (objeto plano)
+                    updatedProduct = { ...updatedProduct, stock: numStock };
+                } else {
+                    const globalUpdated = await tx.product.update({
+                        where: { id: productId },
+                        data: { stock: numStock }
+                    });
+                    updatedProduct = globalUpdated;
+                }
             }
         }
         
@@ -569,10 +570,9 @@ app.put('/api/products/:id', verifyToken, async (req, res) => {
     res.json(result);
   } catch (error) {
     console.error(`Error updating product ${productId}:`, error);
-    if (error.code === 'P2025') {
-      return res.status(404).json({ error: 'Product not found' });
-    }
-    res.status(500).json({ error: 'Error updating product' });
+    let errorMsg = 'Error al actualizar el producto';
+    if (error.code === 'P2002') errorMsg = 'Ya existe un producto con este nombre.';
+    res.status(500).json({ error: errorMsg, details: error.message });
   }
 });
 
@@ -1428,6 +1428,31 @@ app.get('/api/notifications', verifyToken, async (req, res) => {
     res.json(notifications);
   } catch (error) {
     res.status(500).json({ error: 'Error al obtener notificaciones.' });
+  }
+});
+
+// POST a new notification (Internal/System use)
+app.post('/api/notifications', verifyToken, async (req, res) => {
+  try {
+    const { userId, title, message, type, link, icon } = req.body;
+    
+    // Si no se especifica userId, se asume el usuario actual (aunque suele ser para otros)
+    const targetUserId = userId || req.user.id;
+
+    const newNotification = await prisma.notification.create({
+      data: {
+        userId: targetUserId,
+        title,
+        message,
+        type: type || 'INFO',
+        link,
+        icon
+      }
+    });
+    res.status(201).json(newNotification);
+  } catch (error) {
+    console.error('Error creating notification:', error);
+    res.status(500).json({ error: 'Error al crear notificación.' });
   }
 });
 
@@ -2580,6 +2605,7 @@ app.put('/api/empleados/:id', verifyToken, async (req, res) => {
                     password: hashedAccountPassword, // ✅ Usar hash pre-calculado
                     sexo: _createAccount.sexo, // ✅ Nuevo campo
                     type: 'COLABORADOR',
+                    storeId: _createAccount.storeId || null, // ✅ Asignar sucursal inicial
                     roles: { 
                         connect: idsToConnect.map(rid => ({ id: rid }))
                     },
@@ -2597,6 +2623,7 @@ app.put('/api/empleados/:id', verifyToken, async (req, res) => {
             if (nombreCompleto) userUpdateData.name = nombreCompleto;
             if (emailPersonal) userUpdateData.email = emailPersonal;
             if (req.body.sexo) userUpdateData.sexo = req.body.sexo; // ✅ Actualizar sexo del usuario vinculado
+            if (req.body.storeId !== undefined) userUpdateData.storeId = req.body.storeId; // ✅ Actualizar sucursal vinculada
             
             if (hashedNewPassword) { // ✅ Usar hash pre-calculado
                 userUpdateData.password = hashedNewPassword;
@@ -3926,6 +3953,7 @@ app.post('/api/installation-models', verifyToken, async (req, res) => {
         materials: {
           create: materials.map(m => ({
             quantity: parseFloat(m.quantity),
+            unit: m.unit || "Pza", // Guardar unidad
             product: { connect: { id: m.productId } }
           }))
         }
@@ -3967,6 +3995,7 @@ app.put('/api/installation-models/:id', verifyToken, async (req, res) => {
           materials: {
             create: materials.map(m => ({
               quantity: parseFloat(m.quantity),
+              unit: m.unit || "Pza", // Guardar unidad
               product: { connect: { id: m.productId } }
             }))
           }

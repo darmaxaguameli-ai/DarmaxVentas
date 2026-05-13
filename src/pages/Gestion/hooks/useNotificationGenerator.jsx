@@ -1,6 +1,8 @@
 import { useEffect, useRef } from 'react';
 import { useGestion } from '../context/GestionContext';
 import { useNotification } from '../context/NotificationContext';
+import { useAuth } from '../../../context/AuthContext';
+import { createNotification } from '../../../api/apiClient';
 import toast from 'react-hot-toast';
 
 const LOW_STOCK_THRESHOLD = 50;
@@ -21,80 +23,87 @@ const getSnoozedNotifications = () => {
 export const useNotificationGenerator = () => {
     const { state } = useGestion();
     const { addNotification } = useNotification();
+    const { user, hasPermission } = useAuth();
     const { inventory, expenses, loading } = state;
     
-    // Usamos useRef solo para gastos, que son notificaciones de sesión única
-    const notifiedExpenses = useRef(new Set());
+    // Usamos sessionStorage para evitar recrear notificaciones en la DB durante la misma sesión de navegador
+    const sessionNotified = useRef(new Set(JSON.parse(sessionStorage.getItem('darmax_notified_db') || '[]')));
 
-    // Effect for low stock notifications with persistent snooze
+    const isAdmin = user?.role === 'ADMIN' || user?.roles?.some(r => r.name === 'ADMIN');
+
+    // Effect for low stock notifications (ONLY ADMIN)
     useEffect(() => {
-        if (loading || !inventory || inventory.length === 0) return;
+        if (loading || !inventory || inventory.length === 0 || !isAdmin) return;
 
         const snoozedNotifications = getSnoozedNotifications();
 
-        inventory.forEach(item => {
+        inventory.forEach(async (item) => {
             const snoozeId = `low-stock-${item.id}`;
+            const dbNotifId = `db-low-stock-${item.id}`;
             const snoozedAt = snoozedNotifications[snoozeId];
             const isSnoozed = snoozedAt && (new Date() - new Date(snoozedAt) < NOTIFICATION_SNOOZE_PERIOD_MS);
 
-            if (item.stock < LOW_STOCK_THRESHOLD && !isSnoozed) {
+            if (item.stock < LOW_STOCK_THRESHOLD && !isSnoozed && !sessionNotified.current.has(dbNotifId)) {
                 const notification = {
-                    snoozeId, // ID para "snoozear" esta notificación
                     title: 'Inventario Bajo',
                     message: `"${item.name}" tiene solo ${item.stock} unidades restantes.`,
-                    type: 'warning',
-                    icon: '📦'
+                    type: 'WARNING',
+                    icon: '📦',
+                    link: '/gestion/inventario'
                 };
-                addNotification(notification);
-                toast.error(notification.message, { duration: 6000, icon: notification.icon });
-                // No necesitamos añadirlo a un ref, ya que el localStorage se encarga de la persistencia
+
+                try {
+                    // 1. Guardar en Base de Datos (Campanita)
+                    await createNotification(notification);
+                    
+                    // 2. Marcar como notificado en esta sesión para no duplicar en DB
+                    sessionNotified.current.add(dbNotifId);
+                    sessionStorage.setItem('darmax_notified_db', JSON.stringify([...sessionNotified.current]));
+                    
+                    // 3. (Opcional) Notificar al contexto local por si la campanita no ha hecho poll
+                    addNotification({ ...notification, snoozeId });
+                } catch (err) {
+                    console.error("Error creating low stock notification in DB:", err);
+                }
             }
         });
-    }, [inventory, loading, addNotification]);
+    }, [inventory, loading, isAdmin, addNotification]);
 
-    // Effect for significant expenses (session-only notifications)
+    // Effect for significant expenses (ONLY ADMIN)
     useEffect(() => {
-        if (loading || !expenses || expenses.length === 0) return;
+        if (loading || !expenses || expenses.length === 0 || !isAdmin) return;
 
-        expenses.forEach(expense => {
+        expenses.forEach(async (expense) => {
             const notificationId = `significant-expense-${expense.id}`;
+            const dbNotifId = `db-expense-${expense.id}`;
             const expenseDate = new Date(expense.date);
             const isRecent = (new Date() - expenseDate) / (1000 * 60 * 60 * 24) < 2;
 
-            if (expense.amount > SIGNIFICANT_EXPENSE_THRESHOLD && isRecent && !notifiedExpenses.current.has(notificationId)) {
+            if (expense.amount > SIGNIFICANT_EXPENSE_THRESHOLD && isRecent && !sessionNotified.current.has(dbNotifId)) {
                 const formattedAmount = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(expense.amount);
                 const notification = {
                     title: 'Gasto Significativo',
                     message: `Se registró un gasto de ${formattedAmount} por "${expense.description}".`,
-                    type: 'error',
-                    icon: '💸'
+                    type: 'ERROR',
+                    icon: '💸',
+                    link: '/gestion/gastos'
                 };
-                addNotification(notification);
-                toast.custom(
-                    (t) => (
-                      <div className={`${t.visible ? 'animate-enter' : 'animate-leave'} max-w-md w-full bg-white dark:bg-gray-800 shadow-lg rounded-lg pointer-events-auto flex ring-1 ring-black ring-opacity-5`}>
-                        <div className="flex-1 w-0 p-4">
-                          <div className="flex items-start">
-                            <div className="flex-shrink-0 pt-0.5"><span className="text-2xl">{notification.icon}</span></div>
-                            <div className="ml-3 flex-1">
-                              <p className="text-sm font-medium text-gray-900 dark:text-white">{notification.title}</p>
-                              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{notification.message}</p>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex border-l border-gray-200 dark:border-gray-700">
-                          <button onClick={() => toast.dismiss(t.id)} className="w-full border border-transparent rounded-none rounded-r-lg p-4 flex items-center justify-center text-sm font-medium text-primary hover:text-primary/80 focus:outline-none focus:ring-2 focus:ring-primary">
-                            Cerrar
-                          </button>
-                        </div>
-                      </div>
-                    ),
-                    { duration: 10000 }
-                );
-                notifiedExpenses.current.add(notificationId);
+
+                try {
+                    // 1. Guardar en Base de Datos (Campanita)
+                    await createNotification(notification);
+
+                    // 2. Marcar como notificado
+                    sessionNotified.current.add(dbNotifId);
+                    sessionStorage.setItem('darmax_notified_db', JSON.stringify([...sessionNotified.current]));
+
+                    // 3. Notificar contexto local
+                    addNotification(notification);
+                } catch (err) {
+                    console.error("Error creating expense notification in DB:", err);
+                }
             }
         });
-    }, [expenses, loading, addNotification]);
+    }, [expenses, loading, isAdmin, addNotification]);
     
-    // The hook doesn't return anything as it just triggers side effects
 };
