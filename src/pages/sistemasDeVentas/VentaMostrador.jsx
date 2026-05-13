@@ -187,13 +187,27 @@ const showToast = (title, icon = 'success') => {
         try {
             const session = await fetchActiveCashDrawerSession();
             setCashDrawerSession(session);
-            if (!session) setShowStartDayModal(true);
+            
+            // Si no hay sesión y NO es un usuario demo, mostrar modal para abrir caja
+            // (Los usuarios demo no pueden abrir caja porque es una acción de escritura)
+            // Detección robusta de modo demo
+            const isDemo = user?.roles?.some(r => {
+                const n = r.name.toUpperCase();
+                return n.includes('VISITANTE') || n.includes('DEMO') || n.includes('PRUEBA');
+            }) || user?.role?.toUpperCase().includes('DEMO');
+
+            if (!session && !isDemo) setShowStartDayModal(true);
         } catch (_err) {
-            setShowStartDayModal(true); 
+            // Solo mostrar modal si no es demo
+            const isDemo = user?.roles?.some(r => {
+                const n = r.name.toUpperCase();
+                return n.includes('VISITANTE') || n.includes('DEMO') || n.includes('PRUEBA');
+            }) || user?.role?.toUpperCase().includes('DEMO');
+            if (!isDemo) setShowStartDayModal(true); 
         } finally {
             setIsCashDrawerLoading(false);
         }
-    }, []);
+    }, [user]);
 
     useEffect(() => {
         fetchSession();

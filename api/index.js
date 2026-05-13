@@ -409,10 +409,32 @@ app.post('/api/complete-registration', async (req, res) => {
   }
 });
 
+// --- Helper para detección robusta de roles demo ---
+const checkDemoRole = (user) => {
+    if (!user) return false;
+    
+    const roleNames = (user.roles || []).map(r => r.name.toUpperCase());
+    const legacyRole = (user.role || '').toUpperCase();
+    
+    // Lista de palabras clave que activan el modo demo
+    const demoKeywords = ['DEMO', 'VISITANTE', 'GUEST', 'PRUEBA'];
+    
+    const isDemo = demoKeywords.some(key => 
+        legacyRole.includes(key) || 
+        roleNames.some(name => name.includes(key))
+    );
+
+    if (isDemo) {
+        console.log(`[DEMO CHECK] Usuario ${user.name} detectado como DEMO (Keywords: ${demoKeywords.join(',')})`);
+    }
+
+    return isDemo;
+};
+
 // =====================================================
 // AUTHENTICATION MIDDLEWARE
 // =====================================================
-const verifyToken = (req, res, next) => {
+const verifyToken = async (req, res, next) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1]; // Formato: "Bearer TOKEN"
 
@@ -420,38 +442,33 @@ const verifyToken = (req, res, next) => {
     return res.status(401).json({ error: 'Acceso denegado. No se proporcionó token.' });
   }
 
-  jwt.verify(token, process.env.JWT_SECRET, async (err, decoded) => {
-    if (err) {
-      console.error('Error al verificar el token:', err);
-      return res.status(403).json({ error: 'Token inválido o expirado.' });
-    }
+  try {
+    // 1. Verificar Token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.user = decoded; // Añade el payload del token (id, name, role) a la request
 
-    // --- PROTECCIÓN MODO DEMO (SOLO LECTURA) ---
-    // Bloquear acciones de escritura si el usuario tiene el rol VISITANTE_DEMO
+    // 2. --- PROTECCIÓN MODO DEMO (SOLO LECTURA) ---
+    // Bloquear acciones de escritura si el usuario es demo
     if (req.method !== 'GET') {
-        try {
-            const user = await prisma.user.findUnique({
-                where: { id: decoded.id },
-                include: { roles: true }
-            });
+        const user = await prisma.user.findUnique({
+            where: { id: decoded.id },
+            include: { roles: true }
+        });
 
-            if (user?.roles.some(r => r.name.toUpperCase() === 'VISITANTE_DEMO')) {
-                console.log(`[MODO DEMO] Bloqueando ${req.method} en ${req.path} para usuario ${user.name}`);
-                return res.status(403).json({ 
-                    error: 'Modo Demo Activo', 
-                    details: 'Esta cuenta es de solo lectura para fines de presentación empresarial. No se permite realizar cambios en la base de datos.' 
-                });
-            }
-        } catch (error) {
-            console.error("Error validando modo demo:", error);
-            // Si hay error en la validación, por seguridad permitimos continuar 
-            // (o podríamos bloquear, pero mejor no romper el flujo normal)
+        if (checkDemoRole(user)) {
+            console.log(`[MODO DEMO] BLOQUEO DE ESCRITURA: ${req.method} en ${req.path} para usuario ${user.name}`);
+            return res.status(403).json({ 
+                error: 'Modo Demo Activo', 
+                details: 'Esta cuenta es de solo lectura para fines de presentación empresarial. No se permite realizar cambios en la base de datos.' 
+            });
         }
     }
 
     next();
-  });
+  } catch (err) {
+    console.error('Error al verificar el token:', err);
+    return res.status(403).json({ error: 'Token inválido o expirado.' });
+  }
 };
 
 
@@ -2859,8 +2876,8 @@ app.get('/api/pedidos', verifyToken, async (req, res) => {
 
     if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
 
-    const isAdmin = role === 'ADMIN' || user.roles.some(r => r.name === 'ADMIN');
-    const isDemo = user.roles.some(r => r.name === 'VISITANTE_DEMO');
+    const isAdmin = role === 'ADMIN' || user.roles.some(r => r.name.toUpperCase().trim() === 'ADMIN');
+    const isDemo = checkDemoRole(user);
 
     // Si NO es ADMIN y NO es DEMO, filtrar por la sucursal del usuario
     if (!isAdmin && !isDemo) {
