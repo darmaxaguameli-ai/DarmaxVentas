@@ -7,7 +7,7 @@ import apiClient, { fetchPostalCodeData as apiFetchPostalCode } from '../../api/
 import LocationPicker from '../../components/common/LocationPicker';
 
 const ClientProfile = () => {
-  const { user, isAuthenticated, loading: authLoading, updateUser: updateAuthUser, logout } = useAuth();
+  const { user, isAuthenticated, loading: authLoading, updateUser: updateAuthUser, logout, hasModuleAccess } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const lastFetchedCp = useRef(null);
@@ -36,7 +36,8 @@ const ClientProfile = () => {
   const [colonias, setColonias] = useState([]);
 
   useEffect(() => {
-    if (!authLoading && (!isAuthenticated || user.role !== 'CLIENTE')) {
+    // Permitir acceso si está autenticado y tiene acceso al módulo de pedidos
+    if (!authLoading && (!isAuthenticated || !hasModuleAccess('orders'))) {
       navigate('/login');
       return;
     }
@@ -177,7 +178,8 @@ const ClientProfile = () => {
       toast.success('¡Perfil actualizado con éxito!');
       setSuccessMessage('¡Perfil actualizado con éxito!');
       
-      updateAuthUser(response.data);
+      const { user: updatedUser, token: newToken } = response.data;
+      updateAuthUser(updatedUser, newToken);
 
       // Pequeño retraso para que el usuario vea el éxito
       setTimeout(() => {
@@ -338,11 +340,23 @@ const ClientProfile = () => {
                 </div>
                 <div>
                     <label className="label-style mb-1 block">Municipio/Alcaldía</label>
-                    <input type="text" name="municipality" value={formData.municipality} readOnly className="input-style bg-gray-50 dark:bg-gray-700/50" />
+                    <input 
+                        type="text" 
+                        name="municipality" 
+                        value={formData.municipality} 
+                        onChange={handleChange}
+                        className="input-style" 
+                    />
                 </div>
                 <div>
                     <label className="label-style mb-1 block">Estado</label>
-                    <input type="text" name="state" value={formData.state} readOnly className="input-style bg-gray-50 dark:bg-gray-700/50" />
+                    <input 
+                        type="text" 
+                        name="state" 
+                        value={formData.state} 
+                        onChange={handleChange}
+                        className="input-style" 
+                    />
                 </div>
             </div>
 

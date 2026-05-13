@@ -420,12 +420,36 @@ const verifyToken = (req, res, next) => {
     return res.status(401).json({ error: 'Acceso denegado. No se proporcionó token.' });
   }
 
-  jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+  jwt.verify(token, process.env.JWT_SECRET, async (err, decoded) => {
     if (err) {
       console.error('Error al verificar el token:', err);
       return res.status(403).json({ error: 'Token inválido o expirado.' });
     }
     req.user = decoded; // Añade el payload del token (id, name, role) a la request
+
+    // --- PROTECCIÓN MODO DEMO (SOLO LECTURA) ---
+    // Bloquear acciones de escritura si el usuario tiene el rol VISITANTE_DEMO
+    if (req.method !== 'GET') {
+        try {
+            const user = await prisma.user.findUnique({
+                where: { id: decoded.id },
+                include: { roles: true }
+            });
+
+            if (user?.roles.some(r => r.name.toUpperCase() === 'VISITANTE_DEMO')) {
+                console.log(`[MODO DEMO] Bloqueando ${req.method} en ${req.path} para usuario ${user.name}`);
+                return res.status(403).json({ 
+                    error: 'Modo Demo Activo', 
+                    details: 'Esta cuenta es de solo lectura para fines de presentación empresarial. No se permite realizar cambios en la base de datos.' 
+                });
+            }
+        } catch (error) {
+            console.error("Error validando modo demo:", error);
+            // Si hay error en la validación, por seguridad permitimos continuar 
+            // (o podríamos bloquear, pero mejor no romper el flujo normal)
+        }
+    }
+
     next();
   });
 };
@@ -1117,7 +1141,7 @@ app.post('/api/expenses', verifyToken, async (req, res) => {
 
     const data = {
         ...rest,
-        date: new Date(date + 'T12:00:00Z'), // Interpretar la fecha como mediodía UTC
+        date: new Date(String(date).includes('T') ? date : `${date}T12:00:00Z`), 
     };
 
     // Asignar a la sucursal del usuario si existe
@@ -2144,6 +2168,8 @@ app.get('/api/users/:id', verifyToken, async (req, res) => {
     const user = await prisma.user.findUnique({
       where: { id },
       include: {
+        roles: true,
+        store: true,
         loyaltyTransactions: {
           orderBy: { createdAt: 'desc' },
           take: 20 // Limit history for performance
@@ -2834,14 +2860,14 @@ app.get('/api/pedidos', verifyToken, async (req, res) => {
     if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
 
     const isAdmin = role === 'ADMIN' || user.roles.some(r => r.name === 'ADMIN');
+    const isDemo = user.roles.some(r => r.name === 'VISITANTE_DEMO');
 
-    // Si NO es ADMIN, filtrar por la sucursal del usuario
-    if (!isAdmin) {
+    // Si NO es ADMIN y NO es DEMO, filtrar por la sucursal del usuario
+    if (!isAdmin && !isDemo) {
         if (user.storeId) {
             where.storeId = user.storeId;
         } else {
-            // Si es colaborador pero no tiene tienda asignada, no debería ver nada por seguridad
-            // a menos que sea un rol global (se podría ampliar esta lógica luego)
+            // Si es colaborador operativo pero no tiene tienda asignada, no ve nada por seguridad
             return res.json([]); 
         }
     }

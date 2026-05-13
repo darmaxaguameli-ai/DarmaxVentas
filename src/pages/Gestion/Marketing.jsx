@@ -262,7 +262,7 @@ const Marketing = () => {
                             <span className="text-[10px] sm:text-xs font-black opacity-40">{format(day, dateFormat)}</span>
                             <button 
                                 onClick={() => { 
-                                    const dateStr = cloneDay.toISOString().split('T')[0];
+                                    const dateStr = format(cloneDay, 'yyyy-MM-dd');
                                     setEditingPost(null); 
                                     setFormData({ titulo: '', descripcion: '', url: '', fechaEntrega: dateStr, status: 'BORRADOR' }); 
                                     setShowModal(true); 
