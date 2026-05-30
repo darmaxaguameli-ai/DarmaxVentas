@@ -22,6 +22,45 @@ module.exports = defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('@react-pdf/renderer') || id.includes('jspdf') || id.includes('html2canvas')) {
+              return 'vendor-pdf';
+            }
+            if (id.includes('xlsx')) {
+              return 'vendor-xlsx';
+            }
+            if (id.includes('recharts') || id.includes('d3')) {
+              return 'vendor-viz';
+            }
+            if (id.includes('leaflet')) {
+              return 'vendor-maps';
+            }
+            if (id.includes('react-icons')) {
+              return 'vendor-icons';
+            }
+            if (id.includes('react-router-dom') || id.includes('@remix-run')) {
+              return 'vendor-router';
+            }
+            if (id.includes('react-datepicker')) {
+              return 'vendor-datepicker';
+            }
+            if (id.includes('sweetalert2') || id.includes('sonner') || id.includes('react-hot-toast')) {
+              return 'vendor-ui-extra';
+            }
+            if (id.includes('react') || id.includes('scheduler') || id.includes('prop-types')) {
+              return 'vendor-react';
+            }
+            return 'vendor';
+          }
+        },
+      },
+    },
+    chunkSizeWarningLimit: 1000,
+  },
   define: {
     // Polyfill Buffer for the browser (needed for @react-pdf/renderer and others)
     global: 'window',
