@@ -149,6 +149,7 @@ model User {
   roles              Role[]            @relation("UserRoles")
   
   clientCategory     ClientCategory    @default(PARTICULAR)
+  clientPreferences  Json?             @default("{}")
   sexo               String?           
   createdAt          DateTime          @default(now())
   updatedAt          DateTime          @updatedAt
@@ -306,18 +307,55 @@ model StoreInventory {
 // OPERACIÓN
 // =====================================================================
 
+model ProductCategory {
+  id        String    @id @default(cuid())
+  name      String    @unique
+  isPublic  Boolean   @default(true) // Control global de visibilidad en tienda
+  icon      String?   // Icono opcional para la tienda
+  products  Product[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
 model Product {
   id          String       @id @default(cuid())
   name        String       @unique
   price       Float
+  waterPrice  Float?       @default(0) // Precio del agua si es un garrafón
   stock       Int          @default(0) 
   imageUrl    String?
-  category    String?
+  
+  category    String?      // Mantener por compatibilidad legacy si es necesario
+  categoryRel ProductCategory? @relation(fields: [categoryId], references: [id])
+  categoryId  String?
+
+  status      String       @default("ACTIVE") // ACTIVE, COMING_SOON, INACTIVE
+  isPublic    Boolean      @default(true)     // Control individual
   itemsPedido PedidoItem[]
 
   jugBrandsAsCap        JugBrand[]
   storeInventories     StoreInventory[]
   installationMaterials ModelMaterial[] // Nueva relación
+}
+
+// =====================================================================
+// PROMOCIONES Y OFERTAS
+// =====================================================================
+
+model Promotion {
+  id              String           @id @default(cuid())
+  name            String
+  description     String?
+  type            String           // DISCOUNT_PERCENT, DISCOUNT_FIXED, GIVEAWAY, COUPON, POINTS_MULTIPLIER
+  value           Float?           // Valor del descuento o multiplicador
+  couponCode      String?          @unique
+  targetCategories ClientCategory[] // Categorías de cliente a las que aplica
+  minOrderAmount  Float?           @default(0)
+  isActive        Boolean          @default(true)
+  startDate       DateTime?
+  endDate         DateTime?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
 }
 
 // =====================================================================

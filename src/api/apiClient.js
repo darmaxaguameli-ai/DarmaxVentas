@@ -46,6 +46,11 @@ export const createStore = (data) => apiClient.post('/stores', data).then(res =>
 export const updateStore = (id, data) => apiClient.put(`/stores/${id}`, data).then(res => res.data);
 export const deleteStore = (id) => apiClient.delete(`/stores/${id}`).then(res => res.data);
 
+// --- Product Categories ---
+export const fetchProductCategories = () => apiClient.get('/product-categories').then(res => res.data);
+export const createProductCategory = (data) => apiClient.post('/product-categories', data).then(res => res.data);
+export const updateProductCategory = (id, data) => apiClient.put(`/product-categories/${id}`, data).then(res => res.data);
+
 // ====================================================================
 //  PRODUCTOS
 // ====================================================================
@@ -207,8 +212,14 @@ export const createNotification = (data) => apiClient.post('/notifications', dat
 export const markNotificationAsRead = (id) => apiClient.put(`/notifications/${id}/read`).then(res => res.data);
 export const clearNotifications = () => apiClient.delete('/notifications').then(res => res.data);
 
-// ====================================================================
-//  USER PREFERENCES
-// ====================================================================
+export const fetchPromotions = (category) => apiClient.get('/promotions', { params: { category } }).then(res => res.data);
+export const createPromotion = (promotion) => apiClient.post('/promotions', promotion).then(res => res.data);
+export const updatePromotion = (id, promotion) => apiClient.put(`/promotions/${id}`, promotion).then(res => res.data);
+export const deletePromotion = (id) => apiClient.delete(`/promotions/${id}`).then(res => res.data);
+
+// =====================================================================
+// PREFERENCIAS DE USUARIO
+// =====================================================================
+
 export const fetchUserPreferences = () => apiClient.get('/user-preferences').then(res => res.data);
 export const saveUserPreferences = (preferences) => apiClient.post('/user-preferences', { preferences }).then(res => res.data);

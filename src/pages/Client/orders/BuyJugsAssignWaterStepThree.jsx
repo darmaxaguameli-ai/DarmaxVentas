@@ -83,11 +83,12 @@ const BuyJugsAssignWaterStepThree = () => {
   };
 
   const handleContinue = () => {
-    navigate("/pedidos/comprar/resumen", {
+    navigate("/pedidos/rellenar/entrega", { // Este componente maneja la lógica de modo 'buy'
       state: {
         ...previousState,
         maxJugs,
         waterAssignment: products,
+        mode: "buy",
       },
     });
   };
@@ -137,11 +138,10 @@ const BuyJugsAssignWaterStepThree = () => {
         ) : (
           <div className="grid grid-cols-2 gap-3 sm:gap-6 mb-6 max-w-3xl mx-auto">
             {products.map((product) => (
-              <button
+              <div
                 key={product.id}
-                type="button"
                 onClick={() => changeQuantity(product.id, 1)} // tap en la card suma 1
-                className={`flex flex-col gap-2 sm:gap-4 rounded-2xl 
+                className={`flex flex-col gap-2 sm:gap-4 rounded-2xl cursor-pointer
                             border bg-white/95 dark:bg-dark/60 
                             shadow-md backdrop-blur-xl transition-all text-left
                 ${
@@ -200,10 +200,10 @@ const BuyJugsAssignWaterStepThree = () => {
                         </span>
                       </button>
                     </div>
-                  </div>
-                </button>
-              ))}
-            </div>
+                </div>
+              </div>
+            ))}
+          </div>
         )}
         
   

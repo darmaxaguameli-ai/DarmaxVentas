@@ -5,6 +5,7 @@ const QuantityCard = ({
   imageUrl,
   quantity,
   featured = false,
+  isComingSoon = false,
   onIncrease,
   onDecrease,
   onCardClick,
@@ -12,18 +13,21 @@ const QuantityCard = ({
   const { selection } = useHaptic();
 
   const handleCardClick = () => {
+    if (isComingSoon) return;
     selection();
     if (onCardClick) onCardClick();
   };
 
   const handleDecrease = (e) => {
     e.stopPropagation();
+    if (isComingSoon) return;
     selection();
     if (onDecrease) onDecrease();
   };
 
   const handleIncrease = (e) => {
     e.stopPropagation();
+    if (isComingSoon) return;
     selection();
     if (onIncrease) onIncrease();
   };
@@ -32,13 +36,22 @@ const QuantityCard = ({
     <div
       onClick={handleCardClick}
       className={`flex flex-col gap-2 sm:gap-4 rounded-2xl border bg-white dark:bg-dark shadow-sm transition-all
-                  cursor-pointer select-none
+                  select-none relative
+        ${isComingSoon ? "opacity-60 cursor-not-allowed grayscale-[0.5]" : "cursor-pointer"}
         ${
-          featured
+          featured && !isComingSoon
             ? "border-primary dark:border-primary/70 shadow-md"
             : "border-slate-200 dark:border-slate-800 hover:border-primary/40"
         }`}
     >
+      {isComingSoon && (
+        <div className="absolute top-2 left-2 z-10">
+          <span className="bg-amber-500 text-white text-[10px] sm:text-xs font-bold px-2 py-1 rounded-full uppercase tracking-wider">
+            Próximamente
+          </span>
+        </div>
+      )}
+      
       {/* Imagen grande y clara */}
       <div
         className="w-full rounded-t-2xl aspect-[4/3] sm:aspect-[3/2] bg-white

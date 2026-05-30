@@ -42,6 +42,7 @@ const menuStructure = [
     icon: "campaign",
     children: [
       { name: "Marketing Planner", path: "marketing", icon: "ads_click", permission: "canAccessMarketing" },
+      { name: "Promociones", path: "promociones", icon: "loyalty", permission: "canAccessMarketing" },
     ],
   },
   {

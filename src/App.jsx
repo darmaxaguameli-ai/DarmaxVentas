@@ -38,6 +38,7 @@ import EmpleadoDetalle from "./pages/Gestion/EmpleadoDetalle.jsx";
 import Roles from "./pages/Gestion/Roles.jsx";
 import Leads from "./pages/Gestion/Leads.jsx";
 import Marketing from "./pages/Gestion/Marketing.jsx";
+import Promociones from "./pages/Gestion/Promociones.jsx";
 import Blog from "./pages/Gestion/Blog.jsx";
 import Legal from "./pages/Gestion/Legal.jsx";
 import Instalacion from "./pages/Gestion/Instalacion.jsx";
@@ -186,6 +187,7 @@ function App() {
           <Route path="roles" element={<Roles />} />
           <Route path="prospeccion" element={<Leads />} />
           <Route path="marketing" element={<Marketing />} />
+          <Route path="promociones" element={<Promociones />} />
           <Route path="blog" element={<Blog />} />
           <Route path="legal" element={<Legal />} />
           <Route path="instalacion" element={<Instalacion />} />
@@ -205,7 +207,7 @@ function App() {
         <Route path="/pedidos/rellenar/datos-confirmados" element={<ClientDataConfirmation />}/>
         <Route path="/pedidos/comprar" element={<BuyJugsStepOne />} />
         <Route path="/pedidos/comprar/opcion-llenado" element={<BuyJugsFillOptionStepTwo />} />
-        <Route path="/pedidos/comprar/asignar-agua" element={<BuyJugsAssignWaterStepThree />} />
+        <Route path="/pedidos/comprar/asignar-agua" element={<RefillAssignStepTwo />} />
         <Route path="/pedidos/confirmado" element={<OrderConfirmation />} />
 
         {/* Mantenimiento */}

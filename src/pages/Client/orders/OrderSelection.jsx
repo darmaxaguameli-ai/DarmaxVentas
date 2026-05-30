@@ -127,10 +127,10 @@ const OrderSelection = () => {
 
                 <div className="flex flex-col gap-1 sm:gap-2">
                   <p className="text-base sm:text-xl font-bold leading-tight">
-                    Comprar garrafones
+                    Comprar productos
                   </p>
                   <p className="text-xs sm:text-base text-text-secondary dark:text-white/70">
-                    Nuevos de 20L y 10L.
+                    Garrafones, termos, botellas y más.
                   </p>
                 </div>
               </Link>

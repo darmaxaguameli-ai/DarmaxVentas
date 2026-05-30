@@ -1,12 +1,12 @@
 // src/pages/cliente/orders/OrderSummaryStepFour.jsx
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import OrderLayout from "../../../layouts/OrderLayout";
 import { createOrder } from "../../../api/apiClient";
 import { useAuth } from "../../../context/AuthContext";
 import { useConfig } from "../../../context/ConfigContext";
-import { useClient } from "../context/ClientContext"; // Import useClient
+import { useClient } from "../context/ClientContext"; 
 
 const OrderSummaryStepFour = () => {
   const navigate = useNavigate();
@@ -14,368 +14,264 @@ const OrderSummaryStepFour = () => {
 
   const previousState = location.state || {};
   const { user, isAuthenticated } = useAuth();
-  const { selectedStore } = useClient(); // Get store from context
-  
-  const { servicePrices: allServicePrices, loading: configLoading, error: configError } = useConfig();
+  const { selectedStore } = useClient(); 
+  const { servicePrices: allServicePrices, loading: configLoading } = useConfig();
 
-  const [orderItems, setOrderItems] = useState([]);
-  const [collectionFee, setCollectionFee] = useState(0);
-  const [orderTotal, setOrderTotal] = useState(0);
-  const [isCalculating, setIsCalculating] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
-  // Estados para fidelidad
-  const [redeemableItem, setRedeemableItem] = useState(null);
   const [pointsToRedeem, setPointsToRedeem] = useState(0);
 
-  const mode = previousState.mode || "refill";
-  const isRefill = mode === "refill";
-  const fromStepTwo = previousState.fromStepTwo || [];
-  const maxJugs = previousState.maxJugs ?? 0;
   const deliveryMethod = previousState.deliveryMethod || "delivery";
+  const fromStepTwo = previousState.fromStepTwo || []; // Esto trae las "olas" (Agua Premium, Alcalina...)
+  const selectedProducts = previousState.selectedProducts || []; // Productos de la tienda
 
-  // Ya no necesitamos 'garrafonesSeleccionados' para la UI
-  const tiposAguaAsignados = useMemo(() =>
-    fromStepTwo.filter((item) => item.quantity > 0),
-    [fromStepTwo]
-  );
+  // --- Helper: Encontrar precio de servicio (Llenado) ---
+  const findBestPrice = (prices, method, waterTypeId, jugName, jugId) => {
+    const backendMethod = {
+        'pickup': 'Mostrador',
+        'delivery': 'Domicilio',
+        'home_collection': 'Domicilio'
+    }[method] || method;
 
-  // Efecto para calcular items y buscar recompensas
-  useEffect(() => {
-    if (configLoading || !isRefill) {
-      setIsCalculating(false);
-      return;
-    }
+    const sizeMatch = jugName ? jugName.match(/(\d+(?:\.\d+)?)\s*(?:l|litros?|lt)/i) : null;
+    const sizeSuffix = sizeMatch ? `${sizeMatch[1]}L` : '20L';
+    let serviceNameToSearch = `Recarga ${sizeSuffix}`; 
+
+    const possibleMatches = prices.filter(p => 
+        p.name === serviceNameToSearch &&
+        p.method === backendMethod &&
+        p.waterType?.id === waterTypeId
+    );
     
-    if (!allServicePrices || allServicePrices.length === 0) {
-        setIsCalculating(false);
+    if (!possibleMatches.length) return null;
+
+    const brandSpecificMatch = possibleMatches.find(p =>
+        p.jugBrands.length > 0 && p.jugBrands.some(brand => brand.id === jugId)
+    );
+
+    return brandSpecificMatch || possibleMatches.find(p => p.jugBrands.length === 0) || null;
+  };
+
+  // --- CÁLCULO UNIFICADO DE PRECIOS ---
+  const { orderItems, subtotal, collectionFee, redeemableItem } = useMemo(() => {
+    if (configLoading || !allServicePrices || allServicePrices.length === 0) {
+        return { orderItems: [], subtotal: 0, collectionFee: 0, redeemableItem: null };
+    }
+
+    let calculatedTotal = 0;
+    const finalOrderItems = [];
+    const currentCollectionFee = (deliveryMethod === 'home_collection') ? 10 : 0;
+
+    // 1. PROCESAR GARRAFONES QUE PASARON POR LAS OLAS (Recargas y Compras Llenas)
+    fromStepTwo.forEach(waterType => {
+        waterType.assignments.forEach(assign => {
+            const priceRecord = findBestPrice(allServicePrices, deliveryMethod, waterType.id, assign.jugName, assign.jugId);
+            
+            if (priceRecord) {
+                let itemPrice = priceRecord.price;
+                let description = `Llenado ${waterType.name.replace('Agua ', '')}`;
+                let productId = null;
+
+                // Si tiene el flag isNewPurchase (o id empieza con 'new-'), sumar el precio del envase
+                const isNew = assign.isNewPurchase || (typeof assign.id === 'string' && assign.id.startsWith('new-'));
+                
+                if (isNew) {
+                    const originalProduct = selectedProducts.find(p => p.id === assign.dbId || p.id === assign.jugId);
+                    if (originalProduct) {
+                        itemPrice += originalProduct.price;
+                        description = `Envase Nuevo + Llenado ${waterType.name.replace('Agua ', '')}`;
+                        productId = originalProduct.id;
+                    }
+                }
+
+                calculatedTotal += itemPrice * assign.quantity;
+                finalOrderItems.push({
+                    productId: productId,
+                    quantity: assign.quantity,
+                    price: itemPrice,
+                    servicePriceId: priceRecord.id,
+                    jugBrandId: assign.isNewPurchase ? null : assign.jugId, // Si es nuevo, el jugBrandId no es crítico para recarga
+                    jugBrandName: assign.jugName,
+                    jugBrandImageUrl: assign.imageUrl,
+                    name: assign.jugName,
+                    description: description
+                });
+            }
+        });
+    });
+
+    // 2. PROCESAR PRODUCTOS QUE NO SON GARRAFONES LLENOS (Termos, botellas, garrafones vacíos)
+    // Filtramos los que ya procesamos arriba
+    const processedProductIds = fromStepTwo.flatMap(wt => wt.assignments.map(a => a.dbId || a.id));
+    const dryProducts = selectedProducts.filter(p => !processedProductIds.includes(p.id));
+
+    dryProducts.forEach(product => {
+        calculatedTotal += product.price * product.quantity;
+        finalOrderItems.push({
+            productId: product.id,
+            quantity: product.quantity,
+            price: product.price,
+            name: product.name,
+            imageUrl: product.imageUrl,
+            description: product.category === 'Garrafones' ? 'Solo envase (vacío)' : 'Compra de artículo'
+        });
+    });
+
+    // 3. RECOMPENSAS
+    let bestReward = null;
+    if (isAuthenticated && user && user.loyaltyPoints > 0) {
+        const sortedItems = [...finalOrderItems].sort((a, b) => Number(b.price) - Number(a.price));
+        bestReward = sortedItems.find(item => Number(item.price) <= Number(user.loyaltyPoints)) || null;
+    }
+
+    return { 
+        orderItems: finalOrderItems, 
+        subtotal: calculatedTotal, 
+        collectionFee: currentCollectionFee, 
+        redeemableItem: bestReward 
+    };
+  }, [allServicePrices, configLoading, deliveryMethod, fromStepTwo, selectedProducts, isAuthenticated, user?.loyaltyPoints]);
+
+  const orderTotal = subtotal + collectionFee;
+  const displayTotal = Math.max(0, orderTotal - pointsToRedeem);
+
+  const toggleRedemption = () => {
+    if (pointsToRedeem > 0) setPointsToRedeem(0);
+    else if (redeemableItem) setPointsToRedeem(redeemableItem.price);
+  };
+
+  const deliveryLabels = {
+    delivery: "Entrega a domicilio",
+    home_collection: "Recolección a domicilio",
+    pickup: "Recoger en mostrador",
+  };
+
+  const handleConfirm = async () => {
+    setIsSubmitting(true);
+    const finalStoreId = previousState.storeId || selectedStore?.id || user?.storeId;
+    if (!finalStoreId) {
+        toast.error("No se pudo determinar la sucursal.");
+        setIsSubmitting(false);
         return;
     }
 
-    // Lógica de búsqueda de precios corregida para considerar la marca del garrafón
-    const findBestPrice = (prices, method, waterTypeId, jugName, jugId) => {
-        const backendMethod = {
-            'pickup': 'Mostrador',
-            'delivery': 'Domicilio',
-            'home_collection': 'Domicilio'
-        }[method] || method;
-
-        // Extraer tamaño del nombre del garrafón (ej. "4L", "1 Litro")
-        // Regex busca número seguido opcionalmente de espacio y luego L, l, Litro, litros, etc.
-        const sizeMatch = jugName ? jugName.match(/(\d+(?:\.\d+)?)\s*(?:l|litros?|lt)/i) : null;
-        const sizeSuffix = sizeMatch ? `${sizeMatch[1]}L` : '20L'; // Default 20L
-        
-        let serviceNameToSearch = `Recarga ${sizeSuffix}`; 
-
-        const possibleMatches = prices.filter(p => 
-            p.name === serviceNameToSearch &&
-            p.method === backendMethod &&
-            p.waterType?.id === waterTypeId
-        );
-        
-        if (!possibleMatches.length) return null;
-
-        // Prioridad 1: Encontrar un precio que liste explícitamente esta marca de garrafón.
-        const brandSpecificMatch = possibleMatches.find(p =>
-            p.jugBrands.length > 0 && p.jugBrands.some(brand => brand.id === jugId)
-        );
-
-        if (brandSpecificMatch) {
-            return brandSpecificMatch;
-        }
-
-        // Prioridad 2: Si no hay uno específico, encontrar un precio "genérico" (que no especifica marcas).
-        const genericMatch = possibleMatches.find(p => p.jugBrands.length === 0);
-
-        return genericMatch || null;
+    const orderPayload = {
+      total: displayTotal,
+      deliveryMethod,
+      paymentStatus: displayTotal === 0 ? "PAGADO" : "NO_PAGADO",
+      status: "PENDIENTE",
+      items: orderItems,
+      storeId: finalStoreId,
+      pointsUsed: pointsToRedeem
     };
+    
+    const clientId = (isAuthenticated && user) ? user.id : previousState.clientData?.id;
+    if (clientId) orderPayload.clienteId = clientId;
 
-    const calculatePrices = () => {
-      setIsCalculating(true);
-      let calculatedTotal = 0;
-      const finalOrderItems = [];
-      const currentCollectionFee = deliveryMethod === 'home_collection' ? 10 : 0;
-      setCollectionFee(currentCollectionFee);
+    try {
+      const newOrder = await createOrder(orderPayload);
+      navigate("/pedidos/confirmado", { state: { orderId: newOrder.customId, orderType: previousState.mode } });
+    } catch (error) {
+      toast.error(`Error: ${error.message || "Intenta de nuevo."}`);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
-      for (const waterType of tiposAguaAsignados) {
-        for (const assignment of waterType.assignments) {
-          const priceRecord = findBestPrice(allServicePrices, deliveryMethod, waterType.id, assignment.jugName, assignment.jugId);
-          if (priceRecord) {
-            calculatedTotal += priceRecord.price * assignment.quantity;
-            finalOrderItems.push({
-              quantity: assignment.quantity,
-              price: priceRecord.price,
-              servicePriceId: priceRecord.id,
-              jugBrandId: assignment.jugId,
-              jugBrandName: assignment.jugName,
-              jugBrandImageUrl: assignment.imageUrl,
-              waterTypeName: waterType.name, // <-- DATO ENRIQUECIDO
-            });
-          } else {
-             console.warn(`CLIENT-SIDE: No se encontró precio para ${assignment.jugName} con agua ${waterType.name} y método ${deliveryMethod}`);
-          }
-        }
-      }
-      
-      // Lógica Inteligente de Recompensas: Buscar el item más caro que se pueda pagar con puntos
-      if (isAuthenticated && user && user.loyaltyPoints > 0) {
-          // VALIDACIÓN DE SEGURIDAD: Calcular saldo real desde transacciones
-          const realBalance = user.loyaltyTransactions?.reduce((sum, tx) => sum + tx.amount, 0) || 0;
-          
-          // Solo permitir si el saldo real coincide con los puntos mostrados (o es suficiente)
-          // Esto previene que alguien manipule 'loyaltyPoints' en el frontend sin tener las transacciones que lo respalden.
-          if (realBalance >= user.loyaltyPoints) {
-              // Ordenar items por precio descendente para encontrar el mejor valor
-              const sortedItems = [...finalOrderItems].sort((a, b) => Number(b.price) - Number(a.price));
-              // Encontrar el primero que cueste menos o igual a los puntos
-              const bestReward = sortedItems.find(item => Number(item.price) <= Number(user.loyaltyPoints));
-              
-              if (bestReward) {
-                  setRedeemableItem(bestReward);
-              } else {
-                  setRedeemableItem(null);
-              }
-          } else {
-              console.warn("Discrepancia en puntos de lealtad detectada. Canje deshabilitado.");
-              setRedeemableItem(null);
-          }
-      }
-
-      setOrderTotal(calculatedTotal + currentCollectionFee);
-      setOrderItems(finalOrderItems); 
-      setIsCalculating(false);
-    };
-
-    calculatePrices();
-
-  }, [tiposAguaAsignados, deliveryMethod, isRefill, allServicePrices, configLoading, isAuthenticated, user]);
-
-    // Recalcular total visual cuando cambia pointsToRedeem
-    const displayTotal = Math.max(0, orderTotal - pointsToRedeem);
-
-    const toggleRedemption = () => {
-        if (pointsToRedeem > 0) {
-            // Cancelar canje
-            setPointsToRedeem(0);
-        } else if (redeemableItem) {
-            // Aplicar canje
-            setPointsToRedeem(redeemableItem.price);
-        }
-    };
-
-    const deliveryLabels = {
-      delivery: "Entrega a domicilio",
-      home_collection: "Recolección a domicilio",
-      pickup: "Recoger en mostrador",
-    };
-  
-    const handleBack = () => {
-      const targetBackPath = location.state?.backPath || "/pedidos/rellenar/entrega";
-      navigate(targetBackPath, { state: location.state });
-    };
-  
-    const handleConfirm = async () => {
-      setIsSubmitting(true);
-  
-      if (isRefill && displayTotal === 0 && orderItems.length > 0 && pointsToRedeem === 0) { // Permitir total 0 si es por puntos
-        toast.error("El total del pedido no puede ser $0 sin canje de puntos.");
-        setIsSubmitting(false);
-        return;
-      }
-
-      // --- SUCURSAL CONTEXT ---
-      // Prioritize storeId from navigation state, then context, then user preference
-      const finalStoreId = previousState.storeId || selectedStore?.id || user?.storeId;
-
-      if (!finalStoreId) {
-          toast.error("No se pudo determinar la sucursal para este pedido. Por favor, selecciona una sucursal al inicio.");
-          setIsSubmitting(false);
-          return;
-      }
-  
-      // Construir el payload base del pedido
-      const orderPayload = {
-        total: displayTotal, // Enviar el total ya descontado
-        deliveryMethod: deliveryMethod,
-        paymentStatus: displayTotal === 0 ? "PAGADO" : "NO_PAGADO", // Si es gratis por puntos, ya está pagado
-        status: "PENDIENTE",
-        items: orderItems,
-        storeId: finalStoreId, // ✅ STORE ID ADDED
-        pointsUsed: pointsToRedeem // ✅ Puntos a descontar
-      };
-      
-      // Añadir clienteId solo si está disponible
-      const clientId = (isAuthenticated && user) ? user.id : previousState.clientData?.id;
-      if (clientId) {
-        orderPayload.clienteId = clientId;
-      }
-  
-      try {
-        const newOrder = await createOrder(orderPayload);
-        navigate("/pedidos/confirmado", { state: { orderId: newOrder.customId, orderType: mode } });
-      } catch (error) {
-        console.error("Error al crear el pedido:", error);
-        toast.error(`Error al crear el pedido: ${error.message || "Intenta de nuevo."}`);
-      } finally {
-        setIsSubmitting(false);
-      }
-    };
-  
-    return (
-      <OrderLayout
-        title={
-          <>
-            <span className="flex items-center gap-2 md:hidden">
-              <button
-                type="button"
-                onClick={handleBack}
-                className="inline-flex items-center justify-center p-1 -ml-2 text-inherit rounded-full active:bg-black/5 dark:active:bg-white/10 transition-colors"
-              >
-                <span className="material-symbols-outlined text-3xl">arrow_back</span>
-              </button>
-              Resumen
-            </span>
-            <span className="hidden md:inline">{isRefill ? "Revisa tu pedido de recarga" : "Revisa tu compra"}</span>
-          </>
-        }
-        subtitle="Confirma que todo sea correcto antes de finalizar."
-        step={4}
-        totalSteps={4}
-      >
-        <div className="w-full max-w-2xl mx-auto flex flex-col gap-4 sm:gap-6">
-          <div className="rounded-xl bg-light/60 dark:bg-dark/70 border border-light/60 dark:border-white/15 p-4 flex flex-col gap-2">
-            <p className="text-xs sm:text-sm font-semibold text-text-secondary dark:text-white/70 uppercase tracking-[0.08em]">Método de entrega</p>
-            <p className="text-base sm:text-lg font-bold text-dark dark:text-white">{deliveryLabels[deliveryMethod] || "Entrega a domicilio"}</p>
-          </div>
-
-          {/* Tarjeta de Fidelidad Inteligente */}
-          {isAuthenticated && redeemableItem && (
-              <div className="rounded-xl bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 border border-yellow-200 dark:border-yellow-700/50 p-4 relative overflow-hidden">
-                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 relative z-10">
-                      <div>
-                          <h3 className="font-bold text-yellow-800 dark:text-yellow-400 flex items-center gap-2">
-                              <span className="material-symbols-outlined">stars</span>
-                              ¡Recompensa Disponible!
-                          </h3>
-                          <p className="text-sm text-yellow-900/80 dark:text-yellow-200/80 mt-1">
-                              Tienes <strong>{user.loyaltyPoints} puntos</strong>. Úsalos para llevarte: <br/>
-                              <span className="font-semibold">1x {redeemableItem.jugBrandName} de {redeemableItem.waterTypeName.replace('Agua ', '')}</span> GRATIS.
-                          </p>
-                      </div>
-                      <button 
-                          onClick={toggleRedemption}
-                          className={`px-4 py-2 rounded-lg font-bold text-sm transition-all shadow-sm ${
-                              pointsToRedeem > 0 
-                              ? 'bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/50 dark:text-red-300' 
-                              : 'bg-yellow-400 text-yellow-900 hover:bg-yellow-500'
-                          }`}
-                      >
-                          {pointsToRedeem > 0 ? 'Cancelar Canje' : 'Canjear Puntos'}
-                      </button>
-                  </div>
-              </div>
-          )}
-  
-          <div className="flex flex-col gap-4">
-            <h2 className="text-[20px] sm:text-[22px] font-bold text-dark dark:text-white">
-              Tu pedido
-            </h2>
-                        <div className="flex flex-col divide-y divide-light/60 dark:divide-white/10">
-                          {isCalculating || configLoading ? (
-                            <span className="text-sm text-text-secondary dark:text-white/70 py-4">Calculando precios...</span>
-                          ) : orderItems.length > 0 ? (
-                            orderItems.map((item, index) => (
-                              <div key={`${item.jugBrandId}-${index}`} className="flex items-center justify-between py-3">
-                                <div className="flex items-center gap-3">
-                                  <img src={item.jugBrandImageUrl} alt={item.jugBrandName} className="h-10 w-10 object-contain" />
-                                  <div>
-                                    <p className="font-semibold text-dark dark:text-white">{item.jugBrandName}</p>
-                                    <p className="text-sm text-text-secondary dark:text-white/70">
-                                      {item.quantity} x recarga de {item.waterTypeName.replace('Agua ', '')}
-                                    </p>
-                                  </div>
-                                </div>
-                                <span className="font-semibold text-dark dark:text-white">
-                                  ${(item.price * item.quantity).toFixed(2)}
-                                </span>
-                              </div>
-                            ))
-                          ) : (
-                            <span className="text-sm text-red-500 py-4">No hay ítems en tu pedido o no se pudieron calcular los precios.</span>
-                          )}
-                          {collectionFee > 0 && (
-                            <div className="flex items-center justify-between py-3">
-                              <div className="flex items-center gap-3">
-                                <div className="h-10 w-10 flex items-center justify-center">
-                                  <span className="material-symbols-outlined text-text-secondary dark:text-white/70 text-2xl">recycling</span>
-                                </div>
-                                <div>
-                                  <p className="font-semibold text-dark dark:text-white">Costo de recolección</p>
-                                  <p className="text-sm text-text-secondary dark:text-white/70">
-                                    Servicio a domicilio
-                                  </p>
-                                </div>
-                              </div>
-                              <span className="font-semibold text-dark dark:text-white">
-                                ${collectionFee.toFixed(2)}
-                              </span>
-                            </div>
-                          )}
-                          
-                          {/* Línea de Descuento por Puntos */}
-                          {pointsToRedeem > 0 && (
-                              <div className="flex items-center justify-between py-3 bg-yellow-50/50 dark:bg-yellow-900/10 -mx-2 px-2 rounded-lg border border-yellow-100 dark:border-yellow-800/30">
-                                <div className="flex items-center gap-3">
-                                  <div className="h-10 w-10 flex items-center justify-center text-yellow-600">
-                                    <span className="material-symbols-outlined text-2xl">stars</span>
-                                  </div>
-                                  <div>
-                                    <p className="font-bold text-yellow-800 dark:text-yellow-400">Canje de Puntos</p>
-                                    <p className="text-sm text-yellow-700/80 dark:text-yellow-300/70">
-                                      1x Producto Gratis
-                                    </p>
-                                  </div>
-                                </div>
-                                <span className="font-bold text-green-600 dark:text-green-400">
-                                  -${pointsToRedeem.toFixed(2)}
-                                </span>
-                              </div>
-                          )}
-                        </div>
-          </div>
-  
-          <div className="border-t border-light/60 dark:border-white/10 pt-4 sm:pt-6 space-y-4">
-              <div className="flex items-center justify-between font-bold">
-                <p className="text-base sm:text-lg text-dark dark:text-white">Importe total</p>
-                <p className="text-2xl sm:text-3xl text-primary">
-                  {isCalculating || configLoading ? '...' : `$${displayTotal.toFixed(2)}`}
-                </p>
-              </div>
-          </div>
-  
-      <footer className="mt-auto pt-4 md:pt-8">
-        <div className="flex flex-col-reverse sm:flex-row gap-4 justify-between items-center">
-          <button type="button" onClick={handleBack} className="hidden md:flex h-12 sm:h-14 w-full sm:w-auto items-center justify-center rounded-lg border border-slate-300 bg-slate-100 text-dark dark:bg-slate-800 dark:text-white dark:border-slate-600 text-base sm:text-lg font-semibold px-6 sm:px-8 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all">
-            Volver al paso 3
-          </button>
-          <div className="flex flex-col gap-1 w-full sm:w-auto">
-            <button
-              type="button"
-              onClick={handleConfirm}
-              disabled={isCalculating || configLoading || configError || isSubmitting || (isRefill && orderTotal === 0 && orderItems.length > 0)}
-              className="flex h-12 sm:h-14 w-full items-center justify-center rounded-xl bg-primary px-8 sm:px-10 text-base sm:text-lg font-semibold text-white shadow-sm hover:bg-primary/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary transition-all disabled:opacity-60 disabled:cursor-not-allowed"
-            >
-              {isSubmitting ? "Confirmando..." : "Confirmar pedido"}
-            </button>
-            <p className="text-[10px] sm:text-xs text-text-secondary dark:text-white/60 text-center sm:text-right mt-1 max-w-[200px] sm:max-w-none mx-auto sm:mx-0">
-                Tendrás 3 minutos para cancelar tu pedido si cambias de opinión.
+  return (
+    <OrderLayout
+      title="Revisa tu pedido final"
+      subtitle="Todo listo para unificar tu entrega."
+      step={4}
+      totalSteps={4}
+    >
+      <div className="w-full max-w-2xl mx-auto flex flex-col gap-4 sm:gap-6">
+        <div className="bg-primary/10 border border-primary/20 p-4 rounded-xl flex items-center gap-3">
+            <div className="h-10 w-10 rounded-full bg-primary flex items-center justify-center text-white shrink-0 shadow-lg shadow-primary/20">
+                <span className="material-symbols-outlined">auto_awesome</span>
+            </div>
+            <p className="text-sm font-bold text-primary leading-tight">
+                ¡Genial! Hemos unificado tus productos y recargas en una sola entrega para tu comodidad.
             </p>
+        </div>
+
+        <div className="rounded-xl bg-light/60 dark:bg-dark/70 border border-light/60 dark:border-white/15 p-4 flex flex-col gap-1">
+          <p className="text-[10px] font-black text-text-secondary dark:text-white/50 uppercase tracking-widest">Método de entrega</p>
+          <p className="text-base font-bold text-dark dark:text-white">{deliveryLabels[deliveryMethod] || "Entrega a domicilio"}</p>
+        </div>
+
+        {isAuthenticated && redeemableItem && (
+            <div className="rounded-xl bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 border border-yellow-200 dark:border-yellow-700/50 p-4">
+                <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+                    <div>
+                        <h3 className="font-bold text-yellow-800 dark:text-yellow-400 flex items-center gap-2">
+                            <span className="material-symbols-outlined">stars</span> ¡Recompensa!
+                        </h3>
+                        <p className="text-xs text-yellow-900/80 dark:text-yellow-200/80 mt-1">
+                            Tienes <strong>{user.loyaltyPoints} puntos</strong>. Puedes llevarte uno de tus productos GRATIS.
+                        </p>
+                    </div>
+                    <button onClick={toggleRedemption} className={`px-4 py-2 rounded-lg font-bold text-sm shadow-sm transition-all ${pointsToRedeem > 0 ? 'bg-red-500 text-white' : 'bg-yellow-400 text-yellow-900 hover:bg-yellow-500'}`}>
+                        {pointsToRedeem > 0 ? 'Cancelar' : 'Canjear'}
+                    </button>
+                </div>
+            </div>
+        )}
+
+        <div className="flex flex-col gap-4">
+          <h2 className="text-lg font-black text-dark dark:text-white uppercase tracking-tight">Tu Detalle</h2>
+          <div className="flex flex-col divide-y divide-light/60 dark:divide-white/10">
+            {orderItems.map((item, index) => (
+              <div key={`${index}`} className="flex items-center justify-between py-3">
+                <div className="flex items-center gap-3">
+                  <div className="h-12 w-12 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center overflow-hidden border dark:border-white/5">
+                    <img src={item.imageUrl || item.jugBrandImageUrl} alt="img" className="h-full w-full object-contain" />
+                  </div>
+                  <div>
+                    <p className="font-bold text-sm sm:text-base leading-none">{item.name || item.jugBrandName}</p>
+                    <p className="text-[11px] text-text-secondary dark:text-white/60 mt-1.5">{item.quantity} x {item.description}</p>
+                  </div>
+                </div>
+                <span className="font-black text-sm sm:text-base text-dark dark:text-white">${(item.price * item.quantity).toFixed(2)}</span>
+              </div>
+            ))}
+            
+            {collectionFee > 0 && (
+                <div className="flex items-center justify-between py-3">
+                    <span className="text-sm font-bold text-text-secondary uppercase">Costo de recolección</span>
+                    <span className="font-black text-sm text-dark dark:text-white">${collectionFee.toFixed(2)}</span>
+                </div>
+            )}
+
+            {pointsToRedeem > 0 && (
+                <div className="flex items-center justify-between py-3 text-emerald-600 font-black">
+                    <span className="text-sm uppercase tracking-tighter">Descuento Fidelidad</span>
+                    <span>-${pointsToRedeem.toFixed(2)}</span>
+                </div>
+            )}
           </div>
         </div>
-      </footer>
-          
+
+        <div className="border-t-2 border-dashed border-light dark:border-white/10 pt-6">
+            <div className="flex items-center justify-between font-black">
+                <p className="text-xl uppercase tracking-tighter">Total Final</p>
+                <p className="text-4xl text-primary tracking-tighter">${displayTotal.toFixed(2)}</p>
+            </div>
         </div>
-      </OrderLayout>
-    );};
+
+        <footer className="mt-8 flex flex-col sm:flex-row gap-4 justify-between pb-10">
+            <button type="button" onClick={() => navigate(-1)} className="btn-secondary w-full sm:w-auto h-14">Regresar</button>
+            <button
+                type="button"
+                onClick={handleConfirm}
+                disabled={isSubmitting || orderItems.length === 0}
+                className="btn-primary w-full sm:w-auto h-14 px-12 text-lg font-black shadow-xl shadow-primary/20"
+            >
+                {isSubmitting ? "Finalizando..." : "Confirmar mi Pedido"}
+            </button>
+        </footer>
+      </div>
+    </OrderLayout>
+  );
+};
 
 export default OrderSummaryStepFour;

@@ -1,21 +1,24 @@
 // src/pages/Client/orders/BuyJugsStepOne.jsx
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect, useMemo } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import OrderLayout from "../../../layouts/OrderLayout";
 import QuantityCard from "../../../components/order/QuantityCard";
+import PromotionBanner from "../../../components/order/PromotionBanner";
 import { fetchProducts } from "../../../api/apiClient";
-import { useAuth } from "../../../context/AuthContext"; // Import useAuth
+import { useAuth } from "../../../context/AuthContext"; 
+import { toast } from "sonner";
 
 const BuyJugsStepOne = () => {
   const navigate = useNavigate();
-  const { token, loading: authLoading } = useAuth(); // Get token and auth loading state
+  const location = useLocation();
+  const { token, loading: authLoading } = useAuth(); 
 
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [activeCategory, setActiveCategory] = useState("");
 
   useEffect(() => {
-    // Wait for auth to finish loading to ensure token is available if user is logged in
     if (authLoading) return;
 
     const loadProducts = async () => {
@@ -23,19 +26,30 @@ const BuyJugsStepOne = () => {
         setLoading(true);
         const allProducts = await fetchProducts();
         
-        // Filter products with category 'Garrafones' (case insensitive)
-        const jugProducts = allProducts.filter(p => 
-          p.category && p.category.toLowerCase().includes('garrafone')
-        ).map(p => ({
-          id: p.id,
-          name: p.name,
-          quantity: 0,
-          price: p.price,
-          featured: p.name.toLowerCase().includes('20l'),
-          imageUrl: p.imageUrl || "/img/garrafones/turquesa.png",
+        // Recuperar selección previa
+        const prevState = location.state?.selectedProducts || [];
+
+        const mapped = allProducts.map(p => ({
+            id: p.id,
+            name: p.name,
+            quantity: prevState.find(item => item.id === p.id)?.quantity || 0,
+            price: p.price,
+            category: p.categoryRel?.name || p.category || 'Otros',
+            featured: p.name.toLowerCase().includes('20l'),
+            imageUrl: p.imageUrl || null,
+            isComingSoon: p.status === 'COMING_SOON'
         }));
 
-        setProducts(jugProducts);
+        setProducts(mapped);
+
+        if (mapped.length > 0) {
+            const sortedCats = Array.from(new Set(mapped.map(p => p.category))).sort((a, b) => {
+                if (a === 'Garrafones') return -1;
+                if (b === 'Garrafones') return 1;
+                return a.localeCompare(b);
+            });
+            setActiveCategory(sortedCats[0]);
+        }
       } catch (err) {
         console.error("Error loading products:", err);
         setError("No se pudieron cargar los productos.");
@@ -45,90 +59,148 @@ const BuyJugsStepOne = () => {
     };
 
     loadProducts();
-  }, [authLoading, token]); // Re-run when auth loading finishes or token changes
+  }, [authLoading, token, location.state]);
 
-  const totalJugs = products.reduce((sum, p) => sum + p.quantity, 0);
+  const categories = useMemo(() => {
+      return Array.from(new Set(products.map(p => p.category))).sort((a, b) => {
+          if (a === 'Garrafones') return -1;
+          if (b === 'Garrafones') return 1;
+          return a.localeCompare(b);
+      });
+  }, [products]);
+
+  const filteredProducts = useMemo(() => {
+      return products.filter(p => p.category === activeCategory);
+  }, [products, activeCategory]);
+
+  const totalItems = products.reduce((sum, p) => sum + p.quantity, 0);
+  const refillCount = location.state?.selectedRefills?.reduce((sum, r) => sum + r.quantity, 0) || 0;
 
   const handleChangeQuantity = (id, delta) => {
     setProducts((prev) =>
       prev.map((p) =>
         p.id === id
-          ? { ...p, quantity: Math.max(0, (p.quantity || 0) + delta) }
+          ? { ...p, quantity: Math.max(0, p.quantity + delta) }
           : p
       )
     );
   };
 
   const handleContinue = () => {
-    if (totalJugs === 0) {
-      console.log("Debes seleccionar al menos 1 garrafón para comprar.");
+    if (totalItems === 0 && refillCount === 0) {
+      toast.warning("Selecciona al menos un producto o añade una recarga.");
       return;
     }
 
-    navigate("/pedidos/comprar/opcion-llenado", {
-      state: {
-        mode: "buy",
-        fromStepOneBuy: products.filter(p => p.quantity > 0), // Only pass selected products
-        totalJugsBuy: totalJugs,
-      },
-    });
+    const selectedProducts = products.filter(p => p.quantity > 0);
+    const combinedItems = [
+        ...selectedProducts,
+        ...(location.state?.selectedRefills || [])
+    ];
+
+    const jugsToFill = selectedProducts.filter(p => p.category === 'Garrafones');
+
+    const nextState = {
+        ...location.state,
+        selectedProducts,
+        combinedItems,
+        totalItems,
+        totalJugs: jugsToFill.reduce((sum, p) => sum + p.quantity, 0) + refillCount
+    };
+
+    if (jugsToFill.length > 0) {
+        navigate("/pedidos/comprar/opcion-llenado", { state: nextState });
+    } else if (refillCount > 0) {
+        // Transformar para el flujo de asignar
+        const fromStepOne = location.state.selectedRefills.map(r => ({
+            id: r.dbId || r.id.replace('refill-', ''),
+            name: r.name,
+            quantity: r.quantity,
+            imageUrl: r.imageUrl
+        }));
+        navigate("/pedidos/comprar/asignar-agua", { state: { ...nextState, fromStepOne, mode: 'buy' } });
+    } else {
+        navigate("/pedidos/rellenar/entrega", { state: { ...nextState, mode: 'buy' } });
+    }
   };
 
-  const handleGoToStart = () => {
-    navigate('/pedidos');
+  const handleGoToRefill = () => {
+      const selectedProducts = products.filter(p => p.quantity > 0);
+      navigate("/pedidos/rellenar", {
+          state: {
+              ...location.state,
+              selectedProducts,
+              mode: 'buy'
+          }
+      });
   };
 
   return (
     <OrderLayout
-      title="Selecciona tus garrafones a comprar"
-      subtitle="Elige cuántos garrafones de 20L y 10L deseas comprar."
+      title="Tienda de Productos"
+      subtitle="Elige tus garrafones, termos o botellas favoritos."
       step={1}
       totalSteps={4}
     >
       <div className="flex flex-col gap-6">
-        {/* Resumen superior */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-sm sm:text-base text-text-secondary dark:text-white/80">
-          <span>
-            Garrafones seleccionados:{" "}
-            <span className="font-bold text-primary text-lg">
-              {totalJugs}
-            </span>
-          </span>
-          <span className="text-sm">
-            <span className="font-semibold text-dark dark:text-white">
-              Tip:
-            </span>{" "}
-            toca el garrafón o el botón <strong>+</strong> para agregar uno.
-          </span>
-        </div>
+        <PromotionBanner />
 
-        {/* Loading / Error States */}
-        {loading && <div className="text-center py-10">Cargando productos...</div>}
-        {error && <div className="text-center py-10 text-red-500">{error}</div>}
-        
-        {/* Grid de productos */}
-        {!loading && !error && products.length === 0 && (
-            <div className="text-center py-10 text-gray-500">No hay garrafones disponibles para la venta.</div>
+        {/* Unión de pedidos indicator */}
+        {refillCount > 0 && (
+            <div className="bg-blue-500/10 border border-blue-500/20 p-3 rounded-xl flex items-center justify-between animate-in fade-in zoom-in duration-300">
+                <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400">
+                    <span className="material-symbols-outlined">recycling</span>
+                    <span className="text-xs sm:text-sm font-bold">Llevas {refillCount} garrafones para rellenar</span>
+                </div>
+                <button onClick={handleGoToRefill} className="text-[10px] font-black uppercase text-blue-600 dark:text-blue-400 hover:underline">Ajustar recargas</button>
+            </div>
         )}
 
-        {/* Grid de productos */}
-        {!loading && !error && products.length > 0 && (
-          <div
-            className="
-              grid 
-              grid-cols-2
-              gap-3 md:gap-6 
-              max-w-3xl mx-auto
-            "
+        {/* Categorías */}
+        {!loading && categories.length > 1 && (
+            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                {categories.map(cat => (
+                    <button
+                        key={cat}
+                        onClick={() => setActiveCategory(cat)}
+                        className={`px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-all border ${
+                            activeCategory === cat 
+                            ? 'bg-primary text-white border-primary shadow-md' 
+                            : 'bg-white dark:bg-dark text-text-secondary border-gray-200 dark:border-white/10 hover:border-primary/40'
+                        }`}
+                    >
+                        {cat}
+                    </button>
+                ))}
+            </div>
+        )}
+
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-sm sm:text-base text-text-secondary dark:text-white/80">
+          <span>
+            Productos elegidos: <span className="font-bold text-primary text-lg">{totalItems}</span>
+          </span>
+          <button 
+            onClick={handleGoToRefill}
+            className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-dark border border-gray-200 dark:border-white/10 text-text-secondary dark:text-white/70 rounded-full text-sm font-bold hover:border-primary/40 transition-all active:scale-95"
           >
-            {products.map((product) => (
+            <span className="material-symbols-outlined text-lg">recycling</span>
+            ¿Añadir Recargas?
+          </button>
+        </div>
+
+        {loading && <div className="text-center py-10 animate-pulse text-primary font-bold">Cargando catálogo...</div>}
+        
+        {!loading && !error && filteredProducts.length > 0 && (
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 md:gap-6 max-w-4xl mx-auto">
+            {filteredProducts.map((product) => (
               <QuantityCard
                 key={product.id}
                 name={product.name}
                 imageUrl={product.imageUrl}
                 quantity={product.quantity}
                 featured={product.featured}
-                price={product.price} // Pass price if supported by QuantityCard
+                isComingSoon={product.isComingSoon}
+                price={product.price}
                 onIncrease={() => handleChangeQuantity(product.id, 1)}
                 onDecrease={() => handleChangeQuantity(product.id, -1)}
                 onCardClick={() => handleChangeQuantity(product.id, 1)}
@@ -137,29 +209,27 @@ const BuyJugsStepOne = () => {
           </div>
         )}
 
-        {/* Botones de navegación */}
-        <div className="flex justify-between items-center pt-4">
+        <div className="flex justify-between items-center pt-4 border-t dark:border-white/10">
           <button
             type="button"
-            onClick={handleGoToStart}
-            className="text-sm font-medium text-text-secondary dark:text-white/70 hover:text-primary dark:hover:text-primary transition-colors"
+            onClick={() => navigate('/pedidos')}
+            className="text-sm font-medium text-text-secondary dark:text-white/70 hover:text-primary transition-colors"
           >
             &larr; Volver al inicio
           </button>
           <button
             type="button"
             onClick={handleContinue}
-            disabled={totalJugs === 0} // Disable if 0
+            disabled={totalItems === 0 && refillCount === 0}
             className={`flex items-center justify-center rounded-xl
                        bg-primary px-8 h-12 text-base font-semibold text-white
                        shadow-sm hover:bg-primary/90
-                       focus-visible:outline focus-visible:outline-2 
-                       focus-visible:outline-offset-2 focus-visible:outline-primary
                        transition-all active:scale-[0.98]
-                       ${totalJugs === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
+                       ${totalItems === 0 && refillCount === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
             Continuar al paso 2
-          </button>        </div>
+          </button>
+        </div>
       </div>
     </OrderLayout>
   );

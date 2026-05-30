@@ -10,9 +10,13 @@ const BuyJugsFillOptionStepTwo = () => {
 
   const previousState = location.state || {};
   const fromStepOneBuy = previousState.fromStepOneBuy || [];
-  const totalJugsBuy = previousState.totalJugsBuy || 0;
+  
+  // Solo los garrafones pasan por el proceso de llenado/asignación de agua
+  const jugsToFill = fromStepOneBuy.filter(p => p.category === 'Garrafones');
+  const otherItems = fromStepOneBuy.filter(p => p.category !== 'Garrafones');
+  const totalJugsBuy = jugsToFill.reduce((sum, p) => sum + p.quantity, 0);
 
-  const [selectedOption, setSelectedOption] = useState("empty"); // "empty" | "full"
+  const [selectedOption, setSelectedOption] = useState("full"); // Default "full" for better UX
   const { waterTypes, servicePrices, loading: configLoading, error: configError } = useConfig();
 
 
@@ -29,26 +33,30 @@ const BuyJugsFillOptionStepTwo = () => {
       fromStepOneBuy,
       totalJugsBuy,
       fillOption: selectedOption,
-      availableWaterTypes: waterTypes, // Pass fetched water types
-      servicePrices: servicePrices, // Pass service prices for cost calculation
+      availableWaterTypes: waterTypes,
+      servicePrices: servicePrices,
     };
 
-    if (selectedOption === "full") {
+    const hasRefills = (location.state?.selectedRefills?.length || 0) > 0;
+
+    if (selectedOption === "full" || hasRefills) {
+      // Ir a asignación si hay garrafones nuevos llenos O si ya traíamos recargas del otro flujo
       navigate("/pedidos/comprar/asignar-agua", {
         state: {
           ...previousState,
           mode: "buy",
           buyFlow,
-          backPath: "/pedidos/comprar/llenado",
+          backPath: "/pedidos/comprar/opcion-llenado",
         },
       });
     } else {
-      navigate("/pedidos/rellenar/entrega", { // This might be a mistake, should probably be /pedidos/comprar/entrega or similar
+      // Solo productos secos o garrafones vacíos, ir a entrega
+      navigate("/pedidos/rellenar/entrega", {
         state: {
           ...previousState,
           mode: "buy",
           buyFlow,
-          backPath: "/pedidos/comprar/llenado",
+          backPath: "/pedidos/comprar/opcion-llenado",
         },
       });
     }
