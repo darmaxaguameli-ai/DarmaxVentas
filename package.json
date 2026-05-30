@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "npm-run-all --parallel dev:frontend dev:backend",
     "dev:frontend": "vite",
-    "dev:backend": "nodemon api/index.js",
+    "dev:backend": "nodemon server/index.js",
     "build": "prisma migrate deploy && vite build",
     "postinstall": "prisma generate",
     "preview": "vite preview",
