@@ -27,39 +27,72 @@ module.exports = defineConfig({
       output: {
         manualChunks(id) {
           if (id.includes('node_modules')) {
+            // PDF and heavy document tools
             if (id.includes('@react-pdf/renderer') || id.includes('jspdf') || id.includes('html2canvas')) {
               return 'vendor-pdf';
             }
-            if (id.includes('xlsx')) {
+            // Excel and data processing
+            if (id.includes('xlsx') || id.includes('exceljs')) {
               return 'vendor-xlsx';
             }
+            // Visualization and Maps
             if (id.includes('recharts') || id.includes('d3')) {
               return 'vendor-viz';
             }
-            if (id.includes('leaflet')) {
+            if (id.includes('leaflet') || id.includes('react-leaflet')) {
               return 'vendor-maps';
             }
+            // Icons
             if (id.includes('react-icons')) {
               return 'vendor-icons';
             }
-            if (id.includes('react-router-dom') || id.includes('@remix-run')) {
+            // Routing
+            if (id.includes('react-router-dom') || id.includes('@remix-run') || id.includes('react-router')) {
               return 'vendor-router';
             }
-            if (id.includes('react-datepicker')) {
-              return 'vendor-datepicker';
+            // Date handling
+            if (id.includes('react-datepicker') || id.includes('date-fns')) {
+              return 'vendor-date';
             }
-            if (id.includes('sweetalert2') || id.includes('sonner') || id.includes('react-hot-toast')) {
-              return 'vendor-ui-extra';
+            // UI Components and feedback
+            if (id.includes('sweetalert2') || id.includes('sonner') || id.includes('react-hot-toast') || id.includes('sweetalert')) {
+              return 'vendor-ui-feedback';
             }
-            if (id.includes('react') || id.includes('scheduler') || id.includes('prop-types')) {
-              return 'vendor-react';
+            // Drag and Drop
+            if (id.includes('@dnd-kit')) {
+              return 'vendor-dnd';
             }
-            return 'vendor';
+            // Mobile / Capacitor
+            if (id.includes('@capacitor')) {
+              return 'vendor-capacitor';
+            }
+            // Utilities
+            if (id.includes('axios') || id.includes('lodash') || id.includes('uuid') || id.includes('cuid')) {
+              return 'vendor-utils';
+            }
+            // Prisma (if somehow bundled)
+            if (id.includes('prisma') || id.includes('@prisma')) {
+              return 'vendor-prisma';
+            }
+            // React Core
+            if (id.includes('node_modules/react/') || id.includes('node_modules/react-dom/') || id.includes('scheduler')) {
+              return 'vendor-react-core';
+            }
+            // Remaining React libs
+            if (id.includes('react')) {
+              return 'vendor-react-libs';
+            }
+            // Scoped packages (@something/...)
+            if (id.includes('node_modules/@')) {
+              return 'vendor-scoped';
+            }
+            // Everything else in node_modules
+            return 'vendor-others';
           }
         },
       },
     },
-    chunkSizeWarningLimit: 1000,
+    chunkSizeWarningLimit: 1200,
   },
   define: {
     // Polyfill Buffer for the browser (needed for @react-pdf/renderer and others)
