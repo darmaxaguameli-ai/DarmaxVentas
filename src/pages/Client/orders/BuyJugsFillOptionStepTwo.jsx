@@ -9,7 +9,7 @@ const BuyJugsFillOptionStepTwo = () => {
   const location = useLocation();
 
   const previousState = location.state || {};
-  const fromStepOneBuy = previousState.fromStepOneBuy || [];
+  const fromStepOneBuy = previousState.selectedProducts || [];
   
   // Solo los garrafones pasan por el proceso de llenado/asignación de agua
   const jugsToFill = fromStepOneBuy.filter(p => p.category === 'Garrafones');
@@ -38,27 +38,19 @@ const BuyJugsFillOptionStepTwo = () => {
     };
 
     const hasRefills = (location.state?.selectedRefills?.length || 0) > 0;
+    const nextState = {
+      ...previousState,
+      mode: "buy",
+      buyFlow,
+      backPath: "/pedidos/comprar/opcion-llenado",
+    };
 
     if (selectedOption === "full" || hasRefills) {
-      // Ir a asignación si hay garrafones nuevos llenos O si ya traíamos recargas del otro flujo
-      navigate("/pedidos/comprar/asignar-agua", {
-        state: {
-          ...previousState,
-          mode: "buy",
-          buyFlow,
-          backPath: "/pedidos/comprar/opcion-llenado",
-        },
-      });
+      // Ir a asignación
+      navigate("/pedidos/comprar/asignar-agua", { state: nextState });
     } else {
-      // Solo productos secos o garrafones vacíos, ir a entrega
-      navigate("/pedidos/rellenar/entrega", {
-        state: {
-          ...previousState,
-          mode: "buy",
-          buyFlow,
-          backPath: "/pedidos/comprar/opcion-llenado",
-        },
-      });
+      // Solo productos secos o garrafones vacíos, ir a entrega estándar
+      navigate("/pedidos/rellenar/entrega", { state: nextState });
     }
   };
 

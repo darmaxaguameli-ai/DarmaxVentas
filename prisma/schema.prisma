@@ -336,6 +336,7 @@ model Product {
   jugBrandsAsCap        JugBrand[]
   storeInventories     StoreInventory[]
   installationMaterials ModelMaterial[] // Nueva relación
+  promotionsGiveaway    Promotion[]      @relation("ProductGiveaway")
 }
 
 // =====================================================================
@@ -354,6 +355,12 @@ model Promotion {
   isActive        Boolean          @default(true)
   startDate       DateTime?
   endDate         DateTime?
+
+  giveawayProduct   Product?       @relation("ProductGiveaway", fields: [giveawayProductId], references: [id])
+  giveawayProductId String?
+
+  pedidos           Pedido[]       // Relación con pedidos que usaron esta promo
+
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
 }
@@ -416,6 +423,9 @@ model Pedido {
 
   store            Store         @relation(fields: [storeId], references: [id])
   storeId          String
+
+  promotion        Promotion?    @relation(fields: [promotionId], references: [id])
+  promotionId      String?
 }
 
 model PedidoItem {

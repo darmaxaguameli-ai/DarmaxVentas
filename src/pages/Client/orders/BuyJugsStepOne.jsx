@@ -103,9 +103,11 @@ const BuyJugsStepOne = () => {
     const nextState = {
         ...location.state,
         selectedProducts,
+        fromStepOneBuy: selectedProducts, // Unificar clave para consistencia
         combinedItems,
         totalItems,
-        totalJugs: jugsToFill.reduce((sum, p) => sum + p.quantity, 0) + refillCount
+        totalJugs: jugsToFill.reduce((sum, p) => sum + p.quantity, 0) + refillCount,
+        mode: 'buy'
     };
 
     if (jugsToFill.length > 0) {
@@ -118,9 +120,10 @@ const BuyJugsStepOne = () => {
             quantity: r.quantity,
             imageUrl: r.imageUrl
         }));
-        navigate("/pedidos/comprar/asignar-agua", { state: { ...nextState, fromStepOne, mode: 'buy' } });
+        navigate("/pedidos/comprar/asignar-agua", { state: { ...nextState, fromStepOne } });
     } else {
-        navigate("/pedidos/rellenar/entrega", { state: { ...nextState, mode: 'buy' } });
+        // Navegar directamente a datos-cliente si no hay garrafones que llenar
+        navigate("/pedidos/rellenar/datos-cliente", { state: nextState });
     }
   };
 

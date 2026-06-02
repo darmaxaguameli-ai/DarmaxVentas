@@ -207,7 +207,7 @@ function App() {
         <Route path="/pedidos/rellenar/datos-confirmados" element={<ClientDataConfirmation />}/>
         <Route path="/pedidos/comprar" element={<BuyJugsStepOne />} />
         <Route path="/pedidos/comprar/opcion-llenado" element={<BuyJugsFillOptionStepTwo />} />
-        <Route path="/pedidos/comprar/asignar-agua" element={<RefillAssignStepTwo />} />
+        <Route path="/pedidos/comprar/asignar-agua" element={<BuyJugsAssignWaterStepThree />} />
         <Route path="/pedidos/confirmado" element={<OrderConfirmation />} />
 
         {/* Mantenimiento */}

@@ -93,6 +93,7 @@ router.post('/pedidos', async (req, res) => {
           deliveryLat: req.body.deliveryLat ? parseFloat(req.body.deliveryLat) : undefined,
           deliveryLng: req.body.deliveryLng ? parseFloat(req.body.deliveryLng) : undefined,
           deliveryTimeSlot: req.body.deliveryTimeSlot || null,
+          promotionId: req.body.promotionId || null, // Guardar el ID de la promoción
         },
       });
 

@@ -1,4 +1,4 @@
-// src/pages/cliente/orders/PickupClientDataStep.jsx
+// src/pages/Client/orders/PickupClientDataStep.jsx
 import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import OrderLayout from "../../../layouts/OrderLayout";
@@ -9,7 +9,7 @@ const PickupClientDataStep = () => {
   const location = useLocation();
 
   const previousState = location.state || {};
-  const deliveryMethod = previousState.deliveryMethod || "collect";
+  const deliveryMethod = previousState.deliveryMethod || "delivery";
 
   const [form, setForm] = useState({
     name: previousState.clientData?.name || "",
@@ -106,7 +106,7 @@ const PickupClientDataStep = () => {
       const response = await apiClient.post('/register-client', payload);
       const newUser = response.data;
 
-      navigate("/pedidos/rellenar/datos-confirmados", {
+      navigate("/pedidos/rellenar/resumen", {
           state: {
             ...location.state,
             clientData: newUser,

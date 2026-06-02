@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { fetchPromotions, createPromotion, updatePromotion, deletePromotion } from "../../api/apiClient";
+import { fetchPromotions, createPromotion, updatePromotion, deletePromotion, fetchProducts } from "../../api/apiClient";
+import { formatDate } from "../../utils/formatters";
 import Swal from "sweetalert2";
 
 const promotionTypes = [
@@ -12,7 +13,7 @@ const promotionTypes = [
 
 const clientCategories = ["PARTICULAR", "EMPRESA", "HOSPITAL", "ESCUELA", "OTRO"];
 
-const PromotionModal = ({ isOpen, onClose, promotionToEdit, onSave }) => {
+const PromotionModal = ({ isOpen, onClose, promotionToEdit, onSave, products }) => {
   const [promo, setPromo] = useState({
     name: "",
     description: "",
@@ -24,6 +25,7 @@ const PromotionModal = ({ isOpen, onClose, promotionToEdit, onSave }) => {
     isActive: true,
     startDate: "",
     endDate: "",
+    giveawayProductId: "",
   });
 
   useEffect(() => {
@@ -32,6 +34,7 @@ const PromotionModal = ({ isOpen, onClose, promotionToEdit, onSave }) => {
         ...promotionToEdit,
         startDate: promotionToEdit.startDate ? promotionToEdit.startDate.split('T')[0] : "",
         endDate: promotionToEdit.endDate ? promotionToEdit.endDate.split('T')[0] : "",
+        giveawayProductId: promotionToEdit.giveawayProductId || "",
       });
     } else {
       setPromo({
@@ -45,6 +48,7 @@ const PromotionModal = ({ isOpen, onClose, promotionToEdit, onSave }) => {
         isActive: true,
         startDate: "",
         endDate: "",
+        giveawayProductId: "",
       });
     }
   }, [promotionToEdit, isOpen]);
@@ -77,6 +81,7 @@ const PromotionModal = ({ isOpen, onClose, promotionToEdit, onSave }) => {
       minOrderAmount: parseFloat(promo.minOrderAmount) || 0,
       startDate: promo.startDate ? new Date(promo.startDate) : null,
       endDate: promo.endDate ? new Date(promo.endDate) : null,
+      giveawayProductId: promo.type === "GIVEAWAY" ? promo.giveawayProductId : null,
     });
     onClose();
   };
@@ -107,15 +112,27 @@ const PromotionModal = ({ isOpen, onClose, promotionToEdit, onSave }) => {
                 ))}
               </select>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Valor (Número)</label>
-              <input name="value" type="number" step="0.01" value={promo.value} onChange={handleChange} required className="mt-1 block w-full input-style" />
-            </div>
+            {promo.type !== "GIVEAWAY" ? (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Valor (Número)</label>
+                <input name="value" type="number" step="0.01" value={promo.value} onChange={handleChange} required className="mt-1 block w-full input-style" />
+              </div>
+            ) : (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Producto de Regalo</label>
+                <select name="giveawayProductId" value={promo.giveawayProductId} onChange={handleChange} required className="mt-1 block w-full input-style">
+                  <option value="">-- Selecciona --</option>
+                  {products.map(p => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
           {promo.type === "COUPON" && (
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Código de Cupón</label>
-              <input name="couponCode" type="text" value={promo.couponCode} onChange={handleChange} required className="mt-1 block w-full input-style" placeholder="DARMAX2026" />
+              <input name="couponCode" type="text" value={promo.couponCode} onChange={handleChange} required className="mt-1 block w-full input-style uppercase" placeholder="Ej: VERANO2026" />
             </div>
           )}
           <div>
@@ -163,21 +180,26 @@ const PromotionModal = ({ isOpen, onClose, promotionToEdit, onSave }) => {
 
 const Promociones = () => {
   const [promotions, setPromotions] = useState([]);
+  const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [promoToEdit, setPromoToEdit] = useState(null);
 
   useEffect(() => {
-    loadPromotions();
+    loadData();
   }, []);
 
-  const loadPromotions = async () => {
+  const loadData = async () => {
     try {
       setLoading(true);
-      const data = await fetchPromotions();
-      setPromotions(data);
+      const [promosData, productsData] = await Promise.all([
+        fetchPromotions(),
+        fetchProducts()
+      ]);
+      setPromotions(promosData);
+      setProducts(productsData);
     } catch (error) {
-      console.error("Error loading promotions:", error);
+      console.error("Error loading data:", error);
     } finally {
       setLoading(false);
     }
@@ -197,7 +219,7 @@ const Promociones = () => {
         await createPromotion(promoData);
         Swal.fire("¡Éxito!", "Promoción creada correctamente.", "success");
       }
-      loadPromotions();
+      loadData();
     } catch (error) {
       Swal.fire("Error", "No se pudo guardar la promoción.", "error");
     }
@@ -218,11 +240,16 @@ const Promociones = () => {
       try {
         await deletePromotion(id);
         Swal.fire("Eliminado", "La promoción ha sido eliminada.", "success");
-        loadPromotions();
+        loadData();
       } catch (error) {
         Swal.fire("Error", "No se pudo eliminar la promoción.", "error");
       }
     }
+  };
+
+  const getGiftProductName = (id) => {
+    const p = products.find(p => p.id === id);
+    return p ? p.name : "Producto no encontrado";
   };
 
   return (
@@ -240,15 +267,16 @@ const Promociones = () => {
         onClose={() => setIsModalOpen(false)}
         promotionToEdit={promoToEdit}
         onSave={handleSave}
+        products={products}
       />
 
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
         <table className="min-w-full">
           <thead className="bg-gray-50 dark:bg-gray-700">
             <tr>
-              <th className="th-style">Nombre</th>
+              <th className="th-style">Nombre / Código</th>
               <th className="th-style">Tipo</th>
-              <th className="th-style">Valor</th>
+              <th className="th-style">Valor / Regalo</th>
               <th className="th-style">Categorías</th>
               <th className="th-style">Vigencia</th>
               <th className="th-style">Estado</th>
@@ -263,14 +291,32 @@ const Promociones = () => {
             ) : (
               promotions.map((promo) => (
                 <tr key={promo.id}>
-                  <td className="td-style font-medium">{promo.name}</td>
+                  <td className="td-style">
+                    <div className="flex flex-col">
+                      <span className="font-bold text-dark dark:text-white">{promo.name}</span>
+                      {promo.couponCode && (
+                        <span className="text-[10px] text-primary font-black uppercase tracking-tighter">
+                          Código: {promo.couponCode}
+                        </span>
+                      )}
+                    </div>
+                  </td>
                   <td className="td-style text-xs">
                     <span className="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 px-2 py-0.5 rounded-full">
                       {promotionTypes.find(t => t.value === promo.type)?.label || promo.type}
                     </span>
                   </td>
                   <td className="td-style">
-                    {promo.type === "DISCOUNT_PERCENT" ? `${promo.value}%` : `$${promo.value}`}
+                    {promo.type === "GIVEAWAY" ? (
+                      <div className="flex items-center gap-1 text-emerald-600 font-bold">
+                        <span className="material-symbols-outlined text-sm">redeem</span>
+                        {getGiftProductName(promo.giveawayProductId)}
+                      </div>
+                    ) : (
+                      <span className="font-mono">
+                        {promo.type === "DISCOUNT_PERCENT" ? `${promo.value}%` : `$${promo.value}`}
+                      </span>
+                    )}
                   </td>
                   <td className="td-style">
                     <div className="flex flex-wrap gap-1">
@@ -282,7 +328,7 @@ const Promociones = () => {
                     </div>
                   </td>
                   <td className="td-style text-xs">
-                    {promo.startDate ? new Date(promo.startDate).toLocaleDateString() : '---'} al {promo.endDate ? new Date(promo.endDate).toLocaleDateString() : '---'}
+                    {promo.startDate ? formatDate(promo.startDate, { month: 'short', day: 'numeric' }) : '---'} al {promo.endDate ? formatDate(promo.endDate, { month: 'short', day: 'numeric' }) : '---'}
                   </td>
                   <td className="td-style">
                     <span className={`px-2 py-1 rounded-full text-xs font-bold ${promo.isActive ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>

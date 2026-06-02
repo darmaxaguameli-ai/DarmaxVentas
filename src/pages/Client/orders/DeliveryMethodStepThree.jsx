@@ -127,8 +127,7 @@ const DeliveryMethodStepThree = () => {
   const primaryButtonLabel = mustFillClientData ? "Completa tus datos" : "Ver resumen del pedido";
   
   // Ajuste de números de paso
-  const hasJugs = (previousState.totalJugs || 0) > 0;
-  const stepNumber = mode === 'buy' ? (hasJugs ? 4 : 2) : 3;
+  const stepNumber = mode === 'buy' ? 3 : 3; // Simplificado a 3 para ambos flujos en este punto
 
   return (
     <OrderLayout

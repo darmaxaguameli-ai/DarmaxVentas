@@ -34,6 +34,8 @@ const ClientProfile = () => {
   const [postalCodeApiLoading, setPostalCodeApiLoading] = useState(false);
   const [postalCodeApiError, setPostalCodeApiError] = useState('');
   const [colonias, setColonias] = useState([]);
+  const [userOrders, setUserOrders] = useState([]);
+  const [welcomeCoupon, setWelcomeCoupon] = useState(null);
 
   useEffect(() => {
     // Permitir acceso si está autenticado y tiene acceso al módulo de pedidos
@@ -45,11 +47,20 @@ const ClientProfile = () => {
     if (user && user.id) {
       const fetchUserProfile = async () => {
         try {
-          const response = await apiClient.get(`/users/${user.id}`);
-          const userData = response.data;
+          const [userRes, orders, promos] = await Promise.all([
+            apiClient.get(`/users/${user.id}`),
+            apiClient.get('/my-orders').then(res => res.data),
+            apiClient.get('/promotions').then(res => res.data)
+          ]);
+          
+          const userData = userRes.data;
+          setUserOrders(orders || []);
+          
+          // Buscar si existe un cupón de bienvenida (por nombre o código "BIENVENIDO")
+          const welcome = promos.find(p => p.isActive && (p.couponCode === 'BIENVENIDO' || p.name.toUpperCase().includes('BIENVENIDO')));
+          if (welcome) setWelcomeCoupon(welcome);
           
           // Split city if it exists in DB (format: "Municipality, State")
-          // Logic: If municipality/state exist in DB, use them. If not, try to parse from 'city'.
           let defaultMuni = userData.municipality || "";
           let defaultState = userData.state || "";
           
@@ -79,7 +90,6 @@ const ClientProfile = () => {
             loyaltyTransactions: userData.loyaltyTransactions || []
           });
           
-          // Prevent API fetch on initial load if CP exists
           if (userData.postalCode) {
               lastFetchedCp.current = userData.postalCode;
           }
@@ -98,7 +108,6 @@ const ClientProfile = () => {
   // DIPOMEX API Integration
   useEffect(() => {
     if (formData.postalCode && formData.postalCode.length === 5) {
-      // Skip if we just loaded this CP from DB or already fetched it
       if (lastFetchedCp.current === formData.postalCode) {
           return;
       }
@@ -106,13 +115,11 @@ const ClientProfile = () => {
       setPostalCodeApiLoading(true);
       setPostalCodeApiError('');
       setColonias([]);
-      
-      // Update ref to prevent re-fetching same code
       lastFetchedCp.current = formData.postalCode;
 
       const loadPostalData = async () => {
         try {
-            const data = await apiFetchPostalCode(formData.postalCode); // Usar la función de la API
+            const data = await apiFetchPostalCode(formData.postalCode);
             
             if (!data.error && data.codigo_postal) {
                 const { municipio, estado, colonias: coloniasData } = data.codigo_postal;
@@ -122,7 +129,6 @@ const ClientProfile = () => {
                     municipality: municipio,
                     state: estado,
                     city: `${municipio}, ${estado}`,
-                    // Si solo hay una colonia, coloniasData[0] es el nombre (string)
                     neighborhood: coloniasData.length === 1 ? coloniasData[0] : prev.neighborhood, 
                 }));
                 
@@ -131,7 +137,6 @@ const ClientProfile = () => {
             } else {
                 setPostalCodeApiError('Código postal no encontrado.');
             }
-
         } catch (error) {
             console.error("Error fetching postal code:", error);
             setPostalCodeApiError('Error al consultar el código postal.');
@@ -139,9 +144,7 @@ const ClientProfile = () => {
             setPostalCodeApiLoading(false);
         }
       };
-
       loadPostalData();
-
     } else if (formData.postalCode.length > 0 && formData.postalCode.length < 5) {
       setColonias([]);
     }
@@ -164,7 +167,6 @@ const ClientProfile = () => {
 
     try {
       const dataToUpdate = { ...formData };
-      // Remove loyalty data from update payload as it's read-only here
       delete dataToUpdate.loyaltyPoints;
       delete dataToUpdate.loyaltyTransactions;
 
@@ -173,15 +175,12 @@ const ClientProfile = () => {
       });
 
       const response = await apiClient.put(`/users/${user.id}`, dataToUpdate);
-      
-      // Mensaje de éxito visual
       toast.success('¡Perfil actualizado con éxito!');
       setSuccessMessage('¡Perfil actualizado con éxito!');
       
       const { user: updatedUser, token: newToken } = response.data;
       updateAuthUser(updatedUser, newToken);
 
-      // Pequeño retraso para que el usuario vea el éxito
       setTimeout(() => {
         if (location.state?.fromOrderFlow) {
           navigate('/pedidos/rellenar/resumen', { state: location.state.orderState });
@@ -208,6 +207,10 @@ const ClientProfile = () => {
       formData.postalCode,
       "Mexico"
   ].filter(Boolean).join(', ');
+
+  const isProfileComplete = formData.name && formData.phone && formData.street && formData.neighborhood;
+  const hasUsedWelcome = userOrders.some(o => welcomeCoupon && o.promotionId === welcomeCoupon.id);
+  const showWelcomeReward = welcomeCoupon && isProfileComplete && !hasUsedWelcome;
 
   const renderContent = () => {
     if (authLoading || loading) {
@@ -248,6 +251,38 @@ const ClientProfile = () => {
                 <p className="text-xs sm:text-sm text-text-secondary dark:text-white/60 italic">Aún no tienes movimientos de puntos.</p>
             )}
         </section>
+
+        {/* Welcome Reward Card */}
+        {showWelcomeReward && (
+          <section className="mb-6 p-6 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl shadow-lg border border-white/20 text-white relative overflow-hidden animate-in zoom-in duration-500">
+            <div className="absolute -right-4 -top-4 opacity-10">
+              <span className="material-symbols-outlined text-[120px]">card_giftcard</span>
+            </div>
+            <div className="relative z-10">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="material-symbols-outlined">auto_awesome</span>
+                <h3 className="font-black uppercase tracking-widest text-sm">Regalo de Bienvenida</h3>
+              </div>
+              <p className="text-2xl font-black mb-1">¡Gracias por completar tu perfil!</p>
+              <p className="text-white/80 text-sm mb-4">Usa este código en tu próximo pedido para obtener un beneficio especial:</p>
+              
+              <div className="flex items-center gap-3">
+                <div className="bg-white/20 backdrop-blur-md border border-white/30 px-6 py-3 rounded-xl font-mono text-2xl font-black tracking-widest">
+                  {welcomeCoupon.couponCode || welcomeCoupon.name}
+                </div>
+                <button 
+                  onClick={() => {
+                    navigator.clipboard.writeText(welcomeCoupon.couponCode || welcomeCoupon.name);
+                    toast.success("¡Código copiado!");
+                  }}
+                  className="h-12 w-12 rounded-xl bg-white text-emerald-600 flex items-center justify-center shadow-sm hover:scale-105 active:scale-95 transition-all"
+                >
+                  <span className="material-symbols-outlined">content_copy</span>
+                </button>
+              </div>
+            </div>
+          </section>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-6 sm:space-y-8">
           <section className="space-y-4">
