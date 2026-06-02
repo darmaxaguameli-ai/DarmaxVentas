@@ -353,6 +353,7 @@ model Promotion {
   targetCategories ClientCategory[] // Categorías de cliente a las que aplica
   minOrderAmount  Float?           @default(0)
   isActive        Boolean          @default(true)
+  isPublic        Boolean          @default(false) // Si es true, aparece en la cinta/banner de la tienda
   startDate       DateTime?
   endDate         DateTime?
 
@@ -593,16 +594,36 @@ model MarketingPost {
   titulo           String
   descripcion      String?
   url              String?  
-  status           String   @default("BORRADOR") 
+  status           String   @default("BORRADOR") // BORRADOR, EN_PROCESO, PENDIENTE_APROBACION, APROBADO, PUBLICADO
   fechaEntrega     DateTime?
   fechaPublicacion DateTime?
   comentariosAdmin String?
   
+  // Nuevos campos para Redes Sociales y Métricas
+  plataforma       String?  // INSTAGRAM, TIKTOK, FACEBOOK, YOUTUBE, OTRO
+  vistas           Int      @default(0)
+  likes            Int      @default(0)
+  compartidos      Int      @default(0)
+  seguidoresGanados Int     @default(0)
+  isLive           Boolean  @default(false)
+
   creador          User     @relation(fields: [creadorId], references: [id])
   creadorId        String
   
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
+}
+
+model SocialMediaMetric {
+  id               String   @id @default(cuid())
+  plataforma       String   // INSTAGRAM, TIKTOK, FACEBOOK, YOUTUBE
+  seguidores       Int
+  fecha            DateTime @default(now())
+  
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@unique([plataforma, fecha])
 }
 
 model Notification {

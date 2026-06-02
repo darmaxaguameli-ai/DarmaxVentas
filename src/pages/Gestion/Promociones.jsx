@@ -23,6 +23,7 @@ const PromotionModal = ({ isOpen, onClose, promotionToEdit, onSave, products }) 
     targetCategories: [],
     minOrderAmount: 0,
     isActive: true,
+    isPublic: false,
     startDate: "",
     endDate: "",
     giveawayProductId: "",
@@ -46,6 +47,7 @@ const PromotionModal = ({ isOpen, onClose, promotionToEdit, onSave, products }) 
         targetCategories: [],
         minOrderAmount: 0,
         isActive: true,
+        isPublic: false,
         startDate: "",
         endDate: "",
         giveawayProductId: "",
@@ -55,7 +57,7 @@ const PromotionModal = ({ isOpen, onClose, promotionToEdit, onSave, products }) 
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    if (type === "checkbox" && name === "isActive") {
+    if (type === "checkbox") {
       setPromo(prev => ({ ...prev, [name]: checked }));
     } else {
       setPromo(prev => ({ ...prev, [name]: value }));
@@ -164,10 +166,18 @@ const PromotionModal = ({ isOpen, onClose, promotionToEdit, onSave, products }) 
               <input name="endDate" type="date" value={promo.endDate} onChange={handleChange} className="mt-1 block w-full input-style" />
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <input name="isActive" type="checkbox" checked={promo.isActive} onChange={handleChange} id="isActive" className="h-4 w-4 text-primary rounded" />
-            <label htmlFor="isActive" className="text-sm font-medium text-gray-700 dark:text-gray-300">Promoción Activa</label>
+          
+          <div className="flex flex-wrap gap-6 pt-2">
+            <div className="flex items-center gap-2">
+              <input name="isActive" type="checkbox" checked={promo.isActive} onChange={handleChange} id="isActive" className="h-4 w-4 text-primary rounded" />
+              <label htmlFor="isActive" className="text-sm font-medium text-gray-700 dark:text-gray-300">Promoción Activa</label>
+            </div>
+            <div className="flex items-center gap-2">
+              <input name="isPublic" type="checkbox" checked={promo.isPublic} onChange={handleChange} id="isPublic" className="h-4 w-4 text-primary rounded" />
+              <label htmlFor="isPublic" className="text-sm font-medium text-gray-700 dark:text-gray-300">Mostrar en Banner de Tienda</label>
+            </div>
           </div>
+
           <div className="flex justify-end gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
             <button type="button" onClick={onClose} className="btn-secondary">Cancelar</button>
             <button type="submit" className="btn-primary">Guardar</button>
@@ -279,15 +289,16 @@ const Promociones = () => {
               <th className="th-style">Valor / Regalo</th>
               <th className="th-style">Categorías</th>
               <th className="th-style">Vigencia</th>
+              <th className="th-style text-center">Banner</th>
               <th className="th-style">Estado</th>
               <th className="th-style text-right">Acciones</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
             {loading ? (
-              <tr><td colSpan="7" className="p-6 text-center text-gray-500">Cargando...</td></tr>
+              <tr><td colSpan="8" className="p-6 text-center text-gray-500">Cargando...</td></tr>
             ) : promotions.length === 0 ? (
-              <tr><td colSpan="7" className="p-6 text-center text-gray-500">No hay promociones registradas.</td></tr>
+              <tr><td colSpan="8" className="p-6 text-center text-gray-500">No hay promociones registradas.</td></tr>
             ) : (
               promotions.map((promo) => (
                 <tr key={promo.id}>
@@ -329,6 +340,11 @@ const Promociones = () => {
                   </td>
                   <td className="td-style text-xs">
                     {promo.startDate ? formatDate(promo.startDate, { month: 'short', day: 'numeric' }) : '---'} al {promo.endDate ? formatDate(promo.endDate, { month: 'short', day: 'numeric' }) : '---'}
+                  </td>
+                  <td className="td-style text-center">
+                    <span className={`material-symbols-outlined ${promo.isPublic ? 'text-primary font-bold' : 'text-gray-300 opacity-50'}`}>
+                      {promo.isPublic ? 'visibility' : 'visibility_off'}
+                    </span>
                   </td>
                   <td className="td-style">
                     <span className={`px-2 py-1 rounded-full text-xs font-bold ${promo.isActive ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>

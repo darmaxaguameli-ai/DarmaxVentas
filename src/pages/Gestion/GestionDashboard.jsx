@@ -27,7 +27,7 @@ const GestionDashboard = () => {
 
   return (
     <ThemeProvider>
-      <div className="flex h-screen bg-light dark:bg-dark text-text-light dark:text-text-dark font-display">
+      <div className="flex h-screen bg-light dark:bg-dark text-text-light dark:text-text-dark font-display overflow-hidden">
         <Toaster position="top-right" reverseOrder={false} />
         
         <GestionSidebar 

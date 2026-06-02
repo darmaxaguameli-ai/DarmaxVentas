@@ -206,15 +206,18 @@ const OrderSummaryStepFour = () => {
     try {
       const promos = await fetchPromotions(user?.clientCategory || "PARTICULAR");
       
+      const now = new Date();
       const coupon = promos.find(p => 
         p.isActive && (
           (p.couponCode && p.couponCode.toUpperCase() === couponInput.toUpperCase()) ||
           (p.name && p.name.toUpperCase() === couponInput.toUpperCase())
-        )
+        ) &&
+        (!p.startDate || new Date(p.startDate) <= now) &&
+        (!p.endDate || new Date(p.endDate) >= now)
       );
 
       if (!coupon) {
-        toast.error("Cupón o promoción no válida.");
+        toast.error("Cupón o promoción no válida o expirada.");
         setAppliedPromotion(null);
       } else if (userOrders.some(o => o.promotionId === coupon.id)) {
         toast.error("Ya has utilizado esta promoción anteriormente.");

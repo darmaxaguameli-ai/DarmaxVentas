@@ -4,6 +4,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { toast } from "sonner";
 import OrderLayout from "../../../layouts/OrderLayout";
 import QuantityCard from "../../../components/order/QuantityCard";
+import PromotionBanner from "../../../components/order/PromotionBanner";
 import { useConfig } from "../../../context/ConfigContext";
 import { useHaptic } from "../../../hooks/useHaptic";
 import { fetchUserPreferences, saveUserPreferences } from "../../../api/apiClient";
@@ -282,6 +283,7 @@ const RefillJugStepOne = () => {
       totalSteps={4}
     >
       <div className="flex flex-col gap-4 sm:gap-6">
+        <PromotionBanner />
         {renderContent()}
       </div>
     </OrderLayout>

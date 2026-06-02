@@ -8,10 +8,109 @@ router.get('/marketing', verifyToken, async (req, res) => {
   try {
     const { id, role } = req.user;
     const where = role !== 'ADMIN' ? { creadorId: id } : {};
-    const posts = await prisma.marketingPost.findMany({ where, include: { creador: { select: { name: true, customId: true } } }, orderBy: { createdAt: 'desc' } });
+    const posts = await prisma.marketingPost.findMany({ 
+      where, 
+      include: { creador: { select: { name: true, customId: true } } }, 
+      orderBy: { createdAt: 'desc' } 
+    });
     res.json(posts);
   } catch (error) {
     res.status(500).json({ error: 'Error fetching marketing posts' });
+  }
+});
+
+router.post('/marketing', verifyToken, async (req, res) => {
+  try {
+    const { titulo, descripcion, url, fechaEntrega, status, plataforma } = req.body;
+    const post = await prisma.marketingPost.create({
+      data: {
+        titulo,
+        descripcion,
+        url,
+        fechaEntrega: fechaEntrega ? new Date(fechaEntrega) : null,
+        status: status || 'BORRADOR',
+        plataforma,
+        creadorId: req.user.id
+      }
+    });
+    res.status(201).json(post);
+  } catch (error) {
+    res.status(500).json({ error: 'Error creating marketing post' });
+  }
+});
+
+router.put('/marketing/:id', verifyToken, async (req, res) => {
+  try {
+    const { titulo, descripcion, url, fechaEntrega, fechaPublicacion, status, plataforma, vistas, likes, compartidos, seguidoresGanados, isLive, comentariosAdmin } = req.body;
+    const post = await prisma.marketingPost.update({
+      where: { id: req.params.id },
+      data: {
+        titulo,
+        descripcion,
+        url,
+        fechaEntrega: fechaEntrega ? new Date(fechaEntrega) : undefined,
+        fechaPublicacion: fechaPublicacion ? new Date(fechaPublicacion) : undefined,
+        status,
+        plataforma,
+        vistas: vistas !== undefined ? parseInt(vistas) : undefined,
+        likes: likes !== undefined ? parseInt(likes) : undefined,
+        compartidos: compartidos !== undefined ? parseInt(compartidos) : undefined,
+        seguidoresGanados: seguidoresGanados !== undefined ? parseInt(seguidoresGanados) : undefined,
+        isLive,
+        comentariosAdmin
+      }
+    });
+    res.json(post);
+  } catch (error) {
+    res.status(500).json({ error: 'Error updating marketing post' });
+  }
+});
+
+router.delete('/marketing/:id', verifyToken, async (req, res) => {
+  try {
+    await prisma.marketingPost.delete({ where: { id: req.params.id } });
+    res.status(204).send();
+  } catch (error) {
+    res.status(500).json({ error: 'Error deleting marketing post' });
+  }
+});
+
+// --- SOCIAL MEDIA METRICS ---
+router.get('/marketing/metrics', verifyToken, async (req, res) => {
+  try {
+    const metrics = await prisma.socialMediaMetric.findMany({
+      orderBy: { fecha: 'desc' },
+      take: 100
+    });
+    res.json(metrics);
+  } catch (error) {
+    res.status(500).json({ error: 'Error fetching social media metrics' });
+  }
+});
+
+router.post('/marketing/metrics', verifyToken, async (req, res) => {
+  try {
+    const { plataforma, seguidores, fecha } = req.body;
+    const targetDate = fecha ? new Date(fecha) : new Date();
+    targetDate.setHours(0, 0, 0, 0);
+
+    const metric = await prisma.socialMediaMetric.upsert({
+      where: {
+        plataforma_fecha: {
+          plataforma,
+          fecha: targetDate
+        }
+      },
+      update: { seguidores: parseInt(seguidores) },
+      create: {
+        plataforma,
+        seguidores: parseInt(seguidores),
+        fecha: targetDate
+      }
+    });
+    res.status(201).json(metric);
+  } catch (error) {
+    res.status(500).json({ error: 'Error saving social media metric' });
   }
 });
 

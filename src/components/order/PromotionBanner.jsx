@@ -12,10 +12,16 @@ const PromotionBanner = () => {
         const loadPromos = async () => {
             try {
                 setLoading(true);
-                // Fetch promos filtered by client category if logged in
                 const category = isAuthenticated ? user?.clientCategory : null;
                 const data = await fetchPromotions(category);
-                setPromotions(data.filter(p => p.isActive));
+                
+                const now = new Date();
+                setPromotions(data.filter(p => 
+                    p.isActive && 
+                    p.isPublic &&
+                    (!p.startDate || new Date(p.startDate) <= now) &&
+                    (!p.endDate || new Date(p.endDate) >= now)
+                ));
             } catch (err) {
                 console.error("Error loading promotions for banner:", err);
             } finally {
