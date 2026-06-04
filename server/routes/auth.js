@@ -7,6 +7,14 @@ const crypto = require('crypto');
 const { sendEmail } = require('../utils/emailService');
 const { getResetPasswordEmailTemplate, getVerificationEmailTemplate } = require('../utils/templates/authEmailTemplates');
 const axios = require('axios');
+const rateLimit = require('express-rate-limit');
+
+// Limitador de seguridad para intentos de login
+const authLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000, // 1 hora
+    max: 10, // 10 intentos por IP
+    message: { error: 'Demasiados intentos fallidos. Por seguridad, esta IP ha sido bloqueada temporalmente.' }
+});
 
 // --- Geocoding Function (Shared helper if needed locally) ---
 const geocodeAddress = async (address) => {
@@ -26,7 +34,7 @@ const geocodeAddress = async (address) => {
 };
 
 // POST /api/login
-router.post('/login', async (req, res) => {
+router.post('/login', authLimiter, async (req, res) => {
   try {
     const { email: identifier, password } = req.body;
     if (!identifier || !password) return res.status(400).json({ error: 'Usuario y contraseña requeridos.' });
@@ -52,9 +60,10 @@ router.post('/login', async (req, res) => {
 });
 
 // POST /api/forgot-password
-router.post('/forgot-password', async (req, res) => {
+router.post('/forgot-password', authLimiter, async (req, res) => {
   const { email } = req.body;
   if (!email) return res.status(400).json({ error: 'El email es requerido.' });
+
   try {
     const user = await prisma.user.findUnique({ where: { email: email.toLowerCase().trim() } });
     if (!user) return res.json({ message: 'Si el correo existe, se enviará un enlace de recuperación.' });

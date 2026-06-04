@@ -1,10 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const prisma = require('../lib/prisma');
-const { verifyToken } = require('../middleware/auth');
+const { verifyToken, requirePermission } = require('../middleware/auth');
 
 // --- EMPLEADOS ---
-router.get('/empleados', verifyToken, async (req, res) => {
+router.get('/empleados', verifyToken, requirePermission('canAccessRH'), async (req, res) => {
   try {
     const empleados = await prisma.empleado.findMany({
       include: { user: { include: { roles: true } }, documentos: true, manager: true },
@@ -16,7 +16,7 @@ router.get('/empleados', verifyToken, async (req, res) => {
   }
 });
 
-router.get('/empleados/:id', verifyToken, async (req, res) => {
+router.get('/empleados/:id', verifyToken, requirePermission('canAccessRH'), async (req, res) => {
   try {
     const empleado = await prisma.empleado.findUnique({
       where: { id: req.params.id },

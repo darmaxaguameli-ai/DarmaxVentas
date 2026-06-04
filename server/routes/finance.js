@@ -1,10 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const prisma = require('../lib/prisma');
-const { verifyToken } = require('../middleware/auth');
+const { verifyToken, requirePermission } = require('../middleware/auth');
 
 // --- INCOMES ---
-router.get('/incomes', verifyToken, async (req, res) => {
+router.get('/incomes', verifyToken, requirePermission('canAccessFinances'), async (req, res) => {
   try {
     const { role, id } = req.user;
     const where = {};
@@ -21,7 +21,7 @@ router.get('/incomes', verifyToken, async (req, res) => {
 });
 
 // --- EXPENSES ---
-router.get('/expenses', verifyToken, async (req, res) => {
+router.get('/expenses', verifyToken, requirePermission('canAccessFinances'), async (req, res) => {
   try {
     const { role, id } = req.user;
     const where = {};
@@ -38,12 +38,17 @@ router.get('/expenses', verifyToken, async (req, res) => {
 });
 
 // --- CASH DRAWER ---
+// POS access covers cash drawer operations
 router.get('/cash-drawer/active', verifyToken, async (req, res) => {
   try {
+    // Check if user has either POS or Delivery access to see active session
+    const user = req.fullUser;
+    const hasAccess = user.role === 'ADMIN' || user.roles.some(r => r.canAccessPOS || r.canAccessDelivery);
+    if (!hasAccess) return res.status(403).json({ error: 'No tienes permiso para gestionar la caja.' });
+
     const userId = req.user.id;
-    const user = await prisma.user.findUnique({ where: { id: userId }, select: { storeId: true } });
     const where = { vendedorId: userId, estado: 'ABIERTA' };
-    if (user && user.storeId) where.storeId = user.storeId;
+    if (user.storeId) where.storeId = user.storeId;
     const activeSession = await prisma.sesionCaja.findFirst({
       where,
       include: { transacciones: { orderBy: { createdAt: 'asc' } }, pedidos: { include: { items: true } } },
@@ -56,11 +61,14 @@ router.get('/cash-drawer/active', verifyToken, async (req, res) => {
 
 router.post('/cash-drawer/start', verifyToken, async (req, res) => {
     try {
+        const user = req.fullUser;
+        const hasAccess = user.role === 'ADMIN' || user.roles.some(r => r.canAccessPOS || r.canAccessDelivery);
+        if (!hasAccess) return res.status(403).json({ error: 'No tienes permiso para iniciar caja.' });
+
         const userId = req.user.id;
         const { openingBalance, initialTags } = req.body;
 
-        const user = await prisma.user.findUnique({ where: { id: userId }, select: { storeId: true } });
-        if (!user || !user.storeId) {
+        if (!user.storeId) {
             return res.status(400).json({ error: 'El usuario no tiene una sucursal asignada.' });
         }
 
@@ -84,7 +92,6 @@ router.post('/cash-drawer/start', verifyToken, async (req, res) => {
 
         res.json(session);
     } catch (error) {
-        console.error("Error starting session:", error);
         res.status(500).json({ error: 'Error al iniciar sesión de caja' });
     }
 });
@@ -103,11 +110,6 @@ router.post('/cash-drawer/close', verifyToken, async (req, res) => {
             return res.status(404).json({ error: 'No se encontró una sesión abierta.' });
         }
 
-        // Calcular balance esperado
-        // + Apertura
-        // + Ventas (Efectivo)
-        // + Ingresos extra
-        // - Retiros/Gastos
         const totalVentas = session.pedidos
             .filter(p => p.status === 'ENTREGADO' && p.paymentMethod === 'Efectivo')
             .reduce((sum, p) => sum + p.total, 0);
@@ -134,7 +136,6 @@ router.post('/cash-drawer/close', verifyToken, async (req, res) => {
 
         res.json(closedSession);
     } catch (error) {
-        console.error("Error closing session:", error);
         res.status(500).json({ error: 'Error al cerrar sesión de caja' });
     }
 });
@@ -163,7 +164,6 @@ router.post('/cash-drawer/transaction', verifyToken, async (req, res) => {
 
         res.json(transaction);
     } catch (error) {
-        console.error("Error creating transaction:", error);
         res.status(500).json({ error: 'Error al registrar movimiento' });
     }
 });

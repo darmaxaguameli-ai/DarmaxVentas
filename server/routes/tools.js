@@ -1,12 +1,39 @@
 const express = require('express');
 const router = express.Router();
 const prisma = require('../lib/prisma');
-const { verifyToken } = require('../middleware/auth');
+const { verifyToken, requirePermission } = require('../middleware/auth');
 const fs = require('fs');
 const path = require('path');
+const multer = require('multer');
+
+// Configuración de Multer para subir contratos (Carpeta PRIVADA)
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        const dir = path.join(__dirname, '../../storage/contratos');
+        if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+        cb(null, dir);
+    },
+    filename: (req, file, cb) => {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        const ext = path.extname(file.originalname);
+        cb(null, 'contrato-' + uniqueSuffix + ext);
+    }
+});
+
+const upload = multer({ 
+    storage,
+    limits: { fileSize: 10 * 1024 * 1024 }, // Límite 10MB
+    fileFilter: (req, file, cb) => {
+        if (file.mimetype === 'application/pdf' || file.mimetype.includes('word') || file.mimetype.includes('officedocument')) {
+            cb(null, true);
+        } else {
+            cb(new Error('Solo se permiten archivos PDF o Word.'));
+        }
+    }
+});
 
 // --- COTIZACIONES ---
-router.get('/cotizaciones', verifyToken, async (req, res) => {
+router.get('/cotizaciones', verifyToken, requirePermission('canAccessQuotes'), async (req, res) => {
     try {
         const quotes = await prisma.cotizacion.findMany({ orderBy: { folio: 'desc' } });
         res.json(quotes);
@@ -15,10 +42,9 @@ router.get('/cotizaciones', verifyToken, async (req, res) => {
     }
 });
 
-router.post('/cotizaciones', verifyToken, async (req, res) => {
+router.post('/cotizaciones', verifyToken, requirePermission('canAccessQuotes'), async (req, res) => {
     try {
         const data = req.body;
-        // Convertir tipos si es necesario
         const quote = await prisma.cotizacion.create({
             data: {
                 fecha: data.fecha ? new Date(data.fecha) : new Date(),
@@ -41,12 +67,11 @@ router.post('/cotizaciones', verifyToken, async (req, res) => {
         });
         res.json(quote);
     } catch (error) {
-        console.error("Error creating quote:", error);
-        res.status(500).json({ error: 'Error al crear la cotización', details: error.message });
+        res.status(500).json({ error: 'Error al crear la cotización' });
     }
 });
 
-router.put('/cotizaciones/:id', verifyToken, async (req, res) => {
+router.put('/cotizaciones/:id', verifyToken, requirePermission('canAccessQuotes'), async (req, res) => {
     try {
         const { id } = req.params;
         const data = req.body;
@@ -73,12 +98,11 @@ router.put('/cotizaciones/:id', verifyToken, async (req, res) => {
         });
         res.json(quote);
     } catch (error) {
-        console.error("Error updating quote:", error);
-        res.status(500).json({ error: 'Error al actualizar la cotización', details: error.message });
+        res.status(500).json({ error: 'Error al actualizar la cotización' });
     }
 });
 
-router.delete('/cotizaciones/:id', verifyToken, async (req, res) => {
+router.delete('/cotizaciones/:id', verifyToken, requirePermission('canAccessQuotes'), async (req, res) => {
     try {
         await prisma.cotizacion.delete({ where: { id: req.params.id } });
         res.json({ message: 'Cotización eliminada' });
@@ -87,7 +111,7 @@ router.delete('/cotizaciones/:id', verifyToken, async (req, res) => {
     }
 });
 
-router.get('/cotizaciones/:id', verifyToken, async (req, res) => {
+router.get('/cotizaciones/:id', verifyToken, requirePermission('canAccessQuotes'), async (req, res) => {
     try {
         const quote = await prisma.cotizacion.findUnique({ where: { id: req.params.id } });
         if (!quote) return res.status(404).json({ error: 'Cotización no encontrada' });
@@ -97,7 +121,7 @@ router.get('/cotizaciones/:id', verifyToken, async (req, res) => {
     }
 });
 
-router.get('/cotizaciones/folio/:folio', verifyToken, async (req, res) => {
+router.get('/cotizaciones/folio/:folio', verifyToken, requirePermission('canAccessQuotes'), async (req, res) => {
     try {
         const quote = await prisma.cotizacion.findFirst({ where: { folio: parseInt(req.params.folio) } });
         if (!quote) return res.status(404).json({ error: 'Cotización no encontrada' });
@@ -107,7 +131,7 @@ router.get('/cotizaciones/folio/:folio', verifyToken, async (req, res) => {
     }
 });
 
-router.get('/cotizaciones/cliente/:nombre', verifyToken, async (req, res) => {
+router.get('/cotizaciones/cliente/:nombre', verifyToken, requirePermission('canAccessQuotes'), async (req, res) => {
     try {
         const quotes = await prisma.cotizacion.findMany({ 
             where: { nombreCliente: { contains: req.params.nombre, mode: 'insensitive' } },
@@ -119,7 +143,7 @@ router.get('/cotizaciones/cliente/:nombre', verifyToken, async (req, res) => {
     }
 });
 
-// GET public quote
+// GET public quote (NO verifyToken because it's public)
 router.get('/cotizaciones/public/:id', async (req, res) => {
   try {
     const quote = await prisma.cotizacion.findUnique({ where: { id: req.params.id } });
@@ -131,7 +155,7 @@ router.get('/cotizaciones/public/:id', async (req, res) => {
 });
 
 // --- SOLICITUDES ---
-router.get('/solicitudes', verifyToken, async (req, res) => {
+router.get('/solicitudes', verifyToken, requirePermission('canAccessConfig'), async (req, res) => {
     try {
         const solicitudes = await prisma.solicitudProducto.findMany({ orderBy: { folio: 'desc' } });
         res.json(solicitudes);
@@ -140,7 +164,7 @@ router.get('/solicitudes', verifyToken, async (req, res) => {
     }
 });
 
-router.post('/solicitudes', verifyToken, async (req, res) => {
+router.post('/solicitudes', verifyToken, requirePermission('canAccessConfig'), async (req, res) => {
     try {
         const solicitud = await prisma.solicitudProducto.create({ data: req.body });
         res.json(solicitud);
@@ -149,7 +173,7 @@ router.post('/solicitudes', verifyToken, async (req, res) => {
     }
 });
 
-router.get('/solicitudes/:id', verifyToken, async (req, res) => {
+router.get('/solicitudes/:id', verifyToken, requirePermission('canAccessConfig'), async (req, res) => {
     try {
         const solicitud = await prisma.solicitudProducto.findUnique({ where: { id: req.params.id } });
         res.json(solicitud);
@@ -158,7 +182,7 @@ router.get('/solicitudes/:id', verifyToken, async (req, res) => {
     }
 });
 
-router.get('/solicitudes/folio/:folio', verifyToken, async (req, res) => {
+router.get('/solicitudes/folio/:folio', verifyToken, requirePermission('canAccessConfig'), async (req, res) => {
     try {
         const solicitud = await prisma.solicitudProducto.findUnique({ where: { folio: parseInt(req.params.folio) } });
         res.json(solicitud);
@@ -167,7 +191,7 @@ router.get('/solicitudes/folio/:folio', verifyToken, async (req, res) => {
     }
 });
 
-router.put('/solicitudes/:id', verifyToken, async (req, res) => {
+router.put('/solicitudes/:id', verifyToken, requirePermission('canAccessConfig'), async (req, res) => {
     try {
         const solicitud = await prisma.solicitudProducto.update({
             where: { id: req.params.id },
@@ -179,7 +203,7 @@ router.put('/solicitudes/:id', verifyToken, async (req, res) => {
     }
 });
 
-router.delete('/solicitudes/:id', verifyToken, async (req, res) => {
+router.delete('/solicitudes/:id', verifyToken, requirePermission('canAccessConfig'), async (req, res) => {
     try {
         await prisma.solicitudProducto.delete({ where: { id: req.params.id } });
         res.json({ message: 'Solicitud eliminada' });
@@ -189,7 +213,7 @@ router.delete('/solicitudes/:id', verifyToken, async (req, res) => {
 });
 
 // --- LEGAL ---
-router.get('/legal', verifyToken, async (req, res) => {
+router.get('/legal', verifyToken, requirePermission('canAccessLegal'), async (req, res) => {
     try {
         const documents = await prisma.legalDocument.findMany({ orderBy: { createdAt: 'desc' } });
         res.json(documents);
@@ -198,7 +222,13 @@ router.get('/legal', verifyToken, async (req, res) => {
     }
 });
 
-router.post('/legal', verifyToken, async (req, res) => {
+router.post('/legal/upload', verifyToken, requirePermission('canAccessLegal'), upload.single('archivo'), (req, res) => {
+    if (!req.file) return res.status(400).json({ error: 'No se subió ningún archivo.' });
+    const fileUrl = `storage/contratos/${req.file.filename}`;
+    res.json({ url: fileUrl });
+});
+
+router.post('/legal', verifyToken, requirePermission('canAccessLegal'), async (req, res) => {
     try {
         const { nombre, descripcion, archivoUrl } = req.body;
         const document = await prisma.legalDocument.create({
@@ -210,7 +240,7 @@ router.post('/legal', verifyToken, async (req, res) => {
     }
 });
 
-router.put('/legal/:id', verifyToken, async (req, res) => {
+router.put('/legal/:id', verifyToken, requirePermission('canAccessLegal'), async (req, res) => {
     try {
         const { id } = req.params;
         const { nombre, descripcion, archivoUrl } = req.body;
@@ -224,11 +254,10 @@ router.put('/legal/:id', verifyToken, async (req, res) => {
     }
 });
 
-router.delete('/legal/:id', verifyToken, async (req, res) => {
+router.delete('/legal/:id', verifyToken, requirePermission('canAccessLegal'), async (req, res) => {
     try {
-        // Restricción: Solo ADMIN puede borrar documentos legales
         if (req.user.role !== 'ADMIN') {
-            return res.status(403).json({ error: 'No tienes permisos para borrar documentos legales.' });
+            return res.status(403).json({ error: 'Solo los administradores pueden borrar documentos legales.' });
         }
         await prisma.legalDocument.delete({ where: { id: req.params.id } });
         res.json({ message: 'Documento legal eliminado' });
@@ -237,8 +266,23 @@ router.delete('/legal/:id', verifyToken, async (req, res) => {
     }
 });
 
+router.get('/legal/archivo/:id', verifyToken, requirePermission('canAccessLegal'), async (req, res) => {
+    try {
+        const { id } = req.params;
+        const doc = await prisma.legalDocument.findUnique({ where: { id } });
+        if (!doc) return res.status(404).json({ error: 'Documento no encontrado.' });
+
+        const filePath = path.join(__dirname, '../../', doc.archivoUrl);
+        if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'El archivo físico no existe.' });
+
+        res.sendFile(filePath);
+    } catch (error) {
+        res.status(500).json({ error: 'Error al obtener el archivo.' });
+    }
+});
+
 // --- INSTALLATION MODELS ---
-router.get('/installation-models', verifyToken, async (req, res) => {
+router.get('/installation-models', verifyToken, requirePermission('canAccessInstallation'), async (req, res) => {
   try {
     const models = await prisma.installationModel.findMany({ include: { materials: { include: { product: true } } }, orderBy: { name: 'asc' } });
     res.json(models);
@@ -247,7 +291,7 @@ router.get('/installation-models', verifyToken, async (req, res) => {
   }
 });
 
-router.post('/installation-models', verifyToken, async (req, res) => {
+router.post('/installation-models', verifyToken, requirePermission('canAccessInstallation'), async (req, res) => {
   try {
     const { name, description, materials } = req.body;
     const model = await prisma.installationModel.create({
@@ -270,14 +314,11 @@ router.post('/installation-models', verifyToken, async (req, res) => {
   }
 });
 
-router.put('/installation-models/:id', verifyToken, async (req, res) => {
+router.put('/installation-models/:id', verifyToken, requirePermission('canAccessInstallation'), async (req, res) => {
   try {
     const { id } = req.params;
     const { name, description, materials } = req.body;
-    
-    // Primero eliminar materiales existentes para reemplazarlos (simplificación)
     await prisma.modelMaterial.deleteMany({ where: { installationModelId: id } });
-
     const model = await prisma.installationModel.update({
       where: { id },
       data: {
@@ -299,7 +340,7 @@ router.put('/installation-models/:id', verifyToken, async (req, res) => {
   }
 });
 
-router.delete('/installation-models/:id', verifyToken, async (req, res) => {
+router.delete('/installation-models/:id', verifyToken, requirePermission('canAccessInstallation'), async (req, res) => {
   try {
     const { id } = req.params;
     await prisma.modelMaterial.deleteMany({ where: { installationModelId: id } });

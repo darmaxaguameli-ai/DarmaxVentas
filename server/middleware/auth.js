@@ -22,23 +22,29 @@ const verifyToken = async (req, res, next) => {
   const token = authHeader && authHeader.split(' ')[1];
 
   if (!token) {
-    return res.status(401).json({ error: 'Acceso denegado. No se proporcionó token.' });
+    return res.status(401).json({ error: 'Sesión no iniciada. Por favor accede al sistema.' });
   }
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.user = decoded;
 
-    if (req.method !== 'GET') {
-        const user = await prisma.user.findUnique({
-            where: { id: decoded.id },
-            include: { roles: true }
-        });
+    // Cargar usuario completo con sus roles para validaciones granulares
+    const user = await prisma.user.findUnique({
+        where: { id: decoded.id },
+        include: { roles: true }
+    });
 
+    if (!user) return res.status(403).json({ error: 'Usuario no válido o eliminado.' });
+
+    // Guardar el objeto de usuario completo en la petición para uso posterior
+    req.fullUser = user;
+
+    if (req.method !== 'GET') {
         if (checkDemoRole(user)) {
             return res.status(403).json({ 
                 error: 'Modo Demo Activo', 
-                details: 'Esta cuenta es de solo lectura para fines de presentación empresarial. No se permite realizar cambios en la base de datos.' 
+                details: 'Esta cuenta es de solo lectura. No se permiten realizar cambios en la base de datos.' 
             });
         }
     }
@@ -46,8 +52,29 @@ const verifyToken = async (req, res, next) => {
     next();
   } catch (err) {
     console.error('Error al verificar el token:', err);
-    return res.status(403).json({ error: 'Token inválido o expirado.' });
+    return res.status(403).json({ error: 'Tu sesión ha expirado o es inválida. Por favor inicia sesión de nuevo.' });
   }
 };
 
-module.exports = { verifyToken, checkDemoRole };
+// Middleware para requerir un permiso específico (RBAC)
+const requirePermission = (permissionName) => {
+    return async (req, res, next) => {
+        if (!req.fullUser) return res.status(500).json({ error: 'Error de validación de permisos.' });
+
+        const user = req.fullUser;
+        const isAdmin = user.role === 'ADMIN' || user.roles.some(r => r.name.toUpperCase() === 'ADMIN');
+        
+        if (isAdmin) return next();
+
+        const hasPerm = user.roles.some(role => role[permissionName] === true);
+        
+        if (hasPerm) return next();
+
+        return res.status(403).json({ 
+            error: 'Acceso Denegado', 
+            details: `No tienes el permiso necesario (${permissionName}) para realizar esta acción.` 
+        });
+    };
+};
+
+module.exports = { verifyToken, checkDemoRole, requirePermission };

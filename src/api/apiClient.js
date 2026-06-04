@@ -204,6 +204,9 @@ export const fetchLegalDocuments = () => apiClient.get('/legal').then(res => res
 export const createLegalDocument = (data) => apiClient.post('/legal', data).then(res => res.data);
 export const updateLegalDocument = (id, data) => apiClient.put(`/legal/${id}`, data).then(res => res.data);
 export const deleteLegalDocument = (id) => apiClient.delete(`/legal/${id}`).then(res => res.data);
+export const uploadLegalDocument = (formData) => apiClient.post('/legal/upload', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+}).then(res => res.data);
 
 // ====================================================================
 //  REPORTS

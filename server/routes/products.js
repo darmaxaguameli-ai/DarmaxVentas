@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const prisma = require('../lib/prisma');
-const { verifyToken } = require('../middleware/auth');
+const { verifyToken, requirePermission } = require('../middleware/auth');
 const jwt = require('jsonwebtoken');
 
 // --- HELPER: Ensure Category Exists ---
@@ -17,7 +17,6 @@ const ensureCategory = async (categoryName) => {
 // --- PRODUCT CATEGORIES (CRUD) ---
 router.get('/product-categories', async (req, res) => {
     try {
-        // ... (lógica de auto-sync existente)
         const categories = await prisma.productCategory.findMany({ orderBy: { name: 'asc' } });
         res.json(categories);
     } catch (error) {
@@ -25,7 +24,7 @@ router.get('/product-categories', async (req, res) => {
     }
 });
 
-router.post('/product-categories', verifyToken, async (req, res) => {
+router.post('/product-categories', verifyToken, requirePermission('canAccessInventory'), async (req, res) => {
     try {
         const { name, isPublic, icon } = req.body;
         const category = await prisma.productCategory.create({
@@ -38,7 +37,7 @@ router.post('/product-categories', verifyToken, async (req, res) => {
     }
 });
 
-router.put('/product-categories/:id', verifyToken, async (req, res) => {
+router.put('/product-categories/:id', verifyToken, requirePermission('canAccessInventory'), async (req, res) => {
     try {
         const category = await prisma.productCategory.update({
             where: { id: req.params.id },
@@ -93,7 +92,7 @@ router.get('/products', async (req, res) => {
   }
 });
 
-router.post('/products', verifyToken, async (req, res) => {
+router.post('/products', verifyToken, requirePermission('canAccessInventory'), async (req, res) => {
   try {
     const { category, ...data } = req.body;
     const catRecord = await ensureCategory(category);
@@ -111,10 +110,9 @@ router.post('/products', verifyToken, async (req, res) => {
   }
 });
 
-router.put('/products/:id', verifyToken, async (req, res) => {
+router.put('/products/:id', verifyToken, requirePermission('canAccessInventory'), async (req, res) => {
   const { id: productId } = req.params;
   const { stock, category, ...rawData } = req.body;
-  const { id: userId, role } = req.user;
   
   try {
     const catRecord = await ensureCategory(category);
@@ -130,11 +128,11 @@ router.put('/products/:id', verifyToken, async (req, res) => {
     if (rawData.status !== undefined) productData.status = rawData.status || "ACTIVE";
     if (rawData.isPublic !== undefined) productData.isPublic = !!rawData.isPublic;
 
+    // Use req.fullUser from verifyToken
+    const user = req.fullUser;
     let storeId = null;
-    if (role !== 'ADMIN') {
-        const user = await prisma.user.findUnique({ where: { id: userId }, select: { storeId: true } });
-        storeId = user?.storeId;
-    }
+    if (user.role !== 'ADMIN') storeId = user.storeId;
+
     const result = await prisma.$transaction(async (tx) => {
         let updatedProduct;
         updatedProduct = await tx.product.update({ where: { id: productId }, data: productData });
@@ -162,8 +160,9 @@ router.put('/products/:id', verifyToken, async (req, res) => {
   }
 });
 
-router.delete('/products/:id', verifyToken, async (req, res) => {
+router.delete('/products/:id', verifyToken, requirePermission('canAccessInventory'), async (req, res) => {
   try {
+    if (req.user.role !== 'ADMIN') return res.status(403).json({ error: 'Acceso denegado.' });
     await prisma.product.delete({ where: { id: req.params.id } });
     res.status(204).send();
   } catch (error) {

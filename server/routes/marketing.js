@@ -1,10 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const prisma = require('../lib/prisma');
-const { verifyToken } = require('../middleware/auth');
+const { verifyToken, requirePermission } = require('../middleware/auth');
 
 // --- MARKETING POSTS ---
-router.get('/marketing', verifyToken, async (req, res) => {
+router.get('/marketing', verifyToken, requirePermission('canAccessMarketing'), async (req, res) => {
   try {
     const { id, role } = req.user;
     const where = role !== 'ADMIN' ? { creadorId: id } : {};
@@ -19,7 +19,7 @@ router.get('/marketing', verifyToken, async (req, res) => {
   }
 });
 
-router.post('/marketing', verifyToken, async (req, res) => {
+router.post('/marketing', verifyToken, requirePermission('canAccessMarketing'), async (req, res) => {
   try {
     const { titulo, descripcion, url, fechaEntrega, status, plataforma } = req.body;
     const post = await prisma.marketingPost.create({
@@ -39,7 +39,7 @@ router.post('/marketing', verifyToken, async (req, res) => {
   }
 });
 
-router.put('/marketing/:id', verifyToken, async (req, res) => {
+router.put('/marketing/:id', verifyToken, requirePermission('canAccessMarketing'), async (req, res) => {
   try {
     const { titulo, descripcion, url, fechaEntrega, fechaPublicacion, status, plataforma, vistas, likes, compartidos, seguidoresGanados, isLive, comentariosAdmin } = req.body;
     const post = await prisma.marketingPost.update({
@@ -66,7 +66,7 @@ router.put('/marketing/:id', verifyToken, async (req, res) => {
   }
 });
 
-router.delete('/marketing/:id', verifyToken, async (req, res) => {
+router.delete('/marketing/:id', verifyToken, requirePermission('canAccessMarketing'), async (req, res) => {
   try {
     await prisma.marketingPost.delete({ where: { id: req.params.id } });
     res.status(204).send();
@@ -76,7 +76,7 @@ router.delete('/marketing/:id', verifyToken, async (req, res) => {
 });
 
 // --- SOCIAL MEDIA METRICS ---
-router.get('/marketing/metrics', verifyToken, async (req, res) => {
+router.get('/marketing/metrics', verifyToken, requirePermission('canAccessMarketing'), async (req, res) => {
   try {
     const metrics = await prisma.socialMediaMetric.findMany({
       orderBy: { fecha: 'desc' },
@@ -88,7 +88,7 @@ router.get('/marketing/metrics', verifyToken, async (req, res) => {
   }
 });
 
-router.post('/marketing/metrics', verifyToken, async (req, res) => {
+router.post('/marketing/metrics', verifyToken, requirePermission('canAccessMarketing'), async (req, res) => {
   try {
     const { plataforma, seguidores, fecha } = req.body;
     const targetDate = fecha ? new Date(fecha) : new Date();
@@ -115,7 +115,7 @@ router.post('/marketing/metrics', verifyToken, async (req, res) => {
 });
 
 // --- LEADS ---
-router.get('/leads', verifyToken, async (req, res) => {
+router.get('/leads', verifyToken, requirePermission('canAccessLeads'), async (req, res) => {
   try {
     const { id, role } = req.user;
     const where = role !== 'ADMIN' ? { vendedorId: id } : {};
@@ -126,7 +126,7 @@ router.get('/leads', verifyToken, async (req, res) => {
   }
 });
 
-// --- BLOG ---
+// --- BLOG --- (Public access OK)
 router.get('/blog', async (req, res) => {
   const { slug } = req.query;
   try {

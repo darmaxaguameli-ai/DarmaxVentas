@@ -40,24 +40,48 @@ const Legal = () => {
                         <textarea id="swal-input2" class="swal2-textarea w-full m-0 h-24" placeholder="Detalles del documento...">${doc?.descripcion || ''}</textarea>
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">URL del Archivo (PDF/Doc)</label>
-                        <input id="swal-input3" class="swal2-input w-full m-0" placeholder="https://..." value="${doc?.archivoUrl || ''}">
-                        <p class="text-[10px] text-gray-400 mt-1">* Por ahora, ingresa el link directo al archivo.</p>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Archivo del Contrato (PDF/Word)</label>
+                        <input type="file" id="swal-input3" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-black file:bg-primary/10 file:text-primary hover:file:bg-primary/20 transition-all mt-2" accept=".pdf,.doc,.docx">
+                        ${doc ? `<p class="text-[10px] text-gray-400 mt-2">Archivo actual: <span class="text-primary truncate">${doc.archivoUrl}</span></p>` : ''}
                     </div>
                 </div>
             `,
             focusConfirm: false,
             showCancelButton: true,
-            confirmButtonText: 'Guardar',
+            confirmButtonText: doc ? 'Actualizar' : 'Subir y Guardar',
             cancelButtonText: 'Cancelar',
-            preConfirm: () => {
+            showLoaderOnConfirm: true,
+            preConfirm: async () => {
                 const nombre = document.getElementById('swal-input1').value;
                 const descripcion = document.getElementById('swal-input2').value;
-                const archivoUrl = document.getElementById('swal-input3').value;
-                if (!nombre || !archivoUrl) {
-                    Swal.showValidationMessage('Nombre y URL son obligatorios');
+                const archivoInput = document.getElementById('swal-input3');
+                const file = archivoInput.files[0];
+
+                if (!nombre) {
+                    Swal.showValidationMessage('El nombre es obligatorio');
+                    return false;
                 }
-                return { nombre, descripcion, archivoUrl };
+
+                if (!doc && !file) {
+                    Swal.showValidationMessage('Debes seleccionar un archivo para el nuevo contrato');
+                    return false;
+                }
+
+                try {
+                    let archivoUrl = doc?.archivoUrl;
+
+                    // Si hay un nuevo archivo, subirlo primero
+                    if (file) {
+                        const formData = new FormData();
+                        formData.append('archivo', file);
+                        const uploadRes = await uploadLegalDocument(formData);
+                        archivoUrl = uploadRes.url;
+                    }
+
+                    return { nombre, descripcion, archivoUrl };
+                } catch (error) {
+                    Swal.showValidationMessage(`Error al subir: ${error.message}`);
+                }
             }
         });
 
@@ -65,14 +89,14 @@ const Legal = () => {
             try {
                 if (doc) {
                     await updateLegalDocument(doc.id, formValues);
-                    Swal.fire('¡Actualizado!', 'El documento ha sido actualizado.', 'success');
+                    Swal.fire('¡Actualizado!', 'El contrato ha sido actualizado.', 'success');
                 } else {
                     await createLegalDocument(formValues);
-                    Swal.fire('¡Creado!', 'El documento ha sido registrado.', 'success');
+                    Swal.fire('¡Guardado!', 'El contrato se ha subido correctamente.', 'success');
                 }
                 loadDocuments();
             } catch (error) {
-                Swal.fire('Error', 'No se pudo guardar el documento.', 'error');
+                Swal.fire('Error', 'No se pudo guardar la información en la base de datos.', 'error');
             }
         }
     };
@@ -186,14 +210,30 @@ const Legal = () => {
                                 <span className="text-[10px] font-bold text-gray-400 uppercase">
                                     {new Date(doc.createdAt).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })}
                                 </span>
-                                <a 
-                                    href={doc.archivoUrl} 
-                                    target="_blank" 
-                                    rel="noopener noreferrer"
+                                <button 
+                                    onClick={() => {
+                                        // Obtener el token para la descarga protegida
+                                        const token = localStorage.getItem('token');
+                                        const url = `${import.meta.env.VITE_API_URL || '/api'}/legal/archivo/${doc.id}`;
+                                        
+                                        // Abrir en nueva pestaña enviando el token (usando el proxy del servidor)
+                                        fetch(url, {
+                                            headers: { 'Authorization': `Bearer ${token}` }
+                                        })
+                                        .then(res => {
+                                            if (!res.ok) throw new Error('No tienes permiso para ver este archivo.');
+                                            return res.blob();
+                                        })
+                                        .then(blob => {
+                                            const fileURL = URL.createObjectURL(blob);
+                                            window.open(fileURL, '_blank');
+                                        })
+                                        .catch(err => Swal.fire('Error', err.message, 'error'));
+                                    }}
                                     className="flex items-center gap-2 text-[10px] font-black uppercase text-primary hover:bg-primary hover:text-white px-3 py-1.5 rounded-lg border border-primary/20 transition-all"
                                 >
                                     <FaEye /> Ver Archivo
-                                </a>
+                                </button>
                             </div>
                         </div>
                     ))}

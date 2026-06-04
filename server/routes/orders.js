@@ -1,18 +1,17 @@
 const express = require('express');
 const router = express.Router();
 const prisma = require('../lib/prisma');
-const { verifyToken, checkDemoRole } = require('../middleware/auth');
+const { verifyToken, checkDemoRole, requirePermission } = require('../middleware/auth');
 
-// GET all orders (for admin/vendedor)
-router.get('/pedidos', verifyToken, async (req, res) => {
+// GET all orders (restricted to staff)
+router.get('/pedidos', verifyToken, requirePermission('canAccessOrders'), async (req, res) => {
   try {
-    const { role, id } = req.user;
+    const { role } = req.user;
+    const user = req.fullUser;
     const where = {};
-    const user = await prisma.user.findUnique({ where: { id }, include: { roles: true } });
-    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
     const isAdmin = role === 'ADMIN' || user.roles.some(r => r.name.toUpperCase().trim() === 'ADMIN');
-    const isDemo = checkDemoRole(user);
-    if (!isAdmin && !isDemo) {
+    
+    if (!isAdmin) {
         if (user.storeId) where.storeId = user.storeId;
         else return res.json([]); 
     }
@@ -30,7 +29,7 @@ router.get('/pedidos', verifyToken, async (req, res) => {
   }
 });
 
-// POST a new order
+// POST a new order (Public or authenticated)
 router.post('/pedidos', async (req, res) => {
   let { clienteId, items, total, deliveryMethod, paymentMethod, paymentStatus, storeId, pointsUsed } = req.body;
   if (!items || total === undefined || total === null || !deliveryMethod) {
@@ -93,7 +92,7 @@ router.post('/pedidos', async (req, res) => {
           deliveryLat: req.body.deliveryLat ? parseFloat(req.body.deliveryLat) : undefined,
           deliveryLng: req.body.deliveryLng ? parseFloat(req.body.deliveryLng) : undefined,
           deliveryTimeSlot: req.body.deliveryTimeSlot || null,
-          promotionId: req.body.promotionId || null, // Guardar el ID de la promoción
+          promotionId: req.body.promotionId || null, 
         },
       });
 
@@ -126,7 +125,6 @@ router.post('/pedidos', async (req, res) => {
         };
       });
 
-      // Usamos un loop para asegurar que cada ítem se cree correctamente y tener mejor control
       for (const item of pedidoItemsData) {
           await tx.pedidoItem.create({ data: item });
       }
@@ -139,20 +137,30 @@ router.post('/pedidos', async (req, res) => {
     });
     res.status(201).json(result);
   } catch (error) {
-    console.error('SERVER ERROR CREATE ORDER:', error);
     res.status(500).json({ error: 'Error al crear pedido', details: error.message });
   }
 });
 
-// PUT to update order status
+// PUT to update order status (Staff only)
 router.put('/pedidos/:id', verifyToken, async (req, res) => {
   const { id } = req.params;
   const { status, paymentMethod, repartidorId } = req.body;
+  
+  // BOLA: Verificar si es staff o el dueño del pedido
+  const user = req.fullUser;
+  const isStaff = user.role === 'ADMIN' || user.roles.some(r => r.canAccessPOS || r.canAccessDelivery || r.canAccessOrders);
+  
   if (!status) return res.status(400).json({ error: 'El estado es requerido.' });
+  
   try {
     const updatedPedido = await prisma.$transaction(async (tx) => {
-      const existingPedido = await tx.pedido.findUnique({ where: { id }, select: { status: true, paymentMethod: true, total: true, sesionCajaId: true, customId: true, clienteId: true } });
+      const existingPedido = await tx.pedido.findUnique({ where: { id } });
       if (!existingPedido) throw new Error('Pedido no encontrado.');
+
+      if (!isStaff && existingPedido.clienteId !== user.id) {
+          throw new Error('No tienes permiso para modificar este pedido.');
+      }
+
       const dataToUpdate = { status };
       if (paymentMethod) dataToUpdate.paymentMethod = paymentMethod;
       if (repartidorId !== undefined) {
@@ -160,10 +168,12 @@ router.put('/pedidos/:id', verifyToken, async (req, res) => {
           else dataToUpdate.repartidor = { disconnect: true };
       }
       if (status === 'ENTREGADO') dataToUpdate.paymentStatus = 'PAGADO';
+      
       const pedido = await tx.pedido.update({
         where: { id }, data: dataToUpdate,
         include: { cliente: true, items: { include: { product: true, servicePrice: { include: { waterType: true, jugBrands: true } } } } },
       });
+      
       if (status === 'ENTREGADO' && existingPedido.status !== 'ENTREGADO') {
           const pointsEarned = Math.floor(existingPedido.total / 10);
           if (pointsEarned > 0) {
@@ -175,7 +185,7 @@ router.put('/pedidos/:id', verifyToken, async (req, res) => {
     });
     res.json(updatedPedido);
   } catch (error) {
-    res.status(500).json({ error: 'Error al actualizar pedido: ' + error.message });
+    res.status(500).json({ error: error.message });
   }
 });
 

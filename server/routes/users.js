@@ -8,14 +8,17 @@ const crypto = require('crypto');
 const { sendEmail } = require('../utils/emailService');
 const { getVerificationEmailTemplate } = require('../utils/templates/authEmailTemplates');
 
-// GET all users
+// GET all users (Staff only)
 router.get('/users', verifyToken, async (req, res) => {
   try {
+    // BOLA Check: Solo ADMIN o usuarios con ciertos permisos de gestión pueden ver a todos
+    const requester = req.fullUser;
+    const canSeeAll = requester.role === 'ADMIN' || requester.roles.some(r => r.canAccessRH || r.canAccessManagement);
+    
+    if (!canSeeAll) return res.status(403).json({ error: 'No tienes permiso para ver la lista de usuarios.' });
+
     const users = await prisma.user.findMany({
-      include: {
-        roles: true,
-        store: true
-      }
+      include: { roles: true, store: true }
     });
     res.json(users);
   } catch (error) {
@@ -24,7 +27,7 @@ router.get('/users', verifyToken, async (req, res) => {
   }
 });
 
-// GET user by customId or phone
+// GET user by customId or phone (Public - used for registration check)
 router.get('/users/check', async (req, res) => {
   const { identifier, type } = req.query;
   if (!identifier || !type) {
@@ -43,11 +46,22 @@ router.get('/users/check', async (req, res) => {
   }
 });
 
-// GET single user
+// GET single user (Owner or Authorized staff)
 router.get('/users/:id', verifyToken, async (req, res) => {
   try {
+    const { id } = req.params;
+    const requester = req.fullUser;
+    
+    // BOLA Check: Propietario o Staff autorizado
+    const isOwner = requester.id === id;
+    const isAuthorizedStaff = requester.role === 'ADMIN' || requester.roles.some(r => r.canAccessRH || r.canAccessManagement);
+    
+    if (!isOwner && !isAuthorizedStaff) {
+        return res.status(403).json({ error: 'No tienes permiso para ver este perfil.' });
+    }
+
     const user = await prisma.user.findUnique({
-      where: { id: req.params.id },
+      where: { id },
       include: {
         roles: true,
         store: true,
@@ -62,7 +76,7 @@ router.get('/users/:id', verifyToken, async (req, res) => {
   }
 });
 
-// POST new user
+// POST new user (Collaborator creation restricted to ADMIN)
 router.post('/users', async (req, res) => {
   try {
     const data = req.body;
@@ -73,6 +87,7 @@ router.post('/users', async (req, res) => {
     
     const isCollaborator = requestedRole !== 'CLIENTE' || isExplicitCollaborator;
     if (isCollaborator) {
+        // Para crear colaboradores, exigimos token de ADMIN
         const authHeader = req.headers['authorization'];
         let isAdmin = false;
         if (authHeader) {
@@ -139,11 +154,16 @@ router.post('/users', async (req, res) => {
   }
 });
 
-// PUT update user
+// PUT update user (Owner or ADMIN)
 router.put('/users/:id', verifyToken, async (req, res) => {
   const { id } = req.params;
-  const requesterRole = req.user.role;
-  const requesterIsAdmin = requesterRole === 'ADMIN';
+  const requester = req.fullUser;
+  const isOwner = requester.id === id;
+  const isAdmin = requester.role === 'ADMIN';
+
+  if (!isOwner && !isAdmin) {
+      return res.status(403).json({ error: 'No tienes permiso para actualizar este usuario.' });
+  }
 
   try {
     const data = req.body;
@@ -165,7 +185,7 @@ router.put('/users/:id', verifyToken, async (req, res) => {
       clientCategory: data.category || data.clientCategory || undefined,
       lat: data.lat === null ? null : (data.lat !== undefined ? parseFloat(data.lat) : undefined),
       lng: data.lng === null ? null : (data.lng !== undefined ? parseFloat(data.lng) : undefined),
-      storeId: (requesterIsAdmin || id === req.user.id) && data.storeId !== undefined
+      storeId: (isAdmin || isOwner) && data.storeId !== undefined
           ? (data.storeId === '' || data.storeId === null ? null : data.storeId)
           : undefined
     };
@@ -173,7 +193,8 @@ router.put('/users/:id', verifyToken, async (req, res) => {
     if (data.password) updateData.password = await bcrypt.hash(data.password, 10);
     if (data.mustChangePassword !== undefined) updateData.mustChangePassword = data.mustChangePassword;
 
-    if (requesterIsAdmin && data.role && data.role !== currentUser.role) {
+    // Solo ADMIN puede cambiar roles
+    if (isAdmin && data.role && data.role !== currentUser.role) {
         updateData.role = data.role;
         const isCollaborator = data.role.toUpperCase() !== 'CLIENTE';
         const rolePrefix = isCollaborator ? 'CO' : 'CLI';
@@ -181,10 +202,8 @@ router.put('/users/:id', verifyToken, async (req, res) => {
         updateData.customId = `${rolePrefix}-${random}`;
     }
 
-    if (requesterIsAdmin && data.roleIds && Array.isArray(data.roleIds)) {
-        updateData.roles = {
-            set: data.roleIds.map(rid => ({ id: rid }))
-        };
+    if (isAdmin && data.roleIds && Array.isArray(data.roleIds)) {
+        updateData.roles = { set: data.roleIds.map(rid => ({ id: rid })) };
     }
 
     Object.keys(updateData).forEach(key => updateData[key] === undefined && delete updateData[key]);
@@ -198,7 +217,7 @@ router.put('/users/:id', verifyToken, async (req, res) => {
     const { password: _, ...userWithoutPassword } = updatedUser;
 
     let token = undefined;
-    if (id === req.user.id) {
+    if (id === requester.id) {
         token = jwt.sign(
             { id: updatedUser.id, name: updatedUser.name, role: updatedUser.role, type: updatedUser.type, customId: updatedUser.customId, mustChangePassword: updatedUser.mustChangePassword },
             process.env.JWT_SECRET,
@@ -212,7 +231,7 @@ router.put('/users/:id', verifyToken, async (req, res) => {
   }
 });
 
-// DELETE user
+// DELETE user (ADMIN only)
 router.delete('/users/:id', verifyToken, async (req, res) => {
     if (req.user.role !== 'ADMIN') return res.status(403).json({ error: 'Acceso denegado.' });
     try {

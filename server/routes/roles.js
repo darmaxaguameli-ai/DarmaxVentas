@@ -3,15 +3,11 @@ const router = express.Router();
 const prisma = require('../lib/prisma');
 const { verifyToken } = require('../middleware/auth');
 
-// GET all roles
+// GET all roles (Staff can see them for assignments)
 router.get('/roles', verifyToken, async (req, res) => {
   try {
     const roles = await prisma.role.findMany({
-        include: {
-            _count: {
-                select: { users: true }
-            }
-        },
+        include: { _count: { select: { users: true } } },
         orderBy: { name: 'asc' }
     });
     res.json(roles);
@@ -21,8 +17,9 @@ router.get('/roles', verifyToken, async (req, res) => {
   }
 });
 
-// CREATE a new role
+// Admin-only Mutation Routes
 router.post('/roles', verifyToken, async (req, res) => {
+  if (req.user.role !== 'ADMIN') return res.status(403).json({ error: 'Solo los administradores pueden crear roles.' });
   try {
     const { name, description, ...permissions } = req.body;
     const existing = await prisma.role.findUnique({ where: { name } });
@@ -37,8 +34,8 @@ router.post('/roles', verifyToken, async (req, res) => {
   }
 });
 
-// UPDATE a role
 router.put('/roles/:id', verifyToken, async (req, res) => {
+  if (req.user.role !== 'ADMIN') return res.status(403).json({ error: 'Solo los administradores pueden actualizar roles.' });
   try {
     const { id: roleIdParam } = req.params;
     const { id, name, description, userIds, _count, users, createdAt, updatedAt, isSystem, ...permissions } = req.body;
@@ -58,8 +55,8 @@ router.put('/roles/:id', verifyToken, async (req, res) => {
   }
 });
 
-// DELETE a role
 router.delete('/roles/:id', verifyToken, async (req, res) => {
+  if (req.user.role !== 'ADMIN') return res.status(403).json({ error: 'Solo los administradores pueden eliminar roles.' });
   try {
     const role = await prisma.role.findUnique({
         where: { id: req.params.id },
