@@ -73,6 +73,15 @@ export const AuthProvider = ({ children }) => {
         }
     }, [user, hasPermission]);
 
+    const logout = useCallback(() => {
+        setUser(null);
+        setToken(null);
+        localStorage.removeItem('user');
+        localStorage.removeItem('token');
+        delete apiClient.defaults.headers.common['Authorization'];
+        localStorage.setItem('logout', Date.now());
+    }, []);
+
     useEffect(() => {
         try {
             const storedUser = localStorage.getItem('user');
@@ -94,12 +103,23 @@ export const AuthProvider = ({ children }) => {
     }, []);
 
     useEffect(() => {
+        const handleAuthError = (event) => {
+            console.warn('Error de autenticación (401/403) detectado, cerrando sesión...', event.detail?.message);
+            logout();
+        };
+
+        window.addEventListener('auth-error', handleAuthError);
+        return () => window.removeEventListener('auth-error', handleAuthError);
+    }, [logout]);
+
+    useEffect(() => {
         const syncLogout = (event) => {
-            if (event.key === 'logout') {
-                console.log('Detectado logout en otra pestaña, cerrando sesión local.');
-                setUser(null);
-                setToken(null);
-                delete apiClient.defaults.headers.common['Authorization'];
+            if (event.key === 'logout' || event.key === 'force-logout') {
+                console.log('Detectado logout o actualización forzada, cerrando sesión local.');
+                logout();
+                if (event.key === 'force-logout') {
+                    window.location.reload(); // Recargar para asegurar limpieza total
+                }
             } else if (event.key === 'token' && event.newValue) {
                 console.log('Detectado login en otra pestaña, actualizando sesión local.');
                 try {
@@ -120,10 +140,21 @@ export const AuthProvider = ({ children }) => {
 
         window.addEventListener('storage', syncLogout);
 
+        // Opcional: Verificar periódicamente si hay una orden de cierre forzado (ej. por despliegue)
+        const checkForceLogout = () => {
+            if (localStorage.getItem('force-logout')) {
+                logout();
+                localStorage.removeItem('force-logout');
+                window.location.reload();
+            }
+        };
+        const interval = setInterval(checkForceLogout, 10000); // Revisar cada 10s
+
         return () => {
             window.removeEventListener('storage', syncLogout);
+            clearInterval(interval);
         };
-    }, []);
+    }, [logout]);
 
     const login = async (identifier, password) => {
         try {
@@ -144,15 +175,6 @@ export const AuthProvider = ({ children }) => {
             console.error("Error en el login:", errorMessage);
             throw new Error(errorMessage);
         }
-    };
-
-    const logout = () => {
-        setUser(null);
-        setToken(null);
-        localStorage.removeItem('user');
-        localStorage.removeItem('token');
-        delete apiClient.defaults.headers.common['Authorization'];
-        localStorage.setItem('logout', Date.now());
     };
 
     const updateUser = (newUserData, newToken = null) => {

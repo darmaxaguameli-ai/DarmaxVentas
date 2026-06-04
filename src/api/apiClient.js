@@ -15,8 +15,14 @@ apiClient.interceptors.response.use(
   (error) => {
     // Aquí puedes manejar errores de forma global, como un 401 (No autorizado)
     // que podría redirigir al login.
+    const status = error.response?.status;
     const errorMessage = error.response?.data?.error || error.message;
     console.error('API Error:', errorMessage);
+    
+    // Si el token es inválido o expiró, forzar cierre de sesión mediante un evento global
+    if (status === 401 || (status === 403 && errorMessage?.toLowerCase().includes('token'))) {
+       window.dispatchEvent(new CustomEvent('auth-error', { detail: { message: errorMessage } }));
+    }
     
     // Rechaza la promesa con un error más limpio.
     return Promise.reject(new Error(errorMessage));
