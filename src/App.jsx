@@ -42,6 +42,7 @@ import Promociones from "./pages/Gestion/Promociones.jsx";
 import Blog from "./pages/Gestion/Blog.jsx";
 import Legal from "./pages/Gestion/Legal.jsx";
 import Instalacion from "./pages/Gestion/Instalacion.jsx";
+import ShowcaseMap from "./pages/Gestion/ShowcaseMap.jsx";
 import Configuracion from "./pages/Gestion/Configuracion.jsx";
 import CotizadorDistribuidoresPage from "./pages/Gestion/CotizadorDistribuidoresPage.jsx";
 import DarmaxQuote from "./pages/Gestion/DarmaxQuote.jsx";
@@ -151,6 +152,7 @@ function App() {
         <Route path="/change-password-force" element={<ProtectedRoute><ForceChangePassword /></ProtectedRoute>} />
         <Route path="/logout-success" element={<LogoutSuccess />} />
         <Route path="/registro" element={<Register />} />
+        <Route path="/mapa-instalaciones" element={<ShowcaseMap />} />
         <Route path="/cotizacion/ver/:id" element={<PublicQuoteView />} />
 
         {/* Cliente Profile & Pedidos */}
@@ -191,6 +193,7 @@ function App() {
           <Route path="blog" element={<Blog />} />
           <Route path="legal" element={<Legal />} />
           <Route path="instalacion" element={<Instalacion />} />
+          <Route path="mapa-instalaciones" element={<ShowcaseMap />} />
           <Route path="configuracion" element={<Configuracion />} />
           <Route path="cotizador" element={<DarmaxQuote />} />
           <Route path="cotizador-distribuidores" element={<CotizadorDistribuidoresPage />} />

@@ -38,6 +38,14 @@ const menuStructure = [
   },
   {
     type: "group",
+    name: "Exhibición",
+    icon: "public",
+    children: [
+      { name: "Mapa de Instalaciones", path: "mapa-instalaciones", icon: "map", permission: "canAccessShowcase" },
+    ],
+  },
+  {
+    type: "group",
     name: "Marketing",
     icon: "campaign",
     children: [
@@ -66,7 +74,7 @@ const menuStructure = [
     name: "Cotizadores",
     icon: "request_quote",
     children: [
-      { name: "Cotizador Dist.", path: "cotizador-distribuidores", icon: "local_shipping", permission: "canAccessQuotes" },
+      { name: "Cotizador Dist.", path: "cotizador-distribuidores", icon: "local_shipping", permission: "canAccessDistributorQuotes" },
       { name: "Cotizador Emprendedor", path: "cotizador", icon: "star", permission: "canAccessQuotes" },
     ],
   },

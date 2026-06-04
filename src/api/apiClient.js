@@ -209,6 +209,14 @@ export const uploadLegalDocument = (formData) => apiClient.post('/legal/upload',
 }).then(res => res.data);
 
 // ====================================================================
+//  SHOWCASE / INSTALLATIONS
+// ====================================================================
+export const fetchShowcaseInstallations = () => apiClient.get('/showcase').then(res => res.data);
+export const createShowcaseInstallation = (data) => apiClient.post('/showcase', data).then(res => res.data);
+export const updateShowcaseInstallation = (id, data) => apiClient.put(`/showcase/${id}`, data).then(res => res.data);
+export const deleteShowcaseInstallation = (id) => apiClient.delete(`/showcase/${id}`).then(res => res.data);
+
+// ====================================================================
 //  REPORTS
 // ====================================================================
 export const fetchConsolidatedReport = () => apiClient.get('/reports/consolidated').then(res => res.data);

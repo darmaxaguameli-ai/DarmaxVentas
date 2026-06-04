@@ -105,11 +105,13 @@ model Role {
   canAccessRH         Boolean @default(false)
   canAccessFinances   Boolean @default(false)
   canAccessConfig     Boolean @default(false)
-  canAccessQuotes     Boolean @default(false)
-  canAccessLeads      Boolean @default(false) 
-  canAccessMarketing  Boolean @default(false)
-  canAccessLegal      Boolean @default(false)
+  canAccessQuotes      Boolean @default(false)
+  canAccessDistributorQuotes Boolean @default(false)
+  canAccessLeads       Boolean @default(false) 
+  canAccessMarketing   Boolean @default(false)
+  canAccessLegal       Boolean @default(false)
   canAccessInstallation Boolean @default(false)
+  canAccessShowcase     Boolean @default(false)
   
   isSystem            Boolean @default(false)
   
@@ -198,6 +200,8 @@ model Lead {
 
   vendedor         User     @relation("VendedorLeads", fields: [vendedorId], references: [id])
   vendedorId       String
+  
+  showcaseInstallation ShowcaseInstallation?
   
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
@@ -566,6 +570,30 @@ model HistorialSueldo {
 // OTROS MODELOS
 // =====================================================================
 
+model ShowcaseInstallation {
+  id               String         @id @default(cuid())
+  nombre           String         // Ej: Purificadora San Juan
+  tipo             String         // Ej: Planta de Ósmosis, Vending, etc.
+  direccion        String?
+  ciudad           String
+  estado           String
+  lat              Float
+  lng              Float
+  descripcion      String?
+  fechaInstalacion DateTime?
+  isPublic         Boolean        @default(true)
+  
+  // Enlaces a otros módulos
+  leadId           String?        @unique
+  lead             Lead?          @relation(fields: [leadId], references: [id])
+  
+  legalDocumentId  String?        @unique
+  legalDocument    LegalDocument? @relation(fields: [legalDocumentId], references: [id])
+
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+}
+
 model Cotizacion {
   id            String   @id @default(cuid())
   folio         Int      @default(autoincrement()) 
@@ -594,6 +622,9 @@ model LegalDocument {
   nombre      String
   descripcion String?
   archivoUrl  String
+  
+  showcaseInstallation ShowcaseInstallation?
+  
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }

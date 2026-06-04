@@ -155,7 +155,7 @@ router.get('/cotizaciones/public/:id', async (req, res) => {
 });
 
 // --- SOLICITUDES ---
-router.get('/solicitudes', verifyToken, requirePermission('canAccessConfig'), async (req, res) => {
+router.get('/solicitudes', verifyToken, requirePermission('canAccessDistributorQuotes'), async (req, res) => {
     try {
         const solicitudes = await prisma.solicitudProducto.findMany({ orderBy: { folio: 'desc' } });
         res.json(solicitudes);
@@ -164,7 +164,7 @@ router.get('/solicitudes', verifyToken, requirePermission('canAccessConfig'), as
     }
 });
 
-router.post('/solicitudes', verifyToken, requirePermission('canAccessConfig'), async (req, res) => {
+router.post('/solicitudes', verifyToken, requirePermission('canAccessDistributorQuotes'), async (req, res) => {
     try {
         const solicitud = await prisma.solicitudProducto.create({ data: req.body });
         res.json(solicitud);
@@ -173,7 +173,7 @@ router.post('/solicitudes', verifyToken, requirePermission('canAccessConfig'), a
     }
 });
 
-router.get('/solicitudes/:id', verifyToken, requirePermission('canAccessConfig'), async (req, res) => {
+router.get('/solicitudes/:id', verifyToken, requirePermission('canAccessDistributorQuotes'), async (req, res) => {
     try {
         const solicitud = await prisma.solicitudProducto.findUnique({ where: { id: req.params.id } });
         res.json(solicitud);
@@ -182,7 +182,7 @@ router.get('/solicitudes/:id', verifyToken, requirePermission('canAccessConfig')
     }
 });
 
-router.get('/solicitudes/folio/:folio', verifyToken, requirePermission('canAccessConfig'), async (req, res) => {
+router.get('/solicitudes/folio/:folio', verifyToken, requirePermission('canAccessDistributorQuotes'), async (req, res) => {
     try {
         const solicitud = await prisma.solicitudProducto.findUnique({ where: { folio: parseInt(req.params.folio) } });
         res.json(solicitud);
@@ -191,7 +191,7 @@ router.get('/solicitudes/folio/:folio', verifyToken, requirePermission('canAcces
     }
 });
 
-router.put('/solicitudes/:id', verifyToken, requirePermission('canAccessConfig'), async (req, res) => {
+router.put('/solicitudes/:id', verifyToken, requirePermission('canAccessDistributorQuotes'), async (req, res) => {
     try {
         const solicitud = await prisma.solicitudProducto.update({
             where: { id: req.params.id },
@@ -203,7 +203,7 @@ router.put('/solicitudes/:id', verifyToken, requirePermission('canAccessConfig')
     }
 });
 
-router.delete('/solicitudes/:id', verifyToken, requirePermission('canAccessConfig'), async (req, res) => {
+router.delete('/solicitudes/:id', verifyToken, requirePermission('canAccessDistributorQuotes'), async (req, res) => {
     try {
         await prisma.solicitudProducto.delete({ where: { id: req.params.id } });
         res.json({ message: 'Solicitud eliminada' });
@@ -349,6 +349,84 @@ router.delete('/installation-models/:id', verifyToken, requirePermission('canAcc
   } catch (error) {
     res.status(500).json({ error: 'Error al eliminar modelo' });
   }
+});
+
+// --- SHOWCASE INSTALLATIONS ---
+router.get('/showcase', async (req, res) => {
+    try {
+        const installations = await prisma.showcaseInstallation.findMany({
+            include: { 
+                lead: { select: { nombre: true, createdAt: true, status: true } },
+                legalDocument: { select: { nombre: true, archivoUrl: true } }
+            },
+            orderBy: { createdAt: 'desc' }
+        });
+        res.json(installations);
+    } catch (error) {
+        res.status(500).json({ error: 'Error fetching installations' });
+    }
+});
+
+router.post('/showcase', verifyToken, requirePermission('canAccessShowcase'), async (req, res) => {
+    try {
+        const data = req.body;
+        const installation = await prisma.showcaseInstallation.create({
+            data: {
+                nombre: data.nombre,
+                tipo: data.tipo,
+                direccion: data.direccion,
+                ciudad: data.ciudad,
+                estado: data.estado,
+                lat: parseFloat(data.lat),
+                lng: parseFloat(data.lng),
+                descripcion: data.descripcion,
+                fechaInstalacion: data.fechaInstalacion ? new Date(data.fechaInstalacion) : null,
+                isPublic: data.isPublic !== undefined ? data.isPublic : true,
+                lead: data.leadId ? { connect: { id: data.leadId } } : undefined,
+                legalDocument: data.legalDocumentId ? { connect: { id: data.legalDocumentId } } : undefined
+            }
+        });
+        res.json(installation);
+    } catch (error) {
+        res.status(500).json({ error: 'Error al crear punto de instalación' });
+    }
+});
+
+router.put('/showcase/:id', verifyToken, requirePermission('canAccessShowcase'), async (req, res) => {
+    try {
+        const { id } = req.params;
+        const data = req.body;
+        const installation = await prisma.showcaseInstallation.update({
+            where: { id },
+            data: {
+                nombre: data.nombre,
+                tipo: data.tipo,
+                direccion: data.direccion,
+                ciudad: data.ciudad,
+                estado: data.estado,
+                lat: data.lat !== undefined ? parseFloat(data.lat) : undefined,
+                lng: data.lng !== undefined ? parseFloat(data.lng) : undefined,
+                descripcion: data.descripcion,
+                fechaInstalacion: data.fechaInstalacion ? new Date(data.fechaInstalacion) : undefined,
+                isPublic: data.isPublic,
+                leadId: data.leadId || undefined,
+                legalDocumentId: data.legalDocumentId || undefined
+            }
+        });
+        res.json(installation);
+    } catch (error) {
+        res.status(500).json({ error: 'Error al actualizar instalación' });
+    }
+});
+
+router.delete('/showcase/:id', verifyToken, requirePermission('canAccessShowcase'), async (req, res) => {
+    if (req.user.role !== 'ADMIN') return res.status(403).json({ error: 'Solo los administradores pueden eliminar puntos.' });
+    try {
+        await prisma.showcaseInstallation.delete({ where: { id: req.params.id } });
+        res.json({ message: 'Instalación eliminada del mapa' });
+    } catch (error) {
+        res.status(500).json({ error: 'Error al eliminar instalación' });
+    }
 });
 
 // --- PDF LIST ---
