@@ -589,6 +589,15 @@ model Cotizacion {
   updatedAt     DateTime @updatedAt
 }
 
+model LegalDocument {
+  id          String   @id @default(cuid())
+  nombre      String
+  descripcion String?
+  archivoUrl  String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
 model MarketingPost {
   id               String   @id @default(cuid())
   titulo           String

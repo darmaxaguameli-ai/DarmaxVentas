@@ -188,6 +188,55 @@ router.delete('/solicitudes/:id', verifyToken, async (req, res) => {
     }
 });
 
+// --- LEGAL ---
+router.get('/legal', verifyToken, async (req, res) => {
+    try {
+        const documents = await prisma.legalDocument.findMany({ orderBy: { createdAt: 'desc' } });
+        res.json(documents);
+    } catch (error) {
+        res.status(500).json({ error: 'Error fetching legal documents' });
+    }
+});
+
+router.post('/legal', verifyToken, async (req, res) => {
+    try {
+        const { nombre, descripcion, archivoUrl } = req.body;
+        const document = await prisma.legalDocument.create({
+            data: { nombre, descripcion, archivoUrl }
+        });
+        res.json(document);
+    } catch (error) {
+        res.status(500).json({ error: 'Error creating legal document' });
+    }
+});
+
+router.put('/legal/:id', verifyToken, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { nombre, descripcion, archivoUrl } = req.body;
+        const document = await prisma.legalDocument.update({
+            where: { id },
+            data: { nombre, descripcion, archivoUrl }
+        });
+        res.json(document);
+    } catch (error) {
+        res.status(500).json({ error: 'Error updating legal document' });
+    }
+});
+
+router.delete('/legal/:id', verifyToken, async (req, res) => {
+    try {
+        // Restricción: Solo ADMIN puede borrar documentos legales
+        if (req.user.role !== 'ADMIN') {
+            return res.status(403).json({ error: 'No tienes permisos para borrar documentos legales.' });
+        }
+        await prisma.legalDocument.delete({ where: { id: req.params.id } });
+        res.json({ message: 'Documento legal eliminado' });
+    } catch (error) {
+        res.status(500).json({ error: 'Error deleting legal document' });
+    }
+});
+
 // --- INSTALLATION MODELS ---
 router.get('/installation-models', verifyToken, async (req, res) => {
   try {

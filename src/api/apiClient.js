@@ -198,6 +198,14 @@ export const deleteBlogPost = (id) => axios.delete(BLOG_API_URL, { params: { id 
 
 
 // ====================================================================
+//  LEGAL
+// ====================================================================
+export const fetchLegalDocuments = () => apiClient.get('/legal').then(res => res.data);
+export const createLegalDocument = (data) => apiClient.post('/legal', data).then(res => res.data);
+export const updateLegalDocument = (id, data) => apiClient.put(`/legal/${id}`, data).then(res => res.data);
+export const deleteLegalDocument = (id) => apiClient.delete(`/legal/${id}`).then(res => res.data);
+
+// ====================================================================
 //  REPORTS
 // ====================================================================
 export const fetchConsolidatedReport = () => apiClient.get('/reports/consolidated').then(res => res.data);
