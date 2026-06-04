@@ -38,7 +38,13 @@ const selectedIcon = createIcon('#f97316'); // Orange
 const MapController = ({ center, zoom }) => {
     const map = useMap();
     useEffect(() => {
-        if (center) map.setView(center, zoom || map.getZoom());
+        // Validar que el centro sea un array de dos números válidos antes de mover el mapa
+        if (center && Array.isArray(center) && center.length === 2) {
+            const [lat, lng] = center;
+            if (typeof lat === 'number' && typeof lng === 'number' && !isNaN(lat) && !isNaN(lng)) {
+                map.setView(center, zoom || map.getZoom());
+            }
+        }
     }, [center, zoom, map]);
     return null;
 };
@@ -64,6 +70,7 @@ const ShowcaseMap = () => {
                 canManage ? fetchLeads() : Promise.resolve([]),
                 canManage ? fetchLegalDocuments() : Promise.resolve([])
             ]);
+            console.log("Cargando instalaciones:", instData); // Debug para ver qué llega del servidor
             setInstallations(instData);
             setLeads(leadData.filter(l => l.status === 'CERRADO' || l.status === 'INSTALADO'));
             setContracts(contractData);
