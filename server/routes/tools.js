@@ -356,7 +356,7 @@ router.get('/showcase', async (req, res) => {
     try {
         const installations = await prisma.showcaseInstallation.findMany({
             include: { 
-                lead: { select: { nombre: true, createdAt: true, status: true } },
+                lead: { select: { nombre: true, createdAt: true, status: true, telefono: true } },
                 legalDocument: { select: { nombre: true, archivoUrl: true } }
             },
             orderBy: { createdAt: 'desc' }
@@ -379,15 +379,17 @@ router.post('/showcase', verifyToken, requirePermission('canAccessShowcase'), as
                 estado: data.estado,
                 lat: parseFloat(data.lat),
                 lng: parseFloat(data.lng),
+                telefono: data.telefono,
                 descripcion: data.descripcion,
                 fechaInstalacion: data.fechaInstalacion ? new Date(data.fechaInstalacion) : null,
                 isPublic: data.isPublic !== undefined ? data.isPublic : true,
-                lead: data.leadId ? { connect: { id: data.leadId } } : undefined,
-                legalDocument: data.legalDocumentId ? { connect: { id: data.legalDocumentId } } : undefined
+                leadId: data.leadId || null,
+                legalDocumentId: data.legalDocumentId || null
             }
         });
         res.json(installation);
     } catch (error) {
+        console.error("Error creating showcase point:", error);
         res.status(500).json({ error: 'Error al crear punto de instalación' });
     }
 });
@@ -406,15 +408,17 @@ router.put('/showcase/:id', verifyToken, requirePermission('canAccessShowcase'),
                 estado: data.estado,
                 lat: data.lat !== undefined ? parseFloat(data.lat) : undefined,
                 lng: data.lng !== undefined ? parseFloat(data.lng) : undefined,
+                telefono: data.telefono,
                 descripcion: data.descripcion,
                 fechaInstalacion: data.fechaInstalacion ? new Date(data.fechaInstalacion) : undefined,
                 isPublic: data.isPublic,
-                leadId: data.leadId || undefined,
-                legalDocumentId: data.legalDocumentId || undefined
+                leadId: data.leadId !== undefined ? (data.leadId === "" ? null : data.leadId) : undefined,
+                legalDocumentId: data.legalDocumentId !== undefined ? (data.legalDocumentId === "" ? null : data.legalDocumentId) : undefined
             }
         });
         res.json(installation);
     } catch (error) {
+        console.error("Error updating showcase point:", error);
         res.status(500).json({ error: 'Error al actualizar instalación' });
     }
 });

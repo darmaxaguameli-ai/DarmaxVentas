@@ -126,18 +126,95 @@ router.get('/leads', verifyToken, requirePermission('canAccessLeads'), async (re
   }
 });
 
-// --- BLOG --- (Public access OK)
+// --- BLOG --- (Public access OK for GET)
 router.get('/blog', async (req, res) => {
-  const { slug } = req.query;
+  const { slug, target } = req.query;
   try {
     if (slug) {
       const post = await prisma.blogPost.findUnique({ where: { slug } });
       return post ? res.json(post) : res.status(404).json({ error: 'Post not found' });
     }
-    const posts = await prisma.blogPost.findMany({ orderBy: { createdAt: 'desc' } });
+    const where = target ? { target } : {};
+    const posts = await prisma.blogPost.findMany({ 
+        where,
+        orderBy: { createdAt: 'desc' } 
+    });
     res.json(posts);
   } catch (error) {
     res.status(500).json({ error: 'Error fetching blog posts' });
+  }
+});
+
+router.post('/blog', verifyToken, requirePermission('canAccessMarketing'), async (req, res) => {
+  try {
+    const { title, excerpt, content, blocks, image, videoUrl, category, tags, published, author, target } = req.body;
+    
+    // Generar slug básico
+    const slugBase = title.toLowerCase()
+        .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // Quitar acentos
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/(^-|-$)+/g, '');
+    
+    const slug = `${slugBase}-${Math.random().toString(36).substring(2, 7)}`;
+
+    const post = await prisma.blogPost.create({
+      data: {
+        title,
+        slug,
+        excerpt,
+        content,
+        blocks: blocks || [],
+        image,
+        videoUrl,
+        category: category || 'Articulo',
+        tags: tags || ['Darmax'],
+        published: published ?? true,
+        author: author || 'Darmax',
+        target: target || 'WEB'
+      }
+    });
+    res.status(201).json(post);
+  } catch (error) {
+    console.error("Error creating blog post:", error);
+    res.status(500).json({ error: 'Error al crear artículo' });
+  }
+});
+
+router.put('/blog/:id', verifyToken, requirePermission('canAccessMarketing'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const data = req.body;
+    
+    const post = await prisma.blogPost.update({
+      where: { id },
+      data: {
+        title: data.title,
+        excerpt: data.excerpt,
+        content: data.content,
+        blocks: data.blocks || undefined,
+        image: data.image,
+        videoUrl: data.videoUrl,
+        category: data.category,
+        tags: data.tags,
+        published: data.published,
+        author: data.author,
+        target: data.target
+      }
+    });
+    res.json(post);
+  } catch (error) {
+    console.error("Error updating blog post:", error);
+    res.status(500).json({ error: 'Error al actualizar artículo', message: error.message });
+  }
+});
+
+router.delete('/blog/:id', verifyToken, requirePermission('canAccessMarketing'), async (req, res) => {
+  try {
+    await prisma.blogPost.delete({ where: { id: req.params.id } });
+    res.status(204).send();
+  } catch (error) {
+    console.error("Error deleting blog post:", error);
+    res.status(500).json({ error: 'Error al eliminar artículo' });
   }
 });
 

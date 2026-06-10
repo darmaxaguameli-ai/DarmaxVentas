@@ -39,8 +39,9 @@ import Roles from "./pages/Gestion/Roles.jsx";
 import Leads from "./pages/Gestion/Leads.jsx";
 import Marketing from "./pages/Gestion/Marketing.jsx";
 import Promociones from "./pages/Gestion/Promociones.jsx";
-import Blog from "./pages/Gestion/Blog.jsx";
-import Legal from "./pages/Gestion/Legal.jsx";
+import Blog from "./pages/Gestion/Blog";
+import Guides from "./pages/Gestion/Guides"; // Importar nuevo componente
+import Legal from "./pages/Gestion/Legal";
 import Instalacion from "./pages/Gestion/Instalacion.jsx";
 import ShowcaseMap from "./pages/Gestion/ShowcaseMap.jsx";
 import Configuracion from "./pages/Gestion/Configuracion.jsx";
@@ -191,6 +192,7 @@ function App() {
           <Route path="marketing" element={<Marketing />} />
           <Route path="promociones" element={<Promociones />} />
           <Route path="blog" element={<Blog />} />
+          <Route path="guias" element={<Guides />} />
           <Route path="legal" element={<Legal />} />
           <Route path="instalacion" element={<Instalacion />} />
           <Route path="mapa-instalaciones" element={<ShowcaseMap />} />

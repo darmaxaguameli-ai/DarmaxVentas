@@ -217,14 +217,12 @@ const Leads = () => {
                     >
                         <FaTools /> Herramientas
                     </button>
-                    {!isAdmin && (
-                        <button 
-                            onClick={() => { resetForm(); setShowModal(true); }}
-                            className="flex-1 md:flex-none btn-primary flex items-center justify-center gap-2 py-2.5 px-6 shadow-xl shadow-primary/20 text-xs"
-                        >
-                            <FaPlus /> {activeTab === 'PROSPECTO' ? 'Nuevo Lead' : 'Nueva Venta'}
-                        </button>
-                    )}
+                    <button 
+                        onClick={() => { resetForm(); setShowModal(true); }}
+                        className="flex-1 md:flex-none btn-primary flex items-center justify-center gap-2 py-2.5 px-6 shadow-xl shadow-primary/20 text-xs"
+                    >
+                        <FaPlus /> {activeTab === 'PROSPECTO' ? 'Nuevo Lead' : 'Nueva Venta'}
+                    </button>
                 </div>
             </div>
 
@@ -313,6 +311,15 @@ const Leads = () => {
                                 >
                                     Editar
                                 </button>
+                                {lead.tipo === 'CLIENTE_VENTA' && (
+                                    <button 
+                                        onClick={() => window.location.href = `/gestion/mapa-instalaciones?leadId=${lead.id}`}
+                                        className="text-blue-600 hover:scale-110 transition-transform text-[9px] sm:text-[10px] font-black uppercase flex items-center gap-1"
+                                        title="Publicar en el Mapa de Exhibición"
+                                    >
+                                        <FaMapMarkerAlt size={10} /> Mapa
+                                    </button>
+                                )}
                                 <button 
                                     onClick={() => { setEditingLead(lead); setShowToolsModal(true); }}
                                     className="text-emerald-600 hover:scale-110 transition-transform text-[9px] sm:text-[10px] font-black uppercase flex items-center gap-1"

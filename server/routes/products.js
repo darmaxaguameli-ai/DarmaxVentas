@@ -49,6 +49,15 @@ router.put('/product-categories/:id', verifyToken, requirePermission('canAccessI
     }
 });
 
+router.delete('/product-categories/:id', verifyToken, requirePermission('canAccessInventory'), async (req, res) => {
+    try {
+        await prisma.productCategory.delete({ where: { id: req.params.id } });
+        res.status(204).send();
+    } catch (error) {
+        res.status(500).json({ error: 'Error deleting category' });
+    }
+});
+
 // --- PRODUCTS ---
 router.get('/products', async (req, res) => {
   try {
@@ -170,7 +179,7 @@ router.delete('/products/:id', verifyToken, requirePermission('canAccessInventor
   }
 });
 
-// --- WATER TYPES, SERVICE PRICES, JUG BRANDS ---
+// --- WATER TYPES ---
 router.get('/water-types', async (req, res) => {
   try {
     const waterTypes = await prisma.waterType.findMany({ orderBy: { name: 'asc' } });
@@ -180,6 +189,36 @@ router.get('/water-types', async (req, res) => {
   }
 });
 
+router.post('/water-types', verifyToken, requirePermission('canAccessInventory'), async (req, res) => {
+  try {
+    const { name } = req.body;
+    const waterType = await prisma.waterType.create({ data: { name } });
+    res.status(201).json(waterType);
+  } catch (error) {
+    res.status(500).json({ error: 'Error al crear tipo de agua' });
+  }
+});
+
+router.put('/water-types/:id', verifyToken, requirePermission('canAccessInventory'), async (req, res) => {
+  try {
+    const { name } = req.body;
+    const waterType = await prisma.waterType.update({ where: { id: req.params.id }, data: { name } });
+    res.json(waterType);
+  } catch (error) {
+    res.status(500).json({ error: 'Error al actualizar tipo de agua' });
+  }
+});
+
+router.delete('/water-types/:id', verifyToken, requirePermission('canAccessInventory'), async (req, res) => {
+  try {
+    await prisma.waterType.delete({ where: { id: req.params.id } });
+    res.status(204).send();
+  } catch (error) {
+    res.status(500).json({ error: 'Error al eliminar tipo de agua' });
+  }
+});
+
+// --- SERVICE PRICES ---
 router.get('/service-prices', async (req, res) => {
   try {
     const servicePrices = await prisma.servicePrice.findMany({ 
@@ -192,12 +231,90 @@ router.get('/service-prices', async (req, res) => {
   }
 });
 
+router.post('/service-prices', verifyToken, requirePermission('canAccessInventory'), async (req, res) => {
+  try {
+    const { name, method, price, waterTypeId } = req.body;
+    const servicePrice = await prisma.servicePrice.create({
+      data: { name, method, price: parseFloat(price), waterTypeId }
+    });
+    res.status(201).json(servicePrice);
+  } catch (error) {
+    res.status(500).json({ error: 'Error al crear precio de servicio' });
+  }
+});
+
+router.put('/service-prices/:id', verifyToken, requirePermission('canAccessInventory'), async (req, res) => {
+  try {
+    const { name, method, price, waterTypeId } = req.body;
+    const servicePrice = await prisma.servicePrice.update({
+      where: { id: req.params.id },
+      data: {
+        name: name || undefined,
+        method: method || undefined,
+        price: price !== undefined ? parseFloat(price) : undefined,
+        waterTypeId: waterTypeId !== undefined ? waterTypeId : undefined
+      }
+    });
+    res.json(servicePrice);
+  } catch (error) {
+    res.status(500).json({ error: 'Error al actualizar precio de servicio' });
+  }
+});
+
+router.delete('/service-prices/:id', verifyToken, requirePermission('canAccessInventory'), async (req, res) => {
+  try {
+    await prisma.servicePrice.delete({ where: { id: req.params.id } });
+    res.status(204).send();
+  } catch (error) {
+    res.status(500).json({ error: 'Error al eliminar precio de servicio' });
+  }
+});
+
+// --- JUG BRANDS ---
 router.get('/jug-brands', async (req, res) => {
   try {
     const jugBrands = await prisma.jugBrand.findMany({ include: { compatibleCap: true }, orderBy: { name: 'asc' } });
     res.json(jugBrands);
   } catch (error) {
     res.status(500).json({ error: 'Error fetching jug brands' });
+  }
+});
+
+router.post('/jug-brands', verifyToken, requirePermission('canAccessInventory'), async (req, res) => {
+  try {
+    const { name, imageUrl, compatibleCapId } = req.body;
+    const jugBrand = await prisma.jugBrand.create({
+      data: { name, imageUrl, compatibleCapId }
+    });
+    res.status(201).json(jugBrand);
+  } catch (error) {
+    res.status(500).json({ error: 'Error al crear marca de garrafón' });
+  }
+});
+
+router.put('/jug-brands/:id', verifyToken, requirePermission('canAccessInventory'), async (req, res) => {
+  try {
+    const { name, imageUrl, compatibleCapId } = req.body;
+    const jugBrand = await prisma.jugBrand.update({
+      where: { id: req.params.id },
+      data: {
+        name: name || undefined,
+        imageUrl: imageUrl !== undefined ? imageUrl : undefined,
+        compatibleCapId: compatibleCapId !== undefined ? compatibleCapId : undefined
+      }
+    });
+    res.json(jugBrand);
+  } catch (error) {
+    res.status(500).json({ error: 'Error al actualizar marca de garrafón' });
+  }
+});
+
+router.delete('/jug-brands/:id', verifyToken, requirePermission('canAccessInventory'), async (req, res) => {
+  try {
+    await prisma.jugBrand.delete({ where: { id: req.params.id } });
+    res.status(204).send();
+  } catch (error) {
+    res.status(500).json({ error: 'Error al eliminar marca de garrafón' });
   }
 });
 

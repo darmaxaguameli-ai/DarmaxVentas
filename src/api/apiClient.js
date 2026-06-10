@@ -186,15 +186,23 @@ export const deleteSolicitud = (id) => apiClient.delete(`/solicitudes/${id}`).th
 
 
 // ====================================================================
-//  BLOG (GESTIÓN DIRECTA DARMAXAGUA.COM.MX)
+//  BLOG EXTERNO (DARMAXAGUA.COM.MX)
 // ====================================================================
-const BLOG_API_URL = 'https://darmaxagua.com.mx/api/blog'; 
+const EXTERNAL_BLOG_URL = 'https://darmaxagua.com.mx/api/blog';
 
-export const fetchBlogPosts = () => axios.get(BLOG_API_URL).then(res => res.data);
-export const fetchBlogPost = (slug) => axios.get(BLOG_API_URL, { params: { slug } }).then(res => res.data);
-export const createBlogPost = (data) => axios.post(BLOG_API_URL, data).then(res => res.data);
-export const updateBlogPost = (id, data) => axios.put(BLOG_API_URL, data, { params: { id } }).then(res => res.data);
-export const deleteBlogPost = (id) => axios.delete(BLOG_API_URL, { params: { id } }).then(res => res.data);
+export const fetchExternalBlogPosts = () => axios.get(EXTERNAL_BLOG_URL).then(res => res.data);
+export const createExternalBlogPost = (data) => axios.post(EXTERNAL_BLOG_URL, data).then(res => res.data);
+export const updateExternalBlogPost = (id, data) => axios.put(EXTERNAL_BLOG_URL, data, { params: { id } }).then(res => res.data);
+export const deleteExternalBlogPost = (id) => axios.delete(EXTERNAL_BLOG_URL, { params: { id } }).then(res => res.data);
+
+// ====================================================================
+//  BLOG INTERNO / GUÍAS (API LOCAL)
+// ====================================================================
+export const fetchBlogPosts = (target) => apiClient.get('/blog', { params: { target } }).then(res => res.data);
+export const fetchBlogPost = (slug) => apiClient.get('/blog', { params: { slug } }).then(res => res.data);
+export const createBlogPost = (data) => apiClient.post('/blog', data).then(res => res.data);
+export const updateBlogPost = (id, data) => apiClient.put(`/blog/${id}`, data).then(res => res.data);
+export const deleteBlogPost = (id) => apiClient.delete(`/blog/${id}`).then(res => res.data);
 
 
 // ====================================================================

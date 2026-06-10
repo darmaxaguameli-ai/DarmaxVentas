@@ -20,6 +20,50 @@ router.get('/incomes', verifyToken, requirePermission('canAccessFinances'), asyn
   }
 });
 
+router.post('/incomes', verifyToken, requirePermission('canAccessFinances'), async (req, res) => {
+  try {
+    const { description, amount, date, storeId } = req.body;
+    const income = await prisma.ingreso.create({
+      data: {
+        description,
+        amount: parseFloat(amount),
+        date: new Date(date),
+        storeId: storeId || null
+      }
+    });
+    res.status(201).json(income);
+  } catch (error) {
+    res.status(500).json({ error: 'Error al crear ingreso' });
+  }
+});
+
+router.put('/incomes/:id', verifyToken, requirePermission('canAccessFinances'), async (req, res) => {
+  try {
+    const { description, amount, date, storeId } = req.body;
+    const income = await prisma.ingreso.update({
+      where: { id: req.params.id },
+      data: {
+        description: description || undefined,
+        amount: amount !== undefined ? parseFloat(amount) : undefined,
+        date: date ? new Date(date) : undefined,
+        storeId: storeId !== undefined ? storeId : undefined
+      }
+    });
+    res.json(income);
+  } catch (error) {
+    res.status(500).json({ error: 'Error al actualizar ingreso' });
+  }
+});
+
+router.delete('/incomes/:id', verifyToken, requirePermission('canAccessFinances'), async (req, res) => {
+  try {
+    await prisma.ingreso.delete({ where: { id: req.params.id } });
+    res.status(204).send();
+  } catch (error) {
+    res.status(500).json({ error: 'Error al eliminar ingreso' });
+  }
+});
+
 // --- EXPENSES ---
 router.get('/expenses', verifyToken, requirePermission('canAccessFinances'), async (req, res) => {
   try {
@@ -30,10 +74,54 @@ router.get('/expenses', verifyToken, requirePermission('canAccessFinances'), asy
         if (user && user.storeId) where.storeId = user.storeId;
         else return res.json([]);
     }
-    const expenses = await prisma.gasto.findMany({ where, orderBy: { date: 'desc' } });
+    const expenses = await prisma.gasto.findMany({ where, include: { store: true }, orderBy: { date: 'desc' } });
     res.json(expenses);
   } catch (error) {
     res.status(500).json({ error: 'Error fetching expenses' });
+  }
+});
+
+router.post('/expenses', verifyToken, requirePermission('canAccessFinances'), async (req, res) => {
+  try {
+    const { description, amount, date, storeId } = req.body;
+    const expense = await prisma.gasto.create({
+      data: {
+        description,
+        amount: parseFloat(amount),
+        date: new Date(date),
+        storeId: storeId || null
+      }
+    });
+    res.status(201).json(expense);
+  } catch (error) {
+    res.status(500).json({ error: 'Error al crear gasto' });
+  }
+});
+
+router.put('/expenses/:id', verifyToken, requirePermission('canAccessFinances'), async (req, res) => {
+  try {
+    const { description, amount, date, storeId } = req.body;
+    const expense = await prisma.gasto.update({
+      where: { id: req.params.id },
+      data: {
+        description: description || undefined,
+        amount: amount !== undefined ? parseFloat(amount) : undefined,
+        date: date ? new Date(date) : undefined,
+        storeId: storeId !== undefined ? storeId : undefined
+      }
+    });
+    res.json(expense);
+  } catch (error) {
+    res.status(500).json({ error: 'Error al actualizar gasto' });
+  }
+});
+
+router.delete('/expenses/:id', verifyToken, requirePermission('canAccessFinances'), async (req, res) => {
+  try {
+    await prisma.gasto.delete({ where: { id: req.params.id } });
+    res.status(204).send();
+  } catch (error) {
+    res.status(500).json({ error: 'Error al eliminar gasto' });
   }
 });
 

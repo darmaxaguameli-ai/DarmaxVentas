@@ -13,6 +13,35 @@ router.get('/franchises', verifyToken, async (req, res) => {
   }
 });
 
+router.post('/franchises', verifyToken, async (req, res) => {
+  try {
+    const { name } = req.body;
+    const franchise = await prisma.franchise.create({ data: { name } });
+    res.status(201).json(franchise);
+  } catch (error) {
+    res.status(500).json({ error: 'Error al crear franquicia' });
+  }
+});
+
+router.put('/franchises/:id', verifyToken, async (req, res) => {
+  try {
+    const { name } = req.body;
+    const franchise = await prisma.franchise.update({ where: { id: req.params.id }, data: { name } });
+    res.json(franchise);
+  } catch (error) {
+    res.status(500).json({ error: 'Error al actualizar franquicia' });
+  }
+});
+
+router.delete('/franchises/:id', verifyToken, async (req, res) => {
+  try {
+    await prisma.franchise.delete({ where: { id: req.params.id } });
+    res.status(204).send();
+  } catch (error) {
+    res.status(500).json({ error: 'Error al eliminar franquicia' });
+  }
+});
+
 // --- STORES ---
 router.get('/stores', async (req, res) => {
   try {
@@ -20,6 +49,52 @@ router.get('/stores', async (req, res) => {
     res.json(stores);
   } catch (error) {
     res.status(500).json({ error: 'Error fetching stores' });
+  }
+});
+
+router.post('/stores', verifyToken, async (req, res) => {
+  try {
+    const { name, address, franchiseId, latitud, longitud } = req.body;
+    const store = await prisma.store.create({
+      data: {
+        name,
+        address,
+        franchiseId,
+        latitud: latitud ? parseFloat(latitud) : null,
+        longitud: longitud ? parseFloat(longitud) : null
+      }
+    });
+    res.status(201).json(store);
+  } catch (error) {
+    res.status(500).json({ error: 'Error al crear sucursal' });
+  }
+});
+
+router.put('/stores/:id', verifyToken, async (req, res) => {
+  try {
+    const { name, address, franchiseId, latitud, longitud } = req.body;
+    const store = await prisma.store.update({
+      where: { id: req.params.id },
+      data: {
+        name: name || undefined,
+        address: address || undefined,
+        franchiseId: franchiseId || undefined,
+        latitud: latitud !== undefined ? parseFloat(latitud) : undefined,
+        longitud: longitud !== undefined ? parseFloat(longitud) : undefined
+      }
+    });
+    res.json(store);
+  } catch (error) {
+    res.status(500).json({ error: 'Error al actualizar sucursal' });
+  }
+});
+
+router.delete('/stores/:id', verifyToken, async (req, res) => {
+  try {
+    await prisma.store.delete({ where: { id: req.params.id } });
+    res.status(204).send();
+  } catch (error) {
+    res.status(500).json({ error: 'Error al eliminar sucursal' });
   }
 });
 

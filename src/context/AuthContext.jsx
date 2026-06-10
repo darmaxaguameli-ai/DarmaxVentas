@@ -106,6 +106,10 @@ export const AuthProvider = ({ children }) => {
         const handleAuthError = (event) => {
             console.warn('Error de autenticación (401/403) detectado, cerrando sesión...', event.detail?.message);
             logout();
+            // Redirigir al login si no estamos ya ahí
+            if (window.location.pathname !== '/login') {
+                window.location.href = '/login?expired=true';
+            }
         };
 
         window.addEventListener('auth-error', handleAuthError);

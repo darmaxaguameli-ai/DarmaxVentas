@@ -55,10 +55,11 @@ const menuStructure = [
   },
   {
     type: "group",
-    name: "Contenido Web",
+    name: "Contenido y Guías",
     icon: "web",
     children: [
-      { name: "Blog / Artículos", path: "blog", icon: "newspaper", permission: "canAccessMarketing" },
+      { name: "Editor de Blog", path: "blog", icon: "newspaper", permission: "canAccessMarketing" },
+      { name: "Centro de Guías", path: "guias", icon: "menu_book", permission: "canViewSummary" },
     ],
   },
   {

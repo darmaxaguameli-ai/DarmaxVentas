@@ -26,10 +26,18 @@ const BuyJugsStepOne = () => {
         setLoading(true);
         const allProducts = await fetchProducts();
         
+        // FILTRAR PRODUCTOS PARA LA TIENDA
+        // Solo mostrar si es público, no está inactivo y su categoría también es pública
+        const storeProducts = allProducts.filter(p => 
+            p.isPublic && 
+            p.status !== 'INACTIVE' && 
+            (!p.categoryRel || p.categoryRel.isPublic)
+        );
+
         // Recuperar selección previa
         const prevState = location.state?.selectedProducts || [];
 
-        const mapped = allProducts.map(p => ({
+        const mapped = storeProducts.map(p => ({
             id: p.id,
             name: p.name,
             quantity: prevState.find(item => item.id === p.id)?.quantity || 0,
