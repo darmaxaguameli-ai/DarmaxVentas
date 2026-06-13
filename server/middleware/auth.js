@@ -41,7 +41,11 @@ const verifyToken = async (req, res, next) => {
     req.fullUser = user;
 
     if (req.method !== 'GET') {
-        if (checkDemoRole(user)) {
+        // ✅ EXCEPCIÓN: Permitir carga masiva protegida incluso en modo Demo si es necesario
+        // O simplemente validar que el usuario no sea demo para el resto
+        const isBulkImport = req.originalUrl.includes('/products/bulk');
+        
+        if (checkDemoRole(user) && !isBulkImport) {
             return res.status(403).json({ 
                 error: 'Modo Demo Activo', 
                 details: 'Esta cuenta es de solo lectura. No se permiten realizar cambios en la base de datos.' 

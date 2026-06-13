@@ -119,6 +119,38 @@ router.post('/products', verifyToken, requirePermission('canAccessInventory'), a
   }
 });
 
+// ✅ NUEVO: ENDPOINT DE CARGA MASIVA
+router.post('/products/bulk', verifyToken, requirePermission('canAccessInventory'), async (req, res) => {
+  try {
+    const products = req.body;
+    if (!Array.isArray(products)) return res.status(400).json({ error: 'Se espera un arreglo de productos' });
+
+    const results = [];
+    for (const p of products) {
+        const catRecord = await ensureCategory(p.category);
+        const created = await prisma.product.create({
+            data: {
+                name: String(p.name).toUpperCase().trim(),
+                price: parseFloat(p.price) || 0,
+                stock: parseInt(p.stock) || 0,
+                waterPrice: parseFloat(p.waterPrice) || 0,
+                imageUrl: p.imageUrl || null,
+                category: p.category || "General",
+                categoryId: catRecord?.id,
+                status: 'ACTIVE',
+                isPublic: false // 🔒 PROTECCIÓN: Entran como internos
+            }
+        });
+        results.push(created);
+    }
+    
+    res.status(201).json({ count: results.length, message: 'Carga masiva completada con éxito' });
+  } catch (error) {
+    console.error("Error en bulk import:", error);
+    res.status(500).json({ error: 'Error durante la carga masiva' });
+  }
+});
+
 router.put('/products/:id', verifyToken, requirePermission('canAccessInventory'), async (req, res) => {
   const { id: productId } = req.params;
   const { stock, category, ...rawData } = req.body;

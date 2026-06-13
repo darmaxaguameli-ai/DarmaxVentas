@@ -4,7 +4,6 @@ export const PROVIDERS = [
   { id: "jimaja", label: "Comercializadora JIMAJA" },
 ];
 
-// Catálogo normalizado (interno) con mapeo a JIMAJA
 export const PRODUCTS = [
   {
     id: "membrana_xlp_4040",
@@ -26,10 +25,11 @@ export const PRODUCTS = [
     unidad: "pieza",
     proveedores: {
       jimaja: {
-        clave: "01-09X48HDT",
-        nombre: "TANQUE 9X48 ENTRADA 2.5 HDT",
-        // último precio visto (dic 2025)
-        precio: 715.52,
+        clave: "TANQUE ZAO",
+        nombre: "TANQUE 9X48 ENTRADA 2.5 AZUL ZAO",
+        precio: 575.862068,
+        incluyeIva: false,
+        fuente: "Cotización JIMAJA 04/06/2026",
       },
     },
   },
@@ -47,13 +47,15 @@ export const PRODUCTS = [
   },
   {
     id: "tanque_salmuera_70l",
-    internoNombre: "Tanque de salmuera 70 L (negro)",
+    internoNombre: "Tanque de salmuera 70 L",
     unidad: "pieza",
     proveedores: {
       jimaja: {
-        clave: "02-BTS-70L",
-        nombre: "TANQUE DE SALMUERA NEGRO 70 LTS.",
-        precio: 762.07,
+        clave: "06SALM70L",
+        nombre: "TANQUE DE SALMUERA 70 LTS",
+        precio: 758.620689,
+        incluyeIva: false,
+        fuente: "Cotización JIMAJA 04/06/2026",
       },
     },
   },
@@ -64,22 +66,24 @@ export const PRODUCTS = [
     proveedores: {
       jimaja: {
         clave: "26-COCO-AW",
-        nombre: "CARBON CONCHA DE COCO 12.5 KGS AW",
-        precio: 560.34824,
+        nombre: "CARBON CONCHA DE COCO 12.5 KGS. AW",
+        precio: 603.448275,
         incluyeIva: false,
+        fuente: "Cotización JIMAJA 04/06/2026",
       },
     },
   },
   {
     id: "zeolita_21kg",
-    internoNombre: "Zeolita malla 6-12 (21 kg)",
+    internoNombre: "Zeolita malla 6-12 21 kg",
     unidad: "saco",
     proveedores: {
       jimaja: {
         clave: "26-ZEOLITA",
-        nombre: "ZEOLITA MALLA 6-12 21 KGS",
-        precio: 160.0,
+        nombre: "ZEOLITA MALLA6-12 SACO 1 PIE (21 KGS) AW",
+        precio: 172.413793,
         incluyeIva: false,
+        fuente: "Cotización JIMAJA 04/06/2026",
       },
     },
   },
@@ -91,8 +95,9 @@ export const PRODUCTS = [
       jimaja: {
         clave: "RESINA AW",
         nombre: "RESINA AMERICA WATER 001X7 Na FG",
-        precio: 758.620689,
+        precio: 775.862068,
         incluyeIva: false,
+        fuente: "Cotización JIMAJA 04/06/2026",
       },
     },
   },
@@ -124,13 +129,15 @@ export const PRODUCTS = [
   },
   {
     id: "lampara_uv_25w",
-    internoNombre: "Lámpara UV 25W (HDT)",
+    internoNombre: "Lámpara UV 25W Hidrotek",
     unidad: "pieza",
     proveedores: {
       jimaja: {
-        clave: "18-UV25WTHDT",
-        nombre: "LAMPARA DE UV 25 WATTS HDT",
-        precio: 818.97,
+        clave: "11-25-HIDROTEK",
+        nombre: "LAMPARA 25 WTTS HIDROTEK",
+        precio: 818.965517,
+        incluyeIva: false,
+        fuente: "Cotización JIMAJA 04/06/2026",
       },
     },
   },
@@ -153,24 +160,25 @@ export const PRODUCTS = [
     proveedores: {
       jimaja: {
         clave: "30-V3/4",
-        nombre: "VENTURY 3/4 POLYPROPYLENE HDT",
-        precio: 150.0,
+        nombre: "VENTURY 3/4 POLYPROPILENO HDT",
+        precio: 280.1724,
         incluyeIva: false,
+        fuente: "Cotización JIMAJA 04/06/2026",
       },
     },
   },
 
-   // ===== NUEVOS (CFDI JIMAJA 2026-01-23) =====
+  // ===== JIMAJA 2026-01-23 =====
   {
     id: "rotametro_0_5_hydrotek",
-    internoNombre: "Rotámetro 0–5 (Hydrotek)",
+    internoNombre: "Rotámetro 0–5 Hydrotek",
     unidad: "pieza",
     proveedores: {
       jimaja: {
         clave: "12-ROTAMETRO",
         nombre: "ROTAMETRO 0 A 5 HYDROTEK",
-        precio: 206.896551,   // P/U sin IVA
-        incluyeIva: false,     // ✅ correcto
+        precio: 206.896551,
+        incluyeIva: false,
         fuente: "Cotización JIMAJA 27/01/2026",
       },
     },
@@ -256,7 +264,7 @@ export const PRODUCTS = [
   },
   {
     id: "conector_macho_1_4x1_4_hdt",
-    internoNombre: 'Conector macho 1/4" x 1/4" (HDT)',
+    internoNombre: 'Conector macho 1/4" x 1/4" HDT',
     unidad: "pieza",
     proveedores: {
       jimaja: {
@@ -284,7 +292,7 @@ export const PRODUCTS = [
   },
   {
     id: "adaptador_hembra_3_8x1_2_hdt",
-    internoNombre: 'Adaptador hembra 3/8" x 1/2" (HDT)',
+    internoNombre: 'Adaptador hembra 3/8" x 1/2" HDT',
     unidad: "pieza",
     proveedores: {
       jimaja: {
@@ -307,6 +315,190 @@ export const PRODUCTS = [
         precio: 22.55,
         incluyeIva: true,
         fuente: "CFDI JIMAJA 2026-01-23 (F 61167)",
+      },
+    },
+  },
+
+  // ===== NUEVOS / ACTUALIZADOS JIMAJA 04/06/2026 =====
+  {
+    id: "tee_sch40_1",
+    internoNombre: 'Tee SCH40 1"',
+    unidad: "pieza",
+    proveedores: {
+      jimaja: {
+        clave: "D4-711-25",
+        nombre: 'TEE SCH40 1"',
+        precio: 8.0,
+        incluyeIva: false,
+        fuente: "Cotización JIMAJA 04/06/2026",
+      },
+    },
+  },
+  {
+    id: "valvula_esfera_sch40_3_4",
+    internoNombre: 'Válvula esfera SCH40 3/4 cementar',
+    unidad: "pieza",
+    proveedores: {
+      jimaja: {
+        clave: "XS4B-20-19",
+        nombre: "VALVULA ESFERA SCH40 3/4 CEMENTAR",
+        precio: 14.0,
+        incluyeIva: false,
+        fuente: "Cotización JIMAJA 04/06/2026",
+      },
+    },
+  },
+  {
+    id: "t_union_sch40_3_4",
+    internoNombre: 'T unión SCH40 3/4 cementar',
+    unidad: "pieza",
+    proveedores: {
+      jimaja: {
+        clave: "T4-11-19",
+        nombre: "T.UNION SCH40 3/4 CEMENTAR",
+        precio: 9.9,
+        incluyeIva: false,
+        fuente: "Cotización JIMAJA 04/06/2026",
+      },
+    },
+  },
+  {
+    id: "codo_90_sch40_3_4",
+    internoNombre: 'Codo 90° SCH40 3/4',
+    unidad: "pieza",
+    proveedores: {
+      jimaja: {
+        clave: "A-",
+        nombre: "CODO 90X3/4 CED 40 (A)",
+        precio: 3.31,
+        incluyeIva: false,
+        fuente: "Cotización JIMAJA 04/06/2026",
+      },
+    },
+  },
+  {
+    id: "tee_sch40_3_4",
+    internoNombre: 'Tee SCH40 3/4"',
+    unidad: "pieza",
+    proveedores: {
+      jimaja: {
+        clave: "D4-711-19",
+        nombre: 'TEE SCH40 3/4"',
+        precio: 4.5,
+        incluyeIva: false,
+        fuente: "Cotización JIMAJA 04/06/2026",
+      },
+    },
+  },
+  {
+    id: "macho_sch40_3_4",
+    internoNombre: "Macho 3/4 CED40",
+    unidad: "pieza",
+    proveedores: {
+      jimaja: {
+        clave: "A-",
+        nombre: "MACHO 3/4 CED40 (A)",
+        precio: 2.1,
+        incluyeIva: false,
+        fuente: "Cotización JIMAJA 04/06/2026",
+      },
+    },
+  },
+  {
+    id: "cople_sch40_3_4",
+    internoNombre: "Cople SCH40 3/4",
+    unidad: "pieza",
+    proveedores: {
+      jimaja: {
+        clave: "XSP4-10-19",
+        nombre: "COPLE SCH40 3/4",
+        precio: 2.25,
+        incluyeIva: false,
+        fuente: "Cotización JIMAJA 04/06/2026",
+      },
+    },
+  },
+  {
+    id: "hembra_sch40_3_4",
+    internoNombre: "Hembra SCH40 3/4",
+    unidad: "pieza",
+    proveedores: {
+      jimaja: {
+        clave: "XSI4-20-19",
+        nombre: "HEMBRA SCH40 3/4 (A)",
+        precio: 3.1,
+        incluyeIva: false,
+        fuente: "Cotización JIMAJA 04/06/2026",
+      },
+    },
+  },
+  {
+    id: "tubo_1_ced40",
+    internoNombre: 'Tubo PVC 1" Cédula 40',
+    unidad: "tramo",
+    proveedores: {
+      jimaja: {
+        clave: '15-TUB1"C 40',
+        nombre: 'TUBO 1" CED 40',
+        precio: 26.724137,
+        incluyeIva: false,
+        fuente: "Cotización JIMAJA 04/06/2026",
+      },
+    },
+  },
+  {
+    id: "tubo_3_4_ced40",
+    internoNombre: 'Tubo PVC 3/4" Cédula 40',
+    unidad: "tramo",
+    proveedores: {
+      jimaja: {
+        clave: "TUBO 3/4 CED.40",
+        nombre: 'TUBO 3/4" CED. 40',
+        precio: 22.413793,
+        incluyeIva: false,
+        fuente: "Cotización JIMAJA 04/06/2026",
+      },
+    },
+  },
+  {
+    id: "tubo_rd26_3_4_cresco",
+    internoNombre: 'Tubo RD26 3/4" Cresco',
+    unidad: "tramo",
+    proveedores: {
+      jimaja: {
+        clave: '15-TUBO3/4"RD21',
+        nombre: 'TUBO RD26 3/4" CRESCO',
+        precio: 12.156,
+        incluyeIva: false,
+        fuente: "Cotización JIMAJA 04/06/2026",
+      },
+    },
+  },
+  {
+    id: "tubo_2_ced40",
+    internoNombre: 'Tubo PVC 2" Cédula 40',
+    unidad: "tramo",
+    proveedores: {
+      jimaja: {
+        clave: '15-TUB2"CED.40',
+        nombre: 'TUBO 2"',
+        precio: 60.344827,
+        incluyeIva: false,
+        fuente: "Cotización JIMAJA 04/06/2026",
+      },
+    },
+  },
+  {
+    id: "manguera_blanca_1_4_osmosis",
+    internoNombre: 'Manguera blanca 1/4 para ósmosis',
+    unidad: "metro",
+    proveedores: {
+      jimaja: {
+        clave: "MANGUERA",
+        nombre: "MANGUERA BLANCA 1/4 P/OSMOSIS",
+        precio: 8.620689,
+        incluyeIva: false,
+        fuente: "Cotización JIMAJA 04/06/2026",
       },
     },
   },

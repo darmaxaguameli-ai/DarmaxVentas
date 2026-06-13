@@ -284,32 +284,47 @@ router.get('/legal/archivo/:id', verifyToken, requirePermission('canAccessLegal'
 // --- INSTALLATION MODELS ---
 router.get('/installation-models', verifyToken, requirePermission('canAccessInstallation'), async (req, res) => {
   try {
-    const models = await prisma.installationModel.findMany({ include: { materials: { include: { product: true } } }, orderBy: { name: 'asc' } });
+    const models = await prisma.installationModel.findMany({ 
+      include: { 
+        materials: { include: { product: true } },
+        modules: { include: { module: { include: { materials: { include: { product: true } } } } } }
+      }, 
+      orderBy: { name: 'asc' } 
+    });
     res.json(models);
   } catch (error) {
-    res.status(500).json({ error: 'Error fetching models' });
+    console.error("Error fetching installation models:", error);
+    res.status(500).json({ error: 'Error fetching models', details: error.message });
   }
 });
 
 router.post('/installation-models', verifyToken, requirePermission('canAccessInstallation'), async (req, res) => {
   try {
-    const { name, description, materials } = req.body;
+    const { name, description, isModule, materials, moduleIds } = req.body;
     const model = await prisma.installationModel.create({
       data: {
         name,
         description,
+        isModule: !!isModule,
         materials: {
-          create: materials.map(m => ({
+          create: (materials || []).map(m => ({
             quantity: parseFloat(m.quantity),
             unit: m.unit,
             productId: m.productId
           }))
+        },
+        modules: {
+          create: (moduleIds || []).map(mid => ({
+            moduleId: mid,
+            quantity: 1
+          }))
         }
       },
-      include: { materials: true }
+      include: { materials: true, modules: true }
     });
     res.json(model);
   } catch (error) {
+    console.error(error);
     res.status(500).json({ error: 'Error al crear modelo de instalación' });
   }
 });
@@ -317,25 +332,37 @@ router.post('/installation-models', verifyToken, requirePermission('canAccessIns
 router.put('/installation-models/:id', verifyToken, requirePermission('canAccessInstallation'), async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, description, materials } = req.body;
+    const { name, description, isModule, materials, moduleIds } = req.body;
+    
+    // Limpiar relaciones anteriores
     await prisma.modelMaterial.deleteMany({ where: { installationModelId: id } });
+    await prisma.installationModuleJoin.deleteMany({ where: { modelId: id } });
+
     const model = await prisma.installationModel.update({
       where: { id },
       data: {
         name,
         description,
+        isModule: !!isModule,
         materials: {
-          create: materials.map(m => ({
+          create: (materials || []).map(m => ({
             quantity: parseFloat(m.quantity),
             unit: m.unit,
             productId: m.productId
           }))
+        },
+        modules: {
+          create: (moduleIds || []).map(mid => ({
+            moduleId: mid,
+            quantity: 1
+          }))
         }
       },
-      include: { materials: true }
+      include: { materials: true, modules: true }
     });
     res.json(model);
   } catch (error) {
+    console.error(error);
     res.status(500).json({ error: 'Error al actualizar modelo de instalación' });
   }
 });
@@ -344,6 +371,8 @@ router.delete('/installation-models/:id', verifyToken, requirePermission('canAcc
   try {
     const { id } = req.params;
     await prisma.modelMaterial.deleteMany({ where: { installationModelId: id } });
+    await prisma.installationModuleJoin.deleteMany({ where: { modelId: id } });
+    await prisma.installationModuleJoin.deleteMany({ where: { moduleId: id } });
     await prisma.installationModel.delete({ where: { id } });
     res.json({ message: 'Modelo eliminado' });
   } catch (error) {

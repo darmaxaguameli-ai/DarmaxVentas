@@ -378,7 +378,14 @@ model InstallationModel {
   id          String          @id @default(cuid())
   name        String          @unique // Ej: Vending Atlantis 300
   description String?
-  materials   ModelMaterial[]
+  isModule    Boolean         @default(false) // Si es true, es una parte reutilizable (ej: Osmosis)
+
+  materials   ModelMaterial[] // Materiales directos (tornillos, cables, etc)
+
+  // Relación modular: Un modelo puede contener varios módulos
+  modules     InstallationModuleJoin[] @relation("ModelToModules")
+  usedIn      InstallationModuleJoin[] @relation("ModuleToModels")
+
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
 }
@@ -387,7 +394,7 @@ model ModelMaterial {
   id                  String            @id @default(cuid())
   quantity            Float             @default(1)
   unit                String            @default("Pza") // Ej: Pza, Mts, Lts, Kg
-  
+
   installationModel   InstallationModel @relation(fields: [installationModelId], references: [id])
   installationModelId String
 
@@ -395,6 +402,19 @@ model ModelMaterial {
   productId           String
 
   @@unique([installationModelId, productId])
+}
+
+model InstallationModuleJoin {
+  id          String            @id @default(cuid())
+  quantity    Float             @default(1)
+
+  model       InstallationModel @relation("ModelToModules", fields: [modelId], references: [id])
+  modelId     String
+
+  module      InstallationModel @relation("ModuleToModels", fields: [moduleId], references: [id])
+  moduleId    String
+
+  @@unique([modelId, moduleId])
 }
 
 model Pedido {
@@ -634,12 +654,13 @@ model MarketingPost {
   id               String   @id @default(cuid())
   titulo           String
   descripcion      String?
-  url              String?  
+  url              String?
   status           String   @default("BORRADOR") // BORRADOR, EN_PROCESO, PENDIENTE_APROBACION, APROBADO, PUBLICADO
   fechaEntrega     DateTime?
   fechaPublicacion DateTime?
   comentariosAdmin String?
-  
+  editAuthorized   Boolean  @default(false) // Nuevo: Permiso del Admin para editar post ya avanzado
+
   // Nuevos campos para Redes Sociales y Métricas
   plataforma       String?  // INSTAGRAM, TIKTOK, FACEBOOK, YOUTUBE, OTRO
   vistas           Int      @default(0)
@@ -650,7 +671,7 @@ model MarketingPost {
 
   creador          User     @relation(fields: [creadorId], references: [id])
   creadorId        String
-  
+
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 }

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useAuth } from '../../context/AuthContext';
 import { 
     FaUserPlus, FaPhone, FaBox, FaChartLine, FaFilter, FaPlus, FaSave, 
@@ -8,6 +9,7 @@ import {
 } from 'react-icons/fa';
 import apiClient from '../../api/apiClient';
 import Swal from 'sweetalert2';
+import { toast } from 'sonner';
 
 const Leads = () => {
     const { user } = useAuth();
@@ -82,21 +84,10 @@ const Leads = () => {
 
             if (editingLead) {
                 await apiClient.put(`/leads/${editingLead.id}`, payload);
-                Swal.fire({
-                    title: '¡Ficha Actualizada!',
-                    text: 'Los datos del cliente se guardaron con éxito.',
-                    icon: 'success',
-                    confirmButtonColor: '#2563eb',
-                    timer: 2000
-                });
+                toast.success('Ficha actualizada');
             } else {
                 await apiClient.post('/leads', payload);
-                Swal.fire({
-                    title: formData.tipo === 'CLIENTE_VENTA' ? '¡VENTA REGISTRADA! 🎉' : '¡PROSPECTO REGISTRADO!',
-                    text: `Se ha añadido a ${formData.nombre} a tu cartera.`,
-                    icon: 'success',
-                    confirmButtonColor: '#2563eb'
-                });
+                toast.success('Registro completado');
             }
             setShowModal(false);
             setEditingLead(null);
@@ -138,7 +129,6 @@ const Leads = () => {
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#ef4444',
-            cancelButtonColor: '#6b7280',
             confirmButtonText: 'Sí, eliminar',
             reverseButtons: true
         });
@@ -146,7 +136,7 @@ const Leads = () => {
         if (result.isConfirmed) {
             try {
                 await apiClient.delete(`/leads/${id}`);
-                Swal.fire('Eliminado', 'Registro removido.', 'success');
+                toast.success('Registro eliminado');
                 fetchLeads();
             } catch (error) {
                 Swal.fire('Error', 'No se pudo eliminar.', 'error');
@@ -346,223 +336,126 @@ const Leads = () => {
             )}
 
             {/* ====================================================================
-                MODAL TOOLS (FULL VIEWPORT BACKDROP)
+                MODAL TOOLS (PORTAL)
             ==================================================================== */}
-            {showToolsModal && (
-                <div className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center overflow-hidden">
-                    <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => { setShowToolsModal(false); setEditingLead(null); }}></div>
-                    <div className="relative bg-white dark:bg-gray-800 w-full max-w-2xl mx-auto rounded-t-[2.5rem] sm:rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[95vh] animate-in slide-in-from-bottom-10 sm:zoom-in duration-300">
-                        <div className="p-5 sm:p-6 border-b dark:border-gray-700 flex justify-between items-center bg-amber-500 text-white shrink-0">
+            {showToolsModal && createPortal(
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                    <div className="relative bg-white dark:bg-gray-800 w-full max-w-2xl mx-auto rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in duration-300">
+                        <div className="p-8 border-b dark:border-gray-700 flex justify-between items-center shrink-0">
                             <div>
-                                <h2 className="text-lg sm:text-xl font-black uppercase tracking-tight flex items-center gap-3">
-                                    <FaTools size={18} /> Herramientas
+                                <h2 className="text-2xl font-bold text-dark dark:text-white uppercase tracking-tight flex items-center gap-3 leading-none">
+                                    <FaTools className="text-amber-500" /> Herramientas
                                 </h2>
-                                {editingLead && <p className="text-[8px] sm:text-[10px] font-bold opacity-80 uppercase mt-0.5 truncate max-w-[250px]">Enviar a: {editingLead.nombre}</p>}
+                                {editingLead && <p className="text-[10px] text-gray-400 font-bold uppercase mt-2 tracking-widest italic">Enviar a: {editingLead.nombre}</p>}
                             </div>
-                            <button onClick={() => { setShowToolsModal(false); setEditingLead(null); }} className="p-2 hover:bg-white/20 rounded-full transition-colors text-2xl font-light">&times;</button>
+                            <button onClick={() => { setShowToolsModal(false); setEditingLead(null); }} className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-white transition-colors"><FaTimes size={24} /></button>
                         </div>
-                        <div className="p-4 sm:p-6 overflow-y-auto custom-scrollbar flex-1 bg-gray-50/30 dark:bg-gray-900/20">
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
-                                {packages.length > 0 ? (
-                                    packages.map((pkg) => (
-                                        <div key={pkg.id} className="group flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-2xl border-2 border-transparent hover:border-amber-500 transition-all shadow-sm">
-                                            <div className="flex items-center gap-3 min-w-0">
-                                                <div className={`w-9 h-9 rounded-xl bg-gray-50 dark:bg-gray-700 flex items-center justify-center shrink-0 ${pkg.color}`}>
-                                                    <span className="material-symbols-outlined text-lg">{pkg.icon}</span>
-                                                </div>
-                                                <div className="min-w-0">
-                                                    <p className="font-black text-gray-800 dark:text-white text-[10px] sm:text-xs truncate">{pkg.name}</p>
-                                                    <p className="text-[8px] text-gray-400 font-bold uppercase mt-0.5 leading-none">Catálogo PDF</p>
-                                                </div>
+                        <div className="p-8 overflow-y-auto custom-scrollbar flex-1">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                {packages.map((pkg) => (
+                                    <div key={pkg.id} className="group flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-900/40 rounded-2xl border border-gray-100 dark:border-gray-700 hover:border-amber-500 transition-all shadow-sm">
+                                        <div className="flex items-center gap-4 min-w-0">
+                                            <div className={`w-10 h-10 rounded-xl bg-white dark:bg-gray-800 flex items-center justify-center shrink-0 shadow-sm ${pkg.color}`}>
+                                                <span className="material-symbols-outlined">{pkg.icon}</span>
                                             </div>
-                                            <div className="flex gap-1.5 shrink-0">
-                                                <a href={pkg.file} target="_blank" rel="noopener noreferrer" className="p-2.5 bg-gray-50 dark:bg-gray-700 text-gray-400 hover:text-red-500 rounded-xl border border-gray-100 dark:border-gray-600 transition-colors"><FaFilePdf size={14} /></a>
-                                                {editingLead && <button onClick={() => handleSendWhatsApp(editingLead, pkg)} className="p-2.5 bg-green-500 text-white rounded-xl shadow-md hover:scale-110 active:scale-95 transition-all flex items-center gap-1.5"><FaWhatsapp size={14} /><span className="text-[8px] font-black uppercase hidden sm:inline">Enviar</span></button>}
+                                            <div className="min-w-0">
+                                                <p className="font-black text-gray-800 dark:text-white text-xs truncate leading-tight">{pkg.name}</p>
+                                                <p className="text-[8px] text-gray-400 font-black uppercase mt-1 leading-none tracking-widest">Catálogo PDF</p>
                                             </div>
                                         </div>
-                                    ))
-                                ) : (
-                                    <div className="col-span-full text-center py-12 opacity-50 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-3xl"><p className="text-xs font-bold text-gray-400 italic">No hay archivos en el servidor.</p></div>
-                                )}
+                                        <div className="flex gap-2 shrink-0">
+                                            <a href={pkg.file} target="_blank" rel="noopener noreferrer" className="p-2.5 text-gray-400 hover:text-red-500 transition-colors"><FaFilePdf size={16} /></a>
+                                            {editingLead && <button onClick={() => handleSendWhatsApp(editingLead, pkg)} className="p-2.5 bg-green-500 text-white rounded-xl shadow-md hover:scale-105 active:scale-95 transition-all"><FaWhatsapp size={16} /></button>}
+                                        </div>
+                                    </div>
+                                ))}
                             </div>
                         </div>
-                        <div className="p-3 bg-white dark:bg-gray-800 text-center border-t dark:border-gray-700 shrink-0"><p className="text-[8px] sm:text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none">{packages.length} archivos disponibles • CRM Darmax</p></div>
+                        <div className="p-6 bg-gray-50 dark:bg-gray-900/40 border-t dark:border-gray-700 text-center shrink-0">
+                            <button onClick={() => { setShowToolsModal(false); setEditingLead(null); }} className="w-full py-4 bg-gray-800 text-white font-black rounded-2xl uppercase tracking-widest text-[10px] shadow-lg">Cerrar Herramientas</button>
+                        </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
 
             {/* ====================================================================
-                MODAL CRM FORM (EXPEDIENTE FICHA CLIENTE)
+                MODAL CRM FORM (EXPEDIENTE) (PORTAL)
             ==================================================================== */}
-            {showModal && (
-                <div className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center overflow-hidden">
-                    <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setShowModal(false)}></div>
-                    
-                    <div className="relative bg-white dark:bg-gray-800 w-full max-w-2xl mx-auto rounded-t-[2.5rem] sm:rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[95vh] animate-in slide-in-from-bottom-10 sm:zoom-in duration-300">
-                        {/* Cabecera de Ficha */}
-                        <div className="p-5 sm:p-6 border-b dark:border-gray-700 flex justify-between items-center bg-gray-800 text-white shrink-0">
-                            <div className="flex items-center gap-4">
-                                <div className="w-12 h-12 bg-primary/20 rounded-2xl flex items-center justify-center text-primary shadow-inner">
-                                    <FaUser size={24} />
-                                </div>
-                                <div>
-                                    <h2 className="text-lg sm:text-xl font-black uppercase tracking-tight leading-none">
-                                        {editingLead ? 'Expediente Cliente' : 'Nuevo Registro CRM'}
-                                    </h2>
-                                    <p className="text-[8px] sm:text-[10px] font-bold text-gray-400 mt-1.5 uppercase tracking-[3px]">Ficha Detallada de Seguimiento</p>
-                                </div>
+            {showModal && createPortal(
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                    <div className="relative bg-white dark:bg-gray-800 w-full max-w-2xl mx-auto rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col h-[90vh] animate-in zoom-in duration-300">
+                        <div className="p-8 border-b dark:border-gray-700 flex justify-between items-center shrink-0">
+                            <div>
+                                <h2 className="text-2xl font-bold text-dark dark:text-white uppercase tracking-tight flex items-center gap-3 leading-none">
+                                    <FaUser className="text-primary" /> {editingLead ? 'Expediente Cliente' : 'Nuevo Registro CRM'}
+                                </h2>
+                                <p className="text-[10px] text-gray-400 font-bold uppercase mt-2 tracking-widest italic">Ficha Detallada de Seguimiento</p>
                             </div>
-                            <button onClick={() => setShowModal(false)} className="p-2 hover:bg-white/10 rounded-full transition-colors text-3xl font-light">&times;</button>
+                            <button onClick={() => setShowModal(false)} className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-white transition-colors"><FaTimes size={24} /></button>
                         </div>
                         
-                        <form onSubmit={handleSave} className="p-5 sm:p-8 space-y-8 overflow-y-auto custom-scrollbar flex-1 bg-gray-50/20 dark:bg-dark/20">
-                            
-                            {/* SECCIÓN 1: IDENTIDAD Y CONTACTO */}
+                        <form onSubmit={handleSave} className="p-8 space-y-8 overflow-y-auto custom-scrollbar flex-1">
                             <div className="space-y-4">
-                                <div className="flex items-center gap-3">
-                                    <div className="h-px flex-1 bg-gray-200 dark:bg-gray-700"></div>
-                                    <h4 className="text-[10px] font-black text-primary uppercase tracking-[0.2em] px-2 italic">Identidad y Contacto</h4>
-                                    <div className="h-px flex-1 bg-gray-200 dark:bg-gray-700"></div>
-                                </div>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-                                    <div className="space-y-1.5 group">
-                                        <label className="text-[9px] font-black uppercase text-gray-400 ml-1 group-focus-within:text-primary transition-colors">Nombre Completo del Cliente *</label>
-                                        <div className="relative">
-                                            <input type="text" required className="w-full bg-white dark:bg-gray-900 p-3.5 sm:p-4 rounded-2xl border border-gray-100 dark:border-gray-700 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all text-sm font-bold shadow-sm" value={formData.nombre} onChange={e => setFormData({...formData, nombre: e.target.value})} placeholder="Ej: Juan Pérez" />
-                                        </div>
+                                <h4 className="text-[10px] font-black text-primary uppercase tracking-[0.2em] italic">Identidad y Contacto</h4>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="text-[9px] font-black uppercase text-gray-400 mb-1.5 block">Nombre del Cliente *</label>
+                                        <input type="text" required className="w-full input-style font-black text-sm" value={formData.nombre} onChange={e => setFormData({...formData, nombre: e.target.value})} placeholder="Ej: Juan Pérez" />
                                     </div>
-                                    <div className="space-y-1.5 group">
-                                        <label className="text-[9px] font-black uppercase text-gray-400 ml-1 group-focus-within:text-primary transition-colors">WhatsApp / Teléfono *</label>
-                                        <div className="relative">
-                                            <input type="tel" required className="w-full bg-white dark:bg-gray-900 p-3.5 sm:p-4 rounded-2xl border border-gray-100 dark:border-gray-700 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all text-sm font-bold shadow-sm" value={formData.telefono} onChange={e => setFormData({...formData, telefono: e.target.value})} placeholder="5512345678" />
-                                            {editingLead && (
-                                                <button type="button" onClick={() => handleSendWhatsApp(editingLead)} className="absolute right-3 top-1/2 -translate-y-1/2 text-green-500 hover:scale-110 transition-transform"><FaWhatsapp size={20}/></button>
-                                            )}
-                                        </div>
+                                    <div>
+                                        <label className="text-[9px] font-black uppercase text-gray-400 mb-1.5 block">WhatsApp / Teléfono *</label>
+                                        <input type="tel" required className="w-full input-style font-black text-sm" value={formData.telefono} onChange={e => setFormData({...formData, telefono: e.target.value})} placeholder="5512345678" />
                                     </div>
                                 </div>
                             </div>
 
-                            {/* SECCIÓN 2: UBICACIÓN GEOGRÁFICA */}
                             <div className="space-y-4">
-                                <div className="flex items-center gap-3">
-                                    <div className="h-px flex-1 bg-gray-200 dark:bg-gray-700"></div>
-                                    <h4 className="text-[10px] font-black text-blue-600 uppercase tracking-[0.2em] px-2 italic">Ubicación Geográfica</h4>
-                                    <div className="h-px flex-1 bg-gray-200 dark:bg-gray-700"></div>
-                                </div>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-                                    <div className="space-y-1.5 group">
-                                        <label className="text-[9px] font-black uppercase text-gray-400 ml-1 group-focus-within:text-blue-600 transition-colors">Dirección (Calle, No., Colonia)</label>
-                                        <div className="relative">
-                                            <FaMapMarkerAlt className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300" />
-                                            <input type="text" className="w-full bg-white dark:bg-gray-900 p-3.5 sm:p-4 pl-11 rounded-2xl border border-gray-100 dark:border-gray-700 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 outline-none transition-all text-sm font-bold shadow-sm" value={formData.direccion} onChange={e => setFormData({...formData, direccion: e.target.value})} />
-                                        </div>
+                                <h4 className="text-[10px] font-black text-blue-600 uppercase tracking-[0.2em] italic">Ubicación Geográfica</h4>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div className="relative">
+                                        <label className="text-[9px] font-black uppercase text-gray-400 mb-1.5 block">Dirección</label>
+                                        <input type="text" className="w-full input-style text-xs" value={formData.direccion} onChange={e => setFormData({...formData, direccion: e.target.value})} />
                                     </div>
-                                    <div className="space-y-1.5 group">
-                                        <label className="text-[9px] font-black uppercase text-gray-400 ml-1 group-focus-within:text-blue-600 transition-colors">Ciudad / Municipio</label>
-                                        <input type="text" className="w-full bg-white dark:bg-gray-900 p-3.5 sm:p-4 rounded-2xl border border-gray-100 dark:border-gray-700 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 outline-none transition-all text-sm font-bold shadow-sm" value={formData.ciudad} onChange={e => setFormData({...formData, ciudad: e.target.value})} />
+                                    <div>
+                                        <label className="text-[9px] font-black uppercase text-gray-400 mb-1.5 block">Ciudad</label>
+                                        <input type="text" className="w-full input-style text-xs uppercase" value={formData.ciudad} onChange={e => setFormData({...formData, ciudad: e.target.value})} />
                                     </div>
                                 </div>
                             </div>
 
-                            {/* SECCIÓN 3: DETALLES COMERCIALES */}
                             <div className="space-y-4">
-                                <div className="flex items-center gap-3">
-                                    <div className="h-px flex-1 bg-gray-200 dark:bg-gray-700"></div>
-                                    <h4 className="text-[10px] font-black text-green-600 uppercase tracking-[0.2em] px-2 italic">Detalles Comerciales</h4>
-                                    <div className="h-px flex-1 bg-gray-200 dark:bg-gray-700"></div>
-                                </div>
-                                <div className="grid grid-cols-12 gap-3 sm:gap-4">
-                                    <div className="col-span-12 sm:col-span-7 space-y-1.5 group">
-                                        <label className="text-[9px] font-black uppercase text-gray-400 ml-1">Paquete de Interés o Instalado</label>
-                                        <div className="relative">
-                                            <FaLayerGroup className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300" />
-                                            <input type="text" className="w-full bg-white dark:bg-gray-900 p-3.5 sm:p-4 pl-11 rounded-2xl border border-gray-100 dark:border-gray-700 focus:border-green-500 focus:ring-4 focus:ring-green-500/5 outline-none transition-all text-sm font-bold shadow-sm" value={formData.paqueteVendido} onChange={e => setFormData({...formData, paqueteVendido: e.target.value})} />
-                                        </div>
+                                <h4 className="text-[10px] font-black text-green-600 uppercase tracking-[0.2em] italic">Detalles Comerciales</h4>
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                    <div className="sm:col-span-2">
+                                        <label className="text-[9px] font-black uppercase text-gray-400 mb-1.5 block">Paquete de Interés</label>
+                                        <input type="text" className="w-full input-style text-xs font-black uppercase" value={formData.paqueteVendido} onChange={e => setFormData({...formData, paqueteVendido: e.target.value})} />
                                     </div>
-                                    <div className="col-span-5 sm:col-span-2 space-y-1.5 group">
-                                        <label className="text-[9px] font-black uppercase text-gray-400 ml-1">Cant.</label>
-                                        <input type="number" min="1" className="w-full bg-white dark:bg-gray-900 p-3.5 sm:p-4 rounded-2xl border border-gray-100 dark:border-gray-700 focus:border-green-500 outline-none transition-all text-sm font-bold shadow-sm text-center" value={formData.cantidadPaquetes} onChange={e => setFormData({...formData, cantidadPaquetes: e.target.value})} />
-                                    </div>
-                                    <div className="col-span-7 sm:col-span-3 space-y-1.5 group">
-                                        <label className="text-[9px] font-black uppercase text-gray-400 ml-1">Estatus CRM</label>
-                                        <select className="w-full bg-white dark:bg-gray-900 p-3.5 sm:p-4 rounded-2xl border border-gray-100 dark:border-gray-700 focus:border-green-500 outline-none transition-all text-[10px] font-black shadow-sm uppercase tracking-tighter" value={formData.tipo} onChange={e => setFormData({...formData, tipo: e.target.value})}>
-                                            <option value="PROSPECTO">Prospecto (Lead)</option>
-                                            <option value="CLIENTE_VENTA">Cliente (Venta Cerrada)</option>
+                                    <div>
+                                        <label className="text-[9px] font-black uppercase text-gray-400 mb-1.5 block">Estatus</label>
+                                        <select className="w-full input-style text-[10px] font-black uppercase" value={formData.tipo} onChange={e => setFormData({...formData, tipo: e.target.value})}>
+                                            <option value="PROSPECTO">Prospecto</option>
+                                            <option value="CLIENTE_VENTA">Cliente</option>
                                         </select>
                                     </div>
                                 </div>
                             </div>
 
-                            {/* SECCIÓN 4: SEGUIMIENTO TÉCNICO (MANTENIMIENTOS E INSUMOS) */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
-                                {/* Mantenimientos */}
-                                <div className="p-5 sm:p-6 bg-orange-50 dark:bg-orange-900/10 rounded-[2.5rem] border-2 border-orange-100 dark:border-orange-800/30 space-y-4">
-                                    <h4 className="font-black text-[10px] uppercase flex items-center gap-2 text-orange-700 tracking-widest"><FaTools /> Próximos Mantenimientos</h4>
-                                    <div className="space-y-3">
-                                        <input type="text" placeholder="¿Qué equipo? (Filtros, UV, etc)" className="w-full p-3 text-[10px] sm:text-xs rounded-xl border-none dark:bg-gray-900 shadow-inner font-bold" value={newManto.equipo} onChange={e => setNewManto({...newManto, equipo: e.target.value})} />
-                                        <div className="flex gap-2">
-                                            <input type="date" className="flex-1 p-3 text-[10px] rounded-xl border-none dark:bg-gray-900 shadow-inner font-bold" value={newManto.proximaFecha} onChange={e => setNewManto({...newManto, proximaFecha: e.target.value})} />
-                                            <button type="button" onClick={addManto} className="bg-orange-600 text-white px-5 rounded-xl active:scale-90 transition-transform shrink-0 shadow-lg shadow-orange-600/20"><FaPlus /></button>
-                                        </div>
-                                    </div>
-                                    <div className="flex flex-wrap gap-2 pt-2">
-                                        {formData.mantenimientos?.map((m, i) => (
-                                            <div key={i} className="flex items-center gap-2 bg-white dark:bg-gray-800 px-3 py-2 rounded-xl text-[9px] font-black border border-orange-200 shadow-sm uppercase tracking-tighter text-gray-700 dark:text-gray-300">
-                                                <FaCalendarAlt className="text-orange-500" />
-                                                <span>{m.equipo} ({m.proximaFecha})</span>
-                                                <button type="button" onClick={() => setFormData({...formData, mantenimientos: formData.mantenimientos.filter((_, idx) => idx !== i)})} className="text-red-500 hover:scale-125 transition-transform"><FaTrash size={10} /></button>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                {/* Insumos */}
-                                <div className="p-5 sm:p-6 bg-indigo-50 dark:bg-indigo-900/10 rounded-[2.5rem] border-2 border-indigo-100 dark:border-indigo-800/30 space-y-4">
-                                    <h4 className="font-black text-[10px] uppercase flex items-center gap-2 text-indigo-700 tracking-widest"><FaBox /> Insumos de Interés (Extras)</h4>
-                                    <div className="space-y-3">
-                                        <input type="text" placeholder="Tapas, Garrafones, etc" className="w-full p-3 text-[10px] sm:text-xs rounded-xl border-none dark:bg-gray-900 shadow-inner font-bold" value={newInsumo.item} onChange={e => setNewInsumo({...newInsumo, item: e.target.value})} />
-                                        <div className="flex gap-2">
-                                            <input type="number" placeholder="Cant." className="w-16 p-3 text-[10px] sm:text-xs rounded-xl border-none dark:bg-gray-900 shadow-inner font-bold text-center" value={newInsumo.cantidad} onChange={e => setNewInsumo({...newInsumo, cantidad: e.target.value})} />
-                                            <button type="button" onClick={addInsumo} className="flex-1 bg-indigo-600 text-white px-4 rounded-xl active:scale-90 transition-transform shadow-lg shadow-indigo-600/20 font-black text-[10px] uppercase">Añadir</button>
-                                        </div>
-                                    </div>
-                                    <div className="flex flex-wrap gap-2 pt-2">
-                                        {formData.insumosInteres?.map((ins, i) => (
-                                            <div key={i} className="flex items-center gap-2 bg-white dark:bg-gray-800 px-3 py-2 rounded-xl text-[9px] font-black border border-indigo-200 shadow-sm uppercase tracking-tighter text-gray-700 dark:text-gray-300">
-                                                <span>{ins.item} <span className="text-indigo-600">x{ins.cantidad}</span></span>
-                                                <button type="button" onClick={() => setFormData({...formData, insumosInteres: formData.insumosInteres.filter((_, idx) => idx !== i)})} className="text-red-500 hover:scale-125 transition-transform"><FaTrash size={10} /></button>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* SECCIÓN 5: OBSERVACIONES */}
                             <div className="space-y-4">
-                                <div className="flex items-center gap-3">
-                                    <div className="h-px flex-1 bg-gray-200 dark:bg-gray-700"></div>
-                                    <h4 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] px-2 italic">Observaciones Internas</h4>
-                                    <div className="h-px flex-1 bg-gray-200 dark:bg-gray-700"></div>
-                                </div>
-                                <div className="relative group">
-                                    <FaStickyNote className="absolute left-4 top-4 text-gray-300 group-focus-within:text-primary transition-colors" />
-                                    <textarea rows="4" placeholder="Registra acuerdos, fechas de llamada o detalles importantes del prospecto..." className="w-full bg-white dark:bg-gray-900 p-4 pl-11 rounded-3xl border border-gray-100 dark:border-gray-700 focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all text-sm font-medium shadow-sm resize-none" value={formData.notas} onChange={e => setFormData({...formData, notas: e.target.value})} />
-                                </div>
-                            </div>
-
-                            {/* BOTONES DE ACCIÓN */}
-                            <div className="flex flex-col sm:flex-row gap-3 pt-8 border-t border-gray-100 dark:border-gray-700 shrink-0">
-                                <button type="button" onClick={() => setShowModal(false)} className="flex-1 py-4 sm:py-5 rounded-2xl font-black uppercase text-[10px] sm:text-xs bg-gray-100 dark:bg-gray-700 text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors order-2 sm:order-1">
-                                    Cancelar Cambios
-                                </button>
-                                <button type="submit" className="flex-[2] py-4 sm:py-5 rounded-2xl font-black uppercase text-[10px] sm:text-xs bg-primary text-white shadow-2xl shadow-primary/30 order-1 sm:order-2 flex items-center justify-center gap-3 hover:-translate-y-1 active:translate-y-0 transition-all">
-                                    <FaSave size={18} /> {editingLead ? 'Guardar Expediente' : 'Finalizar Registro'}
-                                </button>
+                                <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] italic">Observaciones Internas</h4>
+                                <textarea rows="3" className="w-full input-style text-xs h-32" value={formData.notas} onChange={e => setFormData({...formData, notas: e.target.value})} placeholder="Registra acuerdos importantes..." />
                             </div>
                         </form>
+
+                        <div className="p-8 border-t dark:border-gray-700 flex flex-col sm:flex-row gap-3 bg-gray-50 dark:bg-gray-900/40 shrink-0">
+                            <button type="button" onClick={() => setShowModal(false)} className="flex-1 py-4 rounded-2xl font-black uppercase text-[10px] bg-white dark:bg-gray-800 text-gray-500 border border-gray-200 dark:border-gray-700 shadow-sm">Cancelar</button>
+                            <button onClick={handleSave} className="flex-[2] py-4 rounded-2xl font-black uppercase text-[10px] bg-primary text-white shadow-2xl shadow-primary/30 flex items-center justify-center gap-3">
+                                <FaSave size={16} /> {editingLead ? 'Guardar Expediente' : 'Finalizar Registro'}
+                            </button>
+                        </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
         </div>
     );

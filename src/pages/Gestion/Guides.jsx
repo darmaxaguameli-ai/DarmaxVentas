@@ -72,107 +72,108 @@ const Guides = () => {
 
     if (selectedGuide) {
         return (
-            <div className="animate-fade-in max-w-5xl mx-auto space-y-8 pb-20">
-                {/* Navegación y Acciones */}
-                <div className="flex justify-between items-center">
+            <div className="animate-fade-in max-w-6xl mx-auto space-y-10 pb-32">
+                {/* Navegación y Acciones - Minimalista */}
+                <div className="flex justify-between items-center px-4 sm:px-0">
                     <button 
                         onClick={() => setSelectedGuide(null)} 
-                        className="flex items-center gap-2 text-gray-500 hover:text-indigo-600 transition-all font-black uppercase text-[10px] tracking-widest group"
+                        className="flex items-center gap-2 text-gray-400 hover:text-indigo-600 transition-all font-black uppercase text-[10px] tracking-widest group"
                     >
                         <FaArrowLeft className="group-hover:-translate-x-1 transition-transform" /> Volver al Índice
                     </button>
-                    <button 
-                        onClick={() => {
-                            if (navigator.share) navigator.share({ title: selectedGuide.title, url: window.location.href });
-                            else { navigator.clipboard.writeText(window.location.href); alert("¡Copiado!"); }
-                        }}
-                        className="p-2.5 bg-gray-100 dark:bg-gray-800 text-gray-500 hover:text-indigo-600 rounded-xl transition-all"
-                        title="Compartir Guía"
-                    >
-                        <FaShareAlt size={14} />
-                    </button>
-                </div>
-
-                {/* Header Estilizado */}
-                <div className="bg-white dark:bg-gray-800 rounded-[3rem] overflow-hidden shadow-xl border border-gray-100 dark:border-gray-700">
-                    <div className="p-8 sm:p-12 space-y-8">
-                        <div>
-                            <span className="inline-block px-4 py-1.5 bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400 text-[10px] font-black uppercase tracking-[0.2em] rounded-full mb-6 shadow-sm">
-                                {selectedGuide.category}
-                            </span>
-                            <h1 className="text-3xl md:text-5xl font-black text-gray-900 dark:text-white tracking-tighter leading-tight uppercase italic italic-none">
-                                {selectedGuide.title}
-                            </h1>
-                            
-                            <div className="flex flex-wrap items-center gap-8 text-[10px] font-black uppercase tracking-widest text-gray-400 mt-8 pt-8 border-t border-gray-50 dark:border-gray-700">
-                                <div className="flex items-center gap-2">
-                                    <FaUser className="text-indigo-500" />
-                                    <span>Por <span className="text-gray-900 dark:text-gray-200">{selectedGuide.author}</span></span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <FaCalendarAlt className="text-indigo-500" />
-                                    <span>{new Date(selectedGuide.createdAt).toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Imagen de Portada con efecto */}
-                        {selectedGuide.image && (
-                            <div className="rounded-[2.5rem] overflow-hidden shadow-2xl relative group">
-                                <img src={selectedGuide.image} alt={selectedGuide.title} className="w-full h-auto object-cover max-h-[500px]" />
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                            </div>
-                        )}
-
-                        {/* Contenido con Renderizado Avanzado de Bloques */}
-                        <div 
-                            className="prose prose-slate prose-lg max-w-none dark:prose-invert
-                                prose-headings:font-black prose-headings:tracking-tighter prose-headings:text-gray-900 dark:prose-headings:text-white
-                                prose-p:text-gray-600 dark:prose-p:text-gray-300 prose-p:leading-relaxed prose-p:text-lg
-                                prose-strong:text-indigo-600 dark:prose-strong:text-indigo-400
-                                prose-img:rounded-[2.5rem] prose-img:shadow-2xl
-                                /* Soporte para clases dinámicas del Blog Editor */
-                                [&_.border-l-8]:border-l-8 [&_.border-indigo-500]:border-indigo-500 
-                                [&_.bg-slate-50]:bg-gray-50 dark:[&_.bg-slate-50]:bg-gray-900/50
-                                [&_.bg-cyan-50]:bg-indigo-50 dark:[&_.bg-cyan-50]:bg-indigo-900/20
-                                [&_.text-cyan-800]:text-indigo-800 dark:[&_.text-cyan-800]:text-indigo-300
-                                [&_.grid]:grid [&_.gap-6]:gap-6 [&_.md\:gap-8]:md:gap-8
-                                [&_.float-right]:float-right [&_.float-left]:float-left
-                                [&_.rounded-\[2\.5rem\]]:rounded-[2.5rem]
-                                [&_.aspect-video]:aspect-video [&_.aspect-\[9\/16\]]:aspect-[9/16]"
-                            dangerouslySetInnerHTML={{ __html: selectedGuide.content }} 
-                        />
-
-                        {/* Video Secundario */}
-                        {selectedGuide.videoUrl && (
-                            <div className="mt-12 rounded-[2.5rem] overflow-hidden shadow-2xl bg-black aspect-video border-4 border-white dark:border-gray-700">
-                                <iframe 
-                                    src={getEmbedUrl(selectedGuide.videoUrl)} 
-                                    className="w-full h-full border-0"
-                                    allowFullScreen
-                                />
-                            </div>
-                        )}
-
-                        {/* Etiquetas */}
-                        <div className="pt-8 border-t border-gray-50 dark:border-gray-700 flex flex-wrap gap-2">
-                            <FaTag className="text-gray-300 mr-2" />
-                            {selectedGuide.tags?.map((tag, i) => (
-                                <span key={i} className="text-[9px] font-black uppercase tracking-widest bg-gray-50 dark:bg-gray-900 px-3 py-1.5 rounded-lg text-gray-500">#{tag}</span>
-                            ))}
-                        </div>
+                    <div className="flex gap-2">
+                        <button 
+                            onClick={() => {
+                                if (navigator.share) navigator.share({ title: selectedGuide.title, url: window.location.href });
+                                else { navigator.clipboard.writeText(window.location.href); alert("¡Enlace copiado!"); }
+                            }}
+                            className="p-3 bg-white dark:bg-gray-800 text-gray-400 hover:text-indigo-600 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 transition-all"
+                        >
+                            <FaShareAlt size={14} />
+                        </button>
                     </div>
                 </div>
 
-                {/* Banner de Soporte Final */}
-                <div className="p-10 rounded-[3rem] bg-gradient-to-br from-indigo-600 to-blue-700 text-white shadow-2xl shadow-indigo-600/20 flex flex-col md:flex-row items-center justify-between gap-8">
-                    <div className="text-center md:text-left">
-                        <h3 className="text-2xl font-black mb-2 uppercase tracking-tighter italic">¿Necesitas ayuda técnica adicional?</h3>
-                        <p className="text-indigo-100 font-medium">Nuestro equipo de ingeniería está listo para asistirte.</p>
+                {/* Contenido Orgánico - Sin contenedor rígido */}
+                <div className="px-4 sm:px-0 space-y-10">
+                    <div className="space-y-6">
+                        <span className="inline-block px-4 py-1.5 bg-indigo-600 text-white text-[9px] font-black uppercase tracking-[0.2em] rounded-xl shadow-lg shadow-indigo-600/20">
+                            {selectedGuide.category}
+                        </span>
+                        <h1 className="text-3xl sm:text-6xl font-black text-gray-900 dark:text-white tracking-tighter leading-none uppercase italic italic-none">
+                            {selectedGuide.title}
+                        </h1>
+                        
+                        <div className="flex flex-wrap items-center gap-6 text-[10px] font-black uppercase tracking-widest text-gray-400 pt-4">
+                            <div className="flex items-center gap-2">
+                                <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600">
+                                    <FaUser size={12} />
+                                </div>
+                                <span>Por <span className="text-gray-900 dark:text-gray-200">{selectedGuide.author}</span></span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-400">
+                                    <FaCalendarAlt size={12} />
+                                </div>
+                                <span>{new Date(selectedGuide.createdAt).toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                            </div>
+                        </div>
                     </div>
-                    <a href="https://wa.me/525512345678" target="_blank" rel="noreferrer" className="px-8 py-4 bg-white text-indigo-600 font-black uppercase text-xs tracking-widest rounded-2xl hover:scale-105 transition-all shadow-xl shadow-black/10">
-                        Contactar Soporte
-                    </a>
+
+                    {/* Imagen de Portada Cinematográfica */}
+                    {selectedGuide.image && (
+                        <div className="rounded-[3rem] overflow-hidden shadow-2xl ring-8 ring-white dark:ring-gray-800">
+                            <img src={selectedGuide.image} alt={selectedGuide.title} className="w-full h-auto object-cover max-h-[600px]" />
+                        </div>
+                    )}
+
+                    {/* Cuerpo de la Guía - Renderizado en crudo sobre el fondo */}
+                    <div 
+                        className="prose prose-slate prose-sm sm:prose-lg max-w-none dark:prose-invert
+                            prose-headings:font-black prose-headings:tracking-tighter prose-headings:text-gray-900 dark:prose-headings:text-white
+                            prose-p:text-gray-600 dark:prose-p:text-gray-400 prose-p:leading-relaxed prose-p:text-lg
+                            prose-strong:text-indigo-600 dark:prose-strong:text-indigo-400
+                            prose-img:rounded-[2.5rem] prose-img:shadow-2xl prose-img:ring-4 prose-img:ring-white dark:prose-img:ring-gray-800
+                            /* Bloques dinámicos */
+                            [&_h2]:text-2xl sm:[&_h2]:text-4xl [&_h2]:mt-20 [&_h2]:mb-8
+                            [&_.border-l-8]:border-l-8 [&_.border-indigo-500]:border-indigo-500 
+                            [&_.bg-slate-50]:bg-white dark:[&_.bg-slate-50]:bg-gray-800
+                            [&_.bg-cyan-50]:bg-indigo-50 dark:[&_.bg-cyan-50]:bg-indigo-900/20
+                            [&_.p-10]:p-8 sm:[&_.p-10]:p-12 [&_.rounded-3xl]:rounded-[2.5rem]
+                            [&_.grid]:grid [&_.gap-6]:gap-6 [&_.md\:gap-8]:md:gap-8"
+                        dangerouslySetInnerHTML={{ __html: selectedGuide.content }} 
+                    />
+
+                    {/* Video Técnico */}
+                    {selectedGuide.videoUrl && (
+                        <div className="rounded-[3rem] overflow-hidden shadow-2xl bg-black aspect-video ring-8 ring-white dark:ring-gray-800">
+                            <iframe 
+                                src={getEmbedUrl(selectedGuide.videoUrl)} 
+                                className="w-full h-full border-0"
+                                allowFullScreen
+                            />
+                        </div>
+                    )}
+
+                    {/* Footer y Etiquetas */}
+                    <div className="pt-10 border-t border-gray-200 dark:border-gray-800 flex flex-wrap gap-2">
+                        {selectedGuide.tags?.map((tag, i) => (
+                            <span key={i} className="text-[10px] font-black uppercase tracking-widest text-indigo-600 bg-indigo-50 dark:bg-indigo-900/30 px-4 py-2 rounded-xl">#{tag}</span>
+                        ))}
+                    </div>
+                </div>
+
+                {/* Banner de Acción Minimalista */}
+                <div className="p-1 sm:p-2 bg-indigo-600 rounded-[2.5rem] shadow-2xl shadow-indigo-600/20 overflow-hidden">
+                    <div className="bg-white/10 backdrop-blur-md p-10 rounded-[2rem] flex flex-col md:flex-row items-center justify-between gap-8 text-center md:text-left border border-white/20">
+                        <div className="text-white">
+                            <h3 className="text-2xl sm:text-3xl font-black uppercase tracking-tighter leading-none mb-2 italic">Soporte Técnico Especializado</h3>
+                            <p className="opacity-80 font-medium text-sm">¿Necesitas asesoría con este proceso? Contacta a nuestros ingenieros.</p>
+                        </div>
+                        <a href="https://wa.me/525512345678" target="_blank" rel="noreferrer" className="px-10 py-4 bg-white text-indigo-600 font-black uppercase text-xs tracking-widest rounded-2xl hover:scale-105 active:scale-95 transition-all shadow-xl">
+                            WhatsApp Ingeniería
+                        </a>
+                    </div>
                 </div>
             </div>
         );

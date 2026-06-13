@@ -29,10 +29,13 @@ const corsOptions = {
 app.use(cors(corsOptions));
 
 // 3. Rate Limiting (Protección contra fuerza bruta/DDoS)
+const isRateLimitDisabled = process.env.DISABLE_RATE_LIMIT === 'true';
+
 const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutos
   max: 1000, // Límite de 1000 peticiones por IP
-  message: { error: 'Demasiadas peticiones desde esta IP, por favor intenta más tarde.' }
+  message: { error: 'Demasiadas peticiones desde esta IP, por favor intenta más tarde.' },
+  skip: () => isRateLimitDisabled // ✅ Saltar si está desactivado en el .env
 });
 app.use('/api/', globalLimiter);
 
@@ -40,7 +43,8 @@ app.use('/api/', globalLimiter);
 const authLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hora
   max: 20, // 20 intentos de login por hora
-  message: { error: 'Demasiados intentos de acceso. Por seguridad, tu IP ha sido bloqueada temporalmente.' }
+  message: { error: 'Demasiados intentos de acceso. Por seguridad, tu IP ha sido bloqueada temporalmente.' },
+  skip: () => isRateLimitDisabled // ✅ Saltar si está desactivado en el .env
 });
 
 app.use(express.json({ limit: '50mb' }));

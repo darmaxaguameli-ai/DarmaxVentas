@@ -6,8 +6,12 @@ const { verifyToken, requirePermission } = require('../middleware/auth');
 // --- MARKETING POSTS ---
 router.get('/marketing', verifyToken, requirePermission('canAccessMarketing'), async (req, res) => {
   try {
-    const { id, role } = req.user;
-    const where = role !== 'ADMIN' ? { creadorId: id } : {};
+    const user = req.fullUser;
+    const isAdmin = user.role === 'ADMIN' || (user.roles && user.roles.some(r => r.name.toUpperCase() === 'ADMIN'));
+    
+    // Si es ADMIN ve todo, si no, solo lo propio
+    const where = isAdmin ? {} : { creadorId: user.id };
+    
     const posts = await prisma.marketingPost.findMany({ 
       where, 
       include: { creador: { select: { name: true, customId: true } } }, 
@@ -15,6 +19,7 @@ router.get('/marketing', verifyToken, requirePermission('canAccessMarketing'), a
     });
     res.json(posts);
   } catch (error) {
+    console.error("Error en GET /marketing:", error);
     res.status(500).json({ error: 'Error fetching marketing posts' });
   }
 });
@@ -41,37 +46,80 @@ router.post('/marketing', verifyToken, requirePermission('canAccessMarketing'), 
 
 router.put('/marketing/:id', verifyToken, requirePermission('canAccessMarketing'), async (req, res) => {
   try {
-    const { titulo, descripcion, url, fechaEntrega, fechaPublicacion, status, plataforma, vistas, likes, compartidos, seguidoresGanados, isLive, comentariosAdmin } = req.body;
-    const post = await prisma.marketingPost.update({
-      where: { id: req.params.id },
-      data: {
-        titulo,
-        descripcion,
-        url,
-        fechaEntrega: fechaEntrega ? new Date(fechaEntrega) : undefined,
-        fechaPublicacion: fechaPublicacion ? new Date(fechaPublicacion) : undefined,
-        status,
-        plataforma,
-        vistas: vistas !== undefined ? parseInt(vistas) : undefined,
-        likes: likes !== undefined ? parseInt(likes) : undefined,
-        compartidos: compartidos !== undefined ? parseInt(compartidos) : undefined,
-        seguidoresGanados: seguidoresGanados !== undefined ? parseInt(seguidoresGanados) : undefined,
-        isLive,
-        comentariosAdmin
-      }
-    });
+    const { id } = req.params;
+    const user = req.fullUser;
+    const data = req.body;
+
+    const existingPost = await prisma.marketingPost.findUnique({ where: { id } });
+    if (!existingPost) return res.status(404).json({ error: 'Actividad no encontrada' });
+
+    // Lógica de Permisos para Edición (Consistente con GET)
+    const isAdmin = user.role === 'ADMIN' || (user.roles && user.roles.some(r => r.name.toUpperCase() === 'ADMIN'));
+    const updateData = {};
+
+    if (isAdmin) {
+        Object.assign(updateData, {
+            titulo: data.titulo,
+            descripcion: data.descripcion,
+            url: data.url,
+            fechaEntrega: data.fechaEntrega ? new Date(data.fechaEntrega) : undefined,
+            fechaPublicacion: data.fechaPublicacion ? new Date(data.fechaPublicacion) : undefined,
+            status: data.status,
+            plataforma: data.plataforma,
+            vistas: data.vistas !== undefined ? parseInt(data.vistas) : undefined,
+            likes: data.likes !== undefined ? parseInt(data.likes) : undefined,
+            compartidos: data.compartidos !== undefined ? parseInt(data.compartidos) : undefined,
+            seguidoresGanados: data.seguidoresGanados !== undefined ? parseInt(data.seguidoresGanados) : undefined,
+            isLive: data.isLive,
+            comentariosAdmin: data.comentariosAdmin,
+            editAuthorized: data.editAuthorized
+        });
+    } else {
+        if (existingPost.creadorId !== user.id) return res.status(403).json({ error: 'No tienes permiso sobre esta actividad' });
+
+        if (data.plataforma) updateData.plataforma = data.plataforma;
+        if (data.requestEdit) updateData.comentariosAdmin = `[SOLICITUD DE EDICIÓN] ${new Date().toLocaleString()}: El colaborador solicita habilitar cambios.`;
+
+        if (existingPost.editAuthorized || existingPost.status === 'BORRADOR') {
+            if (data.titulo) updateData.titulo = data.titulo;
+            if (data.descripcion) updateData.descripcion = data.descripcion;
+            if (data.url) updateData.url = data.url;
+            if (data.fechaEntrega) updateData.fechaEntrega = new Date(data.fechaEntrega);
+        }
+
+        if (existingPost.status === 'PUBLICADO') {
+            updateData.vistas = data.vistas !== undefined ? parseInt(data.vistas) : undefined;
+            updateData.likes = data.likes !== undefined ? parseInt(data.likes) : undefined;
+            updateData.compartidos = data.compartidos !== undefined ? parseInt(data.compartidos) : undefined;
+            updateData.seguidoresGanados = data.seguidoresGanados !== undefined ? parseInt(data.seguidoresGanados) : undefined;
+        }
+
+        if (data.status) {
+            updateData.status = (data.status === 'APROBADO' || data.status === 'PUBLICADO') ? 'PENDIENTE_APROBACION' : data.status;
+        }
+    }
+
+    const post = await prisma.marketingPost.update({ where: { id }, data: updateData });
     res.json(post);
   } catch (error) {
-    res.status(500).json({ error: 'Error updating marketing post' });
+    console.error("Error en PUT /marketing:", error);
+    res.status(500).json({ error: 'Error al actualizar actividad' });
   }
 });
 
 router.delete('/marketing/:id', verifyToken, requirePermission('canAccessMarketing'), async (req, res) => {
   try {
+    const user = req.fullUser;
+    const isAdmin = user.role === 'ADMIN' || (user.roles && user.roles.some(r => r.name.toUpperCase() === 'ADMIN'));
+    
+    if (!isAdmin) {
+        return res.status(403).json({ error: 'Solo los administradores pueden eliminar actividades.' });
+    }
     await prisma.marketingPost.delete({ where: { id: req.params.id } });
     res.status(204).send();
   } catch (error) {
-    res.status(500).json({ error: 'Error deleting marketing post' });
+    console.error("Error en DELETE /marketing:", error);
+    res.status(500).json({ error: 'Error al eliminar actividad' });
   }
 });
 

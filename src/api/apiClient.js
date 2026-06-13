@@ -62,6 +62,7 @@ export const updateProductCategory = (id, data) => apiClient.put(`/product-categ
 // ====================================================================
 export const fetchProducts = () => apiClient.get('/products').then(res => res.data);
 export const createProduct = (productData) => apiClient.post('/products', productData).then(res => res.data);
+export const importProductsBulk = (products) => apiClient.post('/products/bulk', products).then(res => res.data);
 export const updateProduct = (id, productData) => apiClient.put(`/products/${id}`, productData).then(res => res.data);
 export const deleteProduct = (id) => apiClient.delete(`/products/${id}`).then(res => res.data);
 

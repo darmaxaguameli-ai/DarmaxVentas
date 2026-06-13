@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import apiClient, { 
     fetchBlogPosts, 
     createBlogPost, 
@@ -15,7 +16,7 @@ import {
     FaNewspaper, FaCheckCircle, FaTimesCircle, FaArrowLeft, 
     FaSave, FaCode, FaHeading, FaParagraph, FaLightbulb, 
     FaListUl, FaQuoteLeft, FaChevronUp, FaChevronDown, FaBold, FaItalic,
-    FaUndo, FaRedo, FaColumns, FaGlobe, FaShieldAlt
+    FaUndo, FaRedo, FaColumns, FaGlobe, FaShieldAlt, FaTimes
 } from 'react-icons/fa';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -96,8 +97,8 @@ const compileToHTML = (blocks, extras = []) => {
             case 'video-sidebar':
                 const isAfterHeading = idx > 0 && blocks[idx-1].type === 'heading';
                 const overlapClass = (isAfterHeading && block.align === 'right') ? 'lg:-mt-40' : '';
-                const alignClass = block.align === 'left' ? `float-left mr-8 ml-0 lg:-ml-12 ${overlapClass}` : `float-right ml-8 mr-0 lg:-mr-12 ${overlapClass}`;
-                return `<div class="${alignClass} mb-14 w-[320px] sm:w-[360px] aspect-[9/16] rounded-[2.5rem] overflow-hidden shadow-2xl border-4 border-white bg-black z-10 relative ring-1 ring-slate-100"><iframe src="${getEmbedUrl(block.content)}" class="w-full h-full border-0" allowfullscreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"></iframe></div>`;
+                const alignClass = block.align === 'left' ? `float-left mr-10 ml-0 lg:-ml-12 ${overlapClass}` : `float-right ml-10 mr-0 lg:-mr-12 ${overlapClass}`;
+                return `<div class="${alignClass} mb-14 w-[380px] sm:w-[480px] aspect-[9/16] rounded-[3rem] overflow-hidden shadow-2xl border-4 border-white bg-black z-10 relative ring-1 ring-slate-100"><iframe src="${getEmbedUrl(block.content)}" class="w-full h-full border-0" allowfullscreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"></iframe></div>`;
             case 'tip':
                 return contentWrapper(`<div class="bg-cyan-50 p-10 rounded-3xl border border-cyan-100 my-14 shadow-inner shadow-cyan-900/5"><h4 class="font-black text-cyan-900 mb-4 text-xl flex items-center gap-2">💡 Tip clave de Darmax:</h4><p style="font-size: 17px; line-height: 1.7;" class="text-cyan-800 italic">${block.content}</p></div>`);
             case 'image':
@@ -107,7 +108,7 @@ const compileToHTML = (blocks, extras = []) => {
                     let cleaned = i.replace('</div>', '').trim();
                     return cleaned ? `<li style="font-size: 18px; line-height: 1.8;" class="relative pl-0 mb-6 text-slate-600 list-none border-l-4 border-cyan-500/20 pl-6">${cleaned}</li>` : '';
                 }).filter(i => i !== '').join('');
-                return contentWrapper(`<ul class="space-y-4 mb-14 pl-0">${listItems || block.content.split('\n').map(i => `<li style="font-size: 18px; line-height: 1.8;" class="relative pl-0 mb-6 text-slate-600 list-none border-l-4 border-cyan-500/20 pl-6">${i.trim()}</li>`).join('')}</ul>`);
+                return contentWrapper(listItems || block.content.split('\n').map(i => `<li style="font-size: 18px; line-height: 1.8;" class="relative pl-0 mb-6 text-slate-600 list-none border-l-4 border-cyan-500/20 pl-6">${i.trim()}</li>`).join(''));
             case 'extra':
                 const extra = extras.find(ex => ex.id === block.content);
                 if (!extra) return '';
@@ -376,186 +377,220 @@ const Blog = () => {
     };
 
     if (view === 'editor') {
-        return (
-            <div className="animate-fade-in space-y-8 pb-20">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <button onClick={() => setView('list')} className="flex items-center gap-2 text-gray-500 hover:text-primary transition-colors font-black uppercase text-[10px] tracking-widest"><FaArrowLeft /> Volver al listado</button>
-                    <button onClick={handleSave} className="btn-primary flex items-center gap-3 py-3 px-8 shadow-xl shadow-primary/20"><FaSave /> {editingPost ? 'Guardar Cambios' : 'Publicar Ahora'}</button>
-                </div>
-
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                    <div className="lg:col-span-4 space-y-6">
-                        <div className="bg-white dark:bg-gray-800 p-6 rounded-[2.5rem] border border-gray-100 dark:border-gray-700 shadow-sm sticky top-6">
-                            <h3 className="text-sm font-black text-gray-800 dark:text-white uppercase tracking-widest flex items-center gap-2 mb-6 border-b dark:border-gray-700 pb-4"><FaNewspaper className="text-primary" /> Configuración Post</h3>
-                            <div className="space-y-4">
-                                <div><label className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1.5 block italic">Destino del Contenido</label><select className="w-full bg-gray-100 dark:bg-gray-900 p-3 rounded-xl border-none font-black text-[10px] uppercase tracking-widest outline-none text-primary" value={formData.target} onChange={e => setFormData({...formData, target: e.target.value})}><option value="WEB">Sitio Web Público</option><option value="INTERNAL">Gestión Interna (Guías)</option></select></div>
-                                <div><label className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1.5 block italic">Título Principal *</label><input type="text" required className="w-full bg-gray-50 dark:bg-gray-900 p-3 rounded-xl border-none font-bold text-sm outline-none focus:ring-2 focus:ring-primary" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} /></div>
-                                <div><label className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1.5 block italic">Extracto (Resumen corto) *</label><textarea rows="3" required className="w-full bg-gray-50 dark:bg-gray-900 p-3 rounded-xl border-none font-medium text-xs outline-none focus:ring-2 focus:ring-primary resize-none" value={formData.excerpt} onChange={e => setFormData({...formData, excerpt: e.target.value})} /></div>
-                                <div className="grid grid-cols-2 gap-3">
-                                    <div><label className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1.5 block italic">Categoría</label><select className="w-full bg-gray-50 dark:bg-gray-900 p-3 rounded-xl border-none font-bold text-[10px] outline-none" value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})}><option value="Articulo">Articulo</option><option value="Mantenimiento">Mantenimiento</option><option value="Manejo">Manejo</option><option value="Guía Rápida">Guía Rápida</option><option value="Vending">Vending</option></select></div>
-                                    <div><label className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1.5 block italic">Autor</label><input type="text" className="w-full bg-gray-50 dark:bg-gray-900 p-3 rounded-xl border-none font-bold text-[10px] outline-none" value={formData.author} onChange={e => setFormData({...formData, author: e.target.value})} /></div>
-                                </div>
-                                <div><label className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1.5 block italic">URL Imagen Portada</label><input type="text" className="w-full bg-gray-50 dark:bg-gray-900 p-3 rounded-xl border-none font-bold text-[10px] outline-none" value={formData.image} onChange={e => setFormData({...formData, image: e.target.value})} /></div>
-                                <div className="pt-4 flex items-center justify-between bg-gray-50 dark:bg-gray-900/40 p-4 rounded-2xl"><span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Visible</span><label className="relative inline-flex items-center cursor-pointer"><input type="checkbox" checked={formData.published} onChange={e => setFormData({...formData, published: e.target.checked})} className="sr-only peer" /><div className="w-11 h-6 bg-gray-200 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary"></div></label></div>
-                            </div>
+        return createPortal(
+            <div className="fixed inset-0 z-[9999] bg-white dark:bg-gray-900 flex flex-col animate-in fade-in duration-300">
+                {/* Header Superior persistente */}
+                <div className="p-4 border-b dark:border-gray-800 flex justify-between items-center bg-white dark:bg-gray-900 shrink-0">
+                    <div className="flex items-center gap-4">
+                        <button onClick={() => setView('list')} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-all text-gray-500">
+                            <FaArrowLeft />
+                        </button>
+                        <div>
+                            <h2 className="text-sm font-black uppercase tracking-tight flex items-center gap-2 leading-none">
+                                {editingPost ? 'Editando Artículo' : 'Nuevo Contenido'}
+                            </h2>
+                            <p className="text-[10px] text-gray-400 font-bold uppercase mt-1 tracking-widest italic">{activeTab === 'WEB' ? 'Publicación Web' : 'Guía Técnica Interna'}</p>
                         </div>
                     </div>
+                    <div className="flex gap-3">
+                        <button onClick={() => setView('list')} className="hidden sm:block px-6 py-2.5 bg-gray-100 dark:bg-gray-800 text-gray-500 font-black rounded-xl uppercase text-[10px] tracking-widest hover:bg-gray-200">Descartar</button>
+                        <button onClick={handleSave} className="btn-primary px-8 py-2.5 rounded-xl shadow-xl shadow-primary/20 flex items-center gap-2 text-[10px] font-black uppercase tracking-widest"><FaSave /> Guardar Cambios</button>
+                    </div>
+                </div>
 
-                    <div className="lg:col-span-8 space-y-6">
-                        <div className="bg-white dark:bg-gray-800 p-6 sm:p-10 rounded-[3rem] border border-gray-100 dark:border-gray-700 shadow-xl min-h-[600px] flex flex-col">
-                            <div className="flex flex-wrap gap-2 mb-10 pb-6 border-b dark:border-gray-700">
-                                {BLOCK_TYPES.map(bt => (
-                                    <button key={bt.type} onClick={() => addBlock(bt.type)} className="flex items-center gap-2 px-4 py-2 bg-gray-50 dark:bg-gray-900 hover:bg-primary/10 hover:text-primary rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"><span className={bt.color}>{bt.icon}</span>{bt.label}</button>
-                                ))}
-                            </div>
-                            <div className="space-y-4 flex-1">
-                                {blocks.map((block, idx) => (
-                                    <div key={block.id} className="group relative bg-gray-50/30 dark:bg-gray-900/20 p-4 sm:p-6 rounded-3xl border border-transparent hover:border-primary/20 transition-all">
-                                        <div className="absolute -left-3 top-1/2 -translate-y-1/2 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <button onClick={() => moveBlock(idx, -1)} className="p-2 bg-white dark:bg-gray-800 shadow-md rounded-lg text-gray-400 hover:text-primary"><FaChevronUp size={10}/></button>
-                                            <button onClick={() => moveBlock(idx, 1)} className="p-2 bg-white dark:bg-gray-800 shadow-md rounded-lg text-gray-400 hover:text-primary"><FaChevronDown size={10}/></button>
-                                            <button onClick={() => removeBlock(block.id)} className="p-2 bg-white dark:bg-gray-800 shadow-md rounded-lg text-gray-400 hover:text-red-500"><FaTrash size={10}/></button>
+                <div className="flex-1 overflow-y-auto bg-gray-50/50 dark:bg-black/20 custom-scrollbar">
+                    <div className="max-w-7xl mx-auto p-4 sm:p-8">
+                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                            {/* SIDEBAR: FICHA TÉCNICA */}
+                            <div className="lg:col-span-4 space-y-6">
+                                <div className="bg-white dark:bg-gray-800 p-6 rounded-[2rem] border border-gray-100 dark:border-gray-700 shadow-sm">
+                                    <h3 className="text-xs font-black text-gray-800 dark:text-white uppercase tracking-widest flex items-center gap-2 mb-6 pb-4 border-b dark:border-gray-700">
+                                        <FaNewspaper className="text-primary" /> Datos del Post
+                                    </h3>
+                                    <div className="space-y-4">
+                                        <div>
+                                            <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1.5 block italic">Título *</label>
+                                            <input type="text" required className="w-full bg-gray-50 dark:bg-gray-900 p-3 rounded-xl border border-transparent focus:border-primary/20 font-bold text-sm outline-none transition-all" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} />
                                         </div>
-                                        <div className="space-y-4">
-                                            <div className="flex justify-between items-center px-1">
-                                                <div className="flex items-center gap-3"><div className={`p-2 rounded-xl bg-white dark:bg-gray-800 shadow-sm border border-gray-100 dark:border-gray-700 ${BLOCK_TYPES.find(t => t.type === block.type)?.color}`}>{BLOCK_TYPES.find(t => t.type === block.type)?.icon}</div><span className="text-[10px] font-black text-gray-500 dark:text-gray-400 uppercase tracking-[0.2em]">{BLOCK_TYPES.find(t => t.type === block.type)?.label}</span></div>
-                                                {block.type === 'heading' && (<select className="text-[9px] font-black bg-gray-100 dark:bg-gray-800 px-3 py-1.5 rounded-lg border-none outline-none uppercase tracking-widest" value={block.accent} onChange={e => updateBlock(block.id, block.content, e.target.value)}>{Object.entries(ACCENT_COLORS).map(([key, val]) => (<option key={key} value={key}>{val.label}</option>))}</select>)}
+                                        <div>
+                                            <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1.5 block italic">Resumen / Extracto *</label>
+                                            <textarea rows="3" required className="w-full bg-gray-50 dark:bg-gray-900 p-3 rounded-xl border border-transparent focus:border-primary/20 font-medium text-xs outline-none resize-none" value={formData.excerpt} onChange={e => setFormData({...formData, excerpt: e.target.value})} />
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div>
+                                                <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1.5 block italic">Categoría</label>
+                                                <select className="w-full bg-gray-50 dark:bg-gray-900 p-3 rounded-xl border-none font-bold text-[10px] outline-none" value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})}>
+                                                    <option value="Articulo">Articulo</option>
+                                                    <option value="Mantenimiento">Mantenimiento</option>
+                                                    <option value="Manejo">Manejo</option>
+                                                    <option value="Guía Rápida">Guía Rápida</option>
+                                                    <option value="Vending">Vending</option>
+                                                </select>
                                             </div>
-                                            
-                                            {/* BLOQUE: TÍTULO */}
-                                            {block.type === 'heading' && (
-                                                <div className="relative group/heading">
-                                                    <RichTextToolbar onAction={() => {}} onUndo={() => handleBlockUndo(block.id)} onRedo={() => handleBlockRedo(block.id)} canUndo={(blockHistories[block.id]?.undo || []).length > 0} canRedo={(blockHistories[block.id]?.redo || []).length > 0} hideFormatting={true} accent={block.accent} onAccentChange={(newAccent) => updateBlock(block.id, block.content, newAccent)} />
-                                                    <textarea rows="2" value={block.content} onChange={(e) => updateBlock(block.id, e.target.value, block.accent)} style={{ borderLeft: `8px solid ${ACCENT_COLORS[block.accent]?.hex || '#06b6d4'}`, backgroundColor: ACCENT_COLORS[block.accent]?.bg || 'rgba(6, 182, 212, 0.05)', fontSize: '28px', lineHeight: '1.3' }} className="w-full p-6 pl-12 rounded-r-2xl border-none font-black text-gray-800 dark:text-white outline-none transition-all resize-none overflow-hidden" placeholder="Título... (Usa // para resaltar)" />
-                                                </div>
-                                            )}
-
-                                            {/* BLOQUE: PÁRRAFO */}
-                                            {block.type === 'paragraph' && (
-                                                <div className="relative group/rich">
-                                                    <RichTextToolbar onAction={(action) => document.execCommand(action, false, null)} onUndo={() => handleBlockUndo(block.id)} onRedo={() => handleBlockRedo(block.id)} canUndo={(blockHistories[block.id]?.undo || []).length > 0} canRedo={(blockHistories[block.id]?.redo || []).length > 0} />
-                                                    <div contentEditable suppressContentEditableWarning onBlur={(e) => updateBlock(block.id, e.currentTarget.innerHTML)} style={{ fontSize: '18px', lineHeight: '1.7' }} className="w-full bg-white dark:bg-gray-900 p-6 rounded-2xl border-none text-gray-600 dark:text-gray-300 outline-none min-h-[120px]" dangerouslySetInnerHTML={{ __html: block.content }} />
-                                                </div>
-                                            )}
-
-                                            {/* BLOQUE: CITA / DESTACADO */}
-                                            {block.type === 'highlight' && (
-                                                <div className="space-y-2">
-                                                    <div className="relative">
-                                                        <RichTextToolbar onAction={() => {}} onUndo={() => handleBlockUndo(block.id)} onRedo={() => handleBlockRedo(block.id)} canUndo={(blockHistories[block.id]?.undo || []).length > 0} canRedo={(blockHistories[block.id]?.redo || []).length > 0} hideFormatting={true} />
-                                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1 italic">" Texto de la Cita / Frase "</p>
-                                                    </div>
-                                                    <textarea rows="3" style={{ fontSize: '22px', lineHeight: '1.6' }} className="w-full bg-white dark:bg-gray-900 p-8 rounded-2xl border-l-8 border-cyan-500 font-bold italic text-slate-700 outline-none focus:ring-2 focus:ring-cyan-500/10 leading-tight" value={block.content} onChange={e => updateBlock(block.id, e.target.value)} placeholder="Frase destacada o cita..." />
-                                                </div>
-                                            )}
-
-                                            {/* BLOQUE: VIDEO */}
-                                            {(block.type === 'video' || block.type === 'video-sidebar') && (
-                                                <div className="space-y-4">
-                                                    {block.type === 'video-sidebar' && (
-                                                        <div className="flex items-center gap-4 bg-white dark:bg-gray-800 p-3 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm w-fit">
-                                                            <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest italic px-1">Lado:</span>
-                                                            <div className="flex gap-1">
-                                                                <button onClick={() => updateBlock(block.id, block.content, block.accent, 'left')} className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase transition-all ${block.align === 'left' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'bg-gray-50 text-gray-400 hover:bg-gray-100'}`}>Izquierda</button>
-                                                                <button onClick={() => updateBlock(block.id, block.content, block.accent, 'right')} className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase transition-all ${block.align === 'right' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'bg-gray-100 text-gray-400 hover:bg-gray-100'}`}>Derecha</button>
-                                                            </div>
-                                                        </div>
-                                                    )}
-                                                    <div className="relative">
-                                                        <RichTextToolbar onAction={() => {}} onUndo={() => handleBlockUndo(block.id)} onRedo={() => handleBlockRedo(block.id)} canUndo={(blockHistories[block.id]?.undo || []).length > 0} canRedo={(blockHistories[block.id]?.redo || []).length > 0} hideFormatting={true} />
-                                                        <p className="text-[10px] font-black text-red-500 uppercase tracking-widest px-1 italic">URL DEL VIDEO (Reels, TikTok, YouTube):</p>
-                                                        <input type="text" className="w-full bg-white dark:bg-gray-900 p-4 rounded-2xl border-none text-xs font-mono text-primary outline-none focus:ring-2 focus:ring-red-500/10" value={block.content} onChange={e => updateBlock(block.id, e.target.value, block.accent, block.align)} placeholder="https://..." />
-                                                    </div>
-                                                </div>
-                                            )}
-
-                                            {/* BLOQUE: IMAGEN */}
-                                            {block.type === 'image' && (
-                                                <div className="space-y-2">
-                                                    <div className="relative">
-                                                        <RichTextToolbar onAction={() => {}} onUndo={() => handleBlockUndo(block.id)} onRedo={() => handleBlockRedo(block.id)} canUndo={(blockHistories[block.id]?.undo || []).length > 0} canRedo={(blockHistories[block.id]?.redo || []).length > 0} hideFormatting={true} />
-                                                        <p className="text-[10px] font-black text-emerald-500 uppercase tracking-widest px-1">URL DE LA IMAGEN:</p>
-                                                    </div>
-                                                    <input type="text" className="w-full bg-white dark:bg-gray-900 p-4 rounded-2xl border-none text-xs font-mono text-primary outline-none focus:ring-2 focus:ring-emerald-500/10" value={block.content} onChange={e => updateBlock(block.id, e.target.value)} placeholder="https://..." />
-                                                </div>
-                                            )}
-
-                                            {/* BLOQUE: LISTA */}
-                                            {block.type === 'list' && (
-                                                <div className="relative group/rich space-y-2">
-                                                    <div className="relative">
-                                                        <RichTextToolbar onAction={(action) => document.execCommand(action, false, null)} onUndo={() => handleBlockUndo(block.id)} onRedo={() => handleBlockRedo(block.id)} canUndo={(blockHistories[block.id]?.undo || []).length > 0} canRedo={(blockHistories[block.id]?.redo || []).length > 0} />
-                                                        <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest px-1">Puntos de la Lista:</p>
-                                                    </div>
-                                                    <div contentEditable suppressContentEditableWarning onBlur={(e) => updateBlock(block.id, e.currentTarget.innerHTML)} style={{ fontSize: '18px', lineHeight: '1.7' }} className="w-full bg-white dark:bg-gray-900 p-6 rounded-2xl border-none text-gray-600 font-medium outline-none min-h-[100px]" dangerouslySetInnerHTML={{ __html: block.content }} />
-                                                </div>
-                                            )}
-
-                                            {/* BLOQUE: TIP */}
-                                            {block.type === 'tip' && (
-                                                <div className="space-y-2">
-                                                    <div className="relative">
-                                                        <RichTextToolbar onAction={() => {}} onUndo={() => handleBlockUndo(block.id)} onRedo={() => handleBlockRedo(block.id)} canUndo={(blockHistories[block.id]?.undo || []).length > 0} canRedo={(blockHistories[block.id]?.redo || []).length > 0} hideFormatting={true} />
-                                                        <h4 className="text-[11px] font-black text-cyan-900 dark:text-cyan-400 px-1 flex items-center gap-2">💡 Tip clave de Darmax:</h4>
-                                                    </div>
-                                                    <textarea rows="2" style={{ fontSize: '16px', lineHeight: '1.6' }} className="w-full bg-cyan-50 dark:bg-cyan-900/20 p-6 rounded-2xl border border-cyan-100 text-cyan-800 italic outline-none focus:ring-2 focus:ring-cyan-500/20" value={block.content} onChange={e => updateBlock(block.id, e.target.value)} placeholder="Escribe aquí el consejo práctico..." />
-                                                </div>
-                                            )}
-
-                                            {/* BLOQUE: COMPARATIVA */}
-                                            {block.type === 'comparison' && (
-                                                <div className="space-y-6">
-                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                                        {(() => {
-                                                            let columns = [];
-                                                            try { columns = JSON.parse(block.content); } catch (e) { columns = []; }
-                                                            const colorMap = {
-                                                                cyan: { bg: 'bg-cyan-50/50', heading: 'text-cyan-950', text: 'text-cyan-900' },
-                                                                teal: { bg: 'bg-teal-50/50', heading: 'text-teal-950', text: 'text-teal-900' },
-                                                                indigo: { bg: 'bg-indigo-50/50', heading: 'text-indigo-950', text: 'text-indigo-900' },
-                                                                rose: { bg: 'bg-rose-50/50', heading: 'text-rose-950', text: 'text-rose-900' },
-                                                                amber: { bg: 'bg-amber-50/50', heading: 'text-amber-950', text: 'text-amber-900' },
-                                                            };
-                                                            return columns.map((col, cIdx) => {
-                                                                const cls = colorMap[col.accent] || colorMap.cyan;
-                                                                return (
-                                                                    <div key={col.id || cIdx} className={`${cls.bg} p-6 rounded-[2rem] shadow-sm space-y-4 relative group/col`}>
-                                                                        <div className="flex justify-between items-center">
-                                                                            <select className="text-[9px] font-black bg-white/50 dark:bg-black/20 px-3 py-1.5 rounded-lg border-none outline-none uppercase tracking-widest text-primary" value={col.accent} onChange={(e) => { const newCols = [...columns]; newCols[cIdx].accent = e.target.value; updateBlock(block.id, JSON.stringify(newCols)); }}>{Object.entries(ACCENT_COLORS).map(([key, val]) => (<option key={key} value={key}>{val.label}</option>))}</select>
-                                                                            <button onClick={() => { const newCols = columns.filter((_, i) => i !== cIdx); updateBlock(block.id, JSON.stringify(newCols)); }} className="p-2 text-gray-400 hover:text-red-500 transition-colors"><FaTimesCircle size={14} /></button>
-                                                                        </div>
-                                                                        <input type="text" className={`w-full bg-transparent border-b border-black/5 font-black text-sm uppercase tracking-tight outline-none focus:border-primary py-1 ${cls.heading}`} placeholder="Título..." value={col.title} onChange={(e) => { const newCols = [...columns]; newCols[cIdx].title = e.target.value; updateBlock(block.id, JSON.stringify(newCols)); }} />
-                                                                        <div className="relative">
-                                                                            <RichTextToolbar onAction={(action) => document.execCommand(action, false, null)} onUndo={() => handleBlockUndo(block.id)} onRedo={() => handleBlockRedo(block.id)} canUndo={(blockHistories[block.id]?.undo || []).length > 0} canRedo={(blockHistories[block.id]?.redo || []).length > 0} containerId={`col-editor-${block.id}-${cIdx}`} />
-                                                                            <div id={`col-editor-${block.id}-${cIdx}`} contentEditable suppressContentEditableWarning onBlur={(e) => { const newCols = [...columns]; newCols[cIdx].content = e.currentTarget.innerHTML; updateBlock(block.id, JSON.stringify(newCols)); }} className={`w-full min-h-[100px] text-xs outline-none leading-relaxed ${cls.text}`} dangerouslySetInnerHTML={{ __html: col.content }} />
-                                                                        </div>
-                                                                    </div>
-                                                                );
-                                                            });
-                                                        })()}
-                                                    </div>
-                                                    <button onClick={() => { let columns = []; try { columns = JSON.parse(block.content); } catch (e) { columns = []; } const newCols = [...columns, { id: uuidv4(), title: 'Nueva Columna', content: 'Detalles...', accent: 'cyan' }]; updateBlock(block.id, JSON.stringify(newCols)); }} className="w-full py-4 border-2 border-dashed border-gray-100 dark:border-gray-700 rounded-3xl text-[10px] font-black uppercase tracking-widest text-gray-400 hover:border-primary hover:text-primary transition-all flex items-center justify-center gap-2"><FaPlus /> Añadir Columna</button>
-                                                </div>
-                                            )}
-
-                                            {/* BLOQUE: PRODUCTO EXTRA */}
-                                            {block.type === 'extra' && (
-                                                <div className="space-y-3">
-                                                    <div className="relative">
-                                                        <RichTextToolbar onAction={() => {}} onUndo={() => handleBlockUndo(block.id)} onRedo={() => handleBlockRedo(block.id)} canUndo={(blockHistories[block.id]?.undo || []).length > 0} canRedo={(blockHistories[block.id]?.redo || []).length > 0} hideFormatting={true} />
-                                                        <p className="text-[10px] font-black text-purple-500 uppercase tracking-widest px-1">Producto del Catálogo:</p>
-                                                    </div>
-                                                    <select className="w-full bg-white dark:bg-gray-900 p-4 rounded-2xl border-none text-sm font-bold text-primary outline-none" value={block.content} onChange={e => updateBlock(block.id, e.target.value)}><option value="">Selecciona un producto...</option>{extrasDisponibles.map(ex => ( <option key={ex.id} value={ex.id}>{ex.name} (${ex.basePrice})</option> ))}</select>
-                                                </div>
-                                            )}
+                                            <div>
+                                                <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1.5 block italic">Autor</label>
+                                                <input type="text" className="w-full bg-gray-50 dark:bg-gray-900 p-3 rounded-xl border-none font-bold text-[10px] outline-none" value={formData.author} onChange={e => setFormData({...formData, author: e.target.value})} />
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1.5 block italic">Imagen de Portada (URL)</label>
+                                            <input type="text" className="w-full bg-gray-50 dark:bg-gray-900 p-3 rounded-xl border-none font-bold text-[10px] outline-none" value={formData.image} onChange={e => setFormData({...formData, image: e.target.value})} placeholder="https://..." />
+                                        </div>
+                                        <div className="pt-4 flex items-center justify-between bg-gray-50 dark:bg-gray-900/40 p-4 rounded-2xl">
+                                            <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Publicar ahora</span>
+                                            <label className="relative inline-flex items-center cursor-pointer">
+                                                <input type="checkbox" checked={formData.published} onChange={e => setFormData({...formData, published: e.target.checked})} className="sr-only peer" />
+                                                <div className="w-11 h-6 bg-gray-200 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary"></div>
+                                            </label>
                                         </div>
                                     </div>
-                                ))}
+                                </div>
+                            </div>
+
+                            {/* ÁREA DE TRABAJO: EDITOR DE BLOQUES */}
+                            <div className="lg:col-span-8 space-y-6">
+                                <div className="bg-white dark:bg-gray-800 p-6 sm:p-10 rounded-[3rem] border border-gray-100 dark:border-gray-700 shadow-xl min-h-[600px] flex flex-col relative overflow-hidden">
+                                    <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full -mr-32 -mt-32" />
+                                    
+                                    <div className="flex flex-wrap gap-2 mb-10 pb-6 border-b dark:border-gray-700 relative z-10">
+                                        {BLOCK_TYPES.map(bt => (
+                                            <button key={bt.type} onClick={() => addBlock(bt.type)} className="flex items-center gap-2 px-4 py-2 bg-gray-50 dark:bg-gray-900 hover:bg-primary/10 hover:text-primary rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-sm border border-gray-100 dark:border-gray-700">
+                                                <span className={bt.color}>{bt.icon}</span>{bt.label}
+                                            </button>
+                                        ))}
+                                    </div>
+
+                                    <div className="space-y-4 flex-1 relative z-10">
+                                        {blocks.length === 0 ? (
+                                            <div className="flex flex-col items-center justify-center h-64 border-2 border-dashed border-gray-100 dark:border-gray-700 rounded-3xl opacity-30">
+                                                <FaPlus size={32} className="mb-4" />
+                                                <p className="text-[10px] font-black uppercase tracking-widest">Elige un bloque para comenzar</p>
+                                            </div>
+                                        ) : (
+                                            blocks.map((block, idx) => (
+                                                <div key={block.id} className="group relative bg-gray-50/50 dark:bg-gray-900/30 p-6 rounded-[2rem] border border-transparent hover:border-primary/20 transition-all">
+                                                    {/* Controles de Bloque */}
+                                                    <div className="absolute -left-3 top-1/2 -translate-y-1/2 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-20">
+                                                        <button onClick={() => moveBlock(idx, -1)} className="p-2 bg-white dark:bg-gray-800 shadow-md rounded-lg text-gray-400 hover:text-primary transition-all"><FaChevronUp size={10}/></button>
+                                                        <button onClick={() => moveBlock(idx, 1)} className="p-2 bg-white dark:bg-gray-800 shadow-md rounded-lg text-gray-400 hover:text-primary transition-all"><FaChevronDown size={10}/></button>
+                                                        <button onClick={() => removeBlock(block.id)} className="p-2 bg-white dark:bg-gray-800 shadow-md rounded-lg text-gray-400 hover:text-red-500 transition-all"><FaTrash size={10}/></button>
+                                                    </div>
+
+                                                    <div className="space-y-4">
+                                                        <div className="flex justify-between items-center px-1">
+                                                            <div className="flex items-center gap-3">
+                                                                <div className={`p-2 rounded-xl bg-white dark:bg-gray-800 shadow-sm border border-gray-100 dark:border-gray-700 ${BLOCK_TYPES.find(t => t.type === block.type)?.color}`}>
+                                                                    {BLOCK_TYPES.find(t => t.type === block.type)?.icon}
+                                                                </div>
+                                                                <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">{BLOCK_TYPES.find(t => t.type === block.type)?.label}</span>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Renderizado de Inputs de Bloque */}
+                                                        {block.type === 'heading' && (
+                                                            <div className="relative">
+                                                                <RichTextToolbar onAction={() => {}} onUndo={() => handleBlockUndo(block.id)} onRedo={() => handleBlockRedo(block.id)} canUndo={(blockHistories[block.id]?.undo || []).length > 0} canRedo={(blockHistories[block.id]?.redo || []).length > 0} hideFormatting={true} accent={block.accent} onAccentChange={(newAccent) => updateBlock(block.id, block.content, newAccent)} />
+                                                                <textarea rows="2" value={block.content} onChange={(e) => updateBlock(block.id, e.target.value, block.accent)} style={{ borderLeft: `8px solid ${ACCENT_COLORS[block.accent]?.hex || '#06b6d4'}`, backgroundColor: ACCENT_COLORS[block.accent]?.bg || 'rgba(6, 182, 212, 0.05)', fontSize: '28px', lineHeight: '1.3' }} className="w-full p-6 pl-12 rounded-r-2xl border-none font-black text-gray-800 dark:text-white outline-none transition-all resize-none overflow-hidden" placeholder="Título... (Usa // para resaltar)" />
+                                                            </div>
+                                                        )}
+
+                                                        {block.type === 'paragraph' && (
+                                                            <div className="relative">
+                                                                <RichTextToolbar onAction={(action) => document.execCommand(action, false, null)} onUndo={() => handleBlockUndo(block.id)} onRedo={() => handleBlockRedo(block.id)} canUndo={(blockHistories[block.id]?.undo || []).length > 0} canRedo={(blockHistories[block.id]?.redo || []).length > 0} />
+                                                                <div contentEditable suppressContentEditableWarning onBlur={(e) => updateBlock(block.id, e.currentTarget.innerHTML)} style={{ fontSize: '18px', lineHeight: '1.7' }} className="w-full bg-white dark:bg-gray-900 p-6 rounded-2xl border border-transparent focus:ring-2 focus:ring-primary/10 text-gray-600 dark:text-gray-300 outline-none min-h-[120px]" dangerouslySetInnerHTML={{ __html: block.content }} />
+                                                            </div>
+                                                        )}
+
+                                                        {block.type === 'highlight' && (
+                                                            <div className="space-y-2">
+                                                                <div className="relative">
+                                                                    <RichTextToolbar onAction={() => {}} onUndo={() => handleBlockUndo(block.id)} onRedo={() => handleBlockRedo(block.id)} canUndo={(blockHistories[block.id]?.undo || []).length > 0} canRedo={(blockHistories[block.id]?.redo || []).length > 0} hideFormatting={true} />
+                                                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1 italic">" Texto de la Cita / Frase "</p>
+                                                                </div>
+                                                                <textarea rows="3" style={{ fontSize: '22px', lineHeight: '1.6' }} className="w-full bg-white dark:bg-gray-900 p-8 rounded-2xl border-l-8 border-cyan-500 font-bold italic text-slate-700 outline-none focus:ring-2 focus:ring-cyan-500/10 leading-tight" value={block.content} onChange={e => updateBlock(block.id, e.target.value)} placeholder="Frase destacada o cita..." />
+                                                            </div>
+                                                        )}
+
+                                                        {(block.type === 'video' || block.type === 'video-sidebar') && (
+                                                            <div className="space-y-4">
+                                                                {block.type === 'video-sidebar' && (
+                                                                    <div className="flex items-center gap-4 bg-white dark:bg-gray-800 p-3 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm w-fit">
+                                                                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest italic px-1">Lado:</span>
+                                                                        <div className="flex gap-1">
+                                                                            <button onClick={() => updateBlock(block.id, block.content, block.accent, 'left')} className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase transition-all ${block.align === 'left' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'bg-gray-50 text-gray-400 hover:bg-gray-100'}`}>Izquierda</button>
+                                                                            <button onClick={() => updateBlock(block.id, block.content, block.accent, 'right')} className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase transition-all ${block.align === 'right' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'bg-gray-100 text-gray-400 hover:bg-gray-100'}`}>Derecha</button>
+                                                                        </div>
+                                                                    </div>
+                                                                )}
+                                                                <input type="text" className="w-full bg-white dark:bg-gray-900 p-4 rounded-2xl border-none text-xs font-mono text-primary outline-none" value={block.content} onChange={e => updateBlock(block.id, e.target.value, block.accent, block.align)} placeholder="URL del video (YouTube, TikTok, Reels)..." />
+                                                            </div>
+                                                        )}
+
+                                                        {block.type === 'image' && (
+                                                            <input type="text" className="w-full bg-white dark:bg-gray-900 p-4 rounded-2xl border-none text-xs font-mono text-primary outline-none" value={block.content} onChange={e => updateBlock(block.id, e.target.value)} placeholder="URL de la imagen..." />
+                                                        )}
+
+                                                        {block.type === 'tip' && (
+                                                            <div className="space-y-2">
+                                                                <h4 className="text-[11px] font-black text-cyan-900 dark:text-cyan-400 px-1 flex items-center gap-2">💡 Tip clave de Darmax:</h4>
+                                                                <textarea rows="2" style={{ fontSize: '16px', lineHeight: '1.6' }} className="w-full bg-cyan-50 dark:bg-cyan-900/20 p-6 rounded-2xl border border-cyan-100 text-cyan-800 italic outline-none focus:ring-2 focus:ring-cyan-500/20" value={block.content} onChange={e => updateBlock(block.id, e.target.value)} placeholder="Consejo práctico..." />
+                                                            </div>
+                                                        )}
+
+                                                        {block.type === 'list' && (
+                                                            <div contentEditable suppressContentEditableWarning onBlur={(e) => updateBlock(block.id, e.currentTarget.innerHTML)} style={{ fontSize: '18px', lineHeight: '1.7' }} className="w-full bg-white dark:bg-gray-900 p-6 rounded-2xl border border-transparent text-gray-600 font-medium outline-none min-h-[100px]" dangerouslySetInnerHTML={{ __html: block.content }} />
+                                                        )}
+
+                                                        {block.type === 'comparison' && (
+                                                            <div className="space-y-6">
+                                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                                    {(() => {
+                                                                        let columns = [];
+                                                                        try { columns = JSON.parse(block.content); } catch (e) { columns = []; }
+                                                                        const colorMap = {
+                                                                            cyan: { bg: 'bg-cyan-50/50', heading: 'text-cyan-950', text: 'text-cyan-900' },
+                                                                            teal: { bg: 'bg-teal-50/50', heading: 'text-teal-950', text: 'text-teal-900' },
+                                                                            indigo: { bg: 'bg-indigo-50/50', heading: 'text-indigo-950', text: 'text-indigo-900' },
+                                                                            rose: { bg: 'bg-rose-50/50', heading: 'text-rose-950', text: 'text-rose-900' },
+                                                                            amber: { bg: 'bg-amber-50/50', heading: 'text-amber-950', text: 'text-amber-900' },
+                                                                        };
+                                                                        return columns.map((col, cIdx) => {
+                                                                            const cls = colorMap[col.accent] || colorMap.cyan;
+                                                                            return (
+                                                                                <div key={col.id || cIdx} className={`${cls.bg} p-6 rounded-[2rem] shadow-sm space-y-4 relative group/col`}>
+                                                                                    <div className="flex justify-between items-center">
+                                                                                        <select className="text-[9px] font-black bg-white/50 dark:bg-black/20 px-3 py-1.5 rounded-lg border-none outline-none uppercase tracking-widest text-primary" value={col.accent} onChange={(e) => { const newCols = [...columns]; newCols[cIdx].accent = e.target.value; updateBlock(block.id, JSON.stringify(newCols)); }}>{Object.entries(ACCENT_COLORS).map(([key, val]) => (<option key={key} value={key}>{val.label}</option>))}</select>
+                                                                                        <button onClick={() => { const newCols = columns.filter((_, i) => i !== cIdx); updateBlock(block.id, JSON.stringify(newCols)); }} className="p-2 text-gray-400 hover:text-red-500 transition-colors"><FaTimesCircle size={14} /></button>
+                                                                                    </div>
+                                                                                    <input type="text" className={`w-full bg-transparent border-b border-black/5 font-black text-sm uppercase tracking-tight outline-none focus:border-primary py-1 ${cls.heading}`} placeholder="Título..." value={col.title} onChange={(e) => { const newCols = [...columns]; newCols[cIdx].title = e.target.value; updateBlock(block.id, JSON.stringify(newCols)); }} />
+                                                                                    <div id={`col-editor-${block.id}-${cIdx}`} contentEditable suppressContentEditableWarning onBlur={(e) => { const newCols = [...columns]; newCols[cIdx].content = e.currentTarget.innerHTML; updateBlock(block.id, JSON.stringify(newCols)); }} className={`w-full min-h-[100px] text-xs outline-none leading-relaxed ${cls.text}`} dangerouslySetInnerHTML={{ __html: col.content }} />
+                                                                                </div>
+                                                                            );
+                                                                        });
+                                                                    })()}
+                                                                </div>
+                                                                <button onClick={() => { let columns = []; try { columns = JSON.parse(block.content); } catch (e) { columns = []; } const newCols = [...columns, { id: uuidv4(), title: 'Nueva Columna', content: 'Detalles...', accent: 'cyan' }]; updateBlock(block.id, JSON.stringify(newCols)); }} className="w-full py-4 border-2 border-dashed border-gray-100 dark:border-gray-700 rounded-3xl text-[10px] font-black uppercase tracking-widest text-gray-400 hover:border-primary hover:text-primary transition-all flex items-center justify-center gap-2"><FaPlus /> Añadir Columna</button>
+                                                            </div>
+                                                        )}
+
+                                                        {block.type === 'extra' && (
+                                                            <select className="w-full bg-white dark:bg-gray-900 p-4 rounded-2xl border-none text-sm font-bold text-primary outline-none shadow-sm" value={block.content} onChange={e => updateBlock(block.id, e.target.value)}>
+                                                                <option value="">Selecciona un producto del catálogo...</option>
+                                                                {extrasDisponibles.map(ex => ( <option key={ex.id} value={ex.id}>{ex.name} (${ex.basePrice})</option> ))}
+                                                            </select>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            ))
+                                        )}
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
+            </div>,
+            document.body
         );
     }
 
@@ -566,7 +601,7 @@ const Blog = () => {
                     <h1 className="text-3xl sm:text-4xl font-black text-gray-800 dark:text-white flex items-center gap-4 tracking-tighter uppercase italic"><div className="bg-primary p-3 rounded-2xl shadow-lg shadow-primary/20 text-white"><FaNewspaper className="text-2xl" /></div> EDITOR DE CONTENIDO</h1>
                     <div className="text-xs sm:text-sm text-gray-500 font-bold mt-2 flex items-center gap-2"><div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div> Administra artículos web y guías internas</div>
                 </div>
-                <button onClick={() => { resetForm(); setBlocks([{id: uuidv4(), type: 'heading', content: ''}]); setView('editor'); }} className="btn-primary flex items-center justify-center gap-3 py-4 px-8 rounded-3xl shadow-2xl shadow-primary/30 font-black uppercase text-xs tracking-widest"><FaPlus /> Nuevo {activeTab === 'WEB' ? 'Artículo' : 'Guía Técnica'}</button>
+                <button onClick={() => { resetForm(); setBlocks([{id: uuidv4(), type: 'heading', content: ''}]); setView('editor'); }} className="btn-primary flex items-center justify-center gap-3 py-4 px-8 rounded-3xl shadow-2xl shadow-primary/30 font-black uppercase text-xs tracking-widest hover:scale-105 active:scale-95 transition-all"><FaPlus /> Nuevo {activeTab === 'WEB' ? 'Artículo' : 'Guía Técnica'}</button>
             </div>
 
             <div className="flex bg-gray-100 dark:bg-gray-900/50 p-1 rounded-2xl w-fit">
