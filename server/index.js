@@ -8,9 +8,9 @@ require('dotenv').config();
 const app = express();
 const port = process.env.PORT || 3001;
 
-// ✅ Habilitar confianza en el Proxy (Vercel, Nginx, etc.)
-// Requerido para que express-rate-limit funcione correctamente
-app.set('trust proxy', 1);
+// ✅ Habilitar confianza total en el Proxy (Vercel, Nginx, etc.)
+// Requerido para que express-rate-limit identifique IPs correctamente
+app.set('trust proxy', true);
 
 // 1. Seguridad de Cabeceras (Helmet)
 // Configuración personalizada para permitir scripts de mapas/pdfs si es necesario
@@ -94,6 +94,21 @@ app.use('/api', promotionRoutes);
 // Healthcheck
 app.get('/api/health', (req, res) => {
   res.send('Server is running and fully modularized!');
+});
+
+// ✅ MANEJADOR DE ERRORES GLOBAL
+// Captura cualquier error no manejado en las rutas y lo registra
+app.use((err, req, res, next) => {
+    console.error('--- GLOBAL ERROR HANDLER ---');
+    console.error('Message:', err.message);
+    console.error('Stack:', err.stack);
+    console.error('Path:', req.originalUrl);
+    console.error('----------------------------');
+
+    res.status(err.status || 500).json({ 
+        error: 'Ocurrió un error en el servidor.',
+        details: process.env.NODE_ENV === 'development' ? err.message : 'Error interno de infraestructura.'
+    });
 });
 
 if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
