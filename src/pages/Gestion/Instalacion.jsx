@@ -5,7 +5,8 @@ import { useAuth } from '../../context/AuthContext';
 import { 
     FaTools, FaPlus, FaTrash, FaEdit, FaEye, FaSearch, 
     FaBoxOpen, FaLayerGroup, FaTimes, FaSave, FaClipboardList,
-    FaExclamationTriangle, FaGripVertical, FaCube, FaPuzzlePiece
+    FaExclamationTriangle, FaGripVertical, FaCube, FaPuzzlePiece, 
+    FaDownload, FaChevronDown, FaChevronUp
 } from 'react-icons/fa';
 import Swal from 'sweetalert2';
 import { 
@@ -14,9 +15,7 @@ import {
     KeyboardSensor,
     PointerSensor,
     useSensor,
-    useSensors,
-    DragOverlay,
-    defaultDropAnimationSideEffects
+    useSensors
 } from '@dnd-kit/core';
 import {
     arrayMove,
@@ -27,6 +26,8 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { toast } from 'sonner';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 // ====================================================================
 // Componentes de Soporte DND
@@ -94,6 +95,31 @@ const InstallationModelModal = ({ isOpen, onClose, modelToEdit, onSave, inventor
     const [searchQuery, setSearchQuery] = useState('');
     const [moduleSearch, setModuleSearch] = useState('');
 
+    useEffect(() => {
+        if (modelToEdit) {
+            setName(modelToEdit.name || '');
+            setDescription(modelToEdit.description || '');
+            setIsModule(modelToEdit.isModule || false);
+            setSelectedModules(modelToEdit.modules?.map(m => ({
+                id: m.moduleId,
+                name: m.module?.name,
+                materialCount: m.module?.materials?.length || 0
+            })) || []);
+            setMaterials(modelToEdit.materials?.map(m => ({
+                productId: m.productId,
+                name: m.product?.name,
+                quantity: m.quantity,
+                unit: m.unit || 'Pza'
+            })) || []);
+        } else {
+            setName('');
+            setDescription('');
+            setIsModule(false);
+            setSelectedModules([]);
+            setMaterials([]);
+        }
+    }, [modelToEdit, isOpen]);
+
     const sensors = useSensors(
         useSensor(PointerSensor),
         useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
@@ -152,102 +178,108 @@ const InstallationModelModal = ({ isOpen, onClose, modelToEdit, onSave, inventor
     if (!isOpen) return null;
 
     return createPortal(
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl w-full max-w-5xl flex flex-col h-[90vh]">
-                <div className="flex justify-between items-center mb-6">
-                    <h2 className="text-2xl font-bold text-dark dark:text-white uppercase tracking-tight leading-none">
-                        {modelToEdit ? 'Editar Ingeniería' : 'Nuevo Diseño Modular'}
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm">
+            <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl w-full max-w-5xl flex flex-col h-[95vh] sm:h-[90vh] overflow-hidden animate-in zoom-in duration-300">
+                <div className="p-6 border-b dark:border-gray-700 flex justify-between items-center bg-gray-50/50 dark:bg-gray-900/20">
+                    <h2 className="text-xl font-black text-dark dark:text-white uppercase tracking-tight">
+                        {modelToEdit ? 'Editar Ingeniería' : 'Nuevo Diseño'}
                     </h2>
-                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors p-1">
-                        <FaTimes size={24} />
-                    </button>
+                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-white p-2">&times;</button>
                 </div>
 
-                <div className="flex-1 flex overflow-hidden gap-6">
-                    {/* LIBRERÍA */}
-                    <div className="w-64 border dark:border-gray-700 rounded-xl flex flex-col bg-gray-50 dark:bg-gray-900/20 overflow-hidden shrink-0">
-                        <div className="p-3 border-b dark:border-gray-700">
-                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 italic">Librería de Módulos</p>
-                            <input type="text" placeholder="Filtrar..." className="w-full p-2 bg-white dark:bg-gray-800 rounded-lg text-xs font-bold outline-none border dark:border-gray-700" value={moduleSearch} onChange={e => setModuleSearch(e.target.value)} />
+                <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
+                    {/* LIBRERÍA - Solo para Modelos */}
+                    {!isModule && (
+                        <div className="hidden md:flex w-64 border-r dark:border-gray-700 flex-col bg-gray-50/50 dark:bg-gray-900/10 overflow-hidden shrink-0">
+                            <div className="p-4 border-b dark:border-gray-700">
+                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 italic">Módulos Reutilizables</p>
+                                <input type="text" placeholder="Filtrar módulos..." className="w-full p-2.5 bg-white dark:bg-gray-800 rounded-xl text-xs font-bold outline-none border border-gray-100 dark:border-gray-700 focus:ring-2 focus:ring-primary/20 transition-all" value={moduleSearch} onChange={e => setModuleSearch(e.target.value)} />
+                            </div>
+                            <div className="flex-1 overflow-y-auto p-3 space-y-2 custom-scrollbar">
+                                {availableModules.map(mod => (
+                                    <div key={mod.id} onClick={() => addModule(mod)} className="p-4 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm cursor-pointer hover:border-primary transition-all group">
+                                        <p className="text-[10px] font-black uppercase truncate leading-none">{mod.name}</p>
+                                        <p className="text-[8px] font-bold text-gray-400 uppercase mt-1 italic">{mod.materials?.length || 0} piezas</p>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
-                        <div className="flex-1 overflow-y-auto p-2 space-y-2 custom-scrollbar">
-                            {availableModules.map(mod => (
-                                <div key={mod.id} onClick={() => addModule(mod)} className="p-3 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm cursor-pointer hover:border-primary transition-all group">
-                                    <p className="text-[10px] font-black uppercase truncate leading-none">{mod.name}</p>
-                                    <p className="text-[8px] font-bold text-gray-400 uppercase mt-1 italic">{mod.materials?.length || 0} componentes</p>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
+                    )}
 
                     {/* MESA DE TRABAJO */}
-                    <form onSubmit={handleSubmit} className="flex-1 flex flex-col overflow-hidden">
-                        <div className="flex-1 overflow-y-auto pr-2 space-y-6 custom-scrollbar">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <form onSubmit={handleSubmit} className="flex-1 flex flex-col overflow-hidden bg-white dark:bg-gray-800">
+                        <div className="flex-1 overflow-y-auto p-5 sm:p-8 space-y-8 custom-scrollbar">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                                 <div className="space-y-4">
                                     <div>
-                                        <label className="text-xs font-bold text-gray-500 uppercase mb-1 block">Nombre del Modelo</label>
-                                        <input value={name} onChange={(e) => setName(e.target.value)} required className="w-full input-style font-black text-lg" placeholder="VENDING 300" />
+                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 block italic">Nombre del Diseño *</label>
+                                        <input value={name} onChange={(e) => setName(e.target.value)} required className="w-full input-style font-black text-lg uppercase" placeholder="VENDING 300 MAX" />
                                     </div>
-                                    <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-900 rounded-xl border dark:border-gray-700">
+                                    <div className="flex items-center gap-3 p-4 bg-gray-50 dark:bg-gray-900/50 rounded-2xl border border-gray-100 dark:border-gray-700">
                                         <label className="relative inline-flex items-center cursor-pointer">
                                             <input type="checkbox" checked={isModule} onChange={e => setIsModule(e.target.checked)} className="sr-only peer" />
                                             <div className="w-11 h-6 bg-gray-200 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary"></div>
                                         </label>
-                                        <p className="text-[10px] font-black uppercase text-gray-500 italic">Convertir en Módulo Reutilizable</p>
+                                        <p className="text-[10px] font-black uppercase text-gray-500 italic">Es un Módulo Reutilizable</p>
                                     </div>
                                 </div>
                                 <div>
-                                    <label className="text-xs font-bold text-gray-500 uppercase mb-1 block">Descripción</label>
-                                    <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows="3" className="w-full input-style text-xs h-full" placeholder="Notas técnicas..." />
+                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 block italic">Especificaciones Técnicas</label>
+                                    <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows="4" className="w-full input-style text-xs font-medium resize-none h-full" placeholder="Detalles de ensamblaje o notas importantes..." />
                                 </div>
                             </div>
 
-                            <div className="space-y-4">
-                                <h4 className="text-[11px] font-black text-primary uppercase tracking-widest flex items-center gap-2 italic"><FaPuzzlePiece /> Ensamblaje de Módulos</h4>
-                                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-                                    <div className="space-y-2">
-                                        <SortableContext items={selectedModules.map(m => m.id)} strategy={verticalListSortingStrategy}>
-                                            {selectedModules.map((mod) => (
-                                                <SortableItem key={mod.id} id={mod.id} onRemove={() => removeModule(mod.id)}>
-                                                    <p className="text-[10px] font-black uppercase leading-none">{mod.name}</p>
-                                                    <p className="text-[8px] text-gray-400 font-bold uppercase mt-1 italic">Módulo Integrado • {mod.materialCount} componentes</p>
-                                                </SortableItem>
-                                            ))}
-                                        </SortableContext>
-                                    </div>
-                                </DndContext>
-                            </div>
+                            {/* Ensamblaje Modular - Solo para Modelos Vending */}
+                            {!isModule && (
+                                <div className="space-y-4">
+                                    <h4 className="text-[11px] font-black text-primary uppercase tracking-widest flex items-center gap-2 italic"><FaPuzzlePiece /> Ensamblaje Modular (Drag & Drop)</h4>
+                                    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                                        <div className="space-y-2">
+                                            <SortableContext items={selectedModules.map(m => m.id)} strategy={verticalListSortingStrategy}>
+                                                {selectedModules.map((mod) => (
+                                                    <SortableItem key={mod.id} id={mod.id} onRemove={() => removeModule(mod.id)}>
+                                                        <p className="text-[10px] font-black uppercase leading-none">{mod.name}</p>
+                                                        <p className="text-[8px] text-gray-400 font-bold uppercase mt-1">Módulo Integrado • {mod.materialCount} componentes</p>
+                                                    </SortableItem>
+                                                ))}
+                                            </SortableContext>
+                                        </div>
+                                    </DndContext>
+                                </div>
+                            )}
 
                             <div className="space-y-4">
-                                <h4 className="text-[11px] font-black text-emerald-600 uppercase tracking-widest flex items-center gap-2 italic"><FaBoxOpen /> Componentes Directos</h4>
+                                <h4 className="text-[11px] font-black text-emerald-600 uppercase tracking-widest flex items-center gap-2 italic"><FaBoxOpen /> Lista de Materiales</h4>
                                 <div className="relative">
-                                    <input type="text" placeholder="Buscar material..." className="w-full input-style pr-10" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+                                    <FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300" />
+                                    <input type="text" placeholder="Añadir componente del inventario..." className="w-full input-style pl-11" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
                                     {filteredInventory.length > 0 && (
-                                        <div className="absolute top-full left-0 right-0 z-20 mt-1 bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-xl shadow-2xl overflow-hidden">
+                                        <div className="absolute top-full left-0 right-0 z-20 mt-1 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl shadow-2xl overflow-hidden animate-in slide-in-from-top-2">
                                             {filteredInventory.map(p => (
-                                                <button key={p.id} type="button" onClick={() => addMaterial(p)} className="w-full text-left px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 flex justify-between items-center"><span className="text-[10px] font-bold uppercase">{p.name}</span><FaPlus size={8}/></button>
+                                                <button key={p.id} type="button" onClick={() => addMaterial(p)} className="w-full text-left px-6 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 flex justify-between items-center transition-colors"><span className="text-[10px] font-bold uppercase">{p.name}</span><FaPlus size={8} className="text-primary"/></button>
                                             ))}
                                         </div>
                                     )}
                                 </div>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                     {materials.map((m) => (
-                                        <div key={m.productId} className="flex items-center gap-3 bg-gray-50 dark:bg-gray-900/40 p-2 rounded-xl border border-gray-100 dark:border-gray-700">
-                                            <p className="flex-1 text-[9px] font-black uppercase truncate">{m.name}</p>
-                                            <input type="number" step="any" value={m.quantity} onChange={(e) => updateMaterialField(m.productId, 'quantity', e.target.value)} className="w-10 bg-white dark:bg-gray-800 border-none rounded py-0.5 text-[10px] font-black text-center" />
-                                            <select value={m.unit} onChange={(e) => updateMaterialField(m.productId, 'unit', e.target.value)} className="bg-transparent border-none py-0.5 text-[9px] font-bold text-gray-400 outline-none"><option value="Pza">Pza</option><option value="Mts">Mts</option><option value="Lts">Lts</option><option value="Kg">Kg</option></select>
-                                            <button type="button" onClick={() => removeMaterial(m.productId)} className="text-gray-300 hover:text-red-500"><FaTrash size={10}/></button>
+                                        <div key={m.productId} className="flex items-center gap-3 bg-gray-50 dark:bg-gray-900/40 p-3 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
+                                            <p className="flex-1 text-[10px] font-black uppercase truncate leading-none">{m.name}</p>
+                                            <div className="flex items-center gap-1 bg-white dark:bg-gray-800 rounded-lg p-1 border border-black/5">
+                                                <input type="number" step="any" value={m.quantity} onChange={(e) => updateMaterialField(m.productId, 'quantity', e.target.value)} className="w-10 bg-transparent border-none py-0.5 text-[10px] font-black text-center focus:ring-0" />
+                                                <select value={m.unit} onChange={(e) => updateMaterialField(m.productId, 'unit', e.target.value)} className="bg-transparent border-none py-0.5 text-[9px] font-bold text-gray-400 outline-none focus:ring-0"><option value="Pza">Pza</option><option value="Mts">Mts</option><option value="Lts">Lts</option><option value="Kg">Kg</option></select>
+                                            </div>
+                                            <button type="button" onClick={() => removeMaterial(m.productId)} className="p-1.5 text-gray-300 hover:text-red-500 transition-all"><FaTrash size={10}/></button>
                                         </div>
                                     ))}
                                 </div>
                             </div>
                         </div>
 
-                        <div className="flex justify-end gap-3 pt-6 border-t dark:border-gray-700 shrink-0 mt-2">
-                            <button type="button" onClick={onClose} className="btn-secondary px-8">Cancelar</button>
-                            <button type="submit" className="btn-primary px-10">
-                                {modelToEdit ? 'Guardar Cambios' : 'Registrar Ingeniería'}
+                        <div className="p-6 border-t dark:border-gray-700 flex gap-3 bg-gray-50/50 dark:bg-gray-900/20">
+                            <button type="button" onClick={onClose} className="flex-1 py-4 bg-white dark:bg-gray-800 text-gray-500 font-black rounded-2xl uppercase tracking-widest text-[10px] border border-gray-200 dark:border-gray-700">Cancelar</button>
+                            <button type="submit" className="flex-[2] py-4 bg-primary text-white font-black rounded-2xl uppercase tracking-widest text-[10px] shadow-2xl shadow-primary/30 flex items-center justify-center gap-3 active:scale-95 transition-all">
+                                <FaSave size={16} /> {modelToEdit ? 'Guardar Cambios' : 'Registrar Diseño'}
                             </button>
                         </div>
                     </form>
@@ -259,60 +291,171 @@ const InstallationModelModal = ({ isOpen, onClose, modelToEdit, onSave, inventor
 };
 
 const ModelDetailsModal = ({ isOpen, onClose, model }) => {
-    const totalBOM = useMemo(() => {
-        const bom = {};
-        model?.materials?.forEach(m => {
-            const key = m.product?.name || m.productId;
-            if (!bom[key]) bom[key] = { quantity: 0, unit: m.unit, category: m.product?.category };
-            bom[key].quantity += m.quantity;
-        });
-        model?.modules?.forEach(modJoin => {
-            modJoin.module?.materials?.forEach(m => {
-                const key = m.product?.name || m.productId;
-                if (!bom[key]) bom[key] = { quantity: 0, unit: m.unit, category: m.product?.category };
-                bom[key].quantity += m.quantity * modJoin.quantity;
+    const [openModules, setOpenModules] = useState({});
+
+    const toggleModule = (id) => {
+        setOpenModules(prev => ({ ...prev, [id]: !prev[id] }));
+    };
+
+    const generatePDF = () => {
+        const doc = new jsPDF();
+        const pageWidth = doc.internal.pageSize.getWidth();
+        
+        // Estilo de Cabecera
+        doc.setFillColor(31, 41, 55); 
+        doc.rect(0, 0, pageWidth, 40, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(22);
+        doc.setFont('helvetica', 'bold');
+        doc.text("FICHA TÉCNICA DARMAX", 20, 20);
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        doc.text(`DISEÑO: ${model.name.toUpperCase()}`, 20, 30);
+        doc.text(`TIPO: ${model.isModule ? 'MÓDULO' : 'MODELO VENDING'}`, 20, 35);
+        doc.text(`FECHA: ${new Date().toLocaleDateString()}`, pageWidth - 60, 30);
+
+        let finalY = 50;
+
+        // Desglose por módulos
+        if (!model.isModule && model.modules && model.modules.length > 0) {
+            model.modules.forEach((modJoin, idx) => {
+                doc.setTextColor(37, 99, 235);
+                doc.setFontSize(14);
+                doc.setFont('helvetica', 'bold');
+                doc.text(`MÓDULO: ${modJoin.module.name.toUpperCase()}`, 20, finalY);
+                
+                const modTableData = modJoin.module.materials.map(m => [
+                    m.product?.name || 'S/N',
+                    m.product?.category || 'General',
+                    m.quantity,
+                    m.unit
+                ]);
+
+                autoTable(doc, {
+                    startY: finalY + 5,
+                    head: [['Componente', 'Categoría', 'Cant.', 'Unidad']],
+                    body: modTableData,
+                    theme: 'striped',
+                    headStyles: { fillColor: [59, 130, 246] },
+                    styles: { fontSize: 9 }
+                });
+                
+                finalY = doc.lastAutoTable.finalY + 15;
+                if (finalY > 260) { doc.addPage(); finalY = 20; }
             });
-        });
-        return Object.entries(bom).sort((a, b) => (a[1].category || '').localeCompare(b[1].category || ''));
-    }, [model]);
+        }
+
+        // Componentes directos
+        if (model.materials && model.materials.length > 0) {
+            doc.setTextColor(16, 185, 129);
+            doc.setFontSize(14);
+            doc.setFont('helvetica', 'bold');
+            doc.text(model.isModule ? "LISTA DE MATERIALES" : "COMPONENTES ADICIONALES", 20, finalY);
+
+            const directData = model.materials.map(m => [
+                m.product?.name || 'S/N',
+                m.product?.category || 'General',
+                m.quantity,
+                m.unit
+            ]);
+
+            autoTable(doc, {
+                startY: finalY + 5,
+                head: [['Material', 'Categoría', 'Cant.', 'Unidad']],
+                body: directData,
+                theme: 'striped',
+                headStyles: { fillColor: [16, 185, 129] },
+                styles: { fontSize: 9 }
+            });
+            finalY = doc.lastAutoTable.finalY + 15;
+            if (finalY > 260) { doc.addPage(); finalY = 20; }
+        }
+
+        doc.save(`FICHA_TECNICA_${model.name.replace(/\s+/g, '_')}.pdf`);
+    };
 
     if (!isOpen || !model) return null;
 
     return createPortal(
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl w-full max-w-lg flex flex-col max-h-[85vh]">
-                <div className="flex justify-between items-start mb-6">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm">
+            <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl w-full max-w-4xl flex flex-col h-[95vh] sm:h-[90vh] overflow-hidden animate-in zoom-in duration-300 border border-gray-100 dark:border-gray-700">
+                <div className="p-6 border-b dark:border-gray-700 flex justify-between items-start bg-gray-50/50 dark:bg-gray-900/20 shrink-0">
                     <div>
-                        <h2 className="text-2xl font-black text-dark dark:text-white uppercase tracking-tight leading-none">{model.name}</h2>
-                        <p className="text-[10px] text-primary font-black uppercase tracking-[0.2em] mt-1 italic">Explosión de Materiales Consolidada</p>
+                        <div className="flex flex-wrap items-center gap-3">
+                            <h2 className="text-2xl sm:text-3xl font-black text-dark dark:text-white uppercase tracking-tight leading-none">{model.name}</h2>
+                            <span className={`px-3 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest ${model.isModule ? 'bg-indigo-100 text-indigo-600' : 'bg-blue-100 text-blue-600'}`}>
+                                {model.isModule ? 'Módulo' : 'Paquete'}
+                            </span>
+                        </div>
+                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-[0.2em] mt-2 italic">Análisis de Estructura de Materiales</p>
                     </div>
-                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors p-1">
-                        <FaTimes size={24} />
-                    </button>
+                    <div className="flex gap-2">
+                        <button onClick={generatePDF} className="bg-primary text-white p-3 rounded-2xl shadow-lg shadow-primary/20 hover:scale-110 transition-all flex items-center gap-2 text-[10px] font-black uppercase"><FaDownload /> Descargar PDF</button>
+                        <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-white transition-colors p-2 text-2xl font-light">&times;</button>
+                    </div>
                 </div>
 
-                <div className="flex-1 overflow-y-auto space-y-6 custom-scrollbar pr-1">
-                    <div className="bg-gray-50 dark:bg-gray-900/50 rounded-xl overflow-hidden border dark:border-gray-700">
-                        <table className="w-full text-left text-xs">
-                            <thead className="bg-gray-100 dark:bg-gray-700 text-[9px] font-black uppercase text-gray-400"><tr className="border-b dark:border-gray-600"><th className="px-4 py-2">Componente</th><th className="px-4 py-2 text-right">Cant.</th></tr></thead>
-                            <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-                                {totalBOM.map(([name, data], i) => (
-                                    <tr key={i} className="hover:bg-white dark:hover:bg-gray-800 transition-colors">
-                                        <td className="px-4 py-2"><p className="font-black text-gray-700 dark:text-white uppercase leading-none">{name}</p><p className="text-[8px] text-gray-400 font-bold uppercase italic">{data.category || 'Varios'}</p></td>
-                                        <td className="px-4 py-2 text-right"><span className="font-black text-primary">{data.quantity}</span> <span className="text-[9px] text-gray-400">{data.unit}</span></td>
-                                    </tr>
+                <div className="flex-1 overflow-y-auto p-5 sm:p-8 space-y-10 custom-scrollbar">
+                    {/* DESGLOSE POR MÓDULOS CON ACORDEÓN */}
+                    {!model.isModule && model.modules?.length > 0 && (
+                        <div className="space-y-4">
+                            <h3 className="text-xs font-black text-indigo-500 uppercase tracking-widest flex items-center gap-2 italic">
+                                <FaPuzzlePiece /> Estructura Modular
+                            </h3>
+                            <div className="space-y-3">
+                                {model.modules.map((modJoin, i) => (
+                                    <div key={i} className="bg-gray-50 dark:bg-gray-900/50 rounded-2xl border border-gray-100 dark:border-gray-700 overflow-hidden shadow-sm">
+                                        <button 
+                                            onClick={() => toggleModule(modJoin.moduleId)}
+                                            className="w-full p-4 flex justify-between items-center hover:bg-white dark:hover:bg-gray-800 transition-colors"
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-8 rounded-xl bg-white dark:bg-gray-800 flex items-center justify-center text-indigo-500 shadow-sm border dark:border-gray-700"><FaCube size={14}/></div>
+                                                <span className="font-black text-dark dark:text-white uppercase text-xs">{modJoin.module.name}</span>
+                                            </div>
+                                            <div className="flex items-center gap-3">
+                                                <span className="text-[9px] font-bold text-gray-400 uppercase">{modJoin.module.materials?.length || 0} materiales</span>
+                                                {openModules[modJoin.moduleId] ? <FaChevronUp size={10} className="text-gray-300"/> : <FaChevronDown size={10} className="text-gray-300"/>}
+                                            </div>
+                                        </button>
+                                        {openModules[modJoin.moduleId] && (
+                                            <div className="p-4 pt-0 grid grid-cols-1 sm:grid-cols-2 gap-2 animate-in slide-in-from-top-2">
+                                                {modJoin.module.materials?.map((m, j) => (
+                                                    <div key={j} className="flex justify-between items-center bg-white dark:bg-gray-800 p-3 rounded-xl border border-black/5 shadow-sm">
+                                                        <span className="text-[9px] font-bold text-gray-500 uppercase truncate pr-2">{m.product?.name}</span>
+                                                        <span className="text-[10px] font-black text-indigo-600 whitespace-nowrap">{m.quantity} {m.unit}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
                                 ))}
-                            </tbody>
-                        </table>
-                    </div>
-                    <div className="bg-amber-50 dark:bg-amber-900/20 p-4 rounded-xl border border-amber-100 dark:border-amber-800/30 flex items-start gap-3">
-                        <FaExclamationTriangle className="text-amber-500 mt-0.5 shrink-0" size={14} />
-                        <p className="text-[10px] text-amber-800 dark:text-amber-400 font-bold uppercase leading-tight italic">Consolidado final incluyendo materiales de módulos integrados.</p>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* COMPONENTES DIRECTOS */}
+                    <div className="space-y-4">
+                        <h3 className="text-xs font-black text-emerald-600 uppercase tracking-widest flex items-center gap-2 italic">
+                            <FaBoxOpen /> {model.isModule ? 'Lista de Materiales' : 'Componentes Adicionales'}
+                        </h3>
+                        
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                            {model.materials?.map((m, i) => (
+                                <div key={i} className="flex justify-between items-center bg-emerald-50/50 dark:bg-emerald-900/10 p-4 rounded-2xl border border-emerald-100 dark:border-emerald-800/30">
+                                    <div className="min-w-0">
+                                        <p className="text-[10px] font-black text-emerald-800 dark:text-emerald-300 uppercase truncate">{m.product?.name || m.name}</p>
+                                        <p className="text-[8px] font-bold text-emerald-600/50 uppercase">{m.product?.category || 'General'}</p>
+                                    </div>
+                                    <span className="text-xs font-black text-emerald-700 dark:text-emerald-400">{m.quantity} <small className="text-[8px]">{m.unit}</small></span>
+                                </div>
+                            ))}
+                        </div>
                     </div>
                 </div>
 
-                <div className="mt-6">
-                    <button onClick={onClose} className="w-full btn-primary py-3 uppercase tracking-widest text-xs">Cerrar Maestro</button>
+                <div className="p-6 bg-gray-50 dark:bg-gray-900/40 border-t dark:border-gray-700 flex justify-center">
+                    <button onClick={onClose} className="w-full sm:w-64 py-4 bg-gray-800 text-white font-black rounded-2xl uppercase tracking-widest text-[10px] hover:bg-black transition-all shadow-lg active:scale-95">Cerrar Visualizador</button>
                 </div>
             </div>
         </div>,
@@ -333,7 +476,7 @@ const Instalacion = () => {
     const [isViewModalOpen, setIsViewModalOpen] = useState(false);
     const [selectedModel, setSelectedModel] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
-    const [activeTab, setActiveTab] = useState('MODELS'); // 'MODELS' o 'MODULES'
+    const [activeTab, setActiveTab] = useState('MODELS'); 
 
     const isAdmin = user?.roles?.some(r => r.name === 'ADMIN') || user?.role === 'ADMIN';
 
@@ -341,10 +484,10 @@ const Instalacion = () => {
         try {
             if (selectedModel) {
                 await updateInstallationModel(selectedModel.id, data);
-                toast.success('Ingeniería actualizada');
+                toast.success('Diseño actualizado');
             } else {
                 await addInstallationModel(data);
-                toast.success('Nuevo modelo registrado');
+                toast.success('Nuevo diseño registrado');
             }
             setSelectedModel(null);
         } catch (error) {
@@ -354,7 +497,7 @@ const Instalacion = () => {
 
     const handleDelete = async (id, name) => {
         const result = await Swal.fire({
-            title: '¿Eliminar ingeniería?',
+            title: '¿Eliminar diseño?',
             text: `Se borrará "${name}". Si es un módulo, se desvinculará de los modelos que lo usen.`,
             icon: 'warning',
             showCancelButton: true,
@@ -400,7 +543,7 @@ const Instalacion = () => {
                     </h1>
                     <div className="text-[10px] text-gray-500 font-bold mt-2 flex items-center gap-2 uppercase tracking-widest">
                         <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div> 
-                        Diseño Modular y Maestro de Materiales
+                        Diseño Estructural y Lista de Materiales
                     </div>
                 </div>
                 {isAdmin && (
@@ -481,7 +624,7 @@ const Instalacion = () => {
                                             </div>
                                         )}
                                         <div>
-                                            <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">Piezas BOM</p>
+                                            <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">Materiales</p>
                                             <p className="text-lg font-black text-gray-800 dark:text-white">{model.materials?.length || 0}</p>
                                         </div>
                                     </div>
@@ -489,7 +632,7 @@ const Instalacion = () => {
                                         onClick={() => { setSelectedModel(model); setIsViewModalOpen(true); }}
                                         className="bg-gray-800 text-white px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-primary transition-all shadow-lg active:scale-95"
                                     >
-                                        Explosión BOM
+                                        Ficha Técnica
                                     </button>
                                 </div>
                             </div>
