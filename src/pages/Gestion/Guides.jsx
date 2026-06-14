@@ -35,22 +35,36 @@ const Guides = () => {
     // Procesar scripts de redes sociales al abrir una guía
     useEffect(() => {
         if (!selectedGuide) return;
+        
         const processEmbeds = () => {
-            if (window.instgrm) window.instgrm.Embeds.process();
+            if (window.instgrm && window.instgrm.Embeds) {
+                try {
+                    window.instgrm.Embeds.process();
+                } catch (e) {
+                    console.warn("Instagram Embeds process error:", e);
+                }
+            }
         };
         
-        if (!document.getElementById('social-embed-script')) {
-            const script = document.createElement('script');
-            script.id = 'social-embed-script';
+        const scriptId = 'social-embed-script';
+        let script = document.getElementById(scriptId);
+
+        if (!script) {
+            script = document.createElement('script');
+            script.id = scriptId;
             script.src = 'https://www.instagram.com/embed.js';
             script.async = true;
-            script.onload = processEmbeds;
+            script.onload = () => setTimeout(processEmbeds, 100);
             document.body.appendChild(script);
         } else {
             processEmbeds();
         }
 
-        const timers = [setTimeout(processEmbeds, 500), setTimeout(processEmbeds, 2000)];
+        const timers = [
+            setTimeout(processEmbeds, 500), 
+            setTimeout(processEmbeds, 1500)
+        ];
+
         return () => timers.forEach(t => clearTimeout(t));
     }, [selectedGuide]);
 

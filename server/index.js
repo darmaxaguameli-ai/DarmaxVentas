@@ -8,6 +8,10 @@ require('dotenv').config();
 const app = express();
 const port = process.env.PORT || 3001;
 
+// ✅ Habilitar confianza en el Proxy (Vercel, Nginx, etc.)
+// Requerido para que express-rate-limit funcione correctamente
+app.set('trust proxy', 1);
+
 // 1. Seguridad de Cabeceras (Helmet)
 // Configuración personalizada para permitir scripts de mapas/pdfs si es necesario
 app.use(helmet({
