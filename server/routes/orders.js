@@ -37,6 +37,10 @@ router.post('/pedidos', async (req, res) => {
   }
   try {
     const result = await prisma.$transaction(async (tx) => {
+      // Garantizar que el total y otros valores numéricos sean Float/Int
+      const totalFloat = parseFloat(total) || 0;
+      const pointsInt = Math.round(pointsUsed || 0);
+
       if (!storeId) {
           if (clienteId) {
                const client = await tx.user.findUnique({ where: { id: clienteId } });
@@ -45,16 +49,20 @@ router.post('/pedidos', async (req, res) => {
           if (!storeId) {
                const firstStore = await tx.store.findFirst();
                if (firstStore) storeId = firstStore.id;
-               else throw new Error('No hay sucursales configuradas.');
+               else throw new Error('No hay sucursales configuradas en el sistema.');
           }
       }
       
-      const pointsInt = Math.round(pointsUsed || 0);
       if (pointsInt > 0) {
-          if (!clienteId) throw new Error('Se requiere cliente para usar puntos.');
+          if (!clienteId) throw new Error('Se requiere estar identificado para usar puntos de lealtad.');
           const client = await tx.user.findUnique({ where: { id: clienteId } });
-          if (!client || client.loyaltyPoints < pointsInt) throw new Error('Puntos insuficientes.');
-          await tx.user.update({ where: { id: clienteId }, data: { loyaltyPoints: { decrement: pointsInt } } });
+          if (!client) throw new Error('Cliente no encontrado para el canje de puntos.');
+          if (client.loyaltyPoints < pointsInt) throw new Error(`Puntos insuficientes. Tienes ${client.loyaltyPoints} y requieres ${pointsInt}.`);
+          
+          await tx.user.update({ 
+            where: { id: clienteId }, 
+            data: { loyaltyPoints: { decrement: pointsInt } } 
+          });
       }
 
       if (!clienteId) {
@@ -66,7 +74,15 @@ router.post('/pedidos', async (req, res) => {
           const existingUser = await tx.user.findUnique({ where: { customId: guestCustomId } });
           if (!existingUser) isIdUnique = true;
         }
-        const guestUser = await tx.user.create({ data: { name: 'Invitado', customId: guestCustomId, role: 'CLIENTE', store: { connect: { id: storeId } } } });
+        const guestUser = await tx.user.create({ 
+          data: { 
+            name: 'Invitado', 
+            customId: guestCustomId, 
+            role: 'CLIENTE', 
+            type: 'CLIENTE',
+            store: { connect: { id: storeId } } 
+          } 
+        });
         clienteId = guestUser.id;
       }
       
@@ -82,10 +98,11 @@ router.post('/pedidos', async (req, res) => {
       const newPedido = await tx.pedido.create({
         data: {
           customId, 
-          total: parseFloat(total) || 0, 
+          total: totalFloat, 
           deliveryMethod, 
           paymentMethod: paymentMethod || 'Efectivo', 
           paymentStatus: paymentStatus || 'NO_PAGADO',
+          status: 'PENDIENTE',
           cliente: { connect: { id: clienteId } }, 
           store: { connect: { id: storeId } },
           sesionCaja: req.body.sesionCajaId ? { connect: { id: req.body.sesionCajaId } } : undefined,
@@ -97,7 +114,15 @@ router.post('/pedidos', async (req, res) => {
       });
 
       if (paymentStatus === 'PAGADO' && req.body.sesionCajaId) {
-          await tx.transaccionCaja.create({ data: { tipo: 'VENTA', amount: total, description: `Venta ${customId}`, sesion: { connect: { id: req.body.sesionCajaId } }, pedido: { connect: { id: newPedido.id } } } });
+          await tx.transaccionCaja.create({ 
+            data: { 
+                tipo: 'VENTA', 
+                amount: totalFloat, 
+                description: `Venta ${customId}`, 
+                sesion: { connect: { id: req.body.sesionCajaId } }, 
+                pedido: { connect: { id: newPedido.id } } 
+            } 
+          });
       }
 
       if (pointsInt > 0) {
@@ -127,16 +152,65 @@ router.post('/pedidos', async (req, res) => {
 
       for (const item of pedidoItemsData) {
           await tx.pedidoItem.create({ data: item });
+
+          // --- LÓGICA DE DESCUENTO DE INVENTARIO (TAPAS Y PRODUCTOS) ---
+          const qty = item.quantity;
+          if (qty > 0) {
+              // 1. Descontar Tapa compatible si el garrafón tiene una asociada
+              if (item.jugBrandId) {
+                  const brand = await tx.jugBrand.findUnique({
+                      where: { id: item.jugBrandId },
+                      select: { compatibleCapId: true }
+                  });
+
+                  if (brand && brand.compatibleCapId) {
+                      const inv = await tx.storeInventory.findUnique({
+                          where: { storeId_productId: { storeId, productId: brand.compatibleCapId } }
+                      });
+                      // Solo descontar si hay stock y no permitir negativos (según requerimiento)
+                      if (inv && inv.stock > 0) {
+                          const toDeduct = Math.min(inv.stock, qty);
+                          await tx.storeInventory.update({
+                              where: { id: inv.id },
+                              data: { stock: { decrement: toDeduct } }
+                          });
+                      }
+                  }
+              }
+
+              // 2. Descontar Producto (para artículos de la tienda o envases nuevos)
+              if (item.productId) {
+                  const inv = await tx.storeInventory.findUnique({
+                      where: { storeId_productId: { storeId, productId: item.productId } }
+                  });
+                  if (inv && inv.stock > 0) {
+                      const toDeduct = Math.min(inv.stock, qty);
+                      await tx.storeInventory.update({
+                          where: { id: inv.id },
+                          data: { stock: { decrement: toDeduct } }
+                      });
+                  }
+              }
+          }
       }
 
-      if (total > 0) {
-        await tx.ingreso.create({ data: { description: `Ingreso por Pedido ${customId}`, amount: total, date: new Date(), pedido: { connect: { id: newPedido.id } } } });
+      if (totalFloat > 0) {
+        await tx.ingreso.create({ 
+            data: { 
+                description: `Ingreso por Pedido ${customId}`, 
+                amount: totalFloat, 
+                date: new Date(), 
+                pedido: { connect: { id: newPedido.id } },
+                store: { connect: { id: storeId } }
+            } 
+        });
       }
 
       return newPedido;
     });
     res.status(201).json(result);
   } catch (error) {
+    console.error('ERROR AL CREAR PEDIDO:', error);
     res.status(500).json({ error: 'Error al crear pedido', details: error.message });
   }
 });

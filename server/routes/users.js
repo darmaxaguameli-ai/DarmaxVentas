@@ -26,7 +26,47 @@ router.get('/users', verifyToken, async (req, res) => {
   }
 });
 
-// ... (GET /users/check remains same)
+// Check if user exists (Public route for client identification)
+router.get('/check', async (req, res) => {
+  const { identifier, type } = req.query;
+  if (!identifier) return res.status(400).json({ error: 'Identificador requerido.' });
+
+  try {
+    const where = {};
+    if (type === 'phone') {
+      where.phone = identifier;
+    } else {
+      where.customId = identifier;
+    }
+
+    const user = await prisma.user.findUnique({
+      where,
+      select: {
+        id: true,
+        customId: true,
+        name: true,
+        phone: true,
+        street: true,
+        neighborhood: true,
+        municipality: true,
+        state: true,
+        city: true,
+        postalCode: true,
+        references: true,
+        clientCategory: true,
+        storeId: true,
+      }
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: 'Usuario no encontrado.' });
+    }
+
+    res.json(user);
+  } catch (error) {
+    res.status(500).json({ error: 'Error al verificar usuario.' });
+  }
+});
 
 // GET single user (Owner or Authorized staff)
 router.get('/users/:id', verifyToken, async (req, res) => {
