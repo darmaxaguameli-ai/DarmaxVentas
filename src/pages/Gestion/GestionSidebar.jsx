@@ -7,56 +7,52 @@ import { useTheme } from "../../context/ThemeContext";
 const menuStructure = [
   {
     type: "link",
-    name: "Resumen",
+    name: "Resumen Operativo",
     path: "/gestion",
     icon: "dashboard",
-    permission: "canViewSummary", // ✅ Cambiado de canAccessManagement
+    permission: "canViewSummary",
+  },
+  {
+    type: "group",
+    name: "Ventas y CRM",
+    icon: "groups",
+    children: [
+      { name: "Prospección / Leads", path: "prospeccion", icon: "trending_up", permission: "canAccessLeads" },
+      { name: "CRM y Cobranza", path: "crm", icon: "people", permission: "canAccessLeads" },
+      { name: "Cotizador Darmax", path: "cotizador", icon: "request_quote", permission: "canAccessQuotes" },
+    ],
   },
   {
     type: "group",
     name: "Operaciones",
     icon: "storefront",
     children: [
-      { name: "Inventario", path: "inventario", icon: "inventory_2", permission: "canAccessInventory" },
+      { name: "Inventario Global", path: "inventario", icon: "inventory_2", permission: "canAccessInventory" },
+      { name: "Cortes Vending", path: "vending", icon: "smart_toy", permission: "canAccessVending" },
     ],
   },
   {
     type: "group",
-    name: "Darmax Corp",
-    icon: "corporate_fare",
-    children: [
-      { name: "Área Legal", path: "legal", icon: "balance", permission: "canAccessLegal" },
-    ],
-  },
-  {
-    type: "group",
-    name: "Ingeniería",
+    name: "Ingeniería y Proyectos",
     icon: "engineering",
     children: [
-      { name: "Instalación", path: "instalacion", icon: "construction", permission: "canAccessInstallation" },
-    ],
-  },
-  {
-    type: "group",
-    name: "Exhibición",
-    icon: "public",
-    children: [
+      { name: "Control de Instalación", path: "instalacion", icon: "construction", permission: "canAccessInstallation" },
       { name: "Mapa de Instalaciones", path: "mapa-instalaciones", icon: "map", permission: "canAccessShowcase" },
     ],
   },
   {
     type: "group",
-    name: "Marketing",
+    name: "Marketing y Estrategia",
     icon: "campaign",
     children: [
-      { name: "Marketing Planner", path: "marketing", icon: "ads_click", permission: "canAccessMarketing" },
+      { name: "Planner Digital", path: "marketing", icon: "ads_click", permission: "canAccessMarketing" },
       { name: "Promociones", path: "promociones", icon: "loyalty", permission: "canAccessMarketing" },
     ],
   },
   {
     type: "group",
-    name: "Contenido y Guías",
-    icon: "web",
+    name: "Contenido y Recursos",
+    icon: "auto_stories",
     children: [
       { name: "Editor de Blog", path: "blog", icon: "newspaper", permission: "canAccessMarketing" },
       { name: "Centro de Guías", path: "guias", icon: "menu_book", permission: "canViewSummary" },
@@ -64,28 +60,22 @@ const menuStructure = [
   },
   {
     type: "group",
-    name: "Ventas de Campo",
-    icon: "groups",
-    children: [
-      { name: "Prospección", path: "prospeccion", icon: "trending_up", permission: "canAccessLeads" },
-    ],
-  },
-  {
-    type: "group",
-    name: "Cotizadores",
-    icon: "request_quote",
-    children: [
-      { name: "Cotizador Dist.", path: "cotizador-distribuidores", icon: "local_shipping", permission: "canAccessDistributorQuotes" },
-      { name: "Cotizador Emprendedor", path: "cotizador", icon: "star", permission: "canAccessQuotes" },
-    ],
-  },
-  {
-    type: "group",
-    name: "Finanzas",
+    name: "Finanzas y Contabilidad",
     icon: "account_balance_wallet",
     children: [
-      { name: "Ingresos", path: "ingresos", icon: "payments", permission: "canAccessFinances" },
-      { name: "Gastos", path: "gastos", icon: "receipt_long", permission: "canAccessFinances" },
+      { name: "Tesorería (Ingresos)", path: "ingresos", icon: "account_balance_wallet", permission: "canAccessFinances" },
+      { name: "Compras y CxP", path: "compras", icon: "shopping_cart", permission: "canAccessFinances" },
+      { name: "Contabilidad ERP", path: "contabilidad", icon: "account_balance", permission: "canAccessAccounting" },
+    ],
+  },
+  {
+    type: "group",
+    name: "Cumplimiento (Legal/Fiscal)",
+    icon: "gavel",
+    children: [
+      { name: "Gestión Documental", path: "documentos", icon: "folder_open", permission: "canAccessLegal" },
+      { name: "Área Legal", path: "legal", icon: "balance", permission: "canAccessLegal" },
+      { name: "Facturación (CFDI 4.0)", path: "fiscal", icon: "receipt_long", permission: "canAccessAccounting" },
     ],
   },
   {
@@ -93,10 +83,10 @@ const menuStructure = [
     name: "Administración",
     icon: "settings_suggest",
     children: [
-      { name: "Usuarios", path: "usuarios", icon: "group", permission: "canAccessRH" },
-      { name: "Recursos Humanos", path: "recursos-humanos", icon: "folder_managed", permission: "canAccessRH" },
+      { name: "Directorio", path: "usuarios", icon: "group", permission: "canAccessRH" },
+      { name: "RRHH y Nóminas", path: "recursos-humanos", icon: "folder_managed", permission: "canAccessRH" },
       { name: "Roles y Permisos", path: "roles", icon: "security", permission: "canAccessRH" },
-      { name: "Configuración", path: "configuracion", icon: "tune", permission: "canAccessConfig" },
+      { name: "Configuración Base", path: "configuracion", icon: "tune", permission: "canAccessConfig" },
     ],
   },
 ];

@@ -11,14 +11,14 @@ import apiClient from '../../api/apiClient';
 import Swal from 'sweetalert2';
 import { toast } from 'sonner';
 
-const Leads = () => {
+const Leads = ({ defaultTab }) => {
     const { user } = useAuth();
     const isAdmin = user?.role === 'ADMIN';
 
     const [leads, setLeads] = useState([]);
     const [loading, setLoading] = useState(true);
     const [packages, setPackages] = useState([]); 
-    const [activeTab, setActiveTab] = useState('PROSPECTO'); 
+    const [activeTab, setActiveTab] = useState(defaultTab || 'PROSPECTO'); 
     const [showModal, setShowModal] = useState(false);
     const [showToolsModal, setShowToolsModal] = useState(false); 
     const [editingLead, setEditingLead] = useState(null);
@@ -39,6 +39,10 @@ const Leads = () => {
 
     const [newInsumo, setNewInsumo] = useState({ item: '', cantidad: '', notas: '' });
     const [newManto, setNewManto] = useState({ equipo: '', frecuencia: '', proximaFecha: '' });
+
+    useEffect(() => {
+        if (defaultTab) setActiveTab(defaultTab);
+    }, [defaultTab]);
 
     useEffect(() => {
         fetchLeads();
@@ -178,9 +182,16 @@ const Leads = () => {
         window.open(url, '_blank');
     };
 
-    const filteredLeads = leads.filter(l => l.tipo === activeTab);
+    const filteredLeads = leads.filter(l => {
+        if (activeTab === 'MANTENIMIENTO') {
+            return l.tipo === 'CLIENTE_VENTA' && l.mantenimientos && l.mantenimientos.length > 0;
+        }
+        return l.tipo === activeTab;
+    });
+
     const totalVentas = leads.filter(l => l.tipo === 'CLIENTE_VENTA').length;
     const totalProspectos = leads.filter(l => l.tipo === 'PROSPECTO').length;
+    const totalMantos = leads.filter(l => l.tipo === 'CLIENTE_VENTA' && l.mantenimientos?.length > 0).length;
 
     if (loading) return (
         <div className="p-8 text-center flex flex-col items-center justify-center min-h-[400px]">
@@ -232,6 +243,13 @@ const Leads = () => {
                         <p className="text-base sm:text-2xl font-black leading-none">{totalVentas}</p>
                     </div>
                 </div>
+                <div className="bg-white dark:bg-gray-800 p-3 sm:p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex items-center gap-3">
+                    <div className="bg-orange-100 text-orange-600 p-2 sm:p-3 rounded-xl text-sm sm:text-lg"><FaTools /></div>
+                    <div>
+                        <p className="text-[8px] sm:text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none mb-1">Mantos.</p>
+                        <p className="text-base sm:text-2xl font-black leading-none">{totalMantos}</p>
+                    </div>
+                </div>
             </div>
 
             {/* Tabs Navigation */}
@@ -247,6 +265,12 @@ const Leads = () => {
                     className={`flex-1 sm:flex-none px-4 sm:px-8 py-2.5 rounded-lg text-[10px] sm:text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === 'CLIENTE_VENTA' ? 'bg-white dark:bg-gray-800 shadow-sm text-green-600' : 'text-gray-500'}`}
                 >
                     Cartera
+                </button>
+                <button 
+                    onClick={() => setActiveTab('MANTENIMIENTO')}
+                    className={`flex-1 sm:flex-none px-4 sm:px-8 py-2.5 rounded-lg text-[10px] sm:text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === 'MANTENIMIENTO' ? 'bg-white dark:bg-gray-800 shadow-sm text-orange-600' : 'text-gray-500'}`}
+                >
+                    Mantenimientos
                 </button>
             </div>
 
@@ -296,7 +320,15 @@ const Leads = () => {
                                     </button>
                                 )}
                                 <button 
-                                    onClick={() => { setEditingLead(lead); setFormData(lead); setShowModal(true); }}
+                                    onClick={() => { 
+                                        setEditingLead(lead); 
+                                        setFormData({
+                                            ...lead,
+                                            insumosInteres: lead.insumosInteres || [],
+                                            mantenimientos: lead.mantenimientos || []
+                                        }); 
+                                        setShowModal(true); 
+                                    }}
                                     className="text-primary hover:scale-110 transition-transform text-[9px] sm:text-[10px] font-black uppercase"
                                 >
                                     Editar
@@ -444,6 +476,61 @@ const Leads = () => {
                             <div className="space-y-4">
                                 <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] italic">Observaciones Internas</h4>
                                 <textarea rows="3" className="w-full input-style text-xs h-32" value={formData.notas} onChange={e => setFormData({...formData, notas: e.target.value})} placeholder="Registra acuerdos importantes..." />
+                            </div>
+
+                            <div className="space-y-4 pt-4 border-t dark:border-gray-700">
+                                <h4 className="text-[10px] font-black text-orange-600 uppercase tracking-[0.2em] italic">Planes de Mantenimiento</h4>
+                                
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-gray-50 dark:bg-gray-900/40 p-4 rounded-2xl border border-gray-100 dark:border-gray-700">
+                                    <div>
+                                        <label className="text-[8px] font-black uppercase text-gray-400 mb-1 block">Equipo / Sistema</label>
+                                        <input type="text" className="w-full input-style text-[10px] uppercase" value={newManto.equipo} onChange={e => setNewManto({...newManto, equipo: e.target.value})} placeholder="Ej: Suavizador" />
+                                    </div>
+                                    <div>
+                                        <label className="text-[8px] font-black uppercase text-gray-400 mb-1 block">Frecuencia</label>
+                                        <select className="w-full input-style text-[10px]" value={newManto.frecuencia} onChange={e => setNewManto({...newManto, frecuencia: e.target.value})}>
+                                            <option value="">Seleccionar...</option>
+                                            <option value="MENSUAL">Mensual</option>
+                                            <option value="TRIMESTRAL">Trimestral</option>
+                                            <option value="SEMESTRAL">Semestral</option>
+                                            <option value="ANUAL">Anual</option>
+                                        </select>
+                                    </div>
+                                    <div className="flex gap-2 items-end">
+                                        <div className="flex-1">
+                                            <label className="text-[8px] font-black uppercase text-gray-400 mb-1 block">Próxima Fecha</label>
+                                            <input type="date" className="w-full input-style text-[10px]" value={newManto.proximaFecha} onChange={e => setNewManto({...newManto, proximaFecha: e.target.value})} />
+                                        </div>
+                                        <button type="button" onClick={addManto} className="p-3 bg-orange-600 text-white rounded-xl hover:bg-orange-700 transition-colors shadow-lg shadow-orange-600/20">
+                                            <FaPlus size={12} />
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {formData.mantenimientos?.length > 0 && (
+                                    <div className="space-y-2">
+                                        {formData.mantenimientos.map((m, idx) => (
+                                            <div key={idx} className="flex items-center justify-between p-3 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-8 h-8 bg-orange-50 text-orange-600 rounded-lg flex items-center justify-center">
+                                                        <FaTools size={12} />
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-[10px] font-black uppercase text-gray-800 dark:text-white">{m.equipo}</p>
+                                                        <p className="text-[8px] font-bold text-gray-400 uppercase tracking-widest">{m.frecuencia} • Sig: {m.proximaFecha}</p>
+                                                    </div>
+                                                </div>
+                                                <button 
+                                                    type="button" 
+                                                    onClick={() => setFormData({...formData, mantenimientos: formData.mantenimientos.filter((_, i) => i !== idx)})}
+                                                    className="text-gray-300 hover:text-red-500 transition-colors"
+                                                >
+                                                    <FaTrash size={12} />
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                         </form>
 

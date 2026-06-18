@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const prisma = require('../lib/prisma');
 const { verifyToken, checkDemoRole, requirePermission } = require('../middleware/auth');
+const { contabilizarVentaPOS, findEmpresaByStore } = require('../utils/accountingAutomations');
 
 // GET all orders (restricted to staff)
 router.get('/pedidos', verifyToken, requirePermission('canAccessOrders'), async (req, res) => {
@@ -208,6 +209,17 @@ router.post('/pedidos', async (req, res) => {
 
       return newPedido;
     });
+
+    // --- AL FINAL DEL POS POST (FUERA DE LA TRANSACCIÓN PARA NO BLOQUEAR) ---
+    try {
+        const empresaId = await findEmpresaByStore(storeId);
+        if (empresaId) {
+            await contabilizarVentaPOS(result, empresaId);
+        }
+    } catch (e) {
+        console.error('[Accounting] Error en contabilización automática POS:', e);
+    }
+
     res.status(201).json(result);
   } catch (error) {
     console.error('ERROR AL CREAR PEDIDO:', error);

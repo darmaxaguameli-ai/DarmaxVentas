@@ -234,7 +234,46 @@ export const GestionProvider = ({ children }) => {
     }, [fetchManagementData]),
     updateEmpleado: useCallback(async (id, data) => {
         try {
-            const updatedRecord = await apiUpdateEmpleado(id, data);
+            // Actualizar cuenta de usuario si está vinculada
+            if (data.userId && data.roleIds) {
+                const userPayload = {
+                    name: data.nombreCompleto,
+                    email: data.emailPersonal,
+                    sexo: data.sexo,
+                    roleIds: data.roleIds,
+                    storeId: data.storeId || null,
+                    phone: data.telefono,
+                    street: data.street,
+                    neighborhood: data.neighborhood,
+                    city: data.city,
+                    postalCode: data.postalCode
+                };
+                if (data.newPassword) {
+                    userPayload.password = data.newPassword;
+                }
+                await apiUpdateUser(data.userId, userPayload);
+            } else if (!data.userId && data._createAccount) {
+                // Si antes no tenía cuenta y ahora le habilitaron el acceso
+                const userPayload = {
+                    name: data.nombreCompleto,
+                    email: data._createAccount.email,
+                    password: data._createAccount.password,
+                    roleIds: data._createAccount.roleIds,
+                    sexo: data._createAccount.sexo,
+                    storeId: data._createAccount.storeId,
+                    type: 'COLABORADOR',
+                    phone: data.telefono,
+                    street: data.street,
+                    neighborhood: data.neighborhood,
+                    city: data.city,
+                    postalCode: data.postalCode
+                };
+                const newUser = await apiCreateUser(userPayload);
+                data.userId = newUser.id;
+            }
+
+            const { _createAccount, newPassword, ...empleadoPayload } = data;
+            const updatedRecord = await apiUpdateEmpleado(id, empleadoPayload);
             await fetchManagementData();
             Swal.fire('Éxito', 'Expediente actualizado exitosamente.', 'success');
             return updatedRecord;

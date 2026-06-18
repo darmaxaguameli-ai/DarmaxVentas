@@ -12,10 +12,11 @@ import {
 } from 'react-icons/md';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
+import { useAuth } from '../../../context/AuthContext'; // Importar useAuth
 
 const getRoleConfig = (puesto = '') => {
   const p = puesto.toUpperCase();
-  if (p.includes('ADMIN') || p.includes('GERENTE') || p.includes('CEO') || p.includes('DUEÑO')) {
+  if (p.includes('ADMIN') || p.includes('GERENTE') || p.includes('CEO') || p.includes('DUEÑO') || p.includes('DIRECCION')) {
     return {
       color: 'bg-blue-600',
       lightColor: 'bg-blue-50 dark:bg-blue-900/30',
@@ -24,7 +25,7 @@ const getRoleConfig = (puesto = '') => {
       text: 'text-blue-700 dark:text-blue-300'
     };
   }
-  if (p.includes('REPARTIDOR') || p.includes('CHOFER') || p.includes('RUTA')) {
+  if (p.includes('REPARTIDOR') || p.includes('CHOFER') || p.includes('RUTA') || p.includes('LOGISTICA')) {
     return {
       color: 'bg-amber-500',
       lightColor: 'bg-amber-50 dark:bg-amber-900/30',
@@ -33,7 +34,7 @@ const getRoleConfig = (puesto = '') => {
       text: 'text-amber-700 dark:text-amber-300'
     };
   }
-  if (p.includes('MOSTRADOR') || p.includes('CAJA')) {
+  if (p.includes('MOSTRADOR') || p.includes('CAJA') || p.includes('OPERADOR')) {
     return {
       color: 'bg-emerald-500',
       lightColor: 'bg-emerald-50 dark:bg-emerald-900/30',
@@ -42,7 +43,7 @@ const getRoleConfig = (puesto = '') => {
       text: 'text-emerald-700 dark:text-emerald-300'
     };
   }
-  if (p.includes('VENDEDOR') || p.includes('VENTA') || p.includes('PROSPECCIÓN')) {
+  if (p.includes('VENDEDOR') || p.includes('VENTA') || p.includes('PROSPECCIÓN') || p.includes('MARKETING') || p.includes('COMERCIAL')) {
     return {
       color: 'bg-indigo-500',
       lightColor: 'bg-indigo-50 dark:bg-indigo-900/30',
@@ -64,15 +65,17 @@ const EmployeeNode = ({ employee }) => {
   const config = getRoleConfig(employee.puesto);
   
   return (
-    <div className="inline-block p-1">
+    <div className="inline-block p-2 mt-2">
       <Link to={`/gestion/recursos-humanos/${employee.id}`} className="block outline-none group">
         <div className={`
-          relative flex flex-col items-center p-3 rounded-xl border-2 transition-all duration-300
+          relative flex flex-col items-center p-3 pt-5 rounded-xl border-2 transition-all duration-300
           bg-white dark:bg-gray-800 min-w-[140px] shadow-sm hover:shadow-lg hover:-translate-y-0.5
           ${config.border}
         `}>
-          {/* Top Accent Line */}
-          <div className={`absolute top-0 left-0 right-0 h-1 rounded-t-lg ${config.color}`}></div>
+          {/* Floating Badge (Puesto) */}
+          <div className={`absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest text-white shadow-md ${config.color} whitespace-nowrap z-10`}>
+            {employee.puesto}
+          </div>
 
           {/* Icon/Avatar Circle - Smaller */}
           <div className={`
@@ -82,18 +85,15 @@ const EmployeeNode = ({ employee }) => {
             <span className="text-xl">{config.icon}</span>
           </div>
 
-          <div className="text-center">
-            <div className="font-black text-[11px] text-gray-800 dark:text-white uppercase tracking-tight leading-tight">
+          <div className="text-center mt-1">
+            <div className="font-bold text-[10px] text-gray-600 dark:text-gray-300 uppercase tracking-tight leading-tight">
               {employee.nombreCompleto}
-            </div>
-            <div className={`text-[8px] font-bold uppercase tracking-widest mt-0.5 opacity-80 ${config.text}`}>
-              {employee.puesto}
             </div>
           </div>
 
           {/* Status Indicator */}
           {employee.estatus === 'INACTIVO' && (
-            <div className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[6px] font-black px-1.5 py-0.5 rounded-full shadow-sm ring-1 ring-white dark:ring-gray-800">
+            <div className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[6px] font-black px-1.5 py-0.5 rounded-full shadow-sm ring-1 ring-white dark:ring-gray-800 z-20">
               BAJA
             </div>
           )}
@@ -116,37 +116,74 @@ const renderTree = (nodes) => {
 
 const Organigrama = ({ empleados }) => {
   const chartRef = useRef(null);
+  const { user } = useAuth(); // Obtener el usuario autenticado
 
   const buildTree = (employees) => {
     if (!employees || employees.length === 0) return [];
 
+    // Filtrar inactivos y cuentas demo
+    const activeEmployees = employees.filter(e => {
+        const isActivo = e.estatus === 'ACTIVO';
+        const isDemo = e.nombreCompleto?.toLowerCase().includes('demo') || e.puesto?.toLowerCase().includes('demo');
+        return isActivo && !isDemo;
+    });
+
     const employeeMap = {};
-    employees.forEach(employee => {
+    activeEmployees.forEach(employee => {
       employeeMap[employee.id] = { ...employee, children: [] };
     });
 
-    const roots = [];
-    const ceo = employees.find(e => {
-        const p = e.puesto.toUpperCase();
-        return p === 'CEO' || p.includes('DUEÑO') || (p.includes('ADMIN') && !e.managerId);
-    });
-
-    employees.forEach(employee => {
+    // 1. Construir las relaciones padre-hijo para todos
+    activeEmployees.forEach(employee => {
       const emp = employeeMap[employee.id];
       if (employee.managerId && employeeMap[employee.managerId]) {
         employeeMap[employee.managerId].children.push(emp);
-      } else {
-        if (ceo && employee.id !== ceo.id) {
-          employeeMap[ceo.id].children.push(emp);
-        } else {
-          roots.push(emp);
-        }
       }
     });
 
     Object.values(employeeMap).forEach(emp => {
       emp.children.sort((a, b) => a.puesto.localeCompare(b.puesto));
     });
+
+    // 2. Determinar la raíz basada en los permisos del usuario
+    const isAdmin = user?.role === 'ADMIN' || user?.roles?.some(r => r.name === 'ADMIN');
+    
+    // Buscar el registro de empleado que corresponde al usuario logueado
+    const currentUserEmployee = activeEmployees.find(e => e.userId === user?.id);
+
+    let roots = [];
+
+    if (isAdmin || !currentUserEmployee) {
+      // Si es admin, o si el usuario no es un empleado registrado (ej. superadmin global),
+      // mostrar todo el árbol empezando por los que no tienen jefe (o forzar al CEO a la raíz)
+      const ceo = activeEmployees.find(e => {
+          const p = e.puesto.toUpperCase();
+          return p === 'CEO' || p.includes('DUEÑO') || (p.includes('ADMIN') && !e.managerId);
+      });
+
+      activeEmployees.forEach(employee => {
+        const emp = employeeMap[employee.id];
+        if (!employee.managerId) {
+            roots.push(emp);
+        } else if (ceo && employee.managerId !== ceo.id && !employeeMap[employee.managerId]) {
+             // Fallback: Si tiene manager pero no existe en la lista, lo colgamos de raíz
+             roots.push(emp);
+        }
+      });
+      
+      // Asegurar que si hay un CEO definido y otros sin manager, se agrupen bajo el CEO
+      if (ceo && roots.length > 1) {
+          const mainRoot = employeeMap[ceo.id];
+          roots.forEach(r => {
+              if (r.id !== mainRoot.id) mainRoot.children.push(r);
+          });
+          roots = [mainRoot];
+      }
+
+    } else {
+      // Si NO es admin, la raíz del organigrama es el propio usuario logueado
+      roots = currentUserEmployee ? [employeeMap[currentUserEmployee.id]] : [];
+    }
 
     return roots;
   };

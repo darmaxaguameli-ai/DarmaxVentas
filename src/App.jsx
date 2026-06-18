@@ -44,6 +44,12 @@ import Guides from "./pages/Gestion/Guides"; // Importar nuevo componente
 import Legal from "./pages/Gestion/Legal";
 import Instalacion from "./pages/Gestion/Instalacion.jsx";
 import ShowcaseMap from "./pages/Gestion/ShowcaseMap.jsx";
+import Contabilidad from "./pages/Gestion/Contabilidad.jsx";
+import Vending from "./pages/Gestion/Vending.jsx";
+import Compras from "./pages/Gestion/Compras.jsx";
+import Fiscal from "./pages/Gestion/Fiscal.jsx";
+import CRM from "./pages/Gestion/CRM.jsx";
+import GestionDocumental from "./pages/Gestion/GestionDocumental.jsx";
 import Configuracion from "./pages/Gestion/Configuracion.jsx";
 import CotizadorDistribuidoresPage from "./pages/Gestion/CotizadorDistribuidoresPage.jsx";
 import DarmaxQuote from "./pages/Gestion/DarmaxQuote.jsx";
@@ -189,6 +195,7 @@ function App() {
           <Route path="recursos-humanos/:id" element={<EmpleadoDetalle />} />
           <Route path="roles" element={<Roles />} />
           <Route path="prospeccion" element={<Leads />} />
+          <Route path="mantenimientos" element={<Leads defaultTab="MANTENIMIENTO" />} />
           <Route path="marketing" element={<Marketing />} />
           <Route path="promociones" element={<Promociones />} />
           <Route path="blog" element={<Blog />} />
@@ -196,6 +203,12 @@ function App() {
           <Route path="legal" element={<Legal />} />
           <Route path="instalacion" element={<Instalacion />} />
           <Route path="mapa-instalaciones" element={<ShowcaseMap />} />
+          <Route path="contabilidad" element={<Contabilidad />} />
+          <Route path="vending" element={<Vending />} />
+          <Route path="compras" element={<Compras />} />
+          <Route path="fiscal" element={<Fiscal />} />
+          <Route path="crm" element={<CRM />} />
+          <Route path="documentos" element={<GestionDocumental />} />
           <Route path="configuracion" element={<Configuracion />} />
           <Route path="cotizador" element={<DarmaxQuote />} />
           <Route path="cotizador-distribuidores" element={<CotizadorDistribuidoresPage />} />

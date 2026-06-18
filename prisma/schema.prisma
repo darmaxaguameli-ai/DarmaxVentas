@@ -89,37 +89,39 @@ enum TipoDocumento {
 // =====================================================================
 
 model Role {
-  id          String   @id @default(cuid())
-  name        String   @unique 
+  id          String  @id @default(cuid())
+  name        String  @unique
   description String?
-  
+
   // Permisos de Módulos Principales
   canAccessPOS        Boolean @default(false)
   canAccessOrders     Boolean @default(false)
   canAccessDelivery   Boolean @default(false)
   canAccessManagement Boolean @default(false)
-  
+
   // Permisos Internos de Gestión
-  canViewSummary      Boolean @default(false)
-  canAccessInventory  Boolean @default(false)
-  canAccessRH         Boolean @default(false)
-  canAccessFinances   Boolean @default(false)
-  canAccessConfig     Boolean @default(false)
-  canAccessQuotes      Boolean @default(false)
+  canViewSummary             Boolean @default(false)
+  canAccessInventory         Boolean @default(false)
+  canAccessRH                Boolean @default(false)
+  canAccessFinances          Boolean @default(false)
+  canAccessAccounting        Boolean @default(false)
+  canAccessVending           Boolean @default(false)
+  canAccessConfig            Boolean @default(false)
+  canAccessQuotes            Boolean @default(false)
   canAccessDistributorQuotes Boolean @default(false)
-  canAccessLeads       Boolean @default(false) 
-  canAccessMarketing   Boolean @default(false)
-  canAccessLegal       Boolean @default(false)
-  canAccessInstallation Boolean @default(false)
-  canAccessShowcase     Boolean @default(false)
-  
-  isSystem            Boolean @default(false)
-  
+  canAccessLeads             Boolean @default(false)
+  canAccessMarketing         Boolean @default(false)
+  canAccessLegal             Boolean @default(false)
+  canAccessInstallation      Boolean @default(false)
+  canAccessShowcase          Boolean @default(false)
+
+  isSystem Boolean @default(false)
+
   // Relación Muchos a Muchos con Usuarios
-  users               User[]   @relation("UserRoles")
-  
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+  users User[] @relation("UserRoles")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 // =====================================================================
@@ -127,57 +129,58 @@ model Role {
 // =====================================================================
 
 model User {
-  id                 String            @id @default(cuid())
-  customId           String            @unique // CLI-0001 o CO-0001
-  name               String
-  email              String?           @unique
-  password           String?
-  phone              String?           @unique
-  street             String?
-  neighborhood       String?
-  municipality       String?
-  state              String?
-  city               String?
-  postalCode         String?
-  references         String?
-  lat                Float?
-  lng                Float?
-  
-  // Compatibilidad Legacy
-  role               UserRole          @default(CLIENTE)
-  
-  // Nueva Estructura RBAC v2
-  type               IdentityType      @default(CLIENTE)
-  roles              Role[]            @relation("UserRoles")
-  
-  clientCategory     ClientCategory    @default(PARTICULAR)
-  clientPreferences  Json?             @default("{}")
-  sexo               String?           
-  createdAt          DateTime          @default(now())
-  updatedAt          DateTime          @updatedAt
-  
-  // Relaciones
-  pedidos            Pedido[]
-  sesionesCaja       SesionCaja[]
-  empleado           Empleado?
-  jugPreferences     UserJugPreference[]
-  
-  store              Store?            @relation(fields: [storeId], references: [id])
-  storeId            String?
+  id           String  @id @default(cuid())
+  customId     String  @unique // CLI-0001 o CO-0001
+  name         String
+  email        String? @unique
+  password     String?
+  phone        String? @unique
+  street       String?
+  neighborhood String?
+  municipality String?
+  state        String?
+  city         String?
+  postalCode   String?
+  references   String?
+  lat          Float?
+  lng          Float?
 
-  loyaltyPoints      Int               @default(0)
+  // Compatibilidad Legacy
+  role UserRole @default(CLIENTE)
+
+  // Nueva Estructura RBAC v2
+  type  IdentityType @default(CLIENTE)
+  roles Role[]       @relation("UserRoles")
+
+  clientCategory    ClientCategory @default(PARTICULAR)
+  clientPreferences Json?          @default("{}")
+  sexo              String?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  // Relaciones
+  pedidos        Pedido[]
+  sesionesCaja   SesionCaja[]
+  empleado       Empleado?
+  jugPreferences UserJugPreference[]
+
+  store   Store?  @relation(fields: [storeId], references: [id])
+  storeId String?
+
+  loyaltyPoints       Int                  @default(0)
   loyaltyTransactions LoyaltyTransaction[]
 
-  pedidosReparto     Pedido[]          @relation("RepartidorPedidos")
-  leadsCaptados      Lead[]            @relation("VendedorLeads")
-  marketingPosts     MarketingPost[]
-  notifications      Notification[]
+  pedidosReparto Pedido[]        @relation("RepartidorPedidos")
+  leadsCaptados  Lead[]          @relation("VendedorLeads")
+  marketingPosts MarketingPost[]
+  notifications  Notification[]
+  vendingCortes  VendingCorte[]
 
   resetPasswordToken   String?
   resetPasswordExpires DateTime?
   emailVerified        DateTime?
   verificationToken    String?
-  mustChangePassword   Boolean           @default(false)
+  mustChangePassword   Boolean   @default(false)
 }
 
 // =====================================================================
@@ -185,38 +188,38 @@ model User {
 // =====================================================================
 
 model Lead {
-  id               String   @id @default(cuid())
+  id               String  @id @default(cuid())
   nombre           String
-  telefono         String   @unique
-  paqueteVendido   String?  
-  cantidadPaquetes Int      @default(0)
-  insumosInteres   Json?    
+  telefono         String  @unique
+  paqueteVendido   String?
+  cantidadPaquetes Int     @default(0)
+  insumosInteres   Json?
   mantenimientos   Json?
   notas            String?
-  status           String   @default("NUEVO") 
-  tipo             String   @default("PROSPECTO") 
+  status           String  @default("NUEVO")
+  tipo             String  @default("PROSPECTO")
   direccion        String?
   ciudad           String?
 
-  vendedor         User     @relation("VendedorLeads", fields: [vendedorId], references: [id])
-  vendedorId       String
-  
+  vendedor   User   @relation("VendedorLeads", fields: [vendedorId], references: [id])
+  vendedorId String
+
   showcaseInstallation ShowcaseInstallation?
-  
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model LoyaltyTransaction {
   id          String   @id @default(cuid())
-  amount      Int      
-  type        String   
+  amount      Int
+  type        String
   description String?
-  orderId     String?  
+  orderId     String?
   createdAt   DateTime @default(now())
-  
-  user        User     @relation(fields: [userId], references: [id])
-  userId      String
+
+  user   User   @relation(fields: [userId], references: [id])
+  userId String
 }
 
 model UserJugPreference {
@@ -242,28 +245,31 @@ model WaterType {
 
 model ServicePrice {
   id     String @id @default(cuid())
-  name   String 
-  method String 
+  name   String
+  method String
   price  Float
+
+  satProductKey String? @default("50202306") // Agua purificada default
+  satUnitKey    String? @default("H87") // Pieza default
 
   waterType   WaterType? @relation(fields: [waterTypeId], references: [id])
   waterTypeId String?
 
-  jugBrands JugBrand[] 
+  jugBrands   JugBrand[]
   itemsPedido PedidoItem[]
 
   @@unique([name, method, waterTypeId])
 }
 
 model JugBrand {
-  id   String @id @default(cuid())
-  name String @unique
-  imageUrl String? 
+  id       String  @id @default(cuid())
+  name     String  @unique
+  imageUrl String?
 
   compatibleCap   Product? @relation(fields: [compatibleCapId], references: [id])
   compatibleCapId String?
-  
-  servicePrices ServicePrice[] 
+
+  servicePrices   ServicePrice[]
   userPreferences UserJugPreference[]
 }
 
@@ -279,32 +285,36 @@ model Franchise {
 }
 
 model Store {
-  id           String        @id @default(cuid())
-  name         String
-  address      String
-  latitud      Float?        
-  longitud     Float?
-  franchise    Franchise     @relation(fields: [franchiseId], references: [id])
-  franchiseId  String
-  
+  id          String    @id @default(cuid())
+  name        String
+  address     String
+  latitud     Float?
+  longitud    Float?
+  franchise   Franchise @relation(fields: [franchiseId], references: [id])
+  franchiseId String
+
   users        User[]
   pedidos      Pedido[]
   sesionesCaja SesionCaja[]
-  inventory    StoreInventory[] 
-  
-  gastos       Gasto[]
-  ingresos     Ingreso[]
+  inventory    StoreInventory[]
+
+  gastos   Gasto[]
+  ingresos Ingreso[]
+
+  contableSucursal ContableSucursal[]
+  vendingMachines  VendingMachine[]
+  ordenCompras     OrdenCompra[]
 }
 
 model StoreInventory {
-  id        String   @id @default(cuid())
-  store     Store    @relation(fields: [storeId], references: [id])
+  id        String  @id @default(cuid())
+  store     Store   @relation(fields: [storeId], references: [id])
   storeId   String
-  product   Product  @relation(fields: [productId], references: [id])
+  product   Product @relation(fields: [productId], references: [id])
   productId String
-  stock     Int      @default(0)
+  stock     Int     @default(0)
 
-  @@unique([storeId, productId]) 
+  @@unique([storeId, productId])
 }
 
 // =====================================================================
@@ -315,30 +325,33 @@ model ProductCategory {
   id        String    @id @default(cuid())
   name      String    @unique
   isPublic  Boolean   @default(true) // Control global de visibilidad en tienda
-  icon      String?   // Icono opcional para la tienda
+  icon      String? // Icono opcional para la tienda
   products  Product[]
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 }
 
 model Product {
-  id          String       @id @default(cuid())
-  name        String       @unique
-  price       Float
-  waterPrice  Float?       @default(0) // Precio del agua si es un garrafón
-  stock       Int          @default(0) 
-  imageUrl    String?
-  
-  category    String?      // Mantener por compatibilidad legacy si es necesario
+  id         String  @id @default(cuid())
+  name       String  @unique
+  price      Float
+  waterPrice Float?  @default(0) // Precio del agua si es un garrafón
+  stock      Int     @default(0)
+  imageUrl   String?
+
+  satProductKey String? @default("50202306")
+  satUnitKey    String? @default("H87")
+
+  category    String? // Mantener por compatibilidad legacy si es necesario
   categoryRel ProductCategory? @relation(fields: [categoryId], references: [id])
   categoryId  String?
 
   status      String       @default("ACTIVE") // ACTIVE, COMING_SOON, INACTIVE
-  isPublic    Boolean      @default(true)     // Control individual
+  isPublic    Boolean      @default(true) // Control individual
   itemsPedido PedidoItem[]
 
   jugBrandsAsCap        JugBrand[]
-  storeInventories     StoreInventory[]
+  storeInventories      StoreInventory[]
   installationMaterials ModelMaterial[] // Nueva relación
   promotionsGiveaway    Promotion[]      @relation("ProductGiveaway")
 }
@@ -348,26 +361,26 @@ model Product {
 // =====================================================================
 
 model Promotion {
-  id              String           @id @default(cuid())
-  name            String
-  description     String?
-  type            String           // DISCOUNT_PERCENT, DISCOUNT_FIXED, GIVEAWAY, COUPON, POINTS_MULTIPLIER
-  value           Float?           // Valor del descuento o multiplicador
-  couponCode      String?          @unique
+  id               String           @id @default(cuid())
+  name             String
+  description      String?
+  type             String // DISCOUNT_PERCENT, DISCOUNT_FIXED, GIVEAWAY, COUPON, POINTS_MULTIPLIER
+  value            Float? // Valor del descuento o multiplicador
+  couponCode       String?          @unique
   targetCategories ClientCategory[] // Categorías de cliente a las que aplica
-  minOrderAmount  Float?           @default(0)
-  isActive        Boolean          @default(true)
-  isPublic        Boolean          @default(false) // Si es true, aparece en la cinta/banner de la tienda
-  startDate       DateTime?
-  endDate         DateTime?
+  minOrderAmount   Float?           @default(0)
+  isActive         Boolean          @default(true)
+  isPublic         Boolean          @default(false) // Si es true, aparece en la cinta/banner de la tienda
+  startDate        DateTime?
+  endDate          DateTime?
 
-  giveawayProduct   Product?       @relation("ProductGiveaway", fields: [giveawayProductId], references: [id])
+  giveawayProduct   Product? @relation("ProductGiveaway", fields: [giveawayProductId], references: [id])
   giveawayProductId String?
 
-  pedidos           Pedido[]       // Relación con pedidos que usaron esta promo
+  pedidos Pedido[] // Relación con pedidos que usaron esta promo
 
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 // =====================================================================
@@ -375,88 +388,89 @@ model Promotion {
 // =====================================================================
 
 model InstallationModel {
-  id          String          @id @default(cuid())
-  name        String          @unique // Ej: Vending Atlantis 300
+  id          String  @id @default(cuid())
+  name        String  @unique // Ej: Vending Atlantis 300
   description String?
-  isModule    Boolean         @default(false) // Si es true, es una parte reutilizable (ej: Osmosis)
+  isModule    Boolean @default(false) // Si es true, es una parte reutilizable (ej: Osmosis)
 
-  materials   ModelMaterial[] // Materiales directos (tornillos, cables, etc)
+  materials ModelMaterial[] // Materiales directos (tornillos, cables, etc)
 
   // Relación modular: Un modelo puede contener varios módulos
-  modules     InstallationModuleJoin[] @relation("ModelToModules")
-  usedIn      InstallationModuleJoin[] @relation("ModuleToModels")
+  modules InstallationModuleJoin[] @relation("ModelToModules")
+  usedIn  InstallationModuleJoin[] @relation("ModuleToModels")
 
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model ModelMaterial {
-  id                  String            @id @default(cuid())
-  quantity            Float             @default(1)
-  unit                String            @default("Pza") // Ej: Pza, Mts, Lts, Kg
+  id       String @id @default(cuid())
+  quantity Float  @default(1)
+  unit     String @default("Pza") // Ej: Pza, Mts, Lts, Kg
 
   installationModel   InstallationModel @relation(fields: [installationModelId], references: [id])
   installationModelId String
 
-  product             Product           @relation(fields: [productId], references: [id])
-  productId           String
+  product   Product @relation(fields: [productId], references: [id])
+  productId String
 
   @@unique([installationModelId, productId])
 }
 
 model InstallationModuleJoin {
-  id          String            @id @default(cuid())
-  quantity    Float             @default(1)
+  id       String @id @default(cuid())
+  quantity Float  @default(1)
 
-  model       InstallationModel @relation("ModelToModules", fields: [modelId], references: [id])
-  modelId     String
+  model   InstallationModel @relation("ModelToModules", fields: [modelId], references: [id])
+  modelId String
 
-  module      InstallationModel @relation("ModuleToModels", fields: [moduleId], references: [id])
-  moduleId    String
+  module   InstallationModel @relation("ModuleToModels", fields: [moduleId], references: [id])
+  moduleId String
 
   @@unique([modelId, moduleId])
 }
 
 model Pedido {
-  id                  String           @id @default(cuid())
-  customId            String           @unique 
-  total               Float
-  status              PedidoStatus     @default(PENDIENTE)
-  deliveryMethod      String 
-  paymentMethod       String? 
-  paymentStatus       PaymentStatus    @default(NO_PAGADO)
-  deliveryDate        DateTime? 
-  deliveryTimeSlot    String? 
-  createdAt           DateTime         @default(now())
-  updatedAt           DateTime         @updatedAt
+  id               String        @id @default(cuid())
+  customId         String        @unique
+  total            Float
+  status           PedidoStatus  @default(PENDIENTE)
+  deliveryMethod   String
+  paymentMethod    String?
+  paymentStatus    PaymentStatus @default(NO_PAGADO)
+  deliveryDate     DateTime?
+  deliveryTimeSlot String?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
 
-  cliente             User             @relation(fields: [clienteId], references: [id])
-  clienteId           String
-  items               PedidoItem[]
-  sesionCaja          SesionCaja?      @relation(fields: [sesionCajaId], references: [id])
-  sesionCajaId        String?
-  ingreso             Ingreso?         @relation("PedidoToIngreso")
-  transaccionCaja     TransaccionCaja?
+  cliente         User             @relation(fields: [clienteId], references: [id])
+  clienteId       String
+  items           PedidoItem[]
+  sesionCaja      SesionCaja?      @relation(fields: [sesionCajaId], references: [id])
+  sesionCajaId    String?
+  ingreso         Ingreso?         @relation("PedidoToIngreso")
+  transaccionCaja TransaccionCaja?
 
   deliverySpeed    DeliverySpeed @default(ESTANDAR)
   expressSurcharge Float         @default(0.0)
   deliveryLat      Float?
   deliveryLng      Float?
-  
-  repartidor       User?         @relation("RepartidorPedidos", fields: [repartidorId], references: [id])
-  repartidorId     String?
 
-  store            Store         @relation(fields: [storeId], references: [id])
-  storeId          String
+  repartidor   User?   @relation("RepartidorPedidos", fields: [repartidorId], references: [id])
+  repartidorId String?
 
-  promotion        Promotion?    @relation(fields: [promotionId], references: [id])
-  promotionId      String?
+  store   Store  @relation(fields: [storeId], references: [id])
+  storeId String
+
+  promotion       Promotion?       @relation(fields: [promotionId], references: [id])
+  promotionId     String?
+  contableFactura ContableFactura?
 }
 
 model PedidoItem {
   id       String @id @default(cuid())
   quantity Int
-  price    Float 
+  price    Float
 
   pedido   Pedido @relation(fields: [pedidoId], references: [id])
   pedidoId String
@@ -479,30 +493,30 @@ model SesionCaja {
   closingBalance  Float?
   expectedBalance Float?
   estado          EstadoSesionCaja @default(ABIERTA)
-  
-  initialTags     Int              @default(0)
-  damagedTags     Int              @default(0)
-  
-  vendedor        User             @relation(fields: [vendedorId], references: [id])
-  vendedorId      String
-  
-  store           Store            @relation(fields: [storeId], references: [id])
-  storeId         String
 
-  transacciones   TransaccionCaja[]
-  pedidos         Pedido[]
+  initialTags Int @default(0)
+  damagedTags Int @default(0)
+
+  vendedor   User   @relation(fields: [vendedorId], references: [id])
+  vendedorId String
+
+  store   Store  @relation(fields: [storeId], references: [id])
+  storeId String
+
+  transacciones TransaccionCaja[]
+  pedidos       Pedido[]
 }
 
 model TransaccionCaja {
-  id          String            @id @default(cuid())
+  id          String              @id @default(cuid())
   tipo        TipoTransaccionCaja
   amount      Float
   description String?
-  createdAt   DateTime          @default(now())
-  sesion      SesionCaja        @relation(fields: [sesionId], references: [id])
+  createdAt   DateTime            @default(now())
+  sesion      SesionCaja          @relation(fields: [sesionId], references: [id])
   sesionId    String
-  pedido      Pedido?           @relation(fields: [pedidoId], references: [id])
-  pedidoId    String?           @unique
+  pedido      Pedido?             @relation(fields: [pedidoId], references: [id])
+  pedidoId    String?             @unique
 }
 
 model Gasto {
@@ -510,21 +524,21 @@ model Gasto {
   description String
   amount      Float
   date        DateTime
-  
-  store       Store?   @relation(fields: [storeId], references: [id])
-  storeId     String?
+
+  store   Store?  @relation(fields: [storeId], references: [id])
+  storeId String?
 }
 
 model Ingreso {
-  id                 String            @id @default(cuid())
-  description        String
-  amount             Float
-  date               DateTime
-  pedido             Pedido?           @relation("PedidoToIngreso", fields: [pedidoId], references: [id])
-  pedidoId           String?           @unique
-  
-  store              Store?            @relation(fields: [storeId], references: [id])
-  storeId            String?
+  id          String   @id @default(cuid())
+  description String
+  amount      Float
+  date        DateTime
+  pedido      Pedido?  @relation("PedidoToIngreso", fields: [pedidoId], references: [id])
+  pedidoId    String?  @unique
+
+  store   Store?  @relation(fields: [storeId], references: [id])
+  storeId String?
 }
 
 // =====================================================================
@@ -535,7 +549,7 @@ model Empleado {
   id             String @id @default(cuid())
   nombreCompleto String
   puesto         String
-  sueldo         Float 
+  sueldo         Float
 
   telefono      String?
   emailPersonal String? @unique
@@ -558,16 +572,18 @@ model Empleado {
 
   documentos       Documento[]
   historialSueldos HistorialSueldo[]
+  nominaDetalles   NominaDetalle[]
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt                 DateTime                   @default(now())
+  updatedAt                 DateTime                   @updatedAt
+  contableDocumentoSoportes ContableDocumentoSoporte[]
 }
 
 model Documento {
   id        String        @id @default(cuid())
-  nombre    String 
-  url       String 
-  tipo      TipoDocumento 
+  nombre    String
+  url       String
+  tipo      TipoDocumento
   createdAt DateTime      @default(now())
 
   empleado   Empleado @relation(fields: [empleadoId], references: [id])
@@ -580,8 +596,8 @@ model HistorialSueldo {
   empleadoId  String
   sueldo      Float
   fechaInicio DateTime
-  fechaFin    DateTime? 
-  motivo      String? 
+  fechaFin    DateTime?
+  motivo      String?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 }
@@ -591,35 +607,35 @@ model HistorialSueldo {
 // =====================================================================
 
 model ShowcaseInstallation {
-  id               String         @id @default(cuid())
-  nombre           String         // Ej: Purificadora San Juan
-  tipo             String         // Ej: Planta de Ósmosis, Vending, etc.
+  id               String    @id @default(cuid())
+  nombre           String // Ej: Purificadora San Juan
+  tipo             String // Ej: Planta de Ósmosis, Vending, etc.
   direccion        String?
   ciudad           String
   estado           String
   lat              Float
   lng              Float
-  telefono         String?        // Nuevo: Sincronizado con Lead/Legal
+  telefono         String? // Nuevo: Sincronizado con Lead/Legal
   descripcion      String?
   fechaInstalacion DateTime?
-  isPublic         Boolean        @default(true)
-  
-  // Enlaces a otros módulos
-  leadId           String?        @unique
-  lead             Lead?          @relation(fields: [leadId], references: [id])
-  
-  legalDocumentId  String?        @unique
-  legalDocument    LegalDocument? @relation(fields: [legalDocumentId], references: [id])
+  isPublic         Boolean   @default(true)
 
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
+  // Enlaces a otros módulos
+  leadId String? @unique
+  lead   Lead?   @relation(fields: [leadId], references: [id])
+
+  legalDocumentId String?        @unique
+  legalDocument   LegalDocument? @relation(fields: [legalDocumentId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Cotizacion {
   id            String   @id @default(cuid())
-  folio         Int      @default(autoincrement()) 
+  folio         Int      @default(autoincrement())
   fecha         DateTime @default(now())
-  diasValidez   Int      @default(5) 
+  diasValidez   Int      @default(5)
   nombreAsesor  String?
   nombreCliente String
   telefono      String?
@@ -629,61 +645,61 @@ model Cotizacion {
   modeloPrecio  Float    @default(0)
   fleteTinacos  Float    @default(0)
   viaticos      Float    @default(0)
-  extras        Json? 
+  extras        Json?
   promoTexto    String?
   promoCosto    Float?
-  promoImagen   String? 
-  firma         String? 
+  promoImagen   String?
+  firma         String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 }
 
 model LegalDocument {
-  id          String   @id @default(cuid())
+  id          String  @id @default(cuid())
   nombre      String
   descripcion String?
   archivoUrl  String
-  
+
   showcaseInstallation ShowcaseInstallation?
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model MarketingPost {
-  id               String   @id @default(cuid())
+  id               String    @id @default(cuid())
   titulo           String
   descripcion      String?
   url              String?
-  status           String   @default("BORRADOR") // BORRADOR, EN_PROCESO, PENDIENTE_APROBACION, APROBADO, PUBLICADO
+  status           String    @default("BORRADOR") // BORRADOR, EN_PROCESO, PENDIENTE_APROBACION, APROBADO, PUBLICADO
   fechaEntrega     DateTime?
   fechaPublicacion DateTime?
   comentariosAdmin String?
-  editAuthorized   Boolean  @default(false) // Nuevo: Permiso del Admin para editar post ya avanzado
+  editAuthorized   Boolean   @default(false) // Nuevo: Permiso del Admin para editar post ya avanzado
 
   // Nuevos campos para Redes Sociales y Métricas
-  plataforma       String?  // INSTAGRAM, TIKTOK, FACEBOOK, YOUTUBE, OTRO
-  vistas           Int      @default(0)
-  likes            Int      @default(0)
-  compartidos      Int      @default(0)
+  plataforma        String? // INSTAGRAM, TIKTOK, FACEBOOK, YOUTUBE, OTRO
+  vistas            Int     @default(0)
+  likes             Int     @default(0)
+  compartidos       Int     @default(0)
   seguidoresGanados Int     @default(0)
-  isLive           Boolean  @default(false)
+  isLive            Boolean @default(false)
 
-  creador          User     @relation(fields: [creadorId], references: [id])
-  creadorId        String
+  creador   User   @relation(fields: [creadorId], references: [id])
+  creadorId String
 
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model SocialMediaMetric {
-  id               String   @id @default(cuid())
-  plataforma       String   // INSTAGRAM, TIKTOK, FACEBOOK, YOUTUBE
-  seguidores       Int
-  fecha            DateTime @default(now())
-  
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  id         String   @id @default(cuid())
+  plataforma String // INSTAGRAM, TIKTOK, FACEBOOK, YOUTUBE
+  seguidores Int
+  fecha      DateTime @default(now())
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([plataforma, fecha])
 }
@@ -694,9 +710,9 @@ model Notification {
   user      User     @relation(fields: [userId], references: [id])
   title     String
   message   String
-  type      String   @default("INFO") 
-  link      String?  
-  icon      String?  
+  type      String   @default("INFO")
+  link      String?
+  icon      String?
   read      Boolean  @default(false)
   createdAt DateTime @default(now())
 }
@@ -720,14 +736,560 @@ model BlogPost {
   updatedAt DateTime @updatedAt
   title     String
   slug      String   @unique
-  excerpt   String?  // Resumen corto para las tarjetas del feed
+  excerpt   String? // Resumen corto para las tarjetas del feed
   content   String   @db.Text
-  blocks    Json?    // Estructura original del editor de bloques
-  image     String?  // Imagen de portada
-  videoUrl  String?  // Opcional, para incrustar videos
+  blocks    Json? // Estructura original del editor de bloques
+  image     String? // Imagen de portada
+  videoUrl  String? // Opcional, para incrustar videos
   category  String   @default("Articulo") // Articulo, Video, Curiosidad
   tags      String[] @default(["Darmax"])
   published Boolean  @default(true)
   author    String   @default("Darmax")
   target    String   @default("WEB") // WEB o INTERNAL
+}
+
+// =====================================================================
+// MÓDULO CONTABLE V2 (Arquitectura ERP)
+// =====================================================================
+
+model ContableEmpresa {
+  id            String  @id @default(cuid())
+  nombre        String
+  rfc           String  @unique
+  razonSocial   String
+  regimenFiscal String
+  activa        Boolean @default(true)
+
+  // Integración Fiscal (Facturapi)
+  facturapiApiKey String? // API Key (sk_test_... o sk_live_...)
+  lugarExpedicion String? // Código Postal de la matriz
+
+  // Configuración de Automatización
+  contabilidadAutomatica Boolean @default(false)
+  cuentaVentasId         String?
+  cuentaBancosId         String?
+  cuentaVendingId        String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sucursales         ContableSucursal[]
+  ejercicios         ContableEjercicio[]
+  cuentas            ContableCuenta[]
+  centrosCosto       ContableCentroCosto[]
+  bancos             ContableCuentaBancaria[]
+  polizas            ContablePoliza[]
+  presupuestos       ContablePresupuesto[]
+  activosFijos       ContableActivoFijo[]
+  documentosSoporte  ContableDocumentoSoporte[]
+  impuestos          ContableImpuesto[]
+  proveedores        ContableProveedor[]
+  solicitudesCompra  SolicitudCompra[]
+  facturas           ContableFactura[]
+  contableContratoes ContableContrato[]
+  nominas            Nomina[]
+}
+
+model Nomina {
+  id        String   @id @default(cuid())
+  folio     String   @unique
+  mes       Int
+  anio      Int
+  fechaPago DateTime @default(now())
+  total     Float
+  estatus   String   @default("BORRADOR") // BORRADOR, PAGADA, CANCELADA
+
+  empresa   ContableEmpresa @relation(fields: [empresaId], references: [id])
+  empresaId String
+
+  detalles NominaDetalle[]
+  poliza   ContablePoliza? @relation(fields: [polizaId], references: [id])
+  polizaId String?         @unique
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model NominaDetalle {
+  id         String   @id @default(cuid())
+  nomina     Nomina   @relation(fields: [nominaId], references: [id])
+  nominaId   String
+  empleado   Empleado @relation(fields: [empleadoId], references: [id])
+  empleadoId String
+
+  sueldoBase  Float
+  bonos       Float @default(0)
+  deducciones Float @default(0)
+  totalNeto   Float
+}
+
+model ContableFactura {
+  id          String   @id @default(cuid())
+  facturapiId String   @unique // ID en Facturapi
+  uuid        String?  @unique // Folio Fiscal (SAT)
+  folio       String? // Folio interno
+  serie       String? // Serie interna
+  fecha       DateTime @default(now())
+  status      String   @default("valid") // valid, cancelled, pending
+  total       Float
+  tipo        String   @default("I") // I: Ingreso, E: Egreso, P: Pago
+
+  pdfUrl String?
+  xmlUrl String?
+
+  empresa   ContableEmpresa @relation(fields: [empresaId], references: [id])
+  empresaId String
+
+  // Relaciones opcionales (pueden venir de un Pedido o ser globales)
+  pedido   Pedido? @relation(fields: [pedidoId], references: [id])
+  pedidoId String? @unique
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ContableSucursal {
+  id        String          @id @default(cuid())
+  nombre    String
+  empresa   ContableEmpresa @relation(fields: [empresaId], references: [id])
+  empresaId String
+
+  // Opcional: Vincular con el modelo Store de la app
+  store   Store?  @relation(fields: [storeId], references: [id])
+  storeId String?
+}
+
+model ContableEjercicio {
+  id        String          @id @default(cuid())
+  anio      Int
+  abierto   Boolean         @default(true)
+  empresa   ContableEmpresa @relation(fields: [empresaId], references: [id])
+  empresaId String
+
+  periodos ContablePeriodo[]
+
+  @@unique([anio, empresaId])
+}
+
+model ContablePeriodo {
+  id            String    @id @default(cuid())
+  mes           Int // 1-12
+  abierto       Boolean   @default(true)
+  fechaCierre   DateTime?
+  usuarioCierre String?
+
+  ejercicio   ContableEjercicio @relation(fields: [ejercicioId], references: [id])
+  ejercicioId String
+
+  @@unique([mes, ejercicioId])
+}
+
+enum NaturalezaCuenta {
+  DEUDORA
+  ACREEDORA
+}
+
+enum TipoCuentaContable {
+  ACTIVO
+  PASIVO
+  CAPITAL
+  INGRESO
+  EGRESO
+  ORDEN
+}
+
+model ContableCuenta {
+  id         String             @id @default(cuid())
+  codigo     String // Ej: 100-01-001
+  nombre     String
+  tipo       TipoCuentaContable
+  subtipo    String?
+  naturaleza NaturalezaCuenta
+  nivel      Int                @default(1)
+  activa     Boolean            @default(true)
+
+  empresa   ContableEmpresa @relation(fields: [empresaId], references: [id])
+  empresaId String
+
+  cuentaPadre   ContableCuenta?  @relation("JerarquiaCuentas", fields: [cuentaPadreId], references: [id])
+  cuentaPadreId String?
+  subcuentas    ContableCuenta[] @relation("JerarquiaCuentas")
+
+  polizaDetalles ContablePolizaDetalle[]
+
+  @@unique([codigo, empresaId])
+}
+
+model ContableCentroCosto {
+  id     String  @id @default(cuid())
+  clave  String // VENDING, MOSTRADOR, INMOBILIARIA, etc.
+  nombre String
+  activo Boolean @default(true)
+
+  empresa   ContableEmpresa @relation(fields: [empresaId], references: [id])
+  empresaId String
+
+  polizaDetalles ContablePolizaDetalle[]
+  contratos      ContableContrato[] // Relación con contratos de esta unidad
+
+  @@unique([clave, empresaId])
+}
+
+model ContableContrato {
+  id          String  @id @default(cuid())
+  folio       String  @unique
+  tipo        String // ARRENDAMIENTO, VENDING_POINT, SERVICIO_RECURRENTE
+  titulo      String // Ej: Renta Local Plaza Norte
+  descripcion String?
+
+  monto      Float
+  diaPago    Int // 1 al 31
+  frecuencia String @default("MENSUAL") // MENSUAL, BIMESTRAL, ANUAL
+
+  fechaInicio DateTime
+  fechaFin    DateTime?
+  estatus     String    @default("VIGENTE") // VIGENTE, VENCIDO, CANCELADO
+
+  // Contraparte
+  terceroNombre String
+  terceroRfc    String?
+
+  empresa   ContableEmpresa @relation(fields: [empresaId], references: [id])
+  empresaId String
+
+  centroCosto   ContableCentroCosto @relation(fields: [centroCostoId], references: [id])
+  centroCostoId String
+
+  cuentasCobrar ContableCxC[]
+
+  // Documentos firmados (Materialidad)
+  documentos ContableDocumentoSoporte[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ContableCliente {
+  id        String   @id @default(cuid())
+  rfc       String?
+  nombre    String
+  createdAt DateTime @default(now())
+
+  cuentasCobrar ContableCxC[]
+}
+
+model ContableProveedor {
+  id              String  @id @default(cuid())
+  rfc             String
+  razonSocial     String
+  nombreComercial String?
+  email           String?
+  telefono        String?
+  domicilio       String?
+
+  empresa   ContableEmpresa @relation(fields: [empresaId], references: [id])
+  empresaId String
+
+  polizas      ContablePoliza[]
+  documentos   ContableDocumentoSoporte[]
+  cuentasPagar ContableCxP[]
+
+  createdAt    DateTime      @default(now())
+  ordenCompras OrdenCompra[]
+}
+
+model ContableImpuesto {
+  id     String  @id @default(cuid())
+  nombre String // IVA 16%, Retención ISR, etc.
+  tasa   Float // 0.16, 0.10, etc.
+  tipo   String // TRASLADADO, ACREDITABLE, RETENCION
+  satKey String? // Clave SAT (ej: 002)
+
+  empresa   ContableEmpresa @relation(fields: [empresaId], references: [id])
+  empresaId String
+
+  movimientos ContableImpuestoMovimiento[]
+}
+
+model ContableImpuestoMovimiento {
+  id      String   @id @default(cuid())
+  fecha   DateTime @default(now())
+  base    Float
+  importe Float
+
+  impuesto   ContableImpuesto @relation(fields: [impuestoId], references: [id])
+  impuestoId String
+
+  poliza   ContablePoliza @relation(fields: [polizaId], references: [id])
+  polizaId String
+}
+
+model ContableCuentaBancaria {
+  id           String  @id @default(cuid())
+  banco        String
+  cuenta       String
+  clabe        String?
+  saldoInicial Float   @default(0)
+
+  empresa   ContableEmpresa @relation(fields: [empresaId], references: [id])
+  empresaId String
+
+  movimientos ContableMovimientoBancario[]
+}
+
+model ContableMovimientoBancario {
+  id         String   @id @default(cuid())
+  fecha      DateTime
+  tipo       String // INGRESO / EGRESO
+  importe    Float
+  referencia String?
+  conciliado Boolean  @default(false)
+
+  cuentaBancaria   ContableCuentaBancaria @relation(fields: [cuentaBancariaId], references: [id])
+  cuentaBancariaId String
+
+  conciliacion ContableConciliacion?
+}
+
+model ContableConciliacion {
+  id      String @id @default(cuid())
+  estatus String @default("PENDIENTE")
+
+  movimiento   ContableMovimientoBancario @relation(fields: [movimientoId], references: [id])
+  movimientoId String                     @unique
+
+  poliza   ContablePoliza @relation(fields: [polizaId], references: [id])
+  polizaId String
+}
+
+model ContablePoliza {
+  id       String   @id @default(cuid())
+  folio    String
+  tipo     String // DIARIO, INGRESOS, EGRESOS
+  fecha    DateTime
+  concepto String
+  estatus  String   @default("CAPTURADA") // CAPTURADA, POSTEADA, CANCELADA
+
+  empresa   ContableEmpresa @relation(fields: [empresaId], references: [id])
+  empresaId String
+
+  detalles       ContablePolizaDetalle[]
+  documentos     ContableDocumentoSoporte[]   @relation("PolizaDocumentos")
+  conciliaciones ContableConciliacion[]
+  impuestos      ContableImpuestoMovimiento[]
+  proveedor      ContableProveedor?           @relation(fields: [proveedorId], references: [id])
+  proveedorId    String?
+  nomina         Nomina?
+
+  @@unique([folio, empresaId])
+}
+
+model ContablePolizaDetalle {
+  id    String @id @default(cuid())
+  debe  Float  @default(0)
+  haber Float  @default(0)
+
+  poliza   ContablePoliza @relation(fields: [polizaId], references: [id])
+  polizaId String
+
+  cuenta   ContableCuenta @relation(fields: [cuentaId], references: [id])
+  cuentaId String
+
+  centroCosto   ContableCentroCosto? @relation(fields: [centroCostoId], references: [id])
+  centroCostoId String?
+}
+
+model ContableDocumentoSoporte {
+  id        String   @id @default(cuid())
+  folio     String?  @unique
+  tipo      String // FACTURA, RECIBO, CONTRATO, EVIDENCIA, IDENTIFICACION
+  nombre    String
+  ruta      String // URL del archivo
+  extension String? // pdf, xml, jpg
+  tags      String[] // Egresos, Nomina, Legal, etc.
+  fecha     DateTime @default(now())
+  status    String   @default("CARGADO") // CARGADO, VALIDADO, RECHAZADO
+  notas     String?
+
+  empresa   ContableEmpresa @relation(fields: [empresaId], references: [id])
+  empresaId String
+
+  polizas            ContablePoliza[]   @relation("PolizaDocumentos")
+  proveedor          ContableProveedor? @relation(fields: [proveedorId], references: [id])
+  proveedorId        String?
+  contableContrato   ContableContrato?  @relation(fields: [contableContratoId], references: [id])
+  contableContratoId String?
+  empleado           Empleado?          @relation(fields: [empleadoId], references: [id])
+  empleadoId         String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ContableActivoFijo {
+  id          String   @id @default(cuid())
+  nombre      String // Terreno, Vehiculo, etc.
+  fechaCompra DateTime
+  valor       Float
+  vidaUtil    Int // En meses o años
+
+  empresa   ContableEmpresa @relation(fields: [empresaId], references: [id])
+  empresaId String
+}
+
+model ContableCxC {
+  id          String   @id @default(cuid())
+  total       Float
+  saldo       Float
+  vencimiento DateTime
+
+  cliente   ContableCliente @relation(fields: [clienteId], references: [id])
+  clienteId String
+
+  contrato   ContableContrato? @relation(fields: [contratoId], references: [id])
+  contratoId String?
+}
+
+model ContableCxP {
+  id          String   @id @default(cuid())
+  total       Float
+  saldo       Float
+  vencimiento DateTime
+
+  proveedor     ContableProveedor @relation(fields: [proveedorId], references: [id])
+  proveedorId   String
+  ordenCompra   OrdenCompra?      @relation(fields: [ordenCompraId], references: [id])
+  ordenCompraId String?
+}
+
+model ContablePresupuesto {
+  id      String @id @default(cuid())
+  anio    Int
+  mes     Int
+  importe Float
+
+  empresa   ContableEmpresa @relation(fields: [empresaId], references: [id])
+  empresaId String
+}
+
+// =====================================================================
+// MÓDULO DE COMPRAS / CUENTAS POR PAGAR
+// =====================================================================
+
+model SolicitudCompra {
+  id            String   @id @default(cuid())
+  folio         String   @unique
+  fecha         DateTime @default(now())
+  prioridad     String   @default("NORMAL") // BAJA, NORMAL, ALTA, URGENTE
+  status        String   @default("PENDIENTE") // PENDIENTE, APROBADA, RECHAZADA, ORDENADA
+  solicitante   String
+  justificacion String?
+  items         Json // Arreglo de { producto, cantidad, unidad }
+
+  empresa   ContableEmpresa @relation(fields: [empresaId], references: [id])
+  empresaId String
+
+  ordenes   OrdenCompra[]
+  createdAt DateTime      @default(now())
+}
+
+model OrdenCompra {
+  id              String   @id @default(cuid())
+  folio           String   @unique
+  fecha           DateTime @default(now())
+  status          String   @default("BORRADOR") // BORRADOR, ENVIADA, RECIBIDA_PARCIAL, RECIBIDA_TOTAL, CANCELADA
+  total           Float
+  moneda          String   @default("MXN")
+  condicionesPago String?
+
+  solicitud   SolicitudCompra? @relation(fields: [solicitudId], references: [id])
+  solicitudId String?
+
+  proveedor   ContableProveedor @relation(fields: [proveedorId], references: [id])
+  proveedorId String
+
+  store   Store?  @relation(fields: [storeId], references: [id])
+  storeId String?
+
+  items       Json // Arreglo de { productId, cantidad, precio, impuesto }
+  recepciones RecepcionCompra[]
+
+  // Enlace a CxP una vez facturada
+  cuentasPagar ContableCxP[]
+
+  createdAt DateTime @default(now())
+}
+
+model RecepcionCompra {
+  id           String   @id @default(cuid())
+  folio        String   @unique
+  fecha        DateTime @default(now())
+  recibidoPor  String
+  notas        String?
+  evidenciaUrl String? // Foto de la remisión o productos
+
+  orden   OrdenCompra @relation(fields: [ordenId], references: [id])
+  ordenId String
+
+  items     Json // Cantidades realmente recibidas
+  createdAt DateTime @default(now())
+}
+
+// ... rest of the file
+
+model VendingMachine {
+  id           String  @id @default(cuid())
+  name         String
+  model        String?
+  serialNumber String? @unique
+  location     String? // Dirección o descripción de ubicación
+  status       String  @default("ACTIVE") // ACTIVE, MAINTENANCE, INACTIVE
+
+  store   Store  @relation(fields: [storeId], references: [id])
+  storeId String
+
+  cortes         VendingCorte[]
+  mantenimientos VendingMantenimiento[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model VendingCorte {
+  id    String   @id @default(cuid())
+  folio String   @unique
+  fecha DateTime @default(now())
+
+  // Lecturas de contador (Consumos)
+  contadorInicial Int @default(0)
+  contadorFinal   Int @default(0)
+  consumosReales  Int // contadorFinal - contadorInicial
+
+  // Dinero
+  efectivoReclectado Float
+  montoEsperado      Float // Basado en consumos * precio_configurado
+  diferencia         Float // montoEsperado - efectivoReclectado
+
+  notas String?
+
+  vendingMachine   VendingMachine @relation(fields: [vendingMachineId], references: [id])
+  vendingMachineId String
+
+  // Quién realizó el corte
+  usuario   User   @relation(fields: [usuarioId], references: [id])
+  usuarioId String
+
+  createdAt DateTime @default(now())
+}
+
+model VendingMantenimiento {
+  id          String   @id @default(cuid())
+  fecha       DateTime @default(now())
+  tipo        String // PREVENTIVO, CORRECTIVO
+  descripcion String
+  tecnico     String?
+  costo       Float    @default(0)
+
+  vendingMachine   VendingMachine @relation(fields: [vendingMachineId], references: [id])
+  vendingMachineId String
 }

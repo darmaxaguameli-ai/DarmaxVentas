@@ -73,6 +73,23 @@ const toolRoutes = require('./routes/tools');
 const externalRoutes = require('./routes/external');
 const reportRoutes = require('./routes/reports');
 const promotionRoutes = require('./routes/promotions');
+const accountingRoutes = require('./routes/accounting');
+const vendingRoutes = require('./routes/vending');
+const purchaseRoutes = require('./routes/purchases');
+const fiscalRoutes = require('./routes/fiscal');
+const leadRoutes = require('./routes/leads');
+const { procesarRentasMensuales } = require('./utils/accountingAutomations');
+
+// --- CRON JOBS SIMULADOS ---
+// Endpoint manual para disparar los procesos automáticos diarios
+app.post('/api/cron/diario', async (req, res) => {
+    try {
+        await procesarRentasMensuales();
+        res.json({ message: 'Procesos diarios ejecutados correctamente' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
 
 // ------------------------------
 // ASIGNAR RUTAS (Todas bajo /api)
@@ -81,6 +98,7 @@ app.use('/api', authRoutes);
 app.use('/api', productRoutes); 
 app.use('/api', orderRoutes);
 app.use('/api', userRoutes);
+app.use('/api/leads', leadRoutes);
 app.use('/api', roleRoutes);
 app.use('/api', logisticsRoutes); 
 app.use('/api', financeRoutes); 
@@ -90,6 +108,10 @@ app.use('/api', toolRoutes);
 app.use('/api', externalRoutes);
 app.use('/api', reportRoutes);
 app.use('/api', promotionRoutes);
+app.use('/api/accounting', accountingRoutes);
+app.use('/api/vending', vendingRoutes);
+app.use('/api/purchases', purchaseRoutes);
+app.use('/api/fiscal', fiscalRoutes);
 
 // Healthcheck
 app.get('/api/health', (req, res) => {

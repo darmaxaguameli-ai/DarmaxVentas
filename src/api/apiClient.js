@@ -121,18 +121,22 @@ export const deleteJugBrand = (id) => apiClient.delete(`/jug-brands/${id}`).then
 // ====================================================================
 //  EMPLEADOS (HR)
 // ====================================================================
-export const fetchEmpleados = () => apiClient.get('/empleados').then(res => res.data);
-export const createEmpleado = (empleadoData) => apiClient.post('/empleados', empleadoData).then(res => res.data);
-export const updateEmpleado = (id, empleadoData) => apiClient.put(`/empleados/${id}`, empleadoData).then(res => res.data);
-export const deleteEmpleado = (id) => apiClient.delete(`/empleados/${id}`).then(res => res.data);
-export const fetchEmpleadoById = (id) => apiClient.get(`/empleados/${id}`).then(res => res.data);
+export const fetchEmpleados = () => apiClient.get('/hr/empleados').then(res => res.data);
+export const createEmpleado = (empleadoData) => apiClient.post('/hr/empleados', empleadoData).then(res => res.data);
+export const updateEmpleado = (id, empleadoData) => apiClient.put(`/hr/empleados/${id}`, empleadoData).then(res => res.data);
+export const deleteEmpleado = (id) => apiClient.delete(`/hr/empleados/${id}`).then(res => res.data);
+export const fetchEmpleadoById = (id) => apiClient.get(`/hr/empleados/${id}`).then(res => res.data);
 export const uploadDocumento = (empleadoId, formData) => {
-  return apiClient.post(`/empleados/${empleadoId}/documentos`, formData, {
+  return apiClient.post(`/hr/empleados/${empleadoId}/documentos`, formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
     },
   }).then(res => res.data);
 };
+
+export const fetchNominas = (empresaId) => apiClient.get('/hr', { params: { empresaId } }).then(res => res.data);
+export const generarNomina = (data) => apiClient.post('/hr/generar', data).then(res => res.data);
+export const pagarNomina = (id, cuentaBancariaId) => apiClient.post(`/hr/${id}/pagar`, { cuentaBancariaId }).then(res => res.data);
 
 // ====================================================================
 //  PEDIDOS
@@ -265,3 +269,84 @@ export const deletePromotion = (id) => apiClient.delete(`/promotions/${id}`).the
 
 export const fetchUserPreferences = () => apiClient.get('/user-preferences').then(res => res.data);
 export const saveUserPreferences = (preferences) => apiClient.post('/user-preferences', { preferences }).then(res => res.data);
+
+// ====================================================================
+// CONTABILIDAD
+// ====================================================================
+export const fetchContableEmpresas = () => apiClient.get('/accounting/empresas').then(res => res.data);
+export const createContableEmpresa = (data) => apiClient.post('/accounting/empresas', data).then(res => res.data);
+export const updateContableEmpresa = (id, data) => apiClient.put(`/accounting/empresas/${id}`, data).then(res => res.data);
+
+export const fetchContableSucursales = (empresaId) => apiClient.get('/accounting/sucursales', { params: { empresaId } }).then(res => res.data);
+export const createContableSucursal = (data) => apiClient.post('/accounting/sucursales', data).then(res => res.data);
+
+export const fetchContableCuentas = (empresaId) => apiClient.get('/accounting/cuentas', { params: { empresaId } }).then(res => res.data);
+export const createContableCuenta = (data) => apiClient.post('/accounting/cuentas', data).then(res => res.data);
+export const updateContableCuenta = (id, data) => apiClient.put(`/accounting/cuentas/${id}`, data).then(res => res.data);
+export const deleteContableCuenta = (id) => apiClient.delete(`/accounting/cuentas/${id}`).then(res => res.data);
+
+export const fetchContableBancos = (empresaId) => apiClient.get('/accounting/bancos', { params: { empresaId } }).then(res => res.data);
+export const createContableBanco = (data) => apiClient.post('/accounting/bancos', data).then(res => res.data);
+
+export const fetchContableMovimientos = (cuentaBancariaId) => apiClient.get('/accounting/movimientos', { params: { cuentaBancariaId } }).then(res => res.data);
+export const createContableMovimiento = (data) => apiClient.post('/accounting/movimientos', data).then(res => res.data);
+
+export const fetchContablePolizas = (empresaId) => apiClient.get('/accounting/polizas', { params: { empresaId } }).then(res => res.data);
+export const createContablePoliza = (data) => apiClient.post('/accounting/polizas', data).then(res => res.data);
+
+export const fetchContableCentrosCosto = (empresaId) => apiClient.get('/accounting/centros-costo', { params: { empresaId } }).then(res => res.data);
+export const createContableCentroCosto = (data) => apiClient.post('/accounting/centros-costo', data).then(res => res.data);
+
+export const createContableTercero = (data) => apiClient.post('/accounting/terceros', data).then(res => res.data);
+
+export const fetchContableContratos = (empresaId, centroCostoId) => apiClient.get('/accounting/contratos', { params: { empresaId, centroCostoId } }).then(res => res.data);
+export const createContableContrato = (data) => apiClient.post('/accounting/contratos', data).then(res => res.data);
+
+export const fetchContableDocumentos = (empresaId) => apiClient.get('/accounting/documentos', { params: { empresaId } }).then(res => res.data);
+export const uploadContableDocumento = (formData) => {
+  return apiClient.post('/accounting/documentos', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  }).then(res => res.data);
+};
+
+export const fetchContableRentabilidad = (empresaId, mes, anio) => apiClient.get('/accounting/rentabilidad', { params: { empresaId, mes, anio } }).then(res => res.data);
+
+export const fetchContableBalanza = (empresaId, mes, anio) => apiClient.get('/accounting/balanza', { params: { empresaId, mes, anio } }).then(res => res.data);
+export const fetchContableLibroMayor = (empresaId, cuentaId) => apiClient.get('/accounting/libro-mayor', { params: { empresaId, cuentaId } }).then(res => res.data);
+export const fetchContableEstadoResultados = (empresaId) => apiClient.get('/accounting/estado-resultados', { params: { empresaId } }).then(res => res.data);
+
+// ====================================================================
+// VENDING
+// ====================================================================
+export const fetchVendingMachines = () => apiClient.get('/vending/machines').then(res => res.data);
+export const createVendingMachine = (data) => apiClient.post('/vending/machines', data).then(res => res.data);
+
+export const fetchVendingCortes = (machineId) => apiClient.get('/vending/cortes', { params: { machineId } }).then(res => res.data);
+export const createVendingCorte = (data) => apiClient.post('/vending/cortes', data).then(res => res.data);
+
+// ====================================================================
+// COMPRAS / CXP
+// ====================================================================
+export const fetchSolicitudesCompra = (empresaId) => apiClient.get('/purchases/solicitudes', { params: { empresaId } }).then(res => res.data);
+export const createSolicitudCompra = (data) => apiClient.post('/purchases/solicitudes', data).then(res => res.data);
+
+export const fetchOrdenesCompra = (empresaId) => apiClient.get('/purchases/ordenes', { params: { empresaId } }).then(res => res.data);
+export const createOrdenCompra = (data) => apiClient.post('/purchases/ordenes', data).then(res => res.data);
+
+export const createRecepcionCompra = (data) => apiClient.post('/purchases/recepciones', data).then(res => res.data);
+
+export const fetchCxP = (empresaId, status) => apiClient.get('/purchases/cxp', { params: { empresaId, status } }).then(res => res.data);
+export const pagarCxP = (id, data) => apiClient.post(`/purchases/cxp/${id}/pagar`, data).then(res => res.data);
+
+// ====================================================================
+// FISCAL
+// ====================================================================
+export const fetchFiscalFacturas = (empresaId) => apiClient.get('/fiscal/facturas', { params: { empresaId } }).then(res => res.data);
+export const createFiscalFacturaPedido = (data) => apiClient.post('/fiscal/facturar-pedido', data).then(res => res.data);
+export const cancelFiscalFactura = (id, motive) => apiClient.post(`/fiscal/cancelar/${id}`, { motive }).then(res => res.data);
+
+// =====================================================================
+// OTROS
+// =====================================================================
