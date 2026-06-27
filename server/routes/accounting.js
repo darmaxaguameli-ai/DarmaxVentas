@@ -292,6 +292,24 @@ router.post('/centros-costo', verifyToken, async (req, res) => {
 });
 
 // --- TERCEROS (CLIENTES Y PROVEEDORES) ---
+router.get('/terceros', verifyToken, async (req, res) => {
+  const { empresaId } = req.query;
+  if (!empresaId) return res.status(400).json({ error: 'empresaId required' });
+  try {
+    const clientes = await prisma.contableCliente.findMany({
+      orderBy: { nombre: 'asc' }
+    });
+    const proveedores = await prisma.contableProveedor.findMany({
+      where: { empresaId },
+      orderBy: { razonSocial: 'asc' }
+    });
+    res.json({ clientes, proveedores });
+  } catch (error) {
+    console.error('Error fetching terceros:', error);
+    res.status(500).json({ error: 'Error al cargar terceros' });
+  }
+});
+
 router.post('/terceros', verifyToken, async (req, res) => {
   const { tipo, nombre, rfc, empresaId } = req.body;
   try {

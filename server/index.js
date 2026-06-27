@@ -10,7 +10,7 @@ const port = process.env.PORT || 3001;
 
 // ✅ Habilitar confianza total en el Proxy (Vercel, Nginx, etc.)
 // Requerido para que express-rate-limit identifique IPs correctamente
-app.set('trust proxy', true);
+app.set('trust proxy', 1);
 
 // 1. Seguridad de Cabeceras (Helmet)
 // Configuración personalizada para permitir scripts de mapas/pdfs si es necesario
@@ -39,7 +39,8 @@ const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutos
   max: 1000, // Límite de 1000 peticiones por IP
   message: { error: 'Demasiadas peticiones desde esta IP, por favor intenta más tarde.' },
-  skip: () => isRateLimitDisabled // ✅ Saltar si está desactivado en el .env
+  skip: () => isRateLimitDisabled, // ✅ Saltar si está desactivado en el .env
+  validate: { trustProxy: false } // ✅ Desactivar validación estricta de proxy en serverless
 });
 app.use('/api/', globalLimiter);
 
@@ -48,7 +49,8 @@ const authLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hora
   max: 20, // 20 intentos de login por hora
   message: { error: 'Demasiados intentos de acceso. Por seguridad, tu IP ha sido bloqueada temporalmente.' },
-  skip: () => isRateLimitDisabled // ✅ Saltar si está desactivado en el .env
+  skip: () => isRateLimitDisabled, // ✅ Saltar si está desactivado en el .env
+  validate: { trustProxy: false } // ✅ Desactivar validación estricta de proxy en serverless
 });
 
 app.use(express.json({ limit: '50mb' }));

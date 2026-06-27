@@ -18,7 +18,7 @@ import {
     fetchContableCentrosCosto, createContableCentroCosto,
     fetchContableContratos, createContableContrato,
     fetchContableBalanza, fetchContableEstadoResultados,
-    createContableTercero,
+    fetchContableTerceros, createContableTercero,
     fetchStores
 } from '../../api/apiClient';
 import apiClient from '../../api/apiClient';
@@ -881,6 +881,96 @@ const ManageCuentas = ({ selectedEmpresa }) => {
         }
     };
 
+    const handleEditCuenta = async (cuenta) => {
+        if (!selectedEmpresa) return toast.error('Selecciona una empresa primero');
+        
+        const parentOptions = cuentas
+            .filter(c => c.nivel < 3 && c.id !== cuenta.id)
+            .map(c => `<option value="${c.id}" ${cuenta.cuentaPadreId === c.id ? 'selected' : ''}>${c.codigo} - ${c.nombre}</option>`)
+            .join('');
+
+        const { value: formValues } = await Swal.fire({
+            title: `Editar Cuenta: ${cuenta.nombre}`,
+            html: `
+                <div class="space-y-4 text-left p-2">
+                    <div>
+                        <label class="text-[10px] font-black uppercase text-gray-400 block mb-1">Cuenta Padre</label>
+                        <select id="swal-edit-padre" class="swal2-input w-full m-0 text-sm dark:bg-gray-800 dark:text-white dark:border-gray-700">
+                            <option value="">-- Ninguna (Nivel 1) --</option>
+                            ${parentOptions}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-black uppercase text-gray-400 block mb-1">Código Contable</label>
+                        <input id="swal-edit-codigo" class="swal2-input w-full m-0 dark:bg-gray-800 dark:text-white dark:border-gray-700 font-bold" placeholder="Ej: 100-01-000" value="${cuenta.codigo || ''}">
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-black uppercase text-gray-400 block mb-1">Nombre de la Cuenta</label>
+                        <input id="swal-edit-nombre" class="swal2-input w-full m-0 dark:bg-gray-800 dark:text-white dark:border-gray-700 font-bold" placeholder="Ej: Caja Chica" value="${cuenta.nombre || ''}">
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="text-[10px] font-black uppercase text-gray-400 block mb-1">Tipo</label>
+                            <select id="swal-edit-tipo" class="swal2-input w-full m-0 text-sm dark:bg-gray-800 dark:text-white dark:border-gray-700 font-bold">
+                                <option value="ACTIVO" ${cuenta.tipo === 'ACTIVO' ? 'selected' : ''}>ACTIVO</option>
+                                <option value="PASIVO" ${cuenta.tipo === 'PASIVO' ? 'selected' : ''}>PASIVO</option>
+                                <option value="CAPITAL" ${cuenta.tipo === 'CAPITAL' ? 'selected' : ''}>CAPITAL</option>
+                                <option value="INGRESO" ${cuenta.tipo === 'INGRESO' ? 'selected' : ''}>INGRESO</option>
+                                <option value="EGRESO" ${cuenta.tipo === 'EGRESO' ? 'selected' : ''}>EGRESO</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-black uppercase text-gray-400 block mb-1">Naturaleza</label>
+                            <select id="swal-edit-naturaleza" class="swal2-input w-full m-0 text-sm dark:bg-gray-800 dark:text-white dark:border-gray-700 font-bold">
+                                <option value="DEUDORA" ${cuenta.naturaleza === 'DEUDORA' ? 'selected' : ''}>DEUDORA</option>
+                                <option value="ACREEDORA" ${cuenta.naturaleza === 'ACREEDORA' ? 'selected' : ''}>ACREEDORA</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            `,
+            showCancelButton: true,
+            confirmButtonText: 'Guardar Cambios',
+            customClass: {
+                popup: 'dark:bg-gray-900 dark:border-gray-800',
+                title: 'dark:text-white',
+                htmlContainer: 'dark:text-gray-300'
+            },
+            preConfirm: () => {
+                const codigo = document.getElementById('swal-edit-codigo').value;
+                const nombre = document.getElementById('swal-edit-nombre').value;
+                const tipo = document.getElementById('swal-edit-tipo').value;
+                const naturaleza = document.getElementById('swal-edit-naturaleza').value;
+                const cuentaPadreId = document.getElementById('swal-edit-padre').value;
+                
+                if (!codigo || !nombre) return Swal.showValidationMessage('Código y nombre requeridos');
+                
+                let nivel = 1;
+                if (cuentaPadreId) {
+                    const padreObj = cuentas.find(c => c.id === cuentaPadreId);
+                    nivel = (padreObj?.nivel || 1) + 1;
+                }
+
+                return { 
+                    codigo, 
+                    nombre, 
+                    tipo, 
+                    naturaleza, 
+                    cuentaPadreId: cuentaPadreId || null,
+                    nivel
+                };
+            }
+        });
+
+        if (formValues) {
+            try {
+                await updateContableCuenta(cuenta.id, formValues);
+                toast.success('Cuenta actualizada');
+                loadCuentas();
+            } catch (e) { toast.error('Error al actualizar cuenta'); }
+        }
+    };
+
     const handleDeleteCuenta = async (id, nombre) => {
         const result = await Swal.fire({
             title: `¿Eliminar ${nombre}?`,
@@ -967,7 +1057,7 @@ const ManageCuentas = ({ selectedEmpresa }) => {
                                         <td className="px-8 py-4 text-right">
                                             <div className="flex gap-2 justify-end opacity-0 group-hover:opacity-100 transition-all">
                                                 <button onClick={() => handleAddCuenta(cuenta)} title="Añadir Subcuenta" className="p-2.5 bg-amber-50 text-amber-600 rounded-xl hover:bg-amber-600 hover:text-white transition-all shadow-sm"><FaPlus size={10}/></button>
-                                                <button className="p-2.5 bg-gray-50 dark:bg-gray-700 text-gray-400 hover:text-blue-500 rounded-xl transition-all shadow-sm"><FaEdit size={12}/></button>
+                                                <button onClick={() => handleEditCuenta(cuenta)} title="Editar Cuenta" className="p-2.5 bg-gray-50 dark:bg-gray-700 text-gray-400 hover:text-blue-500 rounded-xl transition-all shadow-sm"><FaEdit size={12}/></button>
                                                 <button onClick={() => handleDeleteCuenta(cuenta.id, cuenta.nombre)} className="p-2.5 bg-gray-50 dark:bg-gray-700 text-gray-400 hover:text-red-500 rounded-xl transition-all shadow-sm"><FaTrash size={12}/></button>
                                             </div>
                                         </td>
@@ -1151,22 +1241,59 @@ const ManageImpuestos = ({ selectedEmpresa }) => {
 };
 
 const ManageTerceros = ({ selectedEmpresa }) => {
-    // Basic state for UI visualization
+    const [terceros, setTerceros] = useState({ clientes: [], proveedores: [] });
+    const [loading, setLoading] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
+
+    useEffect(() => {
+        if (selectedEmpresa) {
+            loadTerceros();
+        }
+    }, [selectedEmpresa]);
+
+    const loadTerceros = async () => {
+        setLoading(true);
+        try {
+            const data = await fetchContableTerceros(selectedEmpresa.id);
+            setTerceros(data);
+        } catch (e) {
+            toast.error('Error al cargar clientes y proveedores');
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const handleAddTercero = async () => {
+        if (!selectedEmpresa) return toast.error('Selecciona una empresa primero');
+        
         const { value: formValues } = await Swal.fire({
             title: 'Nuevo Tercero (Cliente / Proveedor)',
             html: `
                 <div class="space-y-4 text-left p-2">
-                    <select id="swal-tipo" class="swal2-input w-full m-0 text-sm font-black uppercase">
-                        <option value="CLIENTE">Cliente (CxC)</option>
-                        <option value="PROVEEDOR">Proveedor (CxP)</option>
-                    </select>
-                    <input id="swal-nombre" class="swal2-input w-full m-0 uppercase" placeholder="Nombre o Razón Social *">
-                    <input id="swal-rfc" class="swal2-input w-full m-0 uppercase" placeholder="RFC (Opcional)">
+                    <div>
+                        <label class="text-[10px] font-black uppercase text-gray-400 block mb-1">Tipo de Tercero</label>
+                        <select id="swal-tipo" class="swal2-input w-full m-0 text-sm font-black uppercase dark:bg-gray-800 dark:text-white dark:border-gray-700">
+                            <option value="CLIENTE">Cliente (CxC)</option>
+                            <option value="PROVEEDOR">Proveedor (CxP)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-black uppercase text-gray-400 block mb-1">Nombre o Razón Social</label>
+                        <input id="swal-nombre" class="swal2-input w-full m-0 uppercase dark:bg-gray-800 dark:text-white dark:border-gray-700 font-bold" placeholder="Nombre o Razón Social *">
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-black uppercase text-gray-400 block mb-1">RFC</label>
+                        <input id="swal-rfc" class="swal2-input w-full m-0 uppercase dark:bg-gray-800 dark:text-white dark:border-gray-700 font-bold" placeholder="RFC (Opcional)">
+                    </div>
                 </div>
             `,
             showCancelButton: true,
             confirmButtonText: 'Registrar',
+            customClass: {
+                popup: 'dark:bg-gray-900 dark:border-gray-800',
+                title: 'dark:text-white',
+                htmlContainer: 'dark:text-gray-300'
+            },
             preConfirm: () => {
                 const nombre = document.getElementById('swal-nombre').value;
                 const rfc = document.getElementById('swal-rfc').value;
@@ -1178,40 +1305,97 @@ const ManageTerceros = ({ selectedEmpresa }) => {
         });
 
         if (formValues) {
-            toast.promise(
-                createContableTercero(formValues), 
-                {
-                    loading: 'Registrando tercero...',
-                    success: 'Tercero registrado exitosamente',
-                    error: 'Error al registrar'
-                }
-            );
+            try {
+                await createContableTercero(formValues);
+                toast.success('Tercero registrado exitosamente');
+                loadTerceros();
+            } catch (e) {
+                toast.error('Error al registrar tercero');
+            }
         }
     };
 
+    const filteredClientes = (terceros.clientes || []).filter(c => 
+        c.nombre.toLowerCase().includes(searchTerm.toLowerCase()) || 
+        (c.rfc && c.rfc.toLowerCase().includes(searchTerm.toLowerCase()))
+    );
+
+    const filteredProveedores = (terceros.proveedores || []).filter(p => 
+        p.razonSocial.toLowerCase().includes(searchTerm.toLowerCase()) || 
+        (p.rfc && p.rfc.toLowerCase().includes(searchTerm.toLowerCase()))
+    );
+
     return (
-        <div className="space-y-6">
-            <div className="flex justify-between gap-4">
+        <div className="space-y-8 animate-in slide-in-from-bottom-4 duration-500">
+            <div className="flex flex-col md:flex-row justify-between gap-4">
                  <div className="relative flex-1">
                     <FaSearch className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-400" />
-                    <input type="text" placeholder="Buscar Cliente o Proveedor..." className="w-full pl-14 pr-6 py-4 bg-gray-50/50 dark:bg-gray-900 border border-transparent focus:border-amber-500/20 rounded-[1.5rem] text-sm font-bold outline-none transition-all dark:text-white" />
+                    <input 
+                        type="text" 
+                        placeholder="Buscar por nombre o RFC..." 
+                        value={searchTerm}
+                        onChange={e => setSearchTerm(e.target.value)}
+                        className="w-full pl-14 pr-6 py-4 bg-gray-50/50 dark:bg-gray-900 border border-transparent focus:border-amber-500/20 rounded-[1.5rem] text-sm font-bold outline-none transition-all dark:text-white" 
+                    />
                 </div>
                 <button onClick={handleAddTercero} className="btn-primary py-4 px-8 rounded-3xl font-black uppercase text-[10px] tracking-widest flex items-center gap-2">
                     <FaPlus /> Nuevo Tercero
                 </button>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="p-8 bg-emerald-50/20 border border-emerald-100 dark:border-emerald-900/30 rounded-[3rem] flex flex-col items-center justify-center text-center">
-                    <FaUsers size={30} className="text-emerald-500 mb-4" />
-                    <h3 className="font-black text-emerald-800 dark:text-emerald-400 uppercase text-xs mb-1">Directorio de Clientes</h3>
-                    <p className="text-[10px] text-emerald-600 dark:text-emerald-500 font-bold italic">Gestiona RFCs y domicilios fiscales</p>
+
+            {loading ? (
+                <div className="text-center py-10 text-gray-400">
+                    <p className="font-black uppercase tracking-widest text-[9px] animate-pulse">Cargando directorio...</p>
                 </div>
-                <div className="p-8 bg-rose-50/20 border border-rose-100 dark:border-rose-900/30 rounded-[3rem] flex flex-col items-center justify-center text-center">
-                    <FaStore size={30} className="text-rose-500 mb-4" />
-                    <h3 className="font-black text-rose-800 dark:text-rose-400 uppercase text-xs mb-1">Catálogo de Proveedores</h3>
-                    <p className="text-[10px] text-rose-600 dark:text-rose-500 font-bold italic">Control de pagos y materialidad</p>
+            ) : (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    {/* Sección Clientes */}
+                    <div className="space-y-4">
+                        <div className="flex items-center gap-3 border-b border-black/5 dark:border-white/5 pb-3">
+                            <FaUsers className="text-emerald-500 text-lg" />
+                            <h3 className="font-black text-gray-800 dark:text-white uppercase text-xs tracking-wider">Clientes ({filteredClientes.length})</h3>
+                        </div>
+                        <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                            {filteredClientes.length === 0 ? (
+                                <p className="text-[10px] text-gray-400 font-bold uppercase italic p-4 text-center">No se encontraron clientes.</p>
+                            ) : (
+                                filteredClientes.map(c => (
+                                    <div key={c.id} className="p-4 bg-gray-50/50 dark:bg-gray-900/40 border border-gray-100 dark:border-gray-800 rounded-2xl flex justify-between items-center">
+                                        <div>
+                                            <p className="text-xs font-black uppercase text-gray-700 dark:text-gray-200">{c.nombre}</p>
+                                            <p className="text-[9px] text-gray-400 font-mono mt-1">RFC: {c.rfc || 'XAXX010101000'}</p>
+                                        </div>
+                                        <span className="text-[8px] font-black text-emerald-600 bg-emerald-50 dark:bg-emerald-950/20 px-2 py-1 rounded uppercase">Cliente</span>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Sección Proveedores */}
+                    <div className="space-y-4">
+                        <div className="flex items-center gap-3 border-b border-black/5 dark:border-white/5 pb-3">
+                            <FaStore className="text-rose-500 text-lg" />
+                            <h3 className="font-black text-gray-800 dark:text-white uppercase text-xs tracking-wider">Proveedores ({filteredProveedores.length})</h3>
+                        </div>
+                        <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                            {filteredProveedores.length === 0 ? (
+                                <p className="text-[10px] text-gray-400 font-bold uppercase italic p-4 text-center">No se encontraron proveedores.</p>
+                            ) : (
+                                filteredProveedores.map(p => (
+                                    <div key={p.id} className="p-4 bg-gray-50/50 dark:bg-gray-900/40 border border-gray-100 dark:border-gray-800 rounded-2xl flex justify-between items-center">
+                                        <div>
+                                            <p className="text-xs font-black uppercase text-gray-700 dark:text-gray-200">{p.razonSocial}</p>
+                                            <p className="text-[9px] text-gray-400 font-mono mt-1">RFC: {p.rfc}</p>
+                                        </div>
+                                        <span className="text-[8px] font-black text-rose-600 bg-rose-50 dark:bg-rose-950/20 px-2 py-1 rounded uppercase">Proveedor</span>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </div>
                 </div>
-            </div>
+            )}
         </div>
     );
 };

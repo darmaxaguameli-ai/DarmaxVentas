@@ -16,7 +16,8 @@ const authLimiter = rateLimit({
     windowMs: 60 * 60 * 1000, // 1 hora
     max: 20, // 20 intentos por IP
     message: { error: 'Demasiados intentos fallidos. Por seguridad, esta IP ha sido bloqueada temporalmente.' },
-    skip: () => isRateLimitDisabled
+    skip: () => isRateLimitDisabled,
+    validate: { trustProxy: false } // ✅ Desactivar validación de proxy en serverless
 });
 
 // ... (Geocoding function remains same)

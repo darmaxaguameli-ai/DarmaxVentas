@@ -316,6 +316,7 @@ export const createContablePoliza = (data) => apiClient.post('/accounting/poliza
 export const fetchContableCentrosCosto = (empresaId) => apiClient.get('/accounting/centros-costo', { params: { empresaId } }).then(res => res.data);
 export const createContableCentroCosto = (data) => apiClient.post('/accounting/centros-costo', data).then(res => res.data);
 
+export const fetchContableTerceros = (empresaId) => apiClient.get('/accounting/terceros', { params: { empresaId } }).then(res => res.data);
 export const createContableTercero = (data) => apiClient.post('/accounting/terceros', data).then(res => res.data);
 
 export const fetchContableContratos = (empresaId, centroCostoId) => apiClient.get('/accounting/contratos', { params: { empresaId, centroCostoId } }).then(res => res.data);
