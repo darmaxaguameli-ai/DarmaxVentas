@@ -19,6 +19,8 @@ import {
     fetchContableContratos, createContableContrato,
     fetchContableBalanza, fetchContableEstadoResultados,
     fetchContableTerceros, createContableTercero,
+    fetchContableCxC, createContableCxC,
+    fetchContableCxP, createContableCxP,
     fetchStores
 } from '../../api/apiClient';
 import apiClient from '../../api/apiClient';
@@ -1924,24 +1926,173 @@ const ManageEjercicios = ({ selectedEmpresa }) => {
 };
 
 const ManageCxC = ({ selectedEmpresa }) => {
+    const [cxcList, setCxcList] = useState([]);
+    const [clientes, setClientes] = useState([]);
+    const [loading, setLoading] = useState(false);
+
+    useEffect(() => {
+        if (selectedEmpresa) {
+            loadData();
+        }
+    }, [selectedEmpresa]);
+
+    const loadData = async () => {
+        setLoading(true);
+        try {
+            const list = await fetchContableCxC();
+            setCxcList(list);
+            const tercerosData = await fetchContableTerceros(selectedEmpresa.id);
+            setClientes(tercerosData.clientes || []);
+        } catch (e) {
+            toast.error('Error al cargar cuentas por cobrar');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleRegistrarCargo = async () => {
+        if (!selectedEmpresa) return toast.error('Selecciona una empresa primero');
+        if (clientes.length === 0) {
+            return Swal.fire({
+                title: 'No hay clientes registrados',
+                text: 'Primero debes registrar al menos un Cliente en la pestaña "Terceros (Cli/Prov)" antes de registrar cargos de CxC.',
+                icon: 'warning',
+                confirmButtonColor: '#0ea5e9'
+            });
+        }
+
+        const clientOptions = clientes
+            .map(c => `<option value="${c.id}">${c.nombre} (RFC: ${c.rfc || 'N/A'})</option>`)
+            .join('');
+
+        const { value: formValues } = await Swal.fire({
+            title: 'Registrar Factura / Cargo (CxC)',
+            html: `
+                <div class="space-y-4 text-left p-2">
+                    <div>
+                        <label class="text-[10px] font-black uppercase text-gray-400 block mb-1">Cliente</label>
+                        <select id="swal-cxc-cliente" class="swal2-input w-full m-0 text-sm font-bold dark:bg-gray-800 dark:text-white dark:border-gray-700">
+                            ${clientOptions}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-black uppercase text-gray-400 block mb-1">Importe Total</label>
+                        <input id="swal-cxc-total" type="number" step="0.01" class="swal2-input w-full m-0 text-emerald-600 font-black dark:bg-gray-800 dark:border-gray-700" placeholder="0.00">
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-black uppercase text-gray-400 block mb-1">Fecha de Vencimiento</label>
+                        <input id="swal-cxc-vencimiento" type="date" class="swal2-input w-full m-0 text-sm font-bold uppercase dark:bg-gray-800 dark:text-white dark:border-gray-700" value="${new Date().toISOString().split('T')[0]}">
+                    </div>
+                </div>
+            `,
+            showCancelButton: true,
+            confirmButtonText: 'Registrar Cargo',
+            customClass: {
+                popup: 'dark:bg-gray-900 dark:border-gray-800',
+                title: 'dark:text-white',
+                htmlContainer: 'dark:text-gray-300'
+            },
+            preConfirm: () => {
+                const clienteId = document.getElementById('swal-cxc-cliente').value;
+                const total = parseFloat(document.getElementById('swal-cxc-total').value);
+                const vencimiento = document.getElementById('swal-cxc-vencimiento').value;
+
+                if (!clienteId || isNaN(total) || total <= 0 || !vencimiento) {
+                    return Swal.showValidationMessage('Todos los campos son obligatorios y el total debe ser mayor a 0');
+                }
+                return { clienteId, total, vencimiento };
+            }
+        });
+
+        if (formValues) {
+            try {
+                await createContableCxC(formValues);
+                toast.success('Cargo de CxC registrado con éxito');
+                loadData();
+            } catch (e) {
+                toast.error('Error al registrar cargo de CxC');
+            }
+        }
+    };
+
+    const totalPorCobrar = cxcList.reduce((sum, item) => sum + item.saldo, 0);
+    const carteraVencida = cxcList.reduce((sum, item) => {
+        const esVencido = new Date(item.vencimiento) < new Date() && item.saldo > 0;
+        return esVencido ? sum + item.saldo : sum;
+    }, 0);
+
     return (
-        <div className="space-y-6 animate-in slide-in-from-bottom-4 duration-500">
+        <div className="space-y-8 animate-in slide-in-from-bottom-4 duration-500">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <h3 className="font-black text-gray-800 dark:text-white uppercase tracking-tight flex items-center gap-2">
-                    <FaHandHoldingUsd className="text-emerald-500" /> Cuentas por Cobrar
+                <h3 className="font-black text-gray-800 dark:text-white uppercase tracking-tight flex items-center gap-2 text-sm">
+                    <FaHandHoldingUsd className="text-emerald-500 text-lg" /> Cuentas por Cobrar (CxC)
                 </h3>
-                <button className="btn-primary py-3 px-6 rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center gap-2 shadow-xl shadow-primary/20">
+                <button 
+                    onClick={handleRegistrarCargo}
+                    className="btn-primary py-3 px-6 rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center gap-2 shadow-xl shadow-primary/20"
+                >
                     <FaPlus /> Registrar Factura / Cargo
                 </button>
             </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="p-8 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800/50 rounded-[3rem] shadow-sm">
                     <p className="text-[10px] font-black uppercase tracking-widest opacity-80 mb-2 text-emerald-600">Total por Cobrar</p>
-                    <p className="text-5xl font-black tracking-tighter text-emerald-700 dark:text-emerald-400">$0.00</p>
+                    <p className="text-4xl font-black tracking-tighter text-emerald-700 dark:text-emerald-400">${totalPorCobrar.toLocaleString(undefined, {minimumFractionDigits: 2})}</p>
                 </div>
                 <div className="p-8 bg-rose-50 dark:bg-rose-900/20 border border-rose-100 dark:border-rose-800/50 rounded-[3rem] shadow-sm">
                     <p className="text-[10px] font-black uppercase tracking-widest opacity-80 mb-2 text-rose-600">Cartera Vencida</p>
-                    <p className="text-5xl font-black tracking-tighter text-rose-700 dark:text-rose-400">$0.00</p>
+                    <p className="text-4xl font-black tracking-tighter text-rose-700 dark:text-rose-400">${carteraVencida.toLocaleString(undefined, {minimumFractionDigits: 2})}</p>
+                </div>
+            </div>
+
+            {/* Listado de Cargos */}
+            <div className="bg-white dark:bg-gray-800 rounded-[2.5rem] border border-gray-100 dark:border-gray-700 overflow-hidden shadow-sm">
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left">
+                        <thead>
+                            <tr className="bg-gray-50 dark:bg-gray-900/50 border-b dark:border-gray-700">
+                                <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Cliente</th>
+                                <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">RFC</th>
+                                <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Vencimiento</th>
+                                <th className="px-8 py-5 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">Total</th>
+                                <th className="px-8 py-5 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">Saldo Pendiente</th>
+                                <th className="px-8 py-5 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">Estatus</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-50 dark:divide-gray-800 text-[11px]">
+                            {loading ? (
+                                <tr><td colSpan="6" className="p-10 text-center animate-pulse text-[10px] font-black text-gray-400 uppercase">Cargando cuentas por cobrar...</td></tr>
+                            ) : cxcList.length === 0 ? (
+                                <tr><td colSpan="6" className="p-10 text-center text-gray-400 font-black uppercase italic tracking-widest opacity-50">No hay cargos de CxC registrados</td></tr>
+                            ) : (
+                                cxcList.map(item => {
+                                    const esVencido = new Date(item.vencimiento) < new Date() && item.saldo > 0;
+                                    const esPagado = item.saldo <= 0;
+                                    return (
+                                        <tr key={item.id} className="group hover:bg-gray-50/50 transition-all">
+                                            <td className="px-8 py-4 font-bold text-gray-700 dark:text-gray-200 uppercase">{item.cliente?.nombre}</td>
+                                            <td className="px-8 py-4 font-mono text-gray-500 uppercase">{item.cliente?.rfc || 'XAXX010101000'}</td>
+                                            <td className="px-8 py-4 font-semibold text-gray-500">{new Date(item.vencimiento).toLocaleDateString()}</td>
+                                            <td className="px-8 py-4 text-right font-black text-gray-700 dark:text-gray-200">${item.total.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                                            <td className="px-8 py-4 text-right font-black text-amber-600">${item.saldo.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                                            <td className="px-8 py-4 text-right">
+                                                <span className={`text-[8px] font-black px-2.5 py-1 rounded uppercase ${
+                                                    esPagado 
+                                                    ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/20' 
+                                                    : esVencido 
+                                                    ? 'bg-rose-50 text-rose-600 dark:bg-rose-950/20 animate-pulse' 
+                                                    : 'bg-blue-50 text-blue-600 dark:bg-blue-950/20'
+                                                }`}>
+                                                    {esPagado ? 'PAGADO' : esVencido ? 'VENCIDO' : 'VIGENTE'}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    );
+                                })
+                            )}
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
@@ -1949,24 +2100,180 @@ const ManageCxC = ({ selectedEmpresa }) => {
 };
 
 const ManageCxP = ({ selectedEmpresa }) => {
+    const [cxpList, setCxpList] = useState([]);
+    const [proveedores, setProveedores] = useState([]);
+    const [loading, setLoading] = useState(false);
+
+    useEffect(() => {
+        if (selectedEmpresa) {
+            loadData();
+        }
+    }, [selectedEmpresa]);
+
+    const loadData = async () => {
+        setLoading(true);
+        try {
+            const list = await fetchContableCxP(selectedEmpresa.id);
+            setCxpList(list);
+            const tercerosData = await fetchContableTerceros(selectedEmpresa.id);
+            setProveedores(tercerosData.proveedores || []);
+        } catch (e) {
+            toast.error('Error al cargar cuentas por pagar');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleRegistrarPasivo = async () => {
+        if (!selectedEmpresa) return toast.error('Selecciona una empresa primero');
+        if (proveedores.length === 0) {
+            return Swal.fire({
+                title: 'No hay proveedores registrados',
+                text: 'Primero debes registrar al menos un Proveedor en la pestaña "Terceros (Cli/Prov)" antes de registrar pasivos de CxP.',
+                icon: 'warning',
+                confirmButtonColor: '#0ea5e9'
+            });
+        }
+
+        const providerOptions = proveedores
+            .map(p => `<option value="${p.id}">${p.razonSocial} (RFC: ${p.rfc})</option>`)
+            .join('');
+
+        const { value: formValues } = await Swal.fire({
+            title: 'Registrar Pasivo / Gasto (CxP)',
+            html: `
+                <div class="space-y-4 text-left p-2">
+                    <div>
+                        <label class="text-[10px] font-black uppercase text-gray-400 block mb-1">Proveedor</label>
+                        <select id="swal-cxp-proveedor" class="swal2-input w-full m-0 text-sm font-bold dark:bg-gray-800 dark:text-white dark:border-gray-700">
+                            ${providerOptions}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-black uppercase text-gray-400 block mb-1">Importe Total</label>
+                        <input id="swal-cxp-total" type="number" step="0.01" class="swal2-input w-full m-0 text-rose-600 font-black dark:bg-gray-800 dark:border-gray-700" placeholder="0.00">
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-black uppercase text-gray-400 block mb-1">Fecha de Vencimiento</label>
+                        <input id="swal-cxp-vencimiento" type="date" class="swal2-input w-full m-0 text-sm font-bold uppercase dark:bg-gray-800 dark:text-white dark:border-gray-700" value="${new Date().toISOString().split('T')[0]}">
+                    </div>
+                </div>
+            `,
+            showCancelButton: true,
+            confirmButtonText: 'Registrar Pasivo',
+            customClass: {
+                popup: 'dark:bg-gray-900 dark:border-gray-800',
+                title: 'dark:text-white',
+                htmlContainer: 'dark:text-gray-300'
+            },
+            preConfirm: () => {
+                const proveedorId = document.getElementById('swal-cxp-proveedor').value;
+                const total = parseFloat(document.getElementById('swal-cxp-total').value);
+                const vencimiento = document.getElementById('swal-cxp-vencimiento').value;
+
+                if (!proveedorId || isNaN(total) || total <= 0 || !vencimiento) {
+                    return Swal.showValidationMessage('Todos los campos son obligatorios y el total debe ser mayor a 0');
+                }
+                return { proveedorId, total, vencimiento };
+            }
+        });
+
+        if (formValues) {
+            try {
+                await createContableCxP(formValues);
+                toast.success('Pasivo de CxP registrado con éxito');
+                loadData();
+            } catch (e) {
+                toast.error('Error al registrar pasivo de CxP');
+            }
+        }
+    };
+
+    const totalPorPagar = cxpList.reduce((sum, item) => sum + item.saldo, 0);
+    const vencimientosProximos = cxpList.reduce((sum, item) => {
+        const hoy = new Date();
+        const limite = new Date();
+        limite.setDate(hoy.getDate() + 7);
+        const vencimientoDate = new Date(item.vencimiento);
+        
+        const esProximo = vencimientoDate <= limite && item.saldo > 0;
+        return esProximo ? sum + item.saldo : sum;
+    }, 0);
+
     return (
-        <div className="space-y-6 animate-in slide-in-from-bottom-4 duration-500">
+        <div className="space-y-8 animate-in slide-in-from-bottom-4 duration-500">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <h3 className="font-black text-gray-800 dark:text-white uppercase tracking-tight flex items-center gap-2">
-                    <FaPiggyBank className="text-rose-500" /> Cuentas por Pagar
+                <h3 className="font-black text-gray-800 dark:text-white uppercase tracking-tight flex items-center gap-2 text-sm">
+                    <FaPiggyBank className="text-rose-500 text-lg" /> Cuentas por Pagar (CxP)
                 </h3>
-                <button className="btn-primary py-3 px-6 rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center gap-2 shadow-xl shadow-primary/20">
+                <button 
+                    onClick={handleRegistrarPasivo}
+                    className="btn-primary py-3 px-6 rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center gap-2 shadow-xl shadow-primary/20"
+                >
                     <FaPlus /> Registrar Pasivo / Gasto
                 </button>
             </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="p-8 bg-rose-50 dark:bg-rose-900/20 border border-rose-100 dark:border-rose-800/50 rounded-[3rem] shadow-sm">
                     <p className="text-[10px] font-black uppercase tracking-widest opacity-80 mb-2 text-rose-600">Total por Pagar</p>
-                    <p className="text-5xl font-black tracking-tighter text-rose-700 dark:text-rose-400">$0.00</p>
+                    <p className="text-4xl font-black tracking-tighter text-rose-700 dark:text-rose-400">${totalPorPagar.toLocaleString(undefined, {minimumFractionDigits: 2})}</p>
                 </div>
                 <div className="p-8 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800/50 rounded-[3rem] shadow-sm">
                     <p className="text-[10px] font-black uppercase tracking-widest opacity-80 mb-2 text-amber-600">Vencimientos Próximos</p>
-                    <p className="text-5xl font-black tracking-tighter text-amber-700 dark:text-amber-400">$0.00</p>
+                    <p className="text-4xl font-black tracking-tighter text-amber-700 dark:text-amber-400">${vencimientosProximos.toLocaleString(undefined, {minimumFractionDigits: 2})}</p>
+                </div>
+            </div>
+
+            {/* Listado de Pasivos */}
+            <div className="bg-white dark:bg-gray-800 rounded-[2.5rem] border border-gray-100 dark:border-gray-700 overflow-hidden shadow-sm">
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left">
+                        <thead>
+                            <tr className="bg-gray-50 dark:bg-gray-900/50 border-b dark:border-gray-700">
+                                <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Proveedor</th>
+                                <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">RFC</th>
+                                <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Vencimiento</th>
+                                <th className="px-8 py-5 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">Total</th>
+                                <th className="px-8 py-5 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">Saldo Pendiente</th>
+                                <th className="px-8 py-5 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">Estatus</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-50 dark:divide-gray-800 text-[11px]">
+                            {loading ? (
+                                <tr><td colSpan="6" className="p-10 text-center animate-pulse text-[10px] font-black text-gray-400 uppercase">Cargando cuentas por pagar...</td></tr>
+                            ) : cxpList.length === 0 ? (
+                                <tr><td colSpan="6" className="p-10 text-center text-gray-400 font-black uppercase italic tracking-widest opacity-50">No hay pasivos de CxP registrados</td></tr>
+                            ) : (
+                                cxpList.map(item => {
+                                    const hoy = new Date();
+                                    const vencimientoDate = new Date(item.vencimiento);
+                                    const esVencido = vencimientoDate < hoy && item.saldo > 0;
+                                    const esPagado = item.saldo <= 0;
+                                    return (
+                                        <tr key={item.id} className="group hover:bg-gray-50/50 transition-all">
+                                            <td className="px-8 py-4 font-bold text-gray-700 dark:text-gray-200 uppercase">{item.proveedor?.razonSocial}</td>
+                                            <td className="px-8 py-4 font-mono text-gray-500 uppercase">{item.proveedor?.rfc}</td>
+                                            <td className="px-8 py-4 font-semibold text-gray-500">{vencimientoDate.toLocaleDateString()}</td>
+                                            <td className="px-8 py-4 text-right font-black text-gray-700 dark:text-gray-200">${item.total.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                                            <td className="px-8 py-4 text-right font-black text-rose-600">${item.saldo.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                                            <td className="px-8 py-4 text-right">
+                                                <span className={`text-[8px] font-black px-2.5 py-1 rounded uppercase ${
+                                                    esPagado 
+                                                    ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/20' 
+                                                    : esVencido 
+                                                    ? 'bg-rose-50 text-rose-600 dark:bg-rose-950/20 animate-pulse' 
+                                                    : 'bg-amber-50 text-amber-600 dark:bg-amber-950/20'
+                                                }`}>
+                                                    {esPagado ? 'PAGADO' : esVencido ? 'VENCIDO' : 'PENDIENTE'}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    );
+                                })
+                            )}
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>

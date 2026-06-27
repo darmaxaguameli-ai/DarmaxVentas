@@ -330,6 +330,81 @@ router.post('/terceros', verifyToken, async (req, res) => {
   }
 });
 
+// --- CUENTAS POR COBRAR (CxC) ---
+router.get('/cxc', verifyToken, async (req, res) => {
+  try {
+    const cxc = await prisma.contableCxC.findMany({
+      include: { cliente: true },
+      orderBy: { vencimiento: 'asc' }
+    });
+    res.json(cxc);
+  } catch (error) {
+    console.error('Error fetching cxc:', error);
+    res.status(500).json({ error: 'Error al cargar cuentas por cobrar' });
+  }
+});
+
+router.post('/cxc', verifyToken, async (req, res) => {
+  const { total, vencimiento, clienteId } = req.body;
+  if (!total || !vencimiento || !clienteId) {
+    return res.status(400).json({ error: 'total, vencimiento and clienteId are required' });
+  }
+  try {
+    const nuevo = await prisma.contableCxC.create({
+      data: {
+        total: parseFloat(total),
+        saldo: parseFloat(total),
+        vencimiento: new Date(vencimiento),
+        clienteId
+      },
+      include: { cliente: true }
+    });
+    res.status(201).json(nuevo);
+  } catch (error) {
+    console.error('Error creating cxc:', error);
+    res.status(500).json({ error: 'Error al registrar cuenta por cobrar' });
+  }
+});
+
+// --- CUENTAS POR PAGAR (CxP) ---
+router.get('/cxp', verifyToken, async (req, res) => {
+  const { empresaId } = req.query;
+  if (!empresaId) return res.status(400).json({ error: 'empresaId required' });
+  try {
+    const cxp = await prisma.contableCxP.findMany({
+      where: { proveedor: { empresaId } },
+      include: { proveedor: true },
+      orderBy: { vencimiento: 'asc' }
+    });
+    res.json(cxp);
+  } catch (error) {
+    console.error('Error fetching cxp:', error);
+    res.status(500).json({ error: 'Error al cargar cuentas por pagar' });
+  }
+});
+
+router.post('/cxp', verifyToken, async (req, res) => {
+  const { total, vencimiento, proveedorId } = req.body;
+  if (!total || !vencimiento || !proveedorId) {
+    return res.status(400).json({ error: 'total, vencimiento and proveedorId are required' });
+  }
+  try {
+    const nuevo = await prisma.contableCxP.create({
+      data: {
+        total: parseFloat(total),
+        saldo: parseFloat(total),
+        vencimiento: new Date(vencimiento),
+        proveedorId
+      },
+      include: { proveedor: true }
+    });
+    res.status(201).json(nuevo);
+  } catch (error) {
+    console.error('Error creating cxp:', error);
+    res.status(500).json({ error: 'Error al registrar cuenta por pagar' });
+  }
+});
+
 // --- CONTRATOS (BIENES RAÍCES / VENDING POINT) ---
 router.get('/contratos', verifyToken, async (req, res) => {
   const { empresaId, centroCostoId } = req.query;

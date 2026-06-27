@@ -319,6 +319,12 @@ export const createContableCentroCosto = (data) => apiClient.post('/accounting/c
 export const fetchContableTerceros = (empresaId) => apiClient.get('/accounting/terceros', { params: { empresaId } }).then(res => res.data);
 export const createContableTercero = (data) => apiClient.post('/accounting/terceros', data).then(res => res.data);
 
+export const fetchContableCxC = () => apiClient.get('/accounting/cxc').then(res => res.data);
+export const createContableCxC = (data) => apiClient.post('/accounting/cxc', data).then(res => res.data);
+
+export const fetchContableCxP = (empresaId) => apiClient.get('/accounting/cxp', { params: { empresaId } }).then(res => res.data);
+export const createContableCxP = (data) => apiClient.post('/accounting/cxp', data).then(res => res.data);
+
 export const fetchContableContratos = (empresaId, centroCostoId) => apiClient.get('/accounting/contratos', { params: { empresaId, centroCostoId } }).then(res => res.data);
 export const createContableContrato = (data) => apiClient.post('/accounting/contratos', data).then(res => res.data);
 
