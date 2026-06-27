@@ -155,6 +155,12 @@ model User {
   clientCategory    ClientCategory @default(PARTICULAR)
   clientPreferences Json?          @default("{}")
   sexo              String?
+
+  // Nuevos campos para concurrencia y preferencias de cliente
+  purchaseFrequencyDays Int?
+  preferredJugs         String?
+  lastPurchaseDate      DateTime?
+
   createdAt         DateTime       @default(now())
   updatedAt         DateTime       @updatedAt
 

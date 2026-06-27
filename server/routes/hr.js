@@ -24,6 +24,37 @@ router.get('/hr/empleados', verifyToken, async (req, res) => {
   }
 });
 
+router.get('/hr/empleados/:id', verifyToken, async (req, res) => {
+  try {
+    const empleado = await prisma.empleado.findUnique({
+      where: { id: req.params.id },
+      include: {
+        user: {
+          include: {
+            roles: true,
+            store: true
+          }
+        },
+        manager: true,
+        subordinados: true,
+        documentos: true,
+        historialSueldos: {
+          orderBy: { fechaInicio: 'desc' }
+        }
+      }
+    });
+
+    if (!empleado) {
+      return res.status(404).json({ error: 'Empleado no encontrado' });
+    }
+
+    res.json(empleado);
+  } catch (error) {
+    console.error('Error fetching empleado by id:', error);
+    res.status(500).json({ error: 'Error fetching empleado details' });
+  }
+});
+
 router.post('/hr/empleados', verifyToken, async (req, res) => {
   try {
     const { 
@@ -37,6 +68,14 @@ router.post('/hr/empleados', verifyToken, async (req, res) => {
         data.fechaContratacion = new Date(data.fechaContratacion);
     }
     const nuevo = await prisma.empleado.create({ data });
+
+    if (nuevo.userId && sexo !== undefined) {
+      await prisma.user.update({
+        where: { id: nuevo.userId },
+        data: { sexo: sexo === '' ? null : sexo }
+      });
+    }
+
     res.status(201).json(nuevo);
   } catch (error) {
     console.error('Error creating empleado:', error);
@@ -59,6 +98,20 @@ router.put('/hr/empleados/:id', verifyToken, async (req, res) => {
       where: { id: req.params.id },
       data: validData
     });
+
+    // Si viene sexo, actualizar el campo correspondiente en el modelo User asociado
+    const emp = await prisma.empleado.findUnique({
+      where: { id: req.params.id },
+      select: { userId: true }
+    });
+
+    if (emp && emp.userId && sexo !== undefined) {
+      await prisma.user.update({
+        where: { id: emp.userId },
+        data: { sexo: sexo === '' ? null : sexo }
+      });
+    }
+
     res.json(actualizado);
   } catch (error) {
     console.error('Error updating empleado:', error);

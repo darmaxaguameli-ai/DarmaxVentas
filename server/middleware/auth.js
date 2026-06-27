@@ -35,7 +35,7 @@ const verifyToken = async (req, res, next) => {
         include: { roles: true }
     });
 
-    if (!user) return res.status(403).json({ error: 'Usuario no válido o eliminado.' });
+    if (!user) return res.status(401).json({ error: 'Usuario no válido o eliminado.' });
 
     // Guardar el objeto de usuario completo en la petición para uso posterior
     req.fullUser = user;
@@ -56,7 +56,7 @@ const verifyToken = async (req, res, next) => {
     next();
   } catch (err) {
     console.error('Error al verificar el token:', err);
-    return res.status(403).json({ error: 'Tu sesión ha expirado o es inválida. Por favor inicia sesión de nuevo.' });
+    return res.status(401).json({ error: 'Tu sesión ha expirado o es inválida. Por favor inicia sesión de nuevo.' });
   }
 };
 

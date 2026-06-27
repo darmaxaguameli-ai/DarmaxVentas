@@ -39,7 +39,7 @@ const EmpleadoModal = ({ onClose, empleadoToEdit, onSave, empleados = [], users 
             ...empleadoToEdit,
             fechaContratacion: new Date(empleadoToEdit.fechaContratacion).toISOString().split('T')[0],
             sueldo: parseFloat(empleadoToEdit.sueldo || 0),
-            sexo: empleadoToEdit.sexo || empleadoToEdit.user?.sexo || "", // Cargar de empleado o usuario
+            sexo: (empleadoToEdit.sexo || empleadoToEdit.user?.sexo || "").toUpperCase(), // Cargar de empleado o usuario
             managerId: empleadoToEdit.managerId || null,
             userId: empleadoToEdit.userId || null,
             roleIds: currentRoleIds,
@@ -85,7 +85,7 @@ const EmpleadoModal = ({ onClose, empleadoToEdit, onSave, empleados = [], users 
           nombreCompleto: prev.nombreCompleto || selectedUser.name || "",
           emailPersonal: prev.emailPersonal || selectedUser.email || "",
           telefono: prev.telefono || selectedUser.phone || "",
-          sexo: prev.sexo || selectedUser.sexo || "", // Vincular sexo del usuario
+          sexo: (prev.sexo || selectedUser.sexo || "").toUpperCase(), // Vincular sexo del usuario
           roleIds: selectedUser.roles?.map(r => r.id) || (selectedUser.roleId ? [selectedUser.roleId] : []),
           storeId: selectedUser.storeId || "" // Vincular sucursal del usuario
         }));

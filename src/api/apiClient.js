@@ -9,6 +9,20 @@ const apiClient = axios.create({
   },
 });
 
+// Interceptor para inyectar el token dinámicamente en cada petición desde localStorage
+apiClient.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers['Authorization'] = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
 // Interceptor para manejar errores de forma centralizada (opcional pero recomendado)
 apiClient.interceptors.response.use(
   (response) => response,
@@ -16,7 +30,7 @@ apiClient.interceptors.response.use(
     // Aquí puedes manejar errores de forma global, como un 401 (No autorizado)
     // que podría redirigir al login.
     const status = error.response?.status;
-    const errorMessage = error.response?.data?.error || error.message;
+    const errorMessage = error.response?.data?.message || error.response?.data?.error || error.message;
     console.error('API Error:', errorMessage);
     
     // Si el token es inválido o expiró, forzar cierre de sesión mediante un evento global
@@ -277,8 +291,13 @@ export const fetchContableEmpresas = () => apiClient.get('/accounting/empresas')
 export const createContableEmpresa = (data) => apiClient.post('/accounting/empresas', data).then(res => res.data);
 export const updateContableEmpresa = (id, data) => apiClient.put(`/accounting/empresas/${id}`, data).then(res => res.data);
 
+export const fetchContableEjercicios = (empresaId) => apiClient.get('/accounting/ejercicios', { params: { empresaId } }).then(res => res.data);
+export const createContableEjercicio = (data) => apiClient.post('/accounting/ejercicios', data).then(res => res.data);
+export const toggleContablePeriodo = (id) => apiClient.put(`/accounting/periodos/${id}/toggle`).then(res => res.data);
+
 export const fetchContableSucursales = (empresaId) => apiClient.get('/accounting/sucursales', { params: { empresaId } }).then(res => res.data);
 export const createContableSucursal = (data) => apiClient.post('/accounting/sucursales', data).then(res => res.data);
+export const deleteContableSucursal = (id) => apiClient.delete(`/accounting/sucursales/${id}`).then(res => res.data);
 
 export const fetchContableCuentas = (empresaId) => apiClient.get('/accounting/cuentas', { params: { empresaId } }).then(res => res.data);
 export const createContableCuenta = (data) => apiClient.post('/accounting/cuentas', data).then(res => res.data);

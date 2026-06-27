@@ -23,7 +23,7 @@ const SectionTitle = ({ children }) => (
     </h3>
 );
 
-const InputGroup = ({ label, value, onChange, placeholder, type = "text", horizontal = false }) => (
+const InputGroup = ({ label, value, onChange, onBlur, placeholder, type = "text", horizontal = false }) => (
     <div className={`${horizontal ? "flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3" : "flex flex-col gap-1"}`}>
         <label className={`block text-xs font-bold text-gray-700 dark:text-gray-300 ${horizontal ? "sm:min-w-fit sm:mb-0" : ""}`}>{label}</label>
         <input
@@ -31,6 +31,7 @@ const InputGroup = ({ label, value, onChange, placeholder, type = "text", horizo
             className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all"
             value={value}
             onChange={onChange}
+            onBlur={onBlur}
             placeholder={placeholder}
             onFocus={(e) => (type === "number" || value === 0 || value === "0") && e.target.select()}
         />
@@ -205,21 +206,32 @@ export default function DarmaxQuote() {
     };
   }, [form]);
 
-  // --- Lógica de Debounce para el PDF ---
-  const [debouncedData, setDebouncedData] = useState(data);
+  // --- Estado controlado para la vista previa del PDF (Evita parpadeos al teclear) ---
+  const [pdfData, setPdfData] = useState(() => ({
+    ...data,
+    folio: null
+  }));
 
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedData(data);
-    }, 350); 
-
-    return () => clearTimeout(handler);
-  }, [data]);
-
-  const pdfData = useMemo(() => ({
-      ...debouncedData,
+  const updatePreview = () => {
+    setPdfData({
+      ...data,
       folio: savedQuote?.folio || null
-  }), [debouncedData, savedQuote]);
+    });
+  };
+
+  // Inicializar o actualizar al cambiar savedQuote o la carga inicial
+  useEffect(() => {
+    updatePreview();
+  }, [savedQuote]);
+
+  // Actualizar inmediatamente ante cambios que no son de tecleo de texto (extras, firma, fecha)
+  useEffect(() => {
+    updatePreview();
+  }, [
+    (form.extrasSeleccionados || []).map(ex => ex.id).join(","),
+    form.firma,
+    form.fecha instanceof Date ? form.fecha.getTime() : (form.fecha ? new Date(form.fecha).getTime() : 0)
+  ]);
 
   const onChange = (path) => (e) => {
     setSavedQuote(null);
@@ -519,7 +531,27 @@ export default function DarmaxQuote() {
       }
   };
 
-  const doc = <DarmaxWaterQuotePDF data={pdfData} />;
+  const formatDate = (date) => {
+    if (!date) return "";
+    try {
+      const d = new Date(date);
+      if (isNaN(d.getTime())) {
+        if (/\d{2}\/\d{2}\/\d{4}/.test(date)) {
+          return date;
+        }
+        return "";
+      }
+      const dd = String(d.getDate()).padStart(2, "0");
+      const mm = String(d.getMonth() + 1).padStart(2, "0");
+      const yyyy = d.getFullYear();
+      return `${dd}/${mm}/${yyyy}`;
+    } catch (e) {
+      return date;
+    }
+  };
+
+  const promoEnabled = Boolean(form.promo?.texto || form.promo?.imagenUrl);
+  const doc = useMemo(() => <DarmaxWaterQuotePDF data={pdfData} />, [pdfData]);
 
   // Function to format the phone number as XX XXXX XXXX
   const formatPhoneNumber = (value) => {
@@ -633,32 +665,32 @@ export default function DarmaxQuote() {
                                     className="w-full" // The custom CSS will handle the styling
                                 />
                             </div>
-                            <InputGroup label="Días Validez" value={form.diasValidez} onChange={onChange("diasValidez")} type="number" horizontal />
+                            <InputGroup label="Días Validez" value={form.diasValidez} onChange={onChange("diasValidez")} onBlur={updatePreview} type="number" horizontal />
                         </div>
                     </div>
-
+ 
                     {/* Tarjeta: Cliente */}
                     <div className="bg-white dark:bg-gray-900 p-3 sm:p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800">
                         <SectionTitle>Datos del Cliente</SectionTitle>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                            <InputGroup label="Nombre" value={form.cliente.nombre} onChange={onChange("cliente.nombre")} placeholder="Ej. Juan Pérez" horizontal />
-                            <InputGroup label="Teléfono" value={form.cliente.telefono} onChange={onChange("cliente.telefono")} placeholder="55 1234 5678" horizontal />
-                            <InputGroup label="Correo" value={form.cliente.correo} onChange={onChange("cliente.correo")} placeholder="juan@email.com" horizontal />
-                            <InputGroup label="C.P." value={form.cliente.cp} onChange={onChange("cliente.cp")} placeholder="00000" horizontal />
+                            <InputGroup label="Nombre" value={form.cliente.nombre} onChange={onChange("cliente.nombre")} onBlur={updatePreview} placeholder="Ej. Juan Pérez" horizontal />
+                            <InputGroup label="Teléfono" value={form.cliente.telefono} onChange={onChange("cliente.telefono")} onBlur={updatePreview} placeholder="55 1234 5678" horizontal />
+                            <InputGroup label="Correo" value={form.cliente.correo} onChange={onChange("cliente.correo")} onBlur={updatePreview} placeholder="juan@email.com" horizontal />
+                            <InputGroup label="C.P." value={form.cliente.cp} onChange={onChange("cliente.cp")} onBlur={updatePreview} placeholder="00000" horizontal />
                         </div>
                     </div>
-
+ 
                     {/* Tarjeta: Costos */}
                     <div className="bg-white dark:bg-gray-900 p-3 sm:p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800">
                         <SectionTitle>Desglose de Costos (MXN)</SectionTitle>
                         <div className="space-y-4 sm:space-y-6">
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                                <InputGroup label="Modelo" value={form.costos.modeloNombre} onChange={onChange("costos.modeloNombre")} placeholder="Ej. Darmax 2500" />
-                                <InputGroup label="Costo" value={form.costos.modelo} onChange={onChange("costos.modelo")} type="number" />
+                                <InputGroup label="Modelo" value={form.costos.modeloNombre} onChange={onChange("costos.modeloNombre")} onBlur={updatePreview} placeholder="Ej. Darmax 2500" />
+                                <InputGroup label="Costo" value={form.costos.modelo} onChange={onChange("costos.modelo")} onBlur={updatePreview} type="number" />
                             </div>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                                <InputGroup label="Flete de Tinaco" value={form.costos.fleteTinacos} onChange={onChange("costos.fleteTinacos")} type="number" />
-                                <InputGroup label="Viatico del instalador" value={form.costos.viaticos} onChange={onChange("costos.viaticos")} type="number" />
+                                <InputGroup label="Flete de Tinaco" value={form.costos.fleteTinacos} onChange={onChange("costos.fleteTinacos")} onBlur={updatePreview} type="number" />
+                                <InputGroup label="Viatico del instalador" value={form.costos.viaticos} onChange={onChange("costos.viaticos")} onBlur={updatePreview} type="number" />
                             </div>
                         </div>
                     </div>
@@ -739,11 +771,12 @@ export default function DarmaxQuote() {
                                     className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all resize-none h-20"
                                     value={form.promo.texto}
                                     onChange={onChange("promo.texto")}
+                                    onBlur={updatePreview}
                                     placeholder="Ej. 4 garrafones gratis..."
                                 />
                             </div>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                                <InputGroup label="Valor Ref." value={form.promo.costo} onChange={onChange("promo.costo")} type="number" />
+                                <InputGroup label="Valor Ref." value={form.promo.costo} onChange={onChange("promo.costo")} onBlur={updatePreview} type="number" />
                                 <div>
                                     <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Imagen</label>
                                     
@@ -805,6 +838,7 @@ export default function DarmaxQuote() {
                                 label="Nombre del Asesor" 
                                 value={form.nombreAsesor} 
                                 onChange={onChange("nombreAsesor")} 
+                                onBlur={updatePreview}
                                 placeholder="Nombre para la firma..."
                             />
                         </div>

@@ -132,6 +132,16 @@ const RecursosHumanos = () => {
     };
 
     const handleGenerarNomina = async () => {
+        if (!selectedEmpresa) {
+            Swal.fire({
+                title: 'Empresa no seleccionada',
+                text: 'No hay ninguna Empresa Contable registrada en el sistema. Debes dar de alta una en Contabilidad antes de generar nóminas.',
+                icon: 'warning',
+                confirmButtonColor: '#0ea5e9'
+            });
+            return;
+        }
+
         const { value: formValues } = await Swal.fire({
             title: 'Generar Nómina Mensual',
             html: `

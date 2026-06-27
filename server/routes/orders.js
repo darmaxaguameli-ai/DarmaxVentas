@@ -205,6 +205,15 @@ router.post('/pedidos', async (req, res) => {
                 store: { connect: { id: storeId } }
             } 
         });
+
+      }
+  
+      // Actualizar la fecha de última compra del cliente
+      if (clienteId) {
+        await tx.user.update({
+          where: { id: clienteId },
+          data: { lastPurchaseDate: new Date() }
+        });
       }
 
       return newPedido;

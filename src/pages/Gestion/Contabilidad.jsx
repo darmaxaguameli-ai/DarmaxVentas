@@ -9,7 +9,8 @@ import {
 } from 'react-icons/fa';
 import { 
     fetchContableEmpresas, createContableEmpresa, updateContableEmpresa,
-    fetchContableSucursales, createContableSucursal,
+    fetchContableSucursales, createContableSucursal, deleteContableSucursal,
+    fetchContableEjercicios, createContableEjercicio, toggleContablePeriodo,
     fetchContableCuentas, createContableCuenta, updateContableCuenta, deleteContableCuenta,
     fetchContableBancos, createContableBanco,
     fetchContableMovimientos, createContableMovimiento,
@@ -271,6 +272,60 @@ const ManageEmpresas = ({ empresas, onUpdate }) => {
         fetchStores().then(setStores);
     }, []);
 
+    const handleEditEmpresa = async (empresa) => {
+        const { value: formValues } = await Swal.fire({
+            title: 'Editar Empresa Contable',
+            html: `
+                <div class="space-y-4 text-left p-2">
+                    <div>
+                        <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">Nombre Comercial</label>
+                        <input id="swal-edit-name" class="swal2-input w-full m-0 dark:bg-gray-800 dark:text-white dark:border-gray-700 font-bold" placeholder="Nombre Comercial" value="${empresa.nombre || ''}">
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">RFC</label>
+                        <input id="swal-edit-rfc" class="swal2-input w-full m-0 dark:bg-gray-800 dark:text-white dark:border-gray-700 font-bold" placeholder="RFC" value="${empresa.rfc || ''}">
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">Razón Social</label>
+                        <input id="swal-edit-razon" class="swal2-input w-full m-0 dark:bg-gray-800 dark:text-white dark:border-gray-700 font-bold" placeholder="Razón Social" value="${empresa.razonSocial || ''}">
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">Régimen Fiscal (Clave)</label>
+                        <input id="swal-edit-regimen" class="swal2-input w-full m-0 dark:bg-gray-800 dark:text-white dark:border-gray-700 font-bold" placeholder="Régimen Fiscal (Clave)" value="${empresa.regimenFiscal || ''}">
+                    </div>
+                </div>
+            `,
+            showCancelButton: true,
+            confirmButtonText: 'Guardar Cambios',
+            customClass: {
+                popup: 'dark:bg-gray-900 dark:border-gray-800',
+                title: 'dark:text-white',
+                htmlContainer: 'dark:text-gray-300'
+            },
+            preConfirm: () => {
+                const nombre = document.getElementById('swal-edit-name').value;
+                const rfc = document.getElementById('swal-edit-rfc').value;
+                const razonSocial = document.getElementById('swal-edit-razon').value;
+                const regimenFiscal = document.getElementById('swal-edit-regimen').value;
+                if (!nombre || !rfc) {
+                    Swal.showValidationMessage('Nombre y RFC son obligatorios');
+                    return false;
+                }
+                return { nombre, rfc, razonSocial, regimenFiscal };
+            }
+        });
+
+        if (formValues) {
+            try {
+                await updateContableEmpresa(empresa.id, formValues);
+                toast.success('Empresa actualizada');
+                onUpdate();
+            } catch (e) {
+                toast.error('Error al actualizar empresa');
+            }
+        }
+    };
+
     const handleAddSucursal = async (empresaId) => {
         const { value: formValues } = await Swal.fire({
             title: 'Vincular Sucursal Operativa',
@@ -301,6 +356,29 @@ const ManageEmpresas = ({ empresas, onUpdate }) => {
         }
     };
 
+    const handleDeleteSucursal = async (sucursalId) => {
+        const result = await Swal.fire({
+            title: '¿Desvincular Sucursal?',
+            text: 'Esta acción eliminará la vinculación de esta sucursal con la empresa contable.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#ef4444',
+            cancelButtonColor: '#6b7280',
+            confirmButtonText: 'Sí, desvincular',
+            cancelButtonText: 'Cancelar'
+        });
+
+        if (result.isConfirmed) {
+            try {
+                await deleteContableSucursal(sucursalId);
+                toast.success('Sucursal desvinculada');
+                onUpdate();
+            } catch (e) {
+                toast.error('Error al desvincular sucursal');
+            }
+        }
+    };
+
     return (
         <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -310,12 +388,20 @@ const ManageEmpresas = ({ empresas, onUpdate }) => {
                             <div className="w-12 h-12 bg-white dark:bg-gray-800 rounded-2xl flex items-center justify-center shadow-sm text-amber-500">
                                 <FaBuilding size={20} />
                             </div>
-                            <button 
-                                onClick={() => handleAddSucursal(emp.id)}
-                                className="text-[9px] font-black bg-amber-50 text-amber-600 px-3 py-1.5 rounded-lg uppercase tracking-widest border border-amber-100 hover:bg-amber-500 hover:text-white transition-all"
-                            >
-                                + Sucursal
-                            </button>
+                            <div className="flex gap-2">
+                                <button 
+                                    onClick={() => handleEditEmpresa(emp)}
+                                    className="text-[9px] font-black bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 px-3 py-1.5 rounded-lg uppercase tracking-widest border border-gray-200 dark:border-gray-700 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all flex items-center gap-1.5"
+                                >
+                                    <FaEdit size={10} /> Editar
+                                </button>
+                                <button 
+                                    onClick={() => handleAddSucursal(emp.id)}
+                                    className="text-[9px] font-black bg-amber-50 text-amber-600 px-3 py-1.5 rounded-lg uppercase tracking-widest border border-amber-100 hover:bg-amber-500 hover:text-white transition-all flex items-center gap-1.5"
+                                >
+                                    + Sucursal
+                                </button>
+                            </div>
                         </div>
                         <h3 className="font-black text-gray-800 dark:text-white uppercase text-sm mb-1">{emp.nombre}</h3>
                         <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{emp.razonSocial}</p>
@@ -325,16 +411,26 @@ const ManageEmpresas = ({ empresas, onUpdate }) => {
                             <div className="mt-4 space-y-1">
                                 <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-2 italic">Sucursales Vinculadas:</p>
                                 {emp.sucursales.map(s => (
-                                    <div key={s.id} className="flex items-center gap-2 text-[10px] font-bold text-gray-600 dark:text-gray-300 bg-white/50 dark:bg-gray-800 p-2 rounded-xl">
-                                        <FaStore size={10} className="text-amber-500" />
-                                        {s.nombre} {s.store && <span className="text-[8px] opacity-50">(Física: {s.store.name})</span>}
+                                    <div key={s.id} className="flex items-center justify-between gap-2 text-[10px] font-bold text-gray-600 dark:text-gray-300 bg-white/50 dark:bg-gray-800 p-2 rounded-xl border border-black/5 dark:border-white/5">
+                                        <div className="flex items-center gap-2">
+                                            <FaStore size={10} className="text-amber-500" />
+                                            <span>{s.nombre} {s.store && <span className="text-[8px] opacity-50 font-medium">(Física: {s.store.name})</span>}</span>
+                                        </div>
+                                        <button 
+                                            onClick={() => handleDeleteSucursal(s.id)}
+                                            className="text-gray-400 hover:text-red-500 transition-colors p-1 flex items-center justify-center rounded hover:bg-red-50 dark:hover:bg-red-950/20"
+                                            title="Desvincular sucursal"
+                                        >
+                                            <FaTimes size={10} />
+                                        </button>
                                     </div>
                                 ))}
                             </div>
                         )}
 
-                        <div className="mt-4 pt-4 border-t border-black/5 grid grid-cols-2 gap-4">
+                        <div className="mt-4 pt-4 border-t border-black/5 grid grid-cols-3 gap-4">
                             <div><p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">RFC</p><p className="text-[11px] font-bold dark:text-white">{emp.rfc}</p></div>
+                            <div><p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Régimen</p><p className="text-[11px] font-bold dark:text-white">{emp.regimenFiscal || 'N/A'}</p></div>
                             <div><p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Cuentas</p><p className="text-[11px] font-bold dark:text-white">{emp._count?.cuentas || 0}</p></div>
                         </div>
                     </div>
@@ -892,7 +988,9 @@ const ConfigERP = ({ selectedEmpresa, onUpdate }) => {
         contabilidadAutomatica: false,
         cuentaVentasId: '',
         cuentaBancosId: '',
-        cuentaVendingId: ''
+        cuentaVendingId: '',
+        facturapiApiKey: '',
+        lugarExpedicion: ''
     });
 
     useEffect(() => {
@@ -907,7 +1005,9 @@ const ConfigERP = ({ selectedEmpresa, onUpdate }) => {
                             contabilidadAutomatica: selectedEmpresa.contabilidadAutomatica,
                             cuentaVentasId: selectedEmpresa.cuentaVentasId || '',
                             cuentaBancosId: selectedEmpresa.cuentaBancosId || '',
-                            cuentaVendingId: selectedEmpresa.cuentaVendingId || ''
+                            cuentaVendingId: selectedEmpresa.cuentaVendingId || '',
+                            facturapiApiKey: selectedEmpresa.facturapiApiKey || '',
+                            lugarExpedicion: selectedEmpresa.lugarExpedicion || ''
                         });
                     }
                 } catch (err) {
@@ -982,6 +1082,34 @@ const ConfigERP = ({ selectedEmpresa, onUpdate }) => {
                             <option value="">Selecciona una cuenta...</option>
                             {cuentas.map(c => <option key={c.id} value={c.id}>{c.codigo} - {c.nombre}</option>)}
                         </select>
+                    </div>
+                </div>
+            </div>
+
+            <div className="space-y-6 pt-6 border-t border-gray-100 dark:border-gray-700">
+                <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-4">Integración Fiscal (Facturapi)</h4>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest mb-1.5 block">API Key (sk_test_... / sk_live_...)</label>
+                        <input 
+                            type="password"
+                            placeholder="Ingresa tu API Key de Facturapi"
+                            value={config.facturapiApiKey}
+                            onChange={e => setConfig({...config, facturapiApiKey: e.target.value})}
+                            className="w-full input-style text-xs font-bold"
+                        />
+                    </div>
+                    <div>
+                        <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest mb-1.5 block">Lugar de Expedición (Código Postal)</label>
+                        <input 
+                            type="text"
+                            placeholder="Ej. 77500"
+                            maxLength={5}
+                            value={config.lugarExpedicion}
+                            onChange={e => setConfig({...config, lugarExpedicion: e.target.value.replace(/\D/g, '')})}
+                            className="w-full input-style text-xs font-bold"
+                        />
                     </div>
                 </div>
             </div>
@@ -1459,18 +1587,154 @@ const ManageResultados = ({ selectedEmpresa }) => {
 };
 
 const ManageEjercicios = ({ selectedEmpresa }) => {
+    const [ejercicios, setEjercicios] = useState([]);
+    const [loading, setLoading] = useState(false);
+
+    useEffect(() => {
+        if (selectedEmpresa) {
+            loadEjercicios();
+        }
+    }, [selectedEmpresa]);
+
+    const loadEjercicios = async () => {
+        setLoading(true);
+        try {
+            const data = await fetchContableEjercicios(selectedEmpresa.id);
+            setEjercicios(data);
+        } catch (e) {
+            toast.error('Error al cargar ejercicios fiscales');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleAperturar = async () => {
+        if (!selectedEmpresa) return toast.error('Selecciona una empresa primero');
+        
+        const { value: anio } = await Swal.fire({
+            title: 'Aperturar Ejercicio Fiscal',
+            input: 'number',
+            inputLabel: 'Año del ejercicio contable',
+            inputValue: new Date().getFullYear(),
+            showCancelButton: true,
+            customClass: {
+                popup: 'dark:bg-gray-900 dark:border-gray-800',
+                title: 'dark:text-white',
+                htmlContainer: 'dark:text-gray-300'
+            },
+            inputValidator: (value) => {
+                if (!value || isNaN(value)) {
+                    return 'Debes ingresar un año válido';
+                }
+            }
+        });
+
+        if (anio) {
+            try {
+                await createContableEjercicio({ empresaId: selectedEmpresa.id, anio: parseInt(anio) });
+                toast.success('Ejercicio fiscal aperturado con éxito');
+                loadEjercicios();
+            } catch (e) {
+                toast.error(e.response?.data?.error || 'Error al aperturar ejercicio fiscal');
+            }
+        }
+    };
+
+    const handleTogglePeriodo = async (periodo) => {
+        const nombreMes = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'][periodo.mes - 1];
+        const accion = periodo.abierto ? 'CERRAR' : 'ABRIR';
+        
+        const result = await Swal.fire({
+            title: `¿${accion} Periodo?`,
+            text: `¿Deseas ${accion.toLowerCase()} el periodo contable de ${nombreMes}?`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: `Sí, ${accion.toLowerCase()}`,
+            cancelButtonText: 'Cancelar'
+        });
+
+        if (result.isConfirmed) {
+            try {
+                await toggleContablePeriodo(periodo.id);
+                toast.success(`Periodo actualizado correctamente`);
+                loadEjercicios();
+            } catch (e) {
+                toast.error('Error al actualizar periodo contable');
+            }
+        }
+    };
+
+    const mesesNombres = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+
     return (
-        <div className="space-y-6 animate-in slide-in-from-bottom-4 duration-500">
+        <div className="space-y-8 animate-in slide-in-from-bottom-4 duration-500">
             <div className="flex justify-between items-center">
-                <h3 className="font-black text-gray-800 dark:text-white uppercase tracking-tight">Ejercicios Fiscales</h3>
-                <button className="btn-primary py-3 px-6 rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center gap-2 shadow-xl shadow-primary/20">
+                <h3 className="font-black text-gray-800 dark:text-white uppercase tracking-tight text-sm">Ejercicios Fiscales Aperturados</h3>
+                <button 
+                    onClick={handleAperturar}
+                    className="btn-primary py-3 px-6 rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center gap-2 shadow-xl shadow-primary/20"
+                >
                     <FaPlus /> Aperturar Ejercicio
                 </button>
             </div>
-            <div className="p-12 bg-gray-50/50 dark:bg-gray-900/40 border border-gray-100 dark:border-gray-700 rounded-[3rem] text-center">
-                 <FaCalendarAlt size={50} className="mx-auto mb-6 text-gray-300 dark:text-gray-700" />
-                 <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest italic">Aún no hay ejercicios fiscales registrados.</p>
-            </div>
+
+            {loading ? (
+                <div className="text-center py-10 text-gray-400">
+                    <p className="font-black uppercase tracking-widest text-[9px] animate-pulse">Cargando ejercicios...</p>
+                </div>
+            ) : ejercicios.length === 0 ? (
+                <div className="p-12 bg-gray-50/50 dark:bg-gray-900/40 border border-gray-100 dark:border-gray-700 rounded-[3rem] text-center">
+                     <FaCalendarAlt size={50} className="mx-auto mb-6 text-gray-300 dark:text-gray-700" />
+                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest italic">Aún no hay ejercicios fiscales registrados.</p>
+                </div>
+            ) : (
+                <div className="space-y-6">
+                    {ejercicios.map(ej => (
+                        <div key={ej.id} className="p-6 bg-white dark:bg-gray-900 rounded-[2rem] border border-gray-100 dark:border-gray-700 shadow-sm space-y-6">
+                            <div className="flex justify-between items-center border-b border-black/5 dark:border-white/5 pb-4">
+                                <div>
+                                    <h4 className="text-xl font-black text-gray-800 dark:text-white">AÑO FISCAL: {ej.anio}</h4>
+                                    <p className="text-[9px] text-gray-400 font-bold uppercase tracking-wider mt-1">Estatus del Ejercicio</p>
+                                </div>
+                                <span className={`text-[10px] font-black px-3 py-1.5 rounded-xl border uppercase tracking-wider ${ej.abierto ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-rose-50 text-rose-600 border-rose-100'}`}>
+                                    {ej.abierto ? 'EJERCICIO ABIERTO' : 'EJERCICIO CERRADO'}
+                                </span>
+                            </div>
+
+                            {/* Cuadrícula de Periodos (Meses) */}
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                                {ej.periodos?.map(p => (
+                                    <div 
+                                        key={p.id} 
+                                        className={`p-4 rounded-2xl border transition-all flex flex-col justify-between items-center gap-3 text-center ${
+                                            p.abierto 
+                                            ? 'bg-gray-50/50 dark:bg-gray-800/40 border-gray-100 dark:border-gray-800 hover:border-emerald-500' 
+                                            : 'bg-rose-50/20 dark:bg-rose-950/10 border-rose-100/50 dark:border-rose-950/30'
+                                        }`}
+                                    >
+                                        <div>
+                                            <p className="text-xs font-black uppercase text-gray-700 dark:text-gray-200">{mesesNombres[p.mes - 1]}</p>
+                                            <span className={`text-[8px] font-black uppercase tracking-widest block mt-1 ${p.abierto ? 'text-emerald-600' : 'text-rose-600'}`}>
+                                                {p.abierto ? 'Abierto' : 'Cerrado'}
+                                            </span>
+                                        </div>
+                                        <button 
+                                            onClick={() => handleTogglePeriodo(p)}
+                                            className={`w-full py-1.5 px-3 rounded-xl text-[8px] font-black uppercase tracking-widest border transition-all ${
+                                                p.abierto 
+                                                ? 'bg-white hover:bg-rose-500 hover:text-white hover:border-rose-500 text-gray-500 border-gray-200' 
+                                                : 'bg-rose-500 text-white border-rose-500 hover:bg-emerald-600 hover:border-emerald-600'
+                                            }`}
+                                        >
+                                            {p.abierto ? 'Cerrar' : 'Reabrir'}
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
         </div>
     );
 };

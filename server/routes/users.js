@@ -155,11 +155,23 @@ router.post('/users', async (req, res) => {
         });
     }
 
+    let customId = data.customId;
+    if (!customId || customId.trim() === '') {
+      let isIdUnique = false;
+      const rolePrefix = isCollaborator ? 'CO' : 'CLI';
+      while (!isIdUnique) {
+        const random = String(Math.floor(Math.random() * 9000) + 1000);
+        customId = `${rolePrefix}-${random}`;
+        const existingUser = await prisma.user.findUnique({ where: { customId } });
+        if (!existingUser) isIdUnique = true;
+      }
+    }
+
     const newUser = await prisma.user.create({
       data: {
         name: data.name,
-        email: data.email?.toLowerCase().trim(),
-        phone: data.phone,
+        email: data.email && data.email.trim() !== '' ? data.email.toLowerCase().trim() : null,
+        phone: data.phone && data.phone.trim() !== '' ? data.phone.trim() : null,
         street: data.street || null,
         neighborhood: data.neighborhood || null,
         city: data.city || null,
@@ -167,11 +179,16 @@ router.post('/users', async (req, res) => {
         sexo: data.sexo || null,
         password: hashedPassword,
         clientCategory: data.category || data.clientCategory || 'PARTICULAR',
+        clientPreferences: data.clientPreferences || [],
+        purchaseFrequencyDays: data.purchaseFrequencyDays !== undefined && data.purchaseFrequencyDays !== null && data.purchaseFrequencyDays !== '' ? parseInt(data.purchaseFrequencyDays) : null,
+        lastPurchaseDate: data.lastPurchaseDate ? new Date(data.lastPurchaseDate) : null,
+        lat: data.lat !== undefined && data.lat !== null && data.lat !== '' ? parseFloat(data.lat) : null,
+        lng: data.lng !== undefined && data.lng !== null && data.lng !== '' ? parseFloat(data.lng) : null,
         role: requestedRole,
         type: isCollaborator ? 'COLABORADOR' : 'CLIENTE',
         verificationToken,
         mustChangePassword: !!hashedPassword,
-        customId: data.customId || '',
+        customId: customId,
         store: data.storeId ? { connect: { id: data.storeId } } : undefined,
         roles: roleConnections.length > 0 ? { connect: roleConnections } : undefined,
       },
@@ -188,7 +205,11 @@ router.post('/users', async (req, res) => {
     res.status(201).json(userWithoutPassword);
   } catch (error) {
     if (error.code === 'P2002') {
-      return res.status(409).json({ error: 'El usuario ya existe.', message: 'Ya existe un usuario con el mismo email o teléfono.' });
+      const targetField = error.meta?.target?.[0] || 'email o teléfono';
+      return res.status(409).json({ 
+        error: 'El usuario ya existe.', 
+        message: `Ya existe un usuario con el mismo valor en el campo único: '${targetField}'. Intenta con otro valor.` 
+      });
     }
     res.status(500).json({ error: 'Error creating user', message: error.message });
   }
@@ -225,6 +246,9 @@ router.put('/users/:id', verifyToken, async (req, res) => {
       clientCategory: data.category || data.clientCategory || undefined,
       lat: data.lat === null ? null : (data.lat !== undefined ? parseFloat(data.lat) : undefined),
       lng: data.lng === null ? null : (data.lng !== undefined ? parseFloat(data.lng) : undefined),
+      purchaseFrequencyDays: data.purchaseFrequencyDays !== undefined ? (data.purchaseFrequencyDays === '' || data.purchaseFrequencyDays === null ? null : parseInt(data.purchaseFrequencyDays)) : undefined,
+      clientPreferences: data.clientPreferences !== undefined ? data.clientPreferences : undefined,
+      lastPurchaseDate: data.lastPurchaseDate !== undefined ? (data.lastPurchaseDate === '' || data.lastPurchaseDate === null ? null : new Date(data.lastPurchaseDate)) : undefined,
       storeId: (isAdmin || isOwner) && data.storeId !== undefined
           ? (data.storeId === '' || data.storeId === null ? null : data.storeId)
           : undefined

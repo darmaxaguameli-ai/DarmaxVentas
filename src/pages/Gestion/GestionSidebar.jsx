@@ -14,11 +14,10 @@ const menuStructure = [
   },
   {
     type: "group",
-    name: "Ventas y CRM",
-    icon: "groups",
+    name: "Cotizadores",
+    icon: "request_quote",
     children: [
-      { name: "Prospección / Leads", path: "prospeccion", icon: "trending_up", permission: "canAccessLeads" },
-      { name: "CRM y Cobranza", path: "crm", icon: "people", permission: "canAccessLeads" },
+      { name: "Cotizador Dist.", path: "cotizador-distribuidores", icon: "local_shipping", permission: "canAccessDistributorQuotes" },
       { name: "Cotizador Darmax", path: "cotizador", icon: "request_quote", permission: "canAccessQuotes" },
     ],
   },
@@ -66,16 +65,18 @@ const menuStructure = [
       { name: "Tesorería (Ingresos)", path: "ingresos", icon: "account_balance_wallet", permission: "canAccessFinances" },
       { name: "Compras y CxP", path: "compras", icon: "shopping_cart", permission: "canAccessFinances" },
       { name: "Contabilidad ERP", path: "contabilidad", icon: "account_balance", permission: "canAccessAccounting" },
+      { name: "Facturación (CFDI 4.0)", path: "fiscal", icon: "receipt_long", permission: "canAccessAccounting" },
+      { name: "Prospección / Leads", path: "prospeccion", icon: "trending_up", permission: "canAccessLeads" },
+      { name: "CRM y Cobranza", path: "crm", icon: "people", permission: "canAccessLeads" },
     ],
   },
   {
     type: "group",
-    name: "Cumplimiento (Legal/Fiscal)",
+    name: "Legal",
     icon: "gavel",
     children: [
       { name: "Gestión Documental", path: "documentos", icon: "folder_open", permission: "canAccessLegal" },
       { name: "Área Legal", path: "legal", icon: "balance", permission: "canAccessLegal" },
-      { name: "Facturación (CFDI 4.0)", path: "fiscal", icon: "receipt_long", permission: "canAccessAccounting" },
     ],
   },
   {
@@ -186,7 +187,7 @@ const SidebarItem = ({ item, isCollapsed, user, onClose, isMobile, isOpen, onTog
 
       {/* Submenú Normal (Acordeón) - Móvil o Escritorio Expandido */}
       {!effectiveCollapsed && (
-        <div className={`overflow-hidden transition-all duration-300 ease-in-out ${isOpen ? 'max-h-48 opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
+        <div className={`overflow-hidden transition-all duration-300 ease-in-out ${isOpen ? 'max-h-[400px] opacity-100 mt-1' : 'max-h-0 opacity-0'}`}>
           <div className="ml-4 pl-3 border-l-2 border-gray-200 dark:border-gray-700 space-y-1">
             {visibleChildren.map((child) => (
               <NavLink

@@ -72,7 +72,14 @@ router.get('/documentos', verifyToken, async (req, res) => {
 router.get('/empresas', verifyToken, async (req, res) => {
   try {
     const empresas = await prisma.contableEmpresa.findMany({
-      include: { _count: { select: { cuentas: true, sucursales: true } } }
+      include: { 
+        _count: { select: { cuentas: true, sucursales: true } },
+        sucursales: {
+          include: {
+            store: true
+          }
+        }
+      }
     });
     res.json(empresas);
   } catch (error) {
@@ -121,6 +128,18 @@ router.post('/sucursales', verifyToken, async (req, res) => {
     res.status(201).json(nueva);
   } catch (error) {
     res.status(500).json({ error: 'Error creating sucursal' });
+  }
+});
+
+router.delete('/sucursales/:id', verifyToken, async (req, res) => {
+  try {
+    await prisma.contableSucursal.delete({
+      where: { id: req.params.id }
+    });
+    res.json({ success: true, message: 'Sucursal contable eliminada' });
+  } catch (error) {
+    console.error('Error deleting sucursal contable:', error);
+    res.status(500).json({ error: 'Error al eliminar sucursal contable' });
   }
 });
 
@@ -467,6 +486,95 @@ router.get('/estado-resultados', verifyToken, async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({ error: 'Error generando estado de resultados' });
+  }
+});
+
+
+// --- EJERCICIOS Y PERIODOS ---
+router.get('/ejercicios', verifyToken, async (req, res) => {
+  const { empresaId } = req.query;
+  if (!empresaId) return res.status(400).json({ error: 'empresaId required' });
+  try {
+    const ejercicios = await prisma.contableEjercicio.findMany({
+      where: { empresaId },
+      include: { periodos: { orderBy: { mes: 'asc' } } },
+      orderBy: { anio: 'desc' }
+    });
+    res.json(ejercicios);
+  } catch (error) {
+    console.error('Error fetching ejercicios:', error);
+    res.status(500).json({ error: 'Error al cargar ejercicios fiscales' });
+  }
+});
+
+router.post('/ejercicios', verifyToken, async (req, res) => {
+  const { empresaId, anio } = req.body;
+  if (!empresaId || !anio) return res.status(400).json({ error: 'empresaId and anio required' });
+  
+  try {
+    const existe = await prisma.contableEjercicio.findUnique({
+      where: {
+        anio_empresaId: {
+          anio: parseInt(anio),
+          empresaId
+        }
+      }
+    });
+
+    if (existe) {
+      return res.status(400).json({ error: `El ejercicio fiscal ${anio} ya está aperturado para esta empresa.` });
+    }
+
+    const nuevoEjercicio = await prisma.$transaction(async (tx) => {
+      const ejercicio = await tx.contableEjercicio.create({
+        data: {
+          anio: parseInt(anio),
+          empresaId,
+          abierto: true
+        }
+      });
+
+      const periodosData = Array.from({ length: 12 }, (_, i) => ({
+        mes: i + 1,
+        abierto: true,
+        ejercicioId: ejercicio.id
+      }));
+
+      await tx.contablePeriodo.createMany({
+        data: periodosData
+      });
+
+      return tx.contableEjercicio.findUnique({
+        where: { id: ejercicio.id },
+        include: { periodos: { orderBy: { mes: 'asc' } } }
+      });
+    });
+
+    res.status(201).json(nuevoEjercicio);
+  } catch (error) {
+    console.error('Error creating ejercicio:', error);
+    res.status(500).json({ error: 'Error al aperturar ejercicio fiscal' });
+  }
+});
+
+router.put('/periodos/:id/toggle', verifyToken, async (req, res) => {
+  const { id } = req.params;
+  try {
+    const periodo = await prisma.contablePeriodo.findUnique({ where: { id } });
+    if (!periodo) return res.status(404).json({ error: 'Periodo no encontrado' });
+
+    const actualizado = await prisma.contablePeriodo.update({
+      where: { id },
+      data: {
+        abierto: !periodo.abierto,
+        fechaCierre: !periodo.abierto ? new Date() : null,
+        usuarioCierre: !periodo.abierto ? req.user?.name || 'Sistema' : null
+      }
+    });
+    res.json(actualizado);
+  } catch (error) {
+    console.error('Error toggling periodo:', error);
+    res.status(500).json({ error: 'Error al actualizar periodo fiscal' });
   }
 });
 
