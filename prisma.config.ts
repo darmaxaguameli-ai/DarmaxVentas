@@ -3,6 +3,18 @@
 import "dotenv/config";
 import { defineConfig, env } from "prisma/config";
 
+// Derive direct URL from DATABASE_URL if DIRECT_URL is not set
+const getDirectUrl = () => {
+  if (process.env.DIRECT_URL) return process.env.DIRECT_URL;
+  
+  const dbUrl = process.env.DATABASE_URL || "";
+  if (dbUrl.includes("pooled.db.prisma.io")) {
+    return dbUrl.replace("pooled.db.prisma.io", "db.prisma.io");
+  }
+  
+  return process.env.PRISMA_DATABASE_URL || dbUrl;
+};
+
 export default defineConfig({
   schema: "prisma/schema.prisma",
   migrations: {
@@ -10,6 +22,6 @@ export default defineConfig({
     seed: 'node ./prisma/seed.js',
   },
   datasource: {
-    url: process.env.DIRECT_URL || process.env.PRISMA_DATABASE_URL || process.env.DATABASE_URL || "",
+    url: getDirectUrl(),
   },
 });
