@@ -27,7 +27,7 @@ const corsOptions = {
     'https://darmaxagua.com.mx'
   ],
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-api-key', 'X-API-Key'],
   credentials: true
 };
 app.use(cors(corsOptions));

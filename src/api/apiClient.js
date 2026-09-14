@@ -193,6 +193,10 @@ export const fetchCotizacionesByCliente = (nombre) => apiClient.get(`/cotizacion
 export const fetchPublicCotizacion = (id) => apiClient.get(`/cotizaciones/public/${id}`).then(res => res.data);
 export const deleteCotizacion = (id) => apiClient.delete(`/cotizaciones/${id}`).then(res => res.data);
 
+// Cotizaciones externas (recibidas desde darmaxagua.com.mx)
+export const createExternalCotizacion = (data) => apiClient.post('/external/cotizaciones', data).then(res => res.data);
+export const fetchExternalCotizacion = (idOrFolio) => apiClient.get(`/external/cotizaciones/${idOrFolio}`).then(res => res.data);
+
 // ====================================================================
 //  SOLICITUDES DE PRODUCTO (NUEVO)
 // ====================================================================
