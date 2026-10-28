@@ -114,6 +114,8 @@ model Role {
   canAccessLegal             Boolean @default(false)
   canAccessInstallation      Boolean @default(false)
   canAccessShowcase          Boolean @default(false)
+  canAccessSistemas          Boolean @default(false)
+  canManageSistemas          Boolean @default(false)
 
   isSystem Boolean @default(false)
 
@@ -1299,3 +1301,38 @@ model VendingMantenimiento {
   vendingMachine   VendingMachine @relation(fields: [vendingMachineId], references: [id])
   vendingMachineId String
 }
+
+// =====================================================================
+// SISTEMAS: PROYECTOS Y ACTIVIDADES
+// =====================================================================
+
+model SistemasProject {
+  id          String    @id @default(cuid())
+  nombre      String
+  descripcion String?
+  fechaInicio DateTime?
+  fechaFin    DateTime?
+  estado      String    @default("ACTIVO")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model SistemasTask {
+  id                String    @id @default(cuid())
+  proyectoId        String?
+  proyectoNombre    String?
+  titulo            String
+  descripcion       String?
+  prioridad         String    @default("MEDIA")
+  estado            String    @default("POR_HACER")
+  fechaInicio       DateTime?
+  fechaFin          DateTime?
+  progreso          Int       @default(0)
+  responsableId     String?
+  responsableNombre String?
+  notas             Json?     @default("[]")
+  evaluaciones      Json?     @default("[]")
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+}
+

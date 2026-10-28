@@ -80,6 +80,7 @@ const vendingRoutes = require('./routes/vending');
 const purchaseRoutes = require('./routes/purchases');
 const fiscalRoutes = require('./routes/fiscal');
 const leadRoutes = require('./routes/leads');
+const sistemasRoutes = require('./routes/sistemas');
 const { procesarRentasMensuales } = require('./utils/accountingAutomations');
 
 // --- CRON JOBS SIMULADOS ---
@@ -114,6 +115,7 @@ app.use('/api/accounting', accountingRoutes);
 app.use('/api/vending', vendingRoutes);
 app.use('/api/purchases', purchaseRoutes);
 app.use('/api/fiscal', fiscalRoutes);
+app.use('/api', sistemasRoutes);
 
 // Healthcheck
 app.get('/api/health', (req, res) => {

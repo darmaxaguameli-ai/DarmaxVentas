@@ -32,6 +32,8 @@ const Roles = () => {
         canAccessMarketing: false,
         canAccessLegal: false,
         canAccessInstallation: false,
+        canAccessSistemas: false,
+        canManageSistemas: false,
     };
 
     const [formData, setFormData] = useState(initialRoleState);
@@ -85,6 +87,8 @@ const Roles = () => {
                 canAccessMarketing: !!role.canAccessMarketing,
                 canAccessLegal: !!role.canAccessLegal,
                 canAccessInstallation: !!role.canAccessInstallation,
+                canAccessSistemas: !!role.canAccessSistemas,
+                canManageSistemas: !!role.canManageSistemas,
             });
         } else {
             setEditingRole(null);
@@ -279,6 +283,8 @@ const Roles = () => {
                                     <PermissionBadge active={role.canAccessQuotes} label="Cotiz." />
                                     <PermissionBadge active={role.canAccessLegal} label="Legal" />
                                     <PermissionBadge active={role.canAccessInstallation} label="Instal." />
+                                    <PermissionBadge active={role.canAccessSistemas} label="Sist. Colab" />
+                                    <PermissionBadge active={role.canManageSistemas} label="Sist. Jefe" />
                                 </div>
                             </div>
 
@@ -500,6 +506,8 @@ const Roles = () => {
                                             { id: 'canAccessMarketing', label: 'Marketing', icon: 'campaign' },
                                             { id: 'canAccessLegal', label: 'Área Legal', icon: 'balance' },
                                             { id: 'canAccessInstallation', label: 'Instalación', icon: 'construction' },
+                                            { id: 'canAccessSistemas', label: 'Sistemas (Colaborador)', icon: 'terminal' },
+                                            { id: 'canManageSistemas', label: 'Sistemas (Jefe / Líder)', icon: 'military_tech' },
                                         ].map((perm) => (
                                             <label key={perm.id} className="flex items-center justify-between p-3 rounded-xl bg-gray-50 dark:bg-gray-900/40 hover:bg-gray-100 border border-transparent hover:border-gray-200 cursor-pointer transition-all">
                                                 <div className="flex items-center gap-2">

@@ -38,6 +38,7 @@ import EmpleadoDetalle from "./pages/Gestion/EmpleadoDetalle.jsx";
 import Roles from "./pages/Gestion/Roles.jsx";
 import Leads from "./pages/Gestion/Leads.jsx";
 import Marketing from "./pages/Gestion/Marketing.jsx";
+import Sistemas from "./pages/Gestion/Sistemas.jsx";
 import Promociones from "./pages/Gestion/Promociones.jsx";
 import Blog from "./pages/Gestion/Blog";
 import Guides from "./pages/Gestion/Guides"; // Importar nuevo componente
@@ -197,6 +198,7 @@ function App() {
           <Route path="prospeccion" element={<Leads />} />
           <Route path="mantenimientos" element={<Leads defaultTab="MANTENIMIENTO" />} />
           <Route path="marketing" element={<Marketing />} />
+          <Route path="sistemas" element={<Sistemas />} />
           <Route path="promociones" element={<Promociones />} />
           <Route path="blog" element={<Blog />} />
           <Route path="guias" element={<Guides />} />

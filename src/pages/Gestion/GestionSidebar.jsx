@@ -37,6 +37,7 @@ const menuStructure = [
     children: [
       { name: "Control de Instalación", path: "instalacion", icon: "construction", permission: "canAccessInstallation" },
       { name: "Mapa de Instalaciones", path: "mapa-instalaciones", icon: "map", permission: "canAccessShowcase" },
+      { name: "Sistemas", path: "sistemas", icon: "terminal", permission: ["canAccessSistemas", "canManageSistemas"] },
     ],
   },
   {
@@ -119,13 +120,19 @@ const SidebarItem = ({ item, isCollapsed, user, onClose, isMobile, isOpen, onTog
     };
   }, [isFlyoutOpen, effectiveCollapsed, isMobile]);
   
+  const checkPerm = (perm) => {
+    if (!perm) return true;
+    if (Array.isArray(perm)) return perm.some(p => hasPermission(p));
+    return hasPermission(perm);
+  };
+
   // 1. Verificación de Permisos Dinámicos para el ítem raíz
-  if (item.permission && !hasPermission(item.permission)) return null;
+  if (item.permission && !checkPerm(item.permission)) return null;
   if (item.adminOnly && user?.role !== 'ADMIN') return null;
 
   // 2. Filtrar hijos basados en permisos
   const visibleChildren = item.children?.filter(child => {
-    if (child.permission && !hasPermission(child.permission)) return false;
+    if (child.permission && !checkPerm(child.permission)) return false;
     if (child.adminOnly && user?.role !== 'ADMIN') return false;
     return true;
   });

@@ -30,7 +30,8 @@ router.post('/roles', verifyToken, async (req, res) => {
     });
     res.status(201).json(newRole);
   } catch (error) {
-    res.status(500).json({ error: 'Error al crear el rol' });
+    console.error('Error al crear el rol:', error);
+    res.status(500).json({ error: error.message || 'Error al crear el rol' });
   }
 });
 
@@ -51,7 +52,8 @@ router.put('/roles/:id', verifyToken, async (req, res) => {
     });
     res.json(updatedRole);
   } catch (error) {
-    res.status(500).json({ error: 'Error al actualizar el rol' });
+    console.error('Error al actualizar el rol:', error);
+    res.status(500).json({ error: error.message || 'Error al actualizar el rol' });
   }
 });
 

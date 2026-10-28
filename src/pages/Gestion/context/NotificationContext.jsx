@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useState, useCallback, useMemo } from 'react';
+import React, { createContext, useContext, useState, useCallback, useMemo, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
+import apiClient from '../../../api/apiClient';
 
 const NotificationContext = createContext(null);
 
@@ -14,12 +15,41 @@ export const useNotification = () => {
 export const NotificationProvider = ({ children }) => {
     const [notifications, setNotifications] = useState([]);
 
+    // Cargar notificaciones persistentes de la base de datos al inicio
+    useEffect(() => {
+        const fetchDbNotifications = async () => {
+            try {
+                const response = await apiClient.get('/notifications');
+                if (Array.isArray(response.data)) {
+                    const dbNotes = response.data.map(item => ({
+                        id: item.id,
+                        title: item.title,
+                        message: item.message,
+                        type: item.type?.toLowerCase() || 'info',
+                        icon: item.icon,
+                        link: item.link,
+                        isRead: item.read ?? false,
+                        createdAt: item.createdAt || new Date()
+                    }));
+                    setNotifications(prev => {
+                        const existingIds = new Set(prev.map(p => p.id));
+                        const fresh = dbNotes.filter(n => !existingIds.has(n.id));
+                        return [...prev, ...fresh];
+                    });
+                }
+            } catch (err) {
+                // Modo silencioso si no está logueado o endpoint offline
+            }
+        };
+        fetchDbNotifications();
+    }, []);
+
     const addNotification = useCallback((notification) => {
         const newNotification = {
             id: uuidv4(),
             isRead: false,
             createdAt: new Date(),
-            ...notification, // e.g., { title, message, type: 'info' | 'warning' | 'error' }
+            ...notification, // e.g., { title, message, type: 'info' | 'warning' | 'error' | 'star' | 'task' | 'note' }
         };
         setNotifications(prev => [newNotification, ...prev]);
     }, []);
@@ -28,6 +58,7 @@ export const NotificationProvider = ({ children }) => {
         setNotifications(prev =>
             prev.map(n => (n.id === id ? { ...n, isRead: true } : n))
         );
+        apiClient.put(`/notifications/${id}/read`).catch(() => {});
     }, []);
 
     const markAllAsRead = useCallback(() => {
