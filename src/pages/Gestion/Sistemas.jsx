@@ -951,15 +951,16 @@ const Sistemas = () => {
                     </div>
 
                     {/* Botones de acción y control según rol */}
-                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 select-none">
                         {isRealJefe ? (
                             <div className="bg-black/30 backdrop-blur-md p-1.5 rounded-2xl border border-white/10 flex items-center gap-2">
-                                <div className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-500/20 text-blue-300 border border-blue-400/30 rounded-xl text-xs font-black">
+                                <div className="flex items-center gap-1.5 px-3 py-2 bg-blue-500/20 text-blue-300 border border-blue-400/30 rounded-xl text-xs font-black min-h-[40px]">
                                     <FaUserTie /> Modo Encargado
                                 </div>
                                 <button
+                                    type="button"
                                     onClick={() => setViewAsRole(viewAsRole === 'JEFE' ? 'COLABORADOR' : 'JEFE')}
-                                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                                    className={`flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all min-h-[40px] touch-manipulation active:scale-95 ${
                                         viewAsRole === 'COLABORADOR'
                                         ? 'bg-emerald-600 text-white shadow-md'
                                         : 'text-gray-300 hover:text-white hover:bg-white/10'
@@ -970,8 +971,8 @@ const Sistemas = () => {
                                 </button>
                             </div>
                         ) : (
-                            <div className="bg-emerald-500/10 backdrop-blur-md px-4 py-2.5 rounded-2xl border border-emerald-400/20 flex items-center gap-2 text-emerald-300 text-xs font-black">
-                                <FaUserCheck className="text-base text-emerald-400" />
+                            <div className="bg-emerald-500/10 backdrop-blur-md px-4 py-2.5 rounded-2xl border border-emerald-400/20 flex items-center gap-2 text-emerald-300 text-xs font-black min-h-[44px]">
+                                <FaUserCheck className="text-base text-emerald-400 flex-shrink-0" />
                                 <div>
                                     <p className="leading-tight font-black uppercase text-[10px] text-emerald-400">Tus Entregas Asignadas</p>
                                     <p className="text-[11px] text-gray-300 font-medium">Solo tú y tu encargado tienen visibilidad de tu avance</p>
@@ -980,16 +981,18 @@ const Sistemas = () => {
                         )}
 
                         {isJefe && (
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 w-full sm:w-auto">
                                 <button
+                                    type="button"
                                     onClick={handleOpenCreateProject}
-                                    className="flex items-center gap-2 px-4 py-3 bg-white/10 hover:bg-white/20 text-white font-bold text-xs rounded-2xl border border-white/20 transition-all"
+                                    className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-3 bg-white/10 hover:bg-white/20 text-white font-bold text-xs rounded-2xl border border-white/20 transition-all min-h-[46px] touch-manipulation active:scale-95"
                                 >
                                     <FaFolderPlus /> Nuevo Proyecto
                                 </button>
                                 <button
+                                    type="button"
                                     onClick={handleOpenCreateTask}
-                                    className="flex items-center gap-2 px-5 py-3 bg-white text-gray-900 hover:bg-gray-100 font-black text-xs uppercase tracking-wider rounded-2xl shadow-lg transition-transform active:scale-95"
+                                    className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-5 py-3 bg-white text-gray-900 hover:bg-gray-100 font-black text-xs uppercase tracking-wider rounded-2xl shadow-lg transition-transform min-h-[46px] touch-manipulation active:scale-95"
                                 >
                                     <FaPlus /> Nueva Actividad
                                 </button>
@@ -1041,7 +1044,7 @@ const Sistemas = () => {
                     {/* Botón para ver todos */}
                     <div
                         onClick={() => setSelectedProjectId('TODOS')}
-                        className={`p-4 rounded-2xl border cursor-pointer transition-all ${
+                        className={`p-4 rounded-2xl border cursor-pointer transition-all touch-manipulation select-none active:scale-[0.98] ${
                             selectedProjectId === 'TODOS'
                             ? 'bg-blue-50/70 dark:bg-blue-900/30 border-blue-500 shadow-sm'
                             : 'bg-gray-50/50 dark:bg-gray-900/30 border-gray-200 dark:border-gray-700 hover:border-gray-300'
@@ -1067,7 +1070,7 @@ const Sistemas = () => {
                             <div
                                 key={proj.id}
                                 onClick={() => setSelectedProjectId(proj.id)}
-                                className={`p-4 rounded-2xl border cursor-pointer transition-all ${
+                                className={`p-4 rounded-2xl border cursor-pointer transition-all touch-manipulation select-none active:scale-[0.98] ${
                                     isSelected
                                     ? 'bg-blue-50/70 dark:bg-blue-900/30 border-blue-500 shadow-sm ring-1 ring-blue-500'
                                     : 'bg-gray-50/50 dark:bg-gray-900/30 border-gray-200 dark:border-gray-700 hover:border-gray-300'
@@ -1082,17 +1085,18 @@ const Sistemas = () => {
                                             {projTasks.length} act.
                                         </span>
                                         {isJefe && (
-                                            <div className="flex items-center gap-0.5">
+                                            <div className="flex items-center gap-1">
                                                 <button
                                                     type="button"
                                                     onClick={(e) => {
                                                         e.stopPropagation();
                                                         handleOpenEditProject(proj);
                                                     }}
-                                                    className="p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/40 rounded-lg transition-colors"
+                                                    className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/40 rounded-xl transition-colors active:scale-90 touch-manipulation"
                                                     title="Editar nombre y datos del proyecto"
+                                                    aria-label="Editar proyecto"
                                                 >
-                                                    <FaEdit size={11} />
+                                                    <FaEdit size={12} />
                                                 </button>
                                                 <button
                                                     type="button"
@@ -1100,10 +1104,11 @@ const Sistemas = () => {
                                                         e.stopPropagation();
                                                         handleDeleteProject(proj);
                                                     }}
-                                                    className="p-1 text-gray-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg transition-colors"
+                                                    className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-xl transition-colors active:scale-90 touch-manipulation"
                                                     title="Eliminar proyecto y sus actividades"
+                                                    aria-label="Eliminar proyecto"
                                                 >
-                                                    <FaTrash size={11} />
+                                                    <FaTrash size={12} />
                                                 </button>
                                             </div>
                                         )}
@@ -1163,13 +1168,14 @@ const Sistemas = () => {
             })()}
 
             {/* Barra de Filtros y Vistas */}
-            <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 select-none">
                 <div className="flex flex-wrap items-center gap-2">
                     {/* Botones de Vistas */}
-                    <div className="bg-gray-100 dark:bg-gray-900 p-1 rounded-xl flex items-center">
+                    <div className="bg-gray-100 dark:bg-gray-900 p-1 rounded-xl flex items-center overflow-x-auto overscroll-contain touch-pan-x [scrollbar-width:none]">
                         <button
+                            type="button"
                             onClick={() => setViewMode('TABLERO')}
-                            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-bold transition-all min-h-[38px] touch-manipulation active:scale-95 ${
                                 viewMode === 'TABLERO'
                                 ? 'bg-white dark:bg-gray-800 text-primary shadow-sm'
                                 : 'text-gray-500 hover:text-gray-900 dark:text-gray-400'
@@ -1178,8 +1184,9 @@ const Sistemas = () => {
                             <FaThLarge /> Tablero
                         </button>
                         <button
+                            type="button"
                             onClick={() => setViewMode('GANTT')}
-                            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-bold transition-all min-h-[38px] touch-manipulation active:scale-95 whitespace-nowrap ${
                                 viewMode === 'GANTT'
                                 ? 'bg-white dark:bg-gray-800 text-primary shadow-sm'
                                 : 'text-gray-500 hover:text-gray-900 dark:text-gray-400'
@@ -1188,8 +1195,9 @@ const Sistemas = () => {
                             <FaStream /> Cronograma de Fechas
                         </button>
                         <button
+                            type="button"
                             onClick={() => setViewMode('NOTAS')}
-                            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-bold transition-all min-h-[38px] touch-manipulation active:scale-95 whitespace-nowrap ${
                                 viewMode === 'NOTAS'
                                 ? 'bg-white dark:bg-gray-800 text-primary shadow-sm'
                                 : 'text-gray-500 hover:text-gray-900 dark:text-gray-400'
@@ -1201,12 +1209,12 @@ const Sistemas = () => {
 
                     {/* Filtro por Colaborador (Exclusivo para el Jefe) */}
                     {isJefe && distinctCollaborators.length > 0 && (
-                        <div className="flex items-center gap-1.5 bg-gray-50 dark:bg-gray-900 px-3 py-1.5 rounded-xl border border-gray-200 dark:border-gray-700">
+                        <div className="flex items-center gap-1.5 bg-gray-50 dark:bg-gray-900 px-3 py-1.5 rounded-xl border border-gray-200 dark:border-gray-700 min-h-[38px]">
                             <FaFilter className="text-gray-400 text-xs" />
                             <select
                                 value={filterCollaborator}
                                 onChange={(e) => setFilterCollaborator(e.target.value)}
-                                className="bg-transparent text-xs font-bold text-gray-700 dark:text-gray-200 outline-none cursor-pointer"
+                                className="bg-transparent text-base sm:text-xs font-bold text-gray-700 dark:text-gray-200 outline-none cursor-pointer py-1"
                             >
                                 <option value="TODOS" className="dark:bg-gray-800">Todo el equipo</option>
                                 {distinctCollaborators.map(c => (
@@ -1218,14 +1226,15 @@ const Sistemas = () => {
                 </div>
 
                 {/* Buscador */}
-                <div className="relative">
-                    <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs" />
+                <div className="relative w-full md:w-64">
+                    <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs pointer-events-none" />
                     <input
-                        type="text"
+                        type="search"
+                        enterKeyHint="search"
                         placeholder="Buscar por actividad o responsable..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="pl-8 pr-4 py-1.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-xs text-gray-700 dark:text-gray-200 outline-none focus:ring-2 focus:ring-primary w-full md:w-64"
+                        className="pl-8 pr-4 py-2 sm:py-1.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-base sm:text-xs text-gray-700 dark:text-gray-200 outline-none focus:ring-2 focus:ring-primary w-full min-h-[42px] sm:min-h-0"
                     />
                 </div>
             </div>
@@ -1236,7 +1245,7 @@ const Sistemas = () => {
             {viewMode === 'TABLERO' && (
                 <div className="space-y-4">
                     {/* Selector de columnas exclusivo para Móvil (< md) */}
-                    <div className="flex md:hidden items-center gap-1.5 p-1.5 bg-gray-100/90 dark:bg-gray-800/90 rounded-2xl overflow-x-auto custom-scrollbar">
+                    <div className="flex md:hidden items-center gap-1.5 p-1.5 bg-gray-100/90 dark:bg-gray-800/90 rounded-2xl overflow-x-auto overscroll-contain touch-pan-x [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden select-none">
                         {WORK_COLUMNS.map((col) => {
                             const count = visibleTasks.filter(t => t.estado === col.id).length;
                             const isActive = mobileActiveColumn === col.id;
@@ -1245,7 +1254,7 @@ const Sistemas = () => {
                                     key={col.id}
                                     type="button"
                                     onClick={() => setMobileActiveColumn(col.id)}
-                                    className={`flex-1 min-w-[120px] py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 whitespace-nowrap active:scale-95 ${
+                                    className={`flex-1 min-w-[120px] py-2.5 px-3 rounded-xl text-xs font-bold transition-all min-h-[44px] flex items-center justify-center gap-1.5 whitespace-nowrap active:scale-[0.98] touch-manipulation ${
                                         isActive
                                             ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-xs font-extrabold ring-1 ring-black/5 dark:ring-white/10'
                                             : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
@@ -1307,7 +1316,7 @@ const Sistemas = () => {
                                                     draggable
                                                     onDragStart={(e) => handleDragStart(e, task.id)}
                                                     onClick={() => handleOpenTaskDetail(task)}
-                                                    className="bg-white dark:bg-gray-800 rounded-2xl p-4 border border-gray-100 dark:border-gray-700/70 shadow-sm hover:shadow-md transition-all cursor-pointer active:cursor-grabbing group relative hover:border-blue-400 dark:hover:border-blue-500"
+                                                    className="bg-white dark:bg-gray-800 rounded-2xl p-4 border border-gray-100 dark:border-gray-700/70 shadow-sm hover:shadow-md transition-all duration-100 ease-out cursor-pointer active:cursor-grabbing group relative hover:border-blue-400 dark:hover:border-blue-500 touch-manipulation select-none active:scale-[0.98]"
                                                 >
                                                     {/* Proyecto al que pertenece */}
                                                     <div className="flex items-center justify-between gap-2 mb-2">
@@ -1425,29 +1434,30 @@ const Sistemas = () => {
                                                     </div>
 
                                                     {/* Botonera de acciones */}
-                                                    <div className="mt-2 pt-2 border-t border-gray-100 dark:border-gray-700/60 flex items-center justify-between gap-1">
+                                                    <div className="mt-2 pt-2 border-t border-gray-100 dark:border-gray-700/60 flex items-center justify-between gap-1 select-none">
                                                         <button
                                                             type="button"
                                                             onClick={(e) => {
                                                                 e.stopPropagation();
                                                                 handleOpenNoteModal(task);
                                                             }}
-                                                            className="flex items-center gap-1 text-[11px] font-bold text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                                                            className="flex items-center gap-1 text-[11px] font-bold text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 bg-gray-50/80 dark:bg-gray-700/50 px-2.5 py-1.5 rounded-xl transition-colors touch-manipulation active:scale-95 min-h-[34px]"
                                                             title="Dejar nota de avance o imprevisto"
                                                         >
                                                             <FaComments /> Nota ({task.notas?.length || 0})
                                                         </button>
 
                                                         {isJefe && (
-                                                            <div className="flex items-center gap-1">
+                                                            <div className="flex items-center gap-0.5">
                                                                 <button
                                                                     type="button"
                                                                     onClick={(e) => {
                                                                         e.stopPropagation();
                                                                         handleOpenEditTask(task);
                                                                     }}
-                                                                    className="p-1.5 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 rounded-lg transition-colors"
+                                                                    className="w-8 h-8 min-w-[32px] min-h-[32px] flex items-center justify-center p-1.5 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 rounded-xl transition-colors active:scale-90 touch-manipulation"
                                                                     title="Editar nombre y datos de la actividad"
+                                                                    aria-label="Editar actividad"
                                                                 >
                                                                     <FaEdit size={12} />
                                                                 </button>
@@ -1457,8 +1467,9 @@ const Sistemas = () => {
                                                                         e.stopPropagation();
                                                                         handleOpenDateModal(task);
                                                                     }}
-                                                                    className="p-1.5 text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg transition-colors"
+                                                                    className="w-8 h-8 min-w-[32px] min-h-[32px] flex items-center justify-center p-1.5 text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-xl transition-colors active:scale-90 touch-manipulation"
                                                                     title="Ajustar fecha de entrega"
+                                                                    aria-label="Ajustar fecha"
                                                                 >
                                                                     <FaCalendarAlt size={12} />
                                                                 </button>
@@ -1468,8 +1479,9 @@ const Sistemas = () => {
                                                                         e.stopPropagation();
                                                                         handleOpenPraiseModal(task);
                                                                     }}
-                                                                    className="p-1.5 text-gray-400 hover:text-amber-500 rounded-lg transition-colors"
+                                                                    className="w-8 h-8 min-w-[32px] min-h-[32px] flex items-center justify-center p-1.5 text-gray-400 hover:text-amber-500 rounded-xl transition-colors active:scale-90 touch-manipulation"
                                                                     title="Felicitar y otorgar estrellas"
+                                                                    aria-label="Reconocimiento"
                                                                 >
                                                                     <FaStar size={12} />
                                                                 </button>
@@ -1479,8 +1491,9 @@ const Sistemas = () => {
                                                                         e.stopPropagation();
                                                                         handleDeleteTask(task);
                                                                     }}
-                                                                    className="p-1.5 text-gray-400 hover:text-rose-500 rounded-lg transition-colors"
+                                                                    className="w-8 h-8 min-w-[32px] min-h-[32px] flex items-center justify-center p-1.5 text-gray-400 hover:text-rose-500 rounded-xl transition-colors active:scale-90 touch-manipulation"
                                                                     title="Eliminar actividad"
+                                                                    aria-label="Eliminar actividad"
                                                                 >
                                                                     <FaTrash size={11} />
                                                                 </button>
@@ -1654,87 +1667,110 @@ const Sistemas = () => {
             {/* MODAL: NUEVO / EDITAR PROYECTO (JEFE)       */}
             {/* ========================================== */}
             {isProjectModalOpen && createPortal(
-                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-fade-in">
-                    <div className="bg-white dark:bg-gray-800 rounded-3xl w-full max-w-lg shadow-2xl border border-gray-100 dark:border-gray-700 overflow-hidden">
-                        <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-900/50">
+                <div 
+                    className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/75 backdrop-blur-md animate-fade-in"
+                    onClick={(e) => {
+                        if (e.target === e.currentTarget) {
+                            setIsProjectModalOpen(false);
+                            setSelectedProject(null);
+                        }
+                    }}
+                >
+                    <div 
+                        className="bg-white dark:bg-gray-800 rounded-t-3xl sm:rounded-3xl w-full max-w-lg shadow-2xl border-t sm:border border-gray-100 dark:border-gray-700/80 overflow-hidden flex flex-col max-h-[92dvh] sm:max-h-[85vh]"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {/* Drag Handle Indicator en Móvil */}
+                        <div className="w-12 h-1.5 bg-gray-300 dark:bg-gray-600 rounded-full mx-auto mt-2.5 mb-1 sm:hidden flex-shrink-0" />
+
+                        <div className="p-4 sm:p-6 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-900/50 flex-shrink-0">
                             <div>
-                                <h3 className="text-base font-black text-gray-800 dark:text-white flex items-center gap-2">
+                                <h3 className="text-base sm:text-lg font-black text-gray-800 dark:text-white flex items-center gap-2">
                                     {selectedProject ? <FaEdit className="text-primary" /> : <FaFolderPlus className="text-primary" />}
                                     {selectedProject ? 'Editar Proyecto de Sistemas' : 'Nuevo Proyecto de Sistemas'}
                                 </h3>
-                                <p className="text-xs text-gray-500 dark:text-gray-400">
+                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                                     {selectedProject 
                                         ? 'Modifica el nombre, fechas u objetivo general de este proyecto.'
                                         : 'Crea el proyecto general del cual partirán las actividades del equipo.'}
                                 </p>
                             </div>
-                            <button onClick={() => { setIsProjectModalOpen(false); setSelectedProject(null); }} className="text-gray-400 p-2">✕</button>
+                            <button 
+                                type="button"
+                                onClick={() => { setIsProjectModalOpen(false); setSelectedProject(null); }} 
+                                className="w-9 h-9 min-h-[36px] flex items-center justify-center rounded-xl text-gray-400 hover:text-gray-700 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 active:scale-95 touch-manipulation select-none"
+                                aria-label="Cerrar modal"
+                            >
+                                <FaTimes className="text-base" />
+                            </button>
                         </div>
 
-                        <form onSubmit={handleSaveProject} className="p-6 space-y-4">
+                        <form onSubmit={handleSaveProject} className="flex-1 overflow-y-auto overscroll-contain p-5 sm:p-6 space-y-4 touch-pan-y [scrollbar-width:none]">
                             <div>
-                                <label className="block text-[11px] font-black uppercase tracking-wider text-gray-500 mb-1">
+                                <label className="block text-[11px] font-black uppercase tracking-wider text-gray-500 mb-1 select-none">
                                     Nombre del Proyecto *
                                 </label>
                                 <input
                                     type="text"
                                     required
+                                    enterKeyHint="next"
                                     placeholder="Ej: Conexión de Terminales Bancarias en Sucursales"
                                     value={projectForm.nombre}
                                     onChange={(e) => setProjectForm({ ...projectForm, nombre: e.target.value })}
-                                    className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-3 text-sm text-gray-800 dark:text-white outline-none focus:ring-2 focus:ring-primary"
+                                    className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-3 text-base sm:text-sm text-gray-800 dark:text-white outline-none focus:ring-2 focus:ring-primary font-medium"
                                 />
                             </div>
 
                             <div>
-                                <label className="block text-[11px] font-black uppercase tracking-wider text-gray-500 mb-1">
+                                <label className="block text-[11px] font-black uppercase tracking-wider text-gray-500 mb-1 select-none">
                                     Objetivo General del Proyecto
                                 </label>
                                 <textarea
                                     rows="3"
+                                    enterKeyHint="done"
                                     placeholder="¿Qué beneficio traerá este proyecto a la empresa?"
                                     value={projectForm.descripcion}
                                     onChange={(e) => setProjectForm({ ...projectForm, descripcion: e.target.value })}
-                                    className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-3 text-sm text-gray-800 dark:text-white outline-none focus:ring-2 focus:ring-primary resize-none"
+                                    className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-3 text-base sm:text-sm text-gray-800 dark:text-white outline-none focus:ring-2 focus:ring-primary resize-none leading-relaxed font-medium"
                                 />
                             </div>
 
-                            <div className="grid grid-cols-2 gap-3">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                 <div>
-                                    <label className="block text-[11px] font-black uppercase tracking-wider text-gray-500 mb-1">
+                                    <label className="block text-[11px] font-black uppercase tracking-wider text-gray-500 mb-1 select-none">
                                         Fecha de Inicio
                                     </label>
                                     <input
                                         type="date"
                                         value={projectForm.fechaInicio}
                                         onChange={(e) => setProjectForm({ ...projectForm, fechaInicio: e.target.value })}
-                                        className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-3 text-xs text-gray-800 dark:text-white outline-none focus:ring-2 focus:ring-primary"
+                                        className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-3 text-base sm:text-xs text-gray-800 dark:text-white outline-none focus:ring-2 focus:ring-primary font-medium"
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-[11px] font-black uppercase tracking-wider text-gray-500 mb-1">
+                                    <label className="block text-[11px] font-black uppercase tracking-wider text-gray-500 mb-1 select-none">
                                         Fecha Meta
                                     </label>
                                     <input
                                         type="date"
                                         value={projectForm.fechaFin}
                                         onChange={(e) => setProjectForm({ ...projectForm, fechaFin: e.target.value })}
-                                        className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-3 text-xs text-gray-800 dark:text-white outline-none focus:ring-2 focus:ring-primary"
+                                        className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-3 text-base sm:text-xs text-gray-800 dark:text-white outline-none focus:ring-2 focus:ring-primary font-medium"
                                     />
                                 </div>
                             </div>
 
-                            <div className="pt-2 flex gap-3">
+                            <div className="pt-2 flex gap-3 select-none">
                                 <button
                                     type="button"
                                     onClick={() => { setIsProjectModalOpen(false); setSelectedProject(null); }}
-                                    className="flex-1 py-3 text-xs font-bold text-gray-500 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                                    className="flex-1 min-h-[46px] py-3 text-xs font-bold text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-100 ease-out active:scale-[0.98] touch-manipulation flex items-center justify-center"
                                 >
                                     Cancelar
                                 </button>
                                 <button
                                     type="submit"
-                                    className="flex-1 py-3 bg-primary text-white text-xs font-black uppercase tracking-wider rounded-xl shadow-lg hover:opacity-95 transition-opacity"
+                                    className="flex-1 min-h-[46px] py-3 bg-primary text-white text-xs font-black uppercase tracking-wider rounded-xl shadow-lg hover:opacity-95 transition-all duration-100 ease-out active:scale-[0.98] touch-manipulation flex items-center justify-center"
                                 >
                                     {selectedProject ? 'Guardar Cambios' : 'Registrar Proyecto'}
                                 </button>
@@ -1749,24 +1785,45 @@ const Sistemas = () => {
             {/* MODAL: NUEVA ACTIVIDAD (JEFE)              */}
             {/* ========================================== */}
             {isTaskModalOpen && createPortal(
-                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-fade-in">
-                    <div className="bg-white dark:bg-gray-800 rounded-3xl w-full max-w-xl shadow-2xl border border-gray-100 dark:border-gray-700 overflow-hidden">
-                        <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-900/50">
+                <div 
+                    className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/75 backdrop-blur-md animate-fade-in"
+                    onClick={(e) => {
+                        if (e.target === e.currentTarget) {
+                            setIsTaskModalOpen(false);
+                            setSelectedTask(null);
+                        }
+                    }}
+                >
+                    <div 
+                        className="bg-white dark:bg-gray-800 rounded-t-3xl sm:rounded-3xl w-full max-w-xl shadow-2xl border-t sm:border border-gray-100 dark:border-gray-700/80 overflow-hidden flex flex-col max-h-[92dvh] sm:max-h-[85vh]"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {/* Drag Handle Indicator en Móvil */}
+                        <div className="w-12 h-1.5 bg-gray-300 dark:bg-gray-600 rounded-full mx-auto mt-2.5 mb-1 sm:hidden flex-shrink-0" />
+
+                        <div className="p-4 sm:p-6 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-900/50 flex-shrink-0">
                             <div>
-                                <h3 className="text-lg font-black text-gray-800 dark:text-white flex items-center gap-2">
+                                <h3 className="text-base sm:text-lg font-black text-gray-800 dark:text-white flex items-center gap-2">
                                     <FaRocket className="text-primary" />
                                     {selectedTask ? 'Editar Actividad' : 'Nueva Actividad de Sistemas'}
                                 </h3>
-                                <p className="text-xs text-gray-500 dark:text-gray-400">
+                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                                     Asigna esta entrega a un proyecto y a un colaborador.
                                 </p>
                             </div>
-                            <button onClick={() => { setIsTaskModalOpen(false); setSelectedTask(null); }} className="text-gray-400 p-2">✕</button>
+                            <button 
+                                type="button"
+                                onClick={() => { setIsTaskModalOpen(false); setSelectedTask(null); }} 
+                                className="w-9 h-9 min-h-[36px] flex items-center justify-center rounded-xl text-gray-400 hover:text-gray-700 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 active:scale-95 touch-manipulation select-none"
+                                aria-label="Cerrar modal"
+                            >
+                                <FaTimes className="text-base" />
+                            </button>
                         </div>
 
-                        <form onSubmit={handleSaveTask} className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
+                        <form onSubmit={handleSaveTask} className="flex-1 overflow-y-auto overscroll-contain p-5 sm:p-6 space-y-4 touch-pan-y [scrollbar-width:none]">
                             <div>
-                                <label className="block text-[11px] font-black uppercase tracking-wider text-gray-500 mb-1">
+                                <label className="block text-[11px] font-black uppercase tracking-wider text-gray-500 mb-1 select-none">
                                     Proyecto al que Pertenece *
                                 </label>
                                 <select
@@ -1781,7 +1838,7 @@ const Sistemas = () => {
                                             proyectoNombre: found ? found.nombre : 'General'
                                         });
                                     }}
-                                    className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-3 text-sm text-gray-800 dark:text-white outline-none focus:ring-2 focus:ring-primary font-bold"
+                                    className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-3 text-base sm:text-sm text-gray-800 dark:text-white outline-none focus:ring-2 focus:ring-primary font-bold"
                                 >
                                     <option value="">Selecciona el proyecto...</option>
                                     {projects.map(p => (
@@ -1791,40 +1848,42 @@ const Sistemas = () => {
                             </div>
 
                             <div>
-                                <label className="block text-[11px] font-black uppercase tracking-wider text-gray-500 mb-1">
+                                <label className="block text-[11px] font-black uppercase tracking-wider text-gray-500 mb-1 select-none">
                                     Nombre de la Actividad *
                                 </label>
                                 <input
                                     type="text"
                                     required
+                                    enterKeyHint="next"
                                     placeholder="Ej: Integrar lector de huella o tarjeta"
                                     value={taskForm.titulo}
                                     onChange={(e) => setTaskForm({ ...taskForm, titulo: e.target.value })}
-                                    className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-3 text-sm text-gray-800 dark:text-white outline-none focus:ring-2 focus:ring-primary"
+                                    className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-3 text-base sm:text-sm text-gray-800 dark:text-white outline-none focus:ring-2 focus:ring-primary font-medium"
                                 />
                             </div>
 
                             <div>
-                                <label className="block text-[11px] font-black uppercase tracking-wider text-gray-500 mb-1">
+                                <label className="block text-[11px] font-black uppercase tracking-wider text-gray-500 mb-1 select-none">
                                     Descripción de la Entrega
                                 </label>
                                 <textarea
                                     rows="3"
+                                    enterKeyHint="done"
                                     placeholder="Detalles sobre lo que se espera..."
                                     value={taskForm.descripcion}
                                     onChange={(e) => setTaskForm({ ...taskForm, descripcion: e.target.value })}
-                                    className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-3 text-sm text-gray-800 dark:text-white outline-none focus:ring-2 focus:ring-primary resize-none"
+                                    className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-3 text-base sm:text-sm text-gray-800 dark:text-white outline-none focus:ring-2 focus:ring-primary resize-none leading-relaxed font-medium"
                                 />
                             </div>
 
                             <div>
-                                <label className="block text-[11px] font-black uppercase tracking-wider text-gray-500 mb-1">
+                                <label className="block text-[11px] font-black uppercase tracking-wider text-gray-500 mb-1 select-none">
                                     Nivel de Prioridad
                                 </label>
                                 <select
                                     value={taskForm.prioridad}
                                     onChange={(e) => setTaskForm({ ...taskForm, prioridad: e.target.value })}
-                                    className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-3 text-xs text-gray-800 dark:text-white outline-none focus:ring-2 focus:ring-primary"
+                                    className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-3 text-base sm:text-xs text-gray-800 dark:text-white outline-none focus:ring-2 focus:ring-primary font-semibold"
                                 >
                                     <option value="BAJA">☕ Normal</option>
                                     <option value="MEDIA">⚡ Media</option>
@@ -1834,7 +1893,7 @@ const Sistemas = () => {
 
                             {/* SELECTOR MULTI-COLABORADOR (1 O MÁS) */}
                             <div>
-                                <div className="flex items-center justify-between mb-1.5">
+                                <div className="flex items-center justify-between mb-1.5 select-none">
                                     <label className="text-[11px] font-black uppercase tracking-wider text-gray-500 flex items-center gap-1.5">
                                         <FaUsers className="text-primary text-xs" />
                                         Colaboradores Asignados * ({taskForm.responsables?.length || 0})
@@ -1850,7 +1909,7 @@ const Sistemas = () => {
                                         {taskForm.responsables.map(resp => (
                                             <span 
                                                 key={resp.id}
-                                                className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white dark:bg-gray-800 border border-blue-300 dark:border-blue-700 rounded-lg text-xs font-bold text-gray-800 dark:text-white shadow-xs"
+                                                className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white dark:bg-gray-800 border border-blue-300 dark:border-blue-700 rounded-lg text-xs font-bold text-gray-800 dark:text-white shadow-xs select-none"
                                             >
                                                 <span className="w-4 h-4 rounded-full bg-primary text-white text-[9px] font-black flex items-center justify-center">
                                                     {(resp.name || 'C')[0]}
@@ -1859,7 +1918,7 @@ const Sistemas = () => {
                                                 <button
                                                     type="button"
                                                     onClick={() => handleToggleCollaborator(resp)}
-                                                    className="text-gray-400 hover:text-rose-500 font-black ml-0.5 text-xs"
+                                                    className="w-5 h-5 flex items-center justify-center text-gray-400 hover:text-rose-500 font-black ml-0.5 text-xs touch-manipulation active:scale-90"
                                                     title="Quitar"
                                                 >
                                                     ✕
@@ -1874,7 +1933,7 @@ const Sistemas = () => {
                                 )}
 
                                 {/* Lista de colaboradores activos disponibles */}
-                                <div className="border border-gray-200 dark:border-gray-700 rounded-2xl p-2 bg-gray-50/50 dark:bg-gray-900/40 max-h-44 overflow-y-auto space-y-1">
+                                <div className="border border-gray-200 dark:border-gray-700 rounded-2xl p-2 bg-gray-50/50 dark:bg-gray-900/40 max-h-48 overflow-y-auto overscroll-contain space-y-1.5 touch-pan-y">
                                     {teamUsers.length === 0 ? (
                                         <p className="text-xs text-gray-400 p-2 text-center">No se encontraron colaboradores activos.</p>
                                     ) : (
@@ -1884,14 +1943,14 @@ const Sistemas = () => {
                                                 <div
                                                     key={user.id}
                                                     onClick={() => handleToggleCollaborator(user)}
-                                                    className={`p-2.5 rounded-xl border cursor-pointer transition-all flex items-center justify-between gap-3 ${
+                                                    className={`p-3 rounded-xl border cursor-pointer transition-all flex items-center justify-between gap-3 min-h-[48px] select-none touch-manipulation active:scale-[0.98] ${
                                                         isSelected
                                                         ? 'bg-blue-50 dark:bg-blue-950/40 border-blue-500 ring-1 ring-blue-500 shadow-xs'
                                                         : 'bg-white dark:bg-gray-800 border-gray-200/80 dark:border-gray-700/80 hover:border-gray-300'
                                                     }`}
                                                 >
                                                     <div className="flex items-center gap-2.5 min-w-0">
-                                                        <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-black text-white ${
+                                                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-black text-white flex-shrink-0 ${
                                                             isSelected ? 'bg-primary' : 'bg-gray-400 dark:bg-gray-600'
                                                         }`}>
                                                             {(user.name || 'C')[0]}
@@ -1905,7 +1964,7 @@ const Sistemas = () => {
                                                         type="checkbox"
                                                         checked={isSelected}
                                                         readOnly
-                                                        className="w-4 h-4 text-primary rounded border-gray-300 pointer-events-none"
+                                                        className="w-5 h-5 text-primary rounded-md border-gray-300 pointer-events-none"
                                                     />
                                                 </div>
                                             );
@@ -1914,42 +1973,42 @@ const Sistemas = () => {
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-3">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                 <div>
-                                    <label className="block text-[11px] font-black uppercase tracking-wider text-gray-500 mb-1">
+                                    <label className="block text-[11px] font-black uppercase tracking-wider text-gray-500 mb-1 select-none">
                                         Fecha de Inicio
                                     </label>
                                     <input
                                         type="date"
                                         value={taskForm.fechaInicio}
                                         onChange={(e) => setTaskForm({ ...taskForm, fechaInicio: e.target.value })}
-                                        className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-3 text-xs text-gray-800 dark:text-white outline-none focus:ring-2 focus:ring-primary"
+                                        className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-3 text-base sm:text-xs text-gray-800 dark:text-white outline-none focus:ring-2 focus:ring-primary font-medium"
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-[11px] font-black uppercase tracking-wider text-gray-500 mb-1">
+                                    <label className="block text-[11px] font-black uppercase tracking-wider text-gray-500 mb-1 select-none">
                                         Fecha Límite
                                     </label>
                                     <input
                                         type="date"
                                         value={taskForm.fechaFin}
                                         onChange={(e) => setTaskForm({ ...taskForm, fechaFin: e.target.value })}
-                                        className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-3 text-xs text-gray-800 dark:text-white outline-none focus:ring-2 focus:ring-primary"
+                                        className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-3 text-base sm:text-xs text-gray-800 dark:text-white outline-none focus:ring-2 focus:ring-primary font-medium"
                                     />
                                 </div>
                             </div>
 
-                            <div className="pt-2 flex gap-3">
+                            <div className="pt-2 flex gap-3 select-none">
                                 <button
                                     type="button"
                                     onClick={() => { setIsTaskModalOpen(false); setSelectedTask(null); }}
-                                    className="flex-1 py-3 text-xs font-bold text-gray-500 rounded-xl"
+                                    className="flex-1 min-h-[46px] py-3 text-xs font-bold text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-100 ease-out active:scale-[0.98] touch-manipulation flex items-center justify-center"
                                 >
                                     Cancelar
                                 </button>
                                 <button
                                     type="submit"
-                                    className="flex-1 py-3 bg-primary text-white text-xs font-black uppercase tracking-wider rounded-xl shadow-lg"
+                                    className="flex-1 min-h-[46px] py-3 bg-primary text-white text-xs font-black uppercase tracking-wider rounded-xl shadow-lg hover:opacity-95 transition-all duration-100 ease-out active:scale-[0.98] touch-manipulation flex items-center justify-center"
                                 >
                                     Guardar Actividad
                                 </button>
@@ -1964,50 +2023,69 @@ const Sistemas = () => {
             {/* MODAL: DEJAR NOTA / MOTIVO (COLABORADOR)   */}
             {/* ========================================== */}
             {isNoteModalOpen && selectedTask && createPortal(
-                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-fade-in">
-                    <div className="bg-white dark:bg-gray-800 rounded-3xl w-full max-w-lg shadow-2xl border border-gray-100 dark:border-gray-700 overflow-hidden">
-                        <div className="p-6 border-b border-gray-100 dark:border-gray-700 bg-blue-50/50 dark:bg-blue-900/20 flex justify-between items-center">
+                <div 
+                    className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/75 backdrop-blur-md animate-fade-in"
+                    onClick={(e) => {
+                        if (e.target === e.currentTarget) setIsNoteModalOpen(false);
+                    }}
+                >
+                    <div 
+                        className="bg-white dark:bg-gray-800 rounded-t-3xl sm:rounded-3xl w-full max-w-lg shadow-2xl border-t sm:border border-gray-100 dark:border-gray-700/80 overflow-hidden flex flex-col max-h-[92dvh] sm:max-h-[85vh]"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {/* Drag Handle Indicator en Móvil */}
+                        <div className="w-12 h-1.5 bg-gray-300 dark:bg-gray-600 rounded-full mx-auto mt-2.5 mb-1 sm:hidden flex-shrink-0" />
+
+                        <div className="p-4 sm:p-6 border-b border-gray-100 dark:border-gray-700 bg-blue-50/50 dark:bg-blue-900/20 flex justify-between items-center flex-shrink-0">
                             <div>
-                                <h3 className="text-base font-black text-gray-800 dark:text-white flex items-center gap-2">
+                                <h3 className="text-base sm:text-lg font-black text-gray-800 dark:text-white flex items-center gap-2">
                                     <FaComments className="text-blue-500" />
                                     Dejar Nota o Notificar Imprevisto
                                 </h3>
-                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate max-w-sm">
+                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate max-w-xs sm:max-w-sm">
                                     En: <span className="font-bold">{selectedTask.titulo}</span>
                                 </p>
                             </div>
-                            <button onClick={() => setIsNoteModalOpen(false)} className="text-gray-400 p-2">✕</button>
+                            <button 
+                                type="button"
+                                onClick={() => setIsNoteModalOpen(false)} 
+                                className="w-9 h-9 min-h-[36px] flex items-center justify-center rounded-xl text-gray-400 hover:text-gray-700 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 active:scale-95 touch-manipulation select-none"
+                                aria-label="Cerrar modal"
+                            >
+                                <FaTimes className="text-base" />
+                            </button>
                         </div>
 
-                        <form onSubmit={handleSaveNote} className="p-6 space-y-4">
+                        <form onSubmit={handleSaveNote} className="flex-1 overflow-y-auto overscroll-contain p-5 sm:p-6 space-y-4 touch-pan-y [scrollbar-width:none]">
                             <div>
-                                <label className="block text-[11px] font-black uppercase tracking-wider text-gray-500 mb-1">
+                                <label className="block text-[11px] font-black uppercase tracking-wider text-gray-500 mb-1 select-none">
                                     Cuéntanos qué surgió esta semana
                                 </label>
                                 <textarea
                                     required
                                     rows="4"
+                                    enterKeyHint="done"
                                     placeholder="Ejemplo: Hola equipo, esta semana estuve apoyando con urgencias en planta/sucursales y no alcancé a terminar el objetivo programado. Ya lo estoy retomando a primera hora."
                                     value={noteForm.mensaje}
                                     onChange={(e) => setNoteForm({ ...noteForm, mensaje: e.target.value })}
-                                    className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-3 text-xs text-gray-800 dark:text-white outline-none focus:ring-2 focus:ring-primary resize-none leading-relaxed"
+                                    className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-3 text-base sm:text-sm text-gray-800 dark:text-white outline-none focus:ring-2 focus:ring-primary resize-none leading-relaxed font-medium"
                                 />
-                                <span className="text-[10px] text-gray-400 italic mt-1 block">
+                                <span className="text-[10px] text-gray-400 italic mt-1.5 block select-none">
                                     🤝 Todos entendemos que surgen prioridades del negocio. Lo importante es avisar a tiempo.
                                 </span>
                             </div>
 
-                            <div className="pt-2 flex gap-3">
+                            <div className="pt-2 flex gap-3 select-none">
                                 <button
                                     type="button"
                                     onClick={() => setIsNoteModalOpen(false)}
-                                    className="flex-1 py-3 text-xs font-bold text-gray-500 rounded-xl"
+                                    className="flex-1 min-h-[46px] py-3 text-xs font-bold text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-100 ease-out active:scale-[0.98] touch-manipulation flex items-center justify-center"
                                 >
                                     Cerrar
                                 </button>
                                 <button
                                     type="submit"
-                                    className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white text-xs font-black uppercase tracking-wider rounded-xl shadow-lg transition-all"
+                                    className="flex-1 min-h-[46px] py-3 bg-blue-600 hover:bg-blue-700 text-white text-xs font-black uppercase tracking-wider rounded-xl shadow-lg transition-all duration-100 ease-out active:scale-[0.98] touch-manipulation flex items-center justify-center"
                                 >
                                     Enviar Nota al Encargado
                                 </button>
@@ -2022,11 +2100,22 @@ const Sistemas = () => {
             {/* MODAL: RECONOCIMIENTO CON ESTRELLAS (JEFE) */}
             {/* ========================================== */}
             {isPraiseModalOpen && selectedTask && createPortal(
-                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-fade-in">
-                    <div className="bg-white dark:bg-gray-800 rounded-3xl w-full max-w-md shadow-2xl border border-gray-100 dark:border-gray-700 overflow-hidden">
-                        <div className="p-6 border-b border-gray-100 dark:border-gray-700 bg-amber-50/50 dark:bg-amber-900/20 flex justify-between items-center">
+                <div 
+                    className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/75 backdrop-blur-md animate-fade-in"
+                    onClick={(e) => {
+                        if (e.target === e.currentTarget) setIsPraiseModalOpen(false);
+                    }}
+                >
+                    <div 
+                        className="bg-white dark:bg-gray-800 rounded-t-3xl sm:rounded-3xl w-full max-w-md shadow-2xl border-t sm:border border-gray-100 dark:border-gray-700/80 overflow-hidden flex flex-col max-h-[92dvh] sm:max-h-[85vh]"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {/* Drag Handle Indicator en Móvil */}
+                        <div className="w-12 h-1.5 bg-gray-300 dark:bg-gray-600 rounded-full mx-auto mt-2.5 mb-1 sm:hidden flex-shrink-0" />
+
+                        <div className="p-4 sm:p-6 border-b border-gray-100 dark:border-gray-700 bg-amber-50/50 dark:bg-amber-900/20 flex justify-between items-center flex-shrink-0">
                             <div>
-                                <h3 className="text-base font-black text-gray-800 dark:text-white flex items-center gap-2">
+                                <h3 className="text-base sm:text-lg font-black text-gray-800 dark:text-white flex items-center gap-2">
                                     <FaAward className="text-amber-500 text-lg" />
                                     Reconocimiento y Estrellas
                                 </h3>
@@ -2034,21 +2123,29 @@ const Sistemas = () => {
                                     Para: <span className="font-bold">{selectedTask.responsableNombre || 'Compañero'}</span>
                                 </p>
                             </div>
-                            <button onClick={() => setIsPraiseModalOpen(false)} className="text-gray-400 p-2">✕</button>
+                            <button 
+                                type="button"
+                                onClick={() => setIsPraiseModalOpen(false)} 
+                                className="w-9 h-9 min-h-[36px] flex items-center justify-center rounded-xl text-gray-400 hover:text-gray-700 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 active:scale-95 touch-manipulation select-none"
+                                aria-label="Cerrar modal"
+                            >
+                                <FaTimes className="text-base" />
+                            </button>
                         </div>
 
-                        <form onSubmit={handleSavePraise} className="p-6 space-y-4">
-                            <div className="text-center py-2">
+                        <form onSubmit={handleSavePraise} className="flex-1 overflow-y-auto overscroll-contain p-5 sm:p-6 space-y-4 touch-pan-y [scrollbar-width:none]">
+                            <div className="text-center py-2 select-none">
                                 <label className="block text-[11px] font-black uppercase tracking-wider text-gray-400 mb-2">
                                     Calificación del Esfuerzo
                                 </label>
-                                <div className="flex items-center justify-center gap-2 text-3xl text-amber-400 cursor-pointer">
+                                <div className="flex items-center justify-center gap-1 sm:gap-2 text-3xl text-amber-400">
                                     {[1, 2, 3, 4, 5].map((star) => (
                                         <button
                                             type="button"
                                             key={star}
                                             onClick={() => setPraiseForm({ ...praiseForm, estrellas: star })}
-                                            className="transition-transform hover:scale-125 focus:outline-none"
+                                            className="w-11 h-11 flex items-center justify-center transition-transform hover:scale-125 active:scale-110 focus:outline-none touch-manipulation"
+                                            aria-label={`Calificar con ${star} estrellas`}
                                         >
                                             {star <= praiseForm.estrellas ? <FaStar /> : <FaRegStar className="text-gray-300 dark:text-gray-600" />}
                                         </button>
@@ -2060,43 +2157,45 @@ const Sistemas = () => {
                             </div>
 
                             <div>
-                                <label className="block text-[11px] font-black uppercase tracking-wider text-gray-500 mb-1">
+                                <label className="block text-[11px] font-black uppercase tracking-wider text-gray-500 mb-1 select-none">
                                     ¿Qué hizo genial el compañero? *
                                 </label>
                                 <textarea
                                     required
                                     rows="3"
+                                    enterKeyHint="done"
                                     placeholder="Ej: Reconozco tu iniciativa para resolver rápido la falla en sucursal..."
                                     value={praiseForm.felicitacion}
                                     onChange={(e) => setPraiseForm({ ...praiseForm, felicitacion: e.target.value })}
-                                    className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-3 text-xs text-gray-800 dark:text-white outline-none focus:ring-2 focus:ring-amber-500 resize-none leading-relaxed"
+                                    className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-3 text-base sm:text-sm text-gray-800 dark:text-white outline-none focus:ring-2 focus:ring-amber-500 resize-none leading-relaxed font-medium"
                                 />
                             </div>
 
                             <div>
-                                <label className="block text-[11px] font-black uppercase tracking-wider text-gray-500 mb-1">
+                                <label className="block text-[11px] font-black uppercase tracking-wider text-gray-500 mb-1 select-none">
                                     ¿Qué podríamos pulir juntos para la próxima?
                                 </label>
                                 <textarea
                                     rows="2"
+                                    enterKeyHint="done"
                                     placeholder="Ej: La próxima podemos avisar con anticipación en el grupo para estar todos al tanto."
                                     value={praiseForm.puntosMejora}
                                     onChange={(e) => setPraiseForm({ ...praiseForm, puntosMejora: e.target.value })}
-                                    className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-3 text-xs text-gray-800 dark:text-white outline-none focus:ring-2 focus:ring-amber-500 resize-none leading-relaxed"
+                                    className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-3 text-base sm:text-sm text-gray-800 dark:text-white outline-none focus:ring-2 focus:ring-amber-500 resize-none leading-relaxed font-medium"
                                 />
                             </div>
 
-                            <div className="pt-2 flex gap-3">
+                            <div className="pt-2 flex gap-3 select-none">
                                 <button
                                     type="button"
                                     onClick={() => setIsPraiseModalOpen(false)}
-                                    className="flex-1 py-3 text-xs font-bold text-gray-500 rounded-xl"
+                                    className="flex-1 min-h-[46px] py-3 text-xs font-bold text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-100 ease-out active:scale-[0.98] touch-manipulation flex items-center justify-center"
                                 >
                                     Cancelar
                                 </button>
                                 <button
                                     type="submit"
-                                    className="flex-1 py-3 bg-amber-500 hover:bg-amber-600 text-white text-xs font-black uppercase tracking-wider rounded-xl shadow-lg"
+                                    className="flex-1 min-h-[46px] py-3 bg-amber-500 hover:bg-amber-600 text-white text-xs font-black uppercase tracking-wider rounded-xl shadow-lg transition-all duration-100 ease-out active:scale-[0.98] touch-manipulation flex items-center justify-center"
                                 >
                                     Enviar Reconocimiento
                                 </button>
@@ -2111,70 +2210,89 @@ const Sistemas = () => {
             {/* MODAL: AJUSTAR FECHAS (JEFE)               */}
             {/* ========================================== */}
             {isDateModalOpen && selectedTask && createPortal(
-                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-fade-in">
-                    <div className="bg-white dark:bg-gray-800 rounded-3xl w-full max-w-sm shadow-2xl border border-gray-100 dark:border-gray-700 overflow-hidden">
-                        <div className="p-6 border-b border-gray-100 dark:border-gray-700 bg-indigo-50/50 dark:bg-indigo-900/20 flex justify-between items-center">
+                <div 
+                    className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/75 backdrop-blur-md animate-fade-in"
+                    onClick={(e) => {
+                        if (e.target === e.currentTarget) setIsDateModalOpen(false);
+                    }}
+                >
+                    <div 
+                        className="bg-white dark:bg-gray-800 rounded-t-3xl sm:rounded-3xl w-full max-w-sm shadow-2xl border-t sm:border border-gray-100 dark:border-gray-700/80 overflow-hidden flex flex-col max-h-[92dvh] sm:max-h-[85vh]"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {/* Drag Handle Indicator en Móvil */}
+                        <div className="w-12 h-1.5 bg-gray-300 dark:bg-gray-600 rounded-full mx-auto mt-2.5 mb-1 sm:hidden flex-shrink-0" />
+
+                        <div className="p-4 sm:p-6 border-b border-gray-100 dark:border-gray-700 bg-indigo-50/50 dark:bg-indigo-900/20 flex justify-between items-center flex-shrink-0">
                             <div>
-                                <h3 className="text-base font-black text-gray-800 dark:text-white flex items-center gap-2">
+                                <h3 className="text-base sm:text-lg font-black text-gray-800 dark:text-white flex items-center gap-2">
                                     <FaCalendarAlt className="text-indigo-500" />
                                     Ajustar Fechas de Entrega
                                 </h3>
-                                <p className="text-xs text-gray-500 dark:text-gray-400 truncate max-w-xs">
+                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate max-w-xs">
                                     {selectedTask.titulo}
                                 </p>
                             </div>
-                            <button onClick={() => setIsDateModalOpen(false)} className="text-gray-400 p-2">✕</button>
+                            <button 
+                                type="button"
+                                onClick={() => setIsDateModalOpen(false)} 
+                                className="w-9 h-9 min-h-[36px] flex items-center justify-center rounded-xl text-gray-400 hover:text-gray-700 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 active:scale-95 touch-manipulation select-none"
+                                aria-label="Cerrar modal"
+                            >
+                                <FaTimes className="text-base" />
+                            </button>
                         </div>
 
-                        <form onSubmit={handleSaveDates} className="p-6 space-y-4">
+                        <form onSubmit={handleSaveDates} className="flex-1 overflow-y-auto overscroll-contain p-5 sm:p-6 space-y-4 touch-pan-y [scrollbar-width:none]">
                             <div>
-                                <label className="block text-[11px] font-black uppercase tracking-wider text-gray-500 mb-1">
+                                <label className="block text-[11px] font-black uppercase tracking-wider text-gray-500 mb-1 select-none">
                                     Nueva Fecha de Inicio
                                 </label>
                                 <input
                                     type="date"
                                     value={dateForm.fechaInicio}
                                     onChange={(e) => setDateForm({ ...dateForm, fechaInicio: e.target.value })}
-                                    className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-3 text-xs text-gray-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500"
+                                    className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-3 text-base sm:text-xs text-gray-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500 font-medium"
                                 />
                             </div>
 
                             <div>
-                                <label className="block text-[11px] font-black uppercase tracking-wider text-gray-500 mb-1">
+                                <label className="block text-[11px] font-black uppercase tracking-wider text-gray-500 mb-1 select-none">
                                     Nueva Fecha Límite
                                 </label>
                                 <input
                                     type="date"
                                     value={dateForm.fechaFin}
                                     onChange={(e) => setDateForm({ ...dateForm, fechaFin: e.target.value })}
-                                    className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-3 text-xs text-gray-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500"
+                                    className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-3 text-base sm:text-xs text-gray-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500 font-medium"
                                 />
                             </div>
 
                             <div>
-                                <label className="block text-[11px] font-black uppercase tracking-wider text-gray-500 mb-1">
+                                <label className="block text-[11px] font-black uppercase tracking-wider text-gray-500 mb-1 select-none">
                                     Motivo del Ajuste
                                 </label>
                                 <input
                                     type="text"
+                                    enterKeyHint="done"
                                     placeholder="Ej: Se reprogramó por apoyo en soporte de planta"
                                     value={dateForm.motivo}
                                     onChange={(e) => setDateForm({ ...dateForm, motivo: e.target.value })}
-                                    className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-3 text-xs text-gray-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500"
+                                    className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-3 text-base sm:text-sm text-gray-800 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500 font-medium"
                                 />
                             </div>
 
-                            <div className="pt-2 flex gap-3">
+                            <div className="pt-2 flex gap-3 select-none">
                                 <button
                                     type="button"
                                     onClick={() => setIsDateModalOpen(false)}
-                                    className="flex-1 py-3 text-xs font-bold text-gray-500 rounded-xl"
+                                    className="flex-1 min-h-[46px] py-3 text-xs font-bold text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-100 ease-out active:scale-[0.98] touch-manipulation flex items-center justify-center"
                                 >
                                     Cancelar
                                 </button>
                                 <button
                                     type="submit"
-                                    className="flex-1 py-3 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black uppercase tracking-wider rounded-xl shadow-lg"
+                                    className="flex-1 min-h-[46px] py-3 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black uppercase tracking-wider rounded-xl shadow-lg transition-all duration-100 ease-out active:scale-[0.98] touch-manipulation flex items-center justify-center"
                                 >
                                     Actualizar Fechas
                                 </button>
@@ -2190,7 +2308,7 @@ const Sistemas = () => {
             {/* ========================================== */}
             {isDetailModalOpen && detailTask && createPortal(
                 <div 
-                    className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-5 md:p-6 bg-black/70 backdrop-blur-md animate-fade-in"
+                    className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center p-0 sm:p-4 md:p-6 bg-black/75 backdrop-blur-md animate-fade-in"
                     onClick={(e) => {
                         if (e.target === e.currentTarget) {
                             setIsDetailModalOpen(false);
@@ -2199,17 +2317,20 @@ const Sistemas = () => {
                     }}
                 >
                     <div 
-                        className="bg-white dark:bg-gray-800 rounded-3xl w-full max-w-4xl shadow-2xl border border-gray-100 dark:border-gray-700/80 flex flex-col max-h-[92vh] sm:max-h-[88vh] overflow-hidden transform transition-all duration-200"
+                        className="bg-white dark:bg-gray-800 rounded-t-3xl sm:rounded-3xl w-full max-w-4xl shadow-2xl border-t sm:border border-gray-100 dark:border-gray-700/80 flex flex-col max-h-[94dvh] sm:max-h-[88vh] overflow-hidden"
                         onClick={(e) => e.stopPropagation()}
                     >
+                        {/* Drag Handle Indicator en Móvil */}
+                        <div className="w-12 h-1.5 bg-gray-300 dark:bg-gray-600 rounded-full mx-auto mt-2.5 mb-1 sm:hidden flex-shrink-0" />
+
                         {/* Cabecera elegante y compacta */}
-                        <div className="px-5 py-4 sm:px-6 sm:py-5 border-b border-gray-100 dark:border-gray-700/80 bg-gradient-to-r from-slate-50 via-white to-blue-50/40 dark:from-gray-900 dark:via-gray-850 dark:to-blue-950/20 flex items-start justify-between gap-4">
+                        <div className="px-5 py-4 sm:px-6 sm:py-5 border-b border-gray-100 dark:border-gray-700/80 bg-gradient-to-r from-slate-50 via-white to-blue-50/40 dark:from-gray-900 dark:via-gray-850 dark:to-blue-950/20 flex items-start justify-between gap-4 flex-shrink-0">
                             <div className="space-y-1.5 min-w-0 flex-1">
                                 <div className="flex flex-wrap items-center gap-2">
-                                    <span className="text-[10px] font-black uppercase tracking-wider text-blue-600 dark:text-blue-400 bg-blue-100/70 dark:bg-blue-900/40 px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                                    <span className="text-[10px] font-black uppercase tracking-wider text-blue-600 dark:text-blue-400 bg-blue-100/70 dark:bg-blue-900/40 px-2.5 py-0.5 rounded-full flex items-center gap-1 select-none">
                                         <FaFolderOpen className="text-[9px]" /> {detailTask.proyectoNombre || 'Proyecto General'}
                                     </span>
-                                    <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full ${
+                                    <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full select-none ${
                                         detailTask.prioridad === 'ALTA' 
                                         ? 'text-rose-700 bg-rose-100 dark:bg-rose-900/40 dark:text-rose-300' 
                                         : (detailTask.prioridad === 'MEDIA' ? 'text-amber-700 bg-amber-100 dark:bg-amber-900/40 dark:text-amber-300' : 'text-gray-700 bg-gray-100 dark:bg-gray-700 dark:text-gray-300')
@@ -2219,7 +2340,7 @@ const Sistemas = () => {
                                     {(() => {
                                         const curCol = WORK_COLUMNS.find(c => c.id === detailTask.estado);
                                         return (
-                                            <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full ${curCol?.badge || 'bg-gray-100'}`}>
+                                            <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full select-none ${curCol?.badge || 'bg-gray-100'}`}>
                                                 {curCol?.title || detailTask.estado}
                                             </span>
                                         );
@@ -2230,8 +2351,9 @@ const Sistemas = () => {
                                 </h2>
                             </div>
                             <button 
+                                type="button"
                                 onClick={() => { setIsDetailModalOpen(false); setDetailTask(null); }} 
-                                className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex-shrink-0 active:scale-95"
+                                className="w-9 h-9 min-h-[36px] flex items-center justify-center rounded-xl text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 active:scale-95 touch-manipulation select-none flex-shrink-0"
                                 title="Cerrar ventana"
                             >
                                 <FaTimes className="text-base" />
@@ -2239,13 +2361,13 @@ const Sistemas = () => {
                         </div>
 
                         {/* Cuerpo en dos columnas responsivas */}
-                        <div className="flex-1 overflow-y-auto p-5 sm:p-6 custom-scrollbar">
+                        <div className="flex-1 overflow-y-auto overscroll-contain p-4 sm:p-6 custom-scrollbar touch-pan-y">
                             <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6">
                                 {/* COLUMNA IZQUIERDA: Alcance, Estado y Progreso (7 cols) */}
                                 <div className="lg:col-span-7 space-y-5">
                                     {/* 1. INFORMACIÓN Y ALCANCE DE LO SOLICITADO */}
                                     <div className="space-y-2">
-                                        <div className="flex items-center justify-between text-xs font-black uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                                        <div className="flex items-center justify-between text-xs font-black uppercase tracking-wider text-gray-500 dark:text-gray-400 select-none">
                                             <span className="flex items-center gap-1.5">
                                                 <FaInfoCircle className="text-primary text-sm" />
                                                 Información y Detalles de lo Solicitado
@@ -2257,7 +2379,7 @@ const Sistemas = () => {
                                                         setIsDetailModalOpen(false);
                                                         handleOpenEditTask(detailTask);
                                                     }}
-                                                    className="text-[11px] font-bold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
+                                                    className="text-[11px] font-bold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1 min-h-[36px] py-1 px-2 rounded-lg touch-manipulation active:scale-95"
                                                 >
                                                     <FaEdit size={11} /> Editar
                                                 </button>
@@ -2272,10 +2394,10 @@ const Sistemas = () => {
 
                                     {/* 2. CAMBIO DIRECTO DE ESTADO */}
                                     <div className="space-y-2">
-                                        <span className="text-xs font-black uppercase tracking-wider text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
+                                        <span className="text-xs font-black uppercase tracking-wider text-gray-500 dark:text-gray-400 flex items-center gap-1.5 select-none">
                                             <FaExchangeAlt className="text-primary text-xs" /> Mover Estado de la Entrega
                                         </span>
-                                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 select-none">
                                             {WORK_COLUMNS.map(col => {
                                                 const isCurrent = detailTask.estado === col.id;
                                                 return (
@@ -2283,7 +2405,7 @@ const Sistemas = () => {
                                                         key={col.id}
                                                         type="button"
                                                         onClick={() => handleUpdateTaskStatusDirect(detailTask, col.id)}
-                                                        className={`p-2.5 rounded-2xl border text-center transition-all flex flex-col items-center justify-center gap-0.5 active:scale-95 ${
+                                                        className={`p-2.5 rounded-2xl border text-center transition-all flex flex-col items-center justify-center gap-0.5 active:scale-95 min-h-[50px] touch-manipulation ${
                                                             isCurrent 
                                                             ? 'bg-blue-600 text-white border-blue-600 shadow-md ring-2 ring-blue-400/40 font-black' 
                                                             : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:border-blue-300 dark:hover:border-blue-700 hover:bg-blue-50/40 dark:hover:bg-blue-950/20'
@@ -2301,11 +2423,11 @@ const Sistemas = () => {
 
                                     {/* 3. AVANCE Y PROGRESO INTERACTIVO */}
                                     <div className="p-4 rounded-2xl bg-slate-50/80 dark:bg-gray-900/60 border border-slate-200/80 dark:border-gray-700/80 space-y-3">
-                                        <div className="flex items-center justify-between">
+                                        <div className="flex items-center justify-between select-none">
                                             <span className="text-xs font-black uppercase tracking-wider text-gray-600 dark:text-gray-300 flex items-center gap-2">
                                                 <FaChartBar className="text-primary text-xs" /> Avance Reportado
                                             </span>
-                                            <span className="text-sm font-black text-primary px-2 py-0.5 rounded-lg bg-blue-50 dark:bg-blue-900/30 border border-blue-100 dark:border-blue-800">
+                                            <span className="text-sm font-black text-primary px-2.5 py-0.5 rounded-lg bg-blue-50 dark:bg-blue-900/30 border border-blue-100 dark:border-blue-800">
                                                 {detailTask.progreso || 0}%
                                             </span>
                                         </div>
@@ -2322,7 +2444,7 @@ const Sistemas = () => {
                                         </div>
 
                                         {/* Botones de actualización rápida */}
-                                        <div className="flex items-center justify-between pt-1 gap-1">
+                                        <div className="flex items-center justify-between pt-1 gap-1 select-none">
                                             <span className="text-[10px] text-gray-400 font-bold">Ajuste rápido:</span>
                                             <div className="flex items-center gap-1.5">
                                                 {[0, 25, 50, 75, 100].map(pct => (
@@ -2330,7 +2452,7 @@ const Sistemas = () => {
                                                         key={pct}
                                                         type="button"
                                                         onClick={() => handleUpdateTaskProgressDirect(detailTask, pct)}
-                                                        className={`px-2.5 py-1 rounded-xl text-[10px] font-black transition-all active:scale-95 ${
+                                                        className={`px-3 py-1.5 rounded-xl text-[11px] font-black transition-all active:scale-95 min-h-[38px] min-w-[42px] touch-manipulation flex items-center justify-center ${
                                                             detailTask.progreso === pct 
                                                             ? 'bg-primary text-white shadow-xs' 
                                                             : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:border-gray-300'
@@ -2348,7 +2470,7 @@ const Sistemas = () => {
                                 <div className="lg:col-span-5 space-y-5">
                                     {/* 1. COLABORADORES ASIGNADOS */}
                                     <div className="space-y-2">
-                                        <div className="flex items-center justify-between text-xs font-black uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                                        <div className="flex items-center justify-between text-xs font-black uppercase tracking-wider text-gray-500 dark:text-gray-400 select-none">
                                             <span className="flex items-center gap-1.5">
                                                 <FaUsers className="text-primary text-sm" />
                                                 Colaboradores Responsables
@@ -2360,14 +2482,14 @@ const Sistemas = () => {
                                             </span>
                                         </div>
 
-                                        <div className="space-y-2 max-h-36 overflow-y-auto custom-scrollbar pr-0.5">
+                                        <div className="space-y-2 max-h-36 overflow-y-auto custom-scrollbar pr-0.5 touch-pan-y">
                                             {Array.isArray(detailTask.responsables) && detailTask.responsables.length > 0 ? (
                                                 detailTask.responsables.map((r, i) => {
                                                     const isMe = r.id === authUser?.id;
                                                     return (
                                                         <div 
                                                             key={r.id || i}
-                                                            className={`p-2.5 rounded-2xl border flex items-center gap-2.5 transition-colors ${
+                                                            className={`p-2.5 rounded-2xl border flex items-center gap-2.5 transition-colors select-none ${
                                                                 isMe 
                                                                 ? 'bg-emerald-50/70 border-emerald-300 dark:bg-emerald-950/20 dark:border-emerald-800' 
                                                                 : 'bg-white dark:bg-gray-800/80 border-gray-200 dark:border-gray-700'
@@ -2395,7 +2517,7 @@ const Sistemas = () => {
                                                     );
                                                 })
                                             ) : (
-                                                <div className="p-2.5 rounded-2xl bg-white dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 flex items-center gap-2.5">
+                                                <div className="p-2.5 rounded-2xl bg-white dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 flex items-center gap-2.5 select-none">
                                                     <div className="w-8 h-8 rounded-xl bg-primary text-white flex items-center justify-center font-black text-xs">
                                                         {(detailTask.responsableNombre || 'C')[0]}
                                                     </div>
@@ -2409,7 +2531,7 @@ const Sistemas = () => {
                                     </div>
 
                                     {/* 2. CRONOGRAMA Y TIEMPO */}
-                                    <div className="p-3.5 rounded-2xl bg-slate-50/80 dark:bg-gray-900/60 border border-slate-200/80 dark:border-gray-700/80 space-y-2">
+                                    <div className="p-3.5 rounded-2xl bg-slate-50/80 dark:bg-gray-900/60 border border-slate-200/80 dark:border-gray-700/80 space-y-2 select-none">
                                         <div className="flex items-center justify-between">
                                             <span className="text-[10px] font-black uppercase tracking-wider text-gray-400 flex items-center gap-1.5">
                                                 <FaCalendarAlt className="text-primary text-[10px]" /> Fechas de Compromiso
@@ -2421,7 +2543,7 @@ const Sistemas = () => {
                                                         setIsDetailModalOpen(false);
                                                         handleOpenDateModal(detailTask);
                                                     }}
-                                                    className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline"
+                                                    className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline min-h-[32px] px-2 py-0.5 rounded-lg touch-manipulation active:scale-95"
                                                 >
                                                     Ajustar fechas
                                                 </button>
@@ -2445,12 +2567,12 @@ const Sistemas = () => {
 
                                     {/* 3. BITÁCORA Y RECONOCIMIENTOS CON TABS */}
                                     <div className="space-y-2">
-                                        <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700/80 pb-1.5">
+                                        <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700/80 pb-1.5 select-none">
                                             <div className="flex items-center gap-3">
                                                 <button
                                                     type="button"
                                                     onClick={() => setDetailSubTab('NOTAS')}
-                                                    className={`text-xs font-black transition-colors flex items-center gap-1.5 pb-1 ${
+                                                    className={`text-xs font-black transition-colors flex items-center gap-1.5 pb-1 min-h-[36px] touch-manipulation active:scale-95 ${
                                                         detailSubTab === 'NOTAS'
                                                         ? 'text-amber-600 dark:text-amber-400 border-b-2 border-amber-500'
                                                         : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
@@ -2461,7 +2583,7 @@ const Sistemas = () => {
                                                 <button
                                                     type="button"
                                                     onClick={() => setDetailSubTab('RECONOCIMIENTOS')}
-                                                    className={`text-xs font-black transition-colors flex items-center gap-1.5 pb-1 ${
+                                                    className={`text-xs font-black transition-colors flex items-center gap-1.5 pb-1 min-h-[36px] touch-manipulation active:scale-95 ${
                                                         detailSubTab === 'RECONOCIMIENTOS'
                                                         ? 'text-amber-600 dark:text-amber-400 border-b-2 border-amber-500'
                                                         : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
@@ -2475,7 +2597,7 @@ const Sistemas = () => {
                                                 <button
                                                     type="button"
                                                     onClick={() => handleOpenNoteModal(detailTask)}
-                                                    className="text-[11px] font-bold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
+                                                    className="text-[11px] font-bold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1 min-h-[32px] px-2 py-0.5 rounded-lg touch-manipulation active:scale-95"
                                                 >
                                                     <FaPlus size={9} /> Dejar Nota
                                                 </button>
@@ -2487,7 +2609,7 @@ const Sistemas = () => {
                                                             setIsDetailModalOpen(false);
                                                             handleOpenPraiseModal(detailTask);
                                                         }}
-                                                        className="text-[11px] font-bold text-amber-600 dark:text-amber-400 hover:underline flex items-center gap-1"
+                                                        className="text-[11px] font-bold text-amber-600 dark:text-amber-400 hover:underline flex items-center gap-1 min-h-[32px] px-2 py-0.5 rounded-lg touch-manipulation active:scale-95"
                                                     >
                                                         <FaStar size={9} /> Calificar
                                                     </button>
@@ -2498,10 +2620,10 @@ const Sistemas = () => {
                                         {/* Contenido dinámico según Tab */}
                                         {detailSubTab === 'NOTAS' ? (
                                             detailTask.notas && detailTask.notas.length > 0 ? (
-                                                <div className="space-y-2 max-h-40 overflow-y-auto custom-scrollbar pr-0.5">
+                                                <div className="space-y-2 max-h-40 overflow-y-auto custom-scrollbar pr-0.5 touch-pan-y">
                                                     {detailTask.notas.map((n, i) => (
                                                         <div key={n.id || i} className="p-2.5 rounded-2xl bg-amber-50/70 dark:bg-amber-950/20 border border-amber-200/60 dark:border-amber-800/40 text-xs">
-                                                            <div className="flex items-center justify-between mb-1">
+                                                            <div className="flex items-center justify-between mb-1 select-none">
                                                                 <span className="font-bold text-amber-900 dark:text-amber-200 truncate">{n.autor || 'Compañero'}</span>
                                                                 <span className="text-[9px] text-gray-400 whitespace-nowrap">
                                                                     {n.fecha ? format(new Date(n.fecha), 'dd MMM, HH:mm', { locale: es }) : ''}
@@ -2512,16 +2634,16 @@ const Sistemas = () => {
                                                     ))}
                                                 </div>
                                             ) : (
-                                                <div className="p-3 text-center rounded-2xl border border-dashed border-gray-200 dark:border-gray-700 text-xs text-gray-400 italic">
+                                                <div className="p-3 text-center rounded-2xl border border-dashed border-gray-200 dark:border-gray-700 text-xs text-gray-400 italic select-none">
                                                     Sin notas ni bloqueos registrados.
                                                 </div>
                                             )
                                         ) : (
                                             detailTask.evaluaciones && detailTask.evaluaciones.length > 0 ? (
-                                                <div className="space-y-2 max-h-40 overflow-y-auto custom-scrollbar pr-0.5">
+                                                <div className="space-y-2 max-h-40 overflow-y-auto custom-scrollbar pr-0.5 touch-pan-y">
                                                     {detailTask.evaluaciones.map((ev, i) => (
                                                         <div key={ev.id || i} className="p-2.5 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 text-xs space-y-1">
-                                                            <div className="flex items-center justify-between">
+                                                            <div className="flex items-center justify-between select-none">
                                                                 <span className="font-black text-gray-800 dark:text-white truncate">De: {ev.jefeNombre}</span>
                                                                 <div className="flex text-amber-400 text-xs gap-0.5">
                                                                     {[...Array(ev.estrellas || 5)].map((_, idx) => (
@@ -2539,7 +2661,7 @@ const Sistemas = () => {
                                                     ))}
                                                 </div>
                                             ) : (
-                                                <div className="p-3 text-center rounded-2xl border border-dashed border-gray-200 dark:border-gray-700 text-xs text-gray-400 italic">
+                                                <div className="p-3 text-center rounded-2xl border border-dashed border-gray-200 dark:border-gray-700 text-xs text-gray-400 italic select-none">
                                                     Aún no hay calificaciones registradas.
                                                 </div>
                                             )
@@ -2549,8 +2671,8 @@ const Sistemas = () => {
                             </div>
                         </div>
 
-                        {/* Pie de modal fijo y visible */}
-                        <div className="px-5 py-3.5 sm:px-6 sm:py-4 border-t border-gray-100 dark:border-gray-700 bg-gray-50/90 dark:bg-gray-900/60 flex flex-wrap items-center justify-between gap-2.5">
+                        {/* Pie de modal fijo y visible con Safe Area */}
+                        <div className="px-4 py-3 sm:px-6 sm:py-4 border-t border-gray-100 dark:border-gray-700 bg-gray-50/90 dark:bg-gray-900/60 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] flex flex-wrap items-center justify-between gap-2.5 select-none flex-shrink-0">
                             <div className="flex items-center gap-2">
                                 {isJefe && (
                                     <>
@@ -2560,7 +2682,7 @@ const Sistemas = () => {
                                                 setIsDetailModalOpen(false);
                                                 handleOpenEditTask(detailTask);
                                             }}
-                                            className="px-3 py-1.5 text-xs font-bold text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40 border border-blue-200 dark:border-blue-800 rounded-xl transition-colors flex items-center gap-1.5 active:scale-95"
+                                            className="px-3 py-2 text-xs font-bold text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40 border border-blue-200 dark:border-blue-800 rounded-xl transition-all duration-100 ease-out flex items-center gap-1.5 active:scale-95 touch-manipulation min-h-[40px]"
                                         >
                                             <FaEdit size={11} /> Editar
                                         </button>
@@ -2570,7 +2692,7 @@ const Sistemas = () => {
                                                 setIsDetailModalOpen(false);
                                                 handleOpenDateModal(detailTask);
                                             }}
-                                            className="px-3 py-1.5 text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800 rounded-xl transition-colors flex items-center gap-1.5 active:scale-95"
+                                            className="px-3 py-2 text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800 rounded-xl transition-all duration-100 ease-out flex items-center gap-1.5 active:scale-95 touch-manipulation min-h-[40px]"
                                         >
                                             <FaCalendarAlt size={11} /> Fechas
                                         </button>
@@ -2580,7 +2702,7 @@ const Sistemas = () => {
                                                 setIsDetailModalOpen(false);
                                                 handleOpenPraiseModal(detailTask);
                                             }}
-                                            className="px-3 py-1.5 text-xs font-bold text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-xl transition-colors flex items-center gap-1.5 active:scale-95"
+                                            className="px-3 py-2 text-xs font-bold text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-xl transition-all duration-100 ease-out flex items-center gap-1.5 active:scale-95 touch-manipulation min-h-[40px]"
                                         >
                                             <FaStar size={11} /> Calificar
                                         </button>
@@ -2590,7 +2712,7 @@ const Sistemas = () => {
                             <button
                                 type="button"
                                 onClick={() => { setIsDetailModalOpen(false); setDetailTask(null); }}
-                                className="px-5 py-2 bg-gray-900 text-white dark:bg-gray-700 hover:bg-black dark:hover:bg-gray-600 text-xs font-bold rounded-xl transition-colors active:scale-95 shadow-sm ml-auto"
+                                className="px-5 py-2.5 bg-gray-900 text-white dark:bg-gray-700 hover:bg-black dark:hover:bg-gray-600 text-xs font-black uppercase tracking-wider rounded-xl transition-all duration-100 ease-out active:scale-95 touch-manipulation shadow-sm ml-auto min-h-[40px]"
                             >
                                 Cerrar Detalle
                             </button>

@@ -8,6 +8,11 @@
 
 /* 3. Estilos base globales */
 @layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-text-size-adjust: 100%;
+  }
+
   html,
   body,
   #root {
