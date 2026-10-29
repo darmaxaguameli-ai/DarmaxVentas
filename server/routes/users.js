@@ -17,7 +17,7 @@ router.get('/users', verifyToken, async (req, res) => {
     if (!canSeeAll) return res.status(403).json({ error: 'No tienes permiso para ver la lista de usuarios.' });
 
     const users = await prisma.user.findMany({
-      include: { roles: true, store: true }
+      include: { roles: true, store: true, empleado: true }
     });
     res.json(users);
   } catch (error) {

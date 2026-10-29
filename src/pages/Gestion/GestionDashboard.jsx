@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Outlet } from "react-router-dom";
+import { useState, useEffect, useRef } from "react";
+import { Outlet, useLocation } from "react-router-dom";
 import GestionSidebar from "./GestionSidebar";
 import NotificationTray from "../../components/common/NotificationTray";
 import { ThemeProvider } from "../../context/ThemeContext";
@@ -25,9 +25,19 @@ const GestionDashboard = () => {
     setSidebarCollapsed(!isSidebarCollapsed);
   };
 
+  const location = useLocation();
+  const mainContentRef = useRef(null);
+
+  // Al navegar entre secciones de gestión, restablecer el scroll al inicio del contenedor
+  useEffect(() => {
+    if (mainContentRef.current) {
+      mainContentRef.current.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    }
+  }, [location.pathname]);
+
   return (
     <ThemeProvider>
-      <div className="flex h-screen bg-light dark:bg-dark text-text-light dark:text-text-dark font-display overflow-hidden">
+      <div className="flex h-screen h-[100dvh] bg-light dark:bg-dark text-text-light dark:text-text-dark font-display overflow-hidden">
         <Toaster position="top-right" reverseOrder={false} />
         
         <GestionSidebar 
@@ -39,12 +49,12 @@ const GestionDashboard = () => {
 
         {isSidebarOpen && (
           <div
-            className="fixed inset-0 bg-black bg-opacity-50 z-30 md:hidden"
+            className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm z-30 md:hidden transition-opacity"
             onClick={() => setSidebarOpen(false)}
           ></div>
         )}
 
-        <main className="flex-1 p-4 sm:p-6 md:p-8 overflow-y-auto transition-all duration-300 ease-in-out">
+        <main ref={mainContentRef} className="flex-1 p-4 sm:p-6 md:p-8 overflow-y-auto transition-all duration-300 ease-in-out">
           <div className="flex items-center justify-between mb-4">
             <button
               className="md:hidden h-10 w-10 flex items-center justify-center rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 shadow-sm"

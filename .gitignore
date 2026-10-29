@@ -23,6 +23,7 @@ dist-ssr
 *.sln
 *.sw?
 /src/generated/prisma
+.agents/
 
 # Environment variables
 .env

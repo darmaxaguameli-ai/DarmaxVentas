@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useNotification } from './context/NotificationContext';
 import apiClient, { createNotification } from '../../api/apiClient';
@@ -10,7 +11,8 @@ import {
     FaClock, FaTasks, FaAward, FaSearch, FaUserAstronaut, 
     FaLightbulb, FaExchangeAlt, FaRegSmileBeam,
     FaStream, FaChartBar, FaThList, FaThLarge, FaInfoCircle,
-    FaFolderPlus, FaFolderOpen, FaLayerGroup, FaUserTie
+    FaFolderPlus, FaFolderOpen, FaLayerGroup, FaUserTie,
+    FaUsers, FaEye, FaTimes
 } from 'react-icons/fa';
 import { 
     format, parseISO, differenceInDays, isAfter, isBefore, 
@@ -154,9 +156,13 @@ const Sistemas = () => {
     const [isNoteModalOpen, setIsNoteModalOpen] = useState(false);
     const [isPraiseModalOpen, setIsPraiseModalOpen] = useState(false);
     const [isDateModalOpen, setIsDateModalOpen] = useState(false);
+    const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
 
     const [selectedTask, setSelectedTask] = useState(null);
     const [selectedProject, setSelectedProject] = useState(null);
+    const [detailTask, setDetailTask] = useState(null);
+    const [detailSubTab, setDetailSubTab] = useState('NOTAS'); // 'NOTAS' | 'RECONOCIMIENTOS'
+    const [mobileActiveColumn, setMobileActiveColumn] = useState('POR_HACER');
 
     // Formularios
     const [projectForm, setProjectForm] = useState({
@@ -168,6 +174,7 @@ const Sistemas = () => {
 
     const [taskForm, setTaskForm] = useState({
         proyectoId: '',
+        proyectoNombre: '',
         titulo: '',
         descripcion: '',
         prioridad: 'MEDIA',
@@ -176,7 +183,8 @@ const Sistemas = () => {
         fechaFin: format(addDays(new Date(), 14), 'yyyy-MM-dd'),
         progreso: 0,
         responsableId: '',
-        responsableNombre: ''
+        responsableNombre: '',
+        responsables: []
     });
 
     const [noteForm, setNoteForm] = useState({
@@ -204,12 +212,45 @@ const Sistemas = () => {
     const loadData = async () => {
         setLoading(true);
         try {
-            // Cargar usuarios para asignar
+            // Cargar usuarios para asignar (filtrando colaboradores inactivos)
             try {
-                const uRes = await apiClient.get('/users');
-                if (Array.isArray(uRes.data)) {
-                    setTeamUsers(uRes.data.filter(u => u.type === 'COLABORADOR' || u.role !== 'CLIENTE'));
-                }
+                const [uRes, empRes] = await Promise.allSettled([
+                    apiClient.get('/users'),
+                    apiClient.get('/hr/empleados')
+                ]);
+
+                const usersList = (uRes.status === 'fulfilled' && Array.isArray(uRes.value?.data)) ? uRes.value.data : [];
+                const empList = (empRes.status === 'fulfilled' && Array.isArray(empRes.value?.data)) ? empRes.value.data : [];
+
+                const inactiveUserIds = new Set();
+                const inactiveNames = new Set();
+                const inactiveEmails = new Set();
+
+                empList.forEach(emp => {
+                    if (emp.estatus === 'INACTIVO') {
+                        if (emp.userId) inactiveUserIds.add(emp.userId);
+                        if (emp.nombreCompleto) inactiveNames.add(emp.nombreCompleto.trim().toLowerCase());
+                        if (emp.emailPersonal) inactiveEmails.add(emp.emailPersonal.trim().toLowerCase());
+                    }
+                });
+
+                const activeColaboradores = usersList.filter(u => {
+                    const isColaborador = u.type === 'COLABORADOR' || (u.role && u.role !== 'CLIENTE');
+                    if (!isColaborador) return false;
+
+                    // Si está marcado como inactivo directamente
+                    if (u.status === 'INACTIVO' || u.status === 'INACTIVE' || u.estatus === 'INACTIVO' || u.isActive === false) return false;
+                    // Si su ficha de empleado está inactiva
+                    if (u.empleado?.estatus === 'INACTIVO') return false;
+                    // Si coincide con baja en RH por id, email o nombre
+                    if (u.id && inactiveUserIds.has(u.id)) return false;
+                    if (u.email && inactiveEmails.has(u.email.trim().toLowerCase())) return false;
+                    if (u.name && inactiveNames.has(u.name.trim().toLowerCase())) return false;
+
+                    return true;
+                });
+
+                setTeamUsers(activeColaboradores);
             } catch (e) {
                 console.log('Modo sin usuarios de API');
             }
@@ -392,10 +433,30 @@ const Sistemas = () => {
     // ==========================================
     // ACTIVIDADES: CREAR / EDITAR (JEFE)
     // ==========================================
+    const handleToggleCollaborator = (user) => {
+        const exists = taskForm.responsables?.some(r => r.id === user.id);
+        if (exists) {
+            setTaskForm(prev => ({
+                ...prev,
+                responsables: prev.responsables.filter(r => r.id !== user.id)
+            }));
+        } else {
+            setTaskForm(prev => ({
+                ...prev,
+                responsables: [...(prev.responsables || []), { id: user.id, name: user.name, email: user.email }]
+            }));
+        }
+    };
+
     const handleOpenCreateTask = () => {
         setSelectedTask(null);
         const defaultProjId = projects.length > 0 ? projects[0].id : '';
         const defaultProj = projects.find(p => p.id === defaultProjId);
+
+        // Preasignar al usuario actual si es colaborador activo
+        const initialResp = (authUser?.id && teamUsers.some(u => u.id === authUser.id))
+            ? [{ id: authUser.id, name: authUser.name, email: authUser.email }]
+            : [];
 
         setTaskForm({
             proyectoId: defaultProjId,
@@ -407,8 +468,9 @@ const Sistemas = () => {
             fechaInicio: format(new Date(), 'yyyy-MM-dd'),
             fechaFin: format(addDays(new Date(), 14), 'yyyy-MM-dd'),
             progreso: 0,
-            responsableId: authUser?.id || '',
-            responsableNombre: authUser?.name || 'Por asignar'
+            responsableId: '',
+            responsableNombre: '',
+            responsables: initialResp
         });
         setIsTaskModalOpen(true);
     };
@@ -416,6 +478,14 @@ const Sistemas = () => {
     const handleOpenEditTask = (task) => {
         setSelectedTask(task);
         const proj = projects.find(p => p.id === task.proyectoId);
+
+        let currentResp = [];
+        if (Array.isArray(task.responsables) && task.responsables.length > 0) {
+            currentResp = [...task.responsables];
+        } else if (task.responsableId) {
+            currentResp = [{ id: task.responsableId, name: task.responsableNombre || 'Colaborador', email: '' }];
+        }
+
         setTaskForm({
             proyectoId: task.proyectoId || (projects.length > 0 ? projects[0].id : ''),
             proyectoNombre: task.proyectoNombre || (proj ? proj.nombre : 'General'),
@@ -427,7 +497,8 @@ const Sistemas = () => {
             fechaFin: task.fechaFin ? (task.fechaFin.includes('T') ? task.fechaFin.split('T')[0] : task.fechaFin) : format(addDays(new Date(), 14), 'yyyy-MM-dd'),
             progreso: task.progreso || 0,
             responsableId: task.responsableId || '',
-            responsableNombre: task.responsableNombre || ''
+            responsableNombre: task.responsableNombre || '',
+            responsables: currentResp
         });
         setIsTaskModalOpen(true);
     };
@@ -439,12 +510,23 @@ const Sistemas = () => {
             return;
         }
 
+        if (!taskForm.responsables || taskForm.responsables.length === 0) {
+            toast.error('Por favor asigna al menos a un colaborador responsable');
+            return;
+        }
+
         const proj = projects.find(p => p.id === taskForm.proyectoId);
+        const nombresUnidos = taskForm.responsables.map(r => r.name).join(', ');
+        const primerId = taskForm.responsables[0]?.id || '';
+
         const fullTaskData = {
             ...taskForm,
             titulo: taskForm.titulo.trim(),
             descripcion: taskForm.descripcion.trim(),
-            proyectoNombre: proj ? proj.nombre : (taskForm.proyectoNombre || 'General')
+            proyectoNombre: proj ? proj.nombre : (taskForm.proyectoNombre || 'General'),
+            responsables: taskForm.responsables,
+            responsableId: primerId,
+            responsableNombre: nombresUnidos
         };
 
         let updated;
@@ -461,20 +543,69 @@ const Sistemas = () => {
             updated = [newTask, ...tasks];
             toast.success('Nueva actividad agregada al proyecto');
 
-            if (newTask.responsableId && newTask.responsableId !== authUser?.id) {
-                await emitNotification({
-                    title: '🚀 Nueva actividad asignada',
-                    message: `${authUser?.name || 'El encargado de Sistemas'} te asignó: "${newTask.titulo}" en el proyecto "${newTask.proyectoNombre}".`,
-                    type: 'task',
-                    icon: '🚀',
-                    userId: newTask.responsableId
-                });
+            // Notificar a todos los colaboradores asignados (excepto quien lo crea)
+            for (const resp of newTask.responsables) {
+                if (resp.id && resp.id !== authUser?.id) {
+                    await emitNotification({
+                        title: '🚀 Nueva actividad asignada',
+                        message: `${authUser?.name || 'El encargado'} te asignó: "${newTask.titulo}" en el proyecto "${newTask.proyectoNombre}".`,
+                        type: 'task',
+                        icon: '🚀',
+                        userId: resp.id
+                    });
+                }
             }
         }
 
         persistTasks(updated);
         setIsTaskModalOpen(false);
         setSelectedTask(null);
+
+        // Si la ventana de detalle estaba abierta para esta actividad, actualizarla en vivo
+        if (detailTask && (selectedTask?.id === detailTask.id || detailTask.id === fullTaskData.id)) {
+            setDetailTask(prev => ({ ...prev, ...fullTaskData }));
+        }
+    };
+
+    // ==========================================
+    // DETALLE DE ACTIVIDAD ("INFORMACIÓN SOLICITADA")
+    // ==========================================
+    const handleOpenTaskDetail = (task) => {
+        setDetailTask(task);
+        setIsDetailModalOpen(true);
+    };
+
+    const handleUpdateTaskStatusDirect = (task, targetStatus) => {
+        handleDrop(null, targetStatus, task.id);
+        setMobileActiveColumn(targetStatus);
+        setDetailTask(prev => prev && prev.id === task.id ? {
+            ...prev,
+            estado: targetStatus,
+            progreso: targetStatus === 'TERMINADO' ? 100 : (targetStatus === 'EN_REVISION' ? 85 : (targetStatus === 'EN_PROCESO' ? 50 : 10))
+        } : prev);
+    };
+
+    const handleUpdateTaskProgressDirect = (task, newProg) => {
+        const val = Math.max(0, Math.min(100, parseInt(newProg) || 0));
+        const updated = tasks.map(t => {
+            if (t.id === task.id) {
+                const isAutoDone = val === 100 && t.estado !== 'TERMINADO';
+                return {
+                    ...t,
+                    progreso: val,
+                    estado: isAutoDone ? 'TERMINADO' : t.estado
+                };
+            }
+            return t;
+        });
+
+        persistTasks(updated);
+        setDetailTask(prev => prev && prev.id === task.id ? { 
+            ...prev, 
+            progreso: val, 
+            estado: val === 100 ? 'TERMINADO' : prev.estado 
+        } : prev);
+        toast.success(`Progreso actualizado a ${val}%`);
     };
 
     const handleDeleteTask = async (task) => {
@@ -524,6 +655,12 @@ const Sistemas = () => {
         });
 
         persistTasks(updated);
+        // Sync detailTask on date update
+        setDetailTask(prev => prev && prev.id === selectedTask.id ? {
+            ...prev,
+            fechaInicio: dateForm.fechaInicio,
+            fechaFin: dateForm.fechaFin
+        } : prev);
         setIsDateModalOpen(false);
         toast.success('Fechas actualizadas');
 
@@ -572,6 +709,11 @@ const Sistemas = () => {
         });
 
         persistTasks(updated);
+        // Sync detailTask on new note
+        setDetailTask(prev => prev && prev.id === selectedTask.id ? {
+            ...prev,
+            notas: [newNote, ...(prev.notas || [])]
+        } : prev);
         setIsNoteModalOpen(false);
 
         Swal.fire({
@@ -630,6 +772,11 @@ const Sistemas = () => {
         });
 
         persistTasks(updated);
+        // Sync detailTask on new praise
+        setDetailTask(prev => prev && prev.id === selectedTask.id ? {
+            ...prev,
+            evaluaciones: [newPraise, ...(prev.evaluaciones || [])]
+        } : prev);
         setIsPraiseModalOpen(false);
 
         Swal.fire({
@@ -662,18 +809,19 @@ const Sistemas = () => {
         e.dataTransfer.dropEffect = 'move';
     };
 
-    const handleDrop = (e, targetStatus) => {
-        e.preventDefault();
-        const taskId = e.dataTransfer.getData('text/plain');
+    const handleDrop = (e, targetStatus, forcedTaskId = null) => {
+        if (e && e.preventDefault) e.preventDefault();
+        const taskId = forcedTaskId || (e?.dataTransfer ? e.dataTransfer.getData('text/plain') : null);
         if (!taskId) return;
 
         const task = tasks.find(t => t.id === taskId);
         if (!task || task.estado === targetStatus) return;
 
-        // Si es Colaborador, verificar que solo mueva SUS tareas
+        // Si es Colaborador, verificar que solo mueva SUS tareas (o donde sea responsable asignado)
         if (!isJefe) {
-            const isMine = (task.responsableId && task.responsableId === authUser?.id) ||
-                           (task.responsableNombre && task.responsableNombre.toLowerCase() === authUser?.name?.toLowerCase());
+            const isMine = (task.responsables && task.responsables.some(r => r.id === authUser?.id)) ||
+                           (task.responsableId && task.responsableId === authUser?.id) ||
+                           (task.responsableNombre && authUser?.name && task.responsableNombre.toLowerCase().includes(authUser.name.toLowerCase()));
             if (!isMine) {
                 toast.error('Solo puedes mover tus propias tareas asignadas.');
                 return;
@@ -712,10 +860,11 @@ const Sistemas = () => {
     // ==========================================
     const visibleTasks = useMemo(() => {
         return tasks.filter(t => {
-            // 1. REGLA ESTRICTA DE COLABORADOR: Solo ve sus propias tareas
+            // 1. REGLA ESTRICTA DE COLABORADOR: Solo ve sus propias tareas (o donde esté asignado)
             if (!isJefe) {
-                const isMine = (t.responsableId && t.responsableId === authUser?.id) ||
-                               (t.responsableNombre && t.responsableNombre.toLowerCase() === authUser?.name?.toLowerCase());
+                const isMine = (t.responsables && t.responsables.some(r => r.id === authUser?.id)) ||
+                               (t.responsableId && t.responsableId === authUser?.id) ||
+                               (t.responsableNombre && authUser?.name && t.responsableNombre.toLowerCase().includes(authUser.name.toLowerCase()));
                 if (!isMine) return false;
             }
 
@@ -725,17 +874,20 @@ const Sistemas = () => {
             }
 
             // 3. Filtro por Colaborador (solo disponible cuando es Jefe)
-            if (isJefe && filterCollaborator !== 'TODOS' && t.responsableId !== filterCollaborator) {
-                return false;
+            if (isJefe && filterCollaborator !== 'TODOS') {
+                const matchesCollab = (t.responsables && t.responsables.some(r => r.id === filterCollaborator)) ||
+                                      (t.responsableId === filterCollaborator);
+                if (!matchesCollab) return false;
             }
 
             // 4. Búsqueda de texto
             if (searchQuery.trim()) {
                 const q = searchQuery.toLowerCase();
-                const matchTitle = t.titulo.toLowerCase().includes(q);
+                const matchTitle = t.titulo?.toLowerCase().includes(q);
                 const matchDesc = t.descripcion?.toLowerCase().includes(q);
                 const matchProj = t.proyectoNombre?.toLowerCase().includes(q);
-                const matchResp = t.responsableNombre?.toLowerCase().includes(q);
+                const matchResp = (t.responsables?.some(r => r.name?.toLowerCase().includes(q))) ||
+                                  (t.responsableNombre?.toLowerCase().includes(q));
                 if (!matchTitle && !matchDesc && !matchProj && !matchResp) return false;
             }
 
@@ -743,16 +895,30 @@ const Sistemas = () => {
         });
     }, [tasks, isJefe, authUser, selectedProjectId, filterCollaborator, searchQuery]);
 
-    // Lista de colaboradores presentes en las tareas para el filtro del Jefe
+    // Lista de colaboradores activos presentes en las tareas para el filtro del Jefe
     const distinctCollaborators = useMemo(() => {
         const map = new Map();
         tasks.forEach(t => {
+            if (Array.isArray(t.responsables)) {
+                t.responsables.forEach(r => {
+                    if (r.id && r.name) map.set(r.id, r.name);
+                });
+            }
             if (t.responsableId && t.responsableNombre) {
                 map.set(t.responsableId, t.responsableNombre);
             }
         });
+
+        // Filtrar solo colaboradores que sigan activos en teamUsers
+        if (teamUsers.length > 0) {
+            const activeIds = new Set(teamUsers.map(u => u.id));
+            return Array.from(map.entries())
+                .filter(([id]) => activeIds.has(id))
+                .map(([id, name]) => ({ id, name }));
+        }
+
         return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
-    }, [tasks]);
+    }, [tasks, teamUsers]);
 
     // Métricas
     const totalVisible = visibleTasks.length;
@@ -1068,16 +1234,47 @@ const Sistemas = () => {
             {/* VISTA 1: TABLERO DE ACTIVIDADES            */}
             {/* ========================================== */}
             {viewMode === 'TABLERO' && (
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+                <div className="space-y-4">
+                    {/* Selector de columnas exclusivo para Móvil (< md) */}
+                    <div className="flex md:hidden items-center gap-1.5 p-1.5 bg-gray-100/90 dark:bg-gray-800/90 rounded-2xl overflow-x-auto custom-scrollbar">
+                        {WORK_COLUMNS.map((col) => {
+                            const count = visibleTasks.filter(t => t.estado === col.id).length;
+                            const isActive = mobileActiveColumn === col.id;
+                            return (
+                                <button
+                                    key={col.id}
+                                    type="button"
+                                    onClick={() => setMobileActiveColumn(col.id)}
+                                    className={`flex-1 min-w-[120px] py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 whitespace-nowrap active:scale-95 ${
+                                        isActive
+                                            ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-xs font-extrabold ring-1 ring-black/5 dark:ring-white/10'
+                                            : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                                    }`}
+                                >
+                                    <span>{col.title}</span>
+                                    <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${
+                                        isActive ? 'bg-primary text-white' : 'bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200'
+                                    }`}>
+                                        {count}
+                                    </span>
+                                </button>
+                            );
+                        })}
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
                     {WORK_COLUMNS.map((col) => {
                         const colTasks = visibleTasks.filter(t => t.estado === col.id);
+                        const isMobileActive = mobileActiveColumn === col.id;
 
                         return (
                             <div
                                 key={col.id}
                                 onDragOver={handleDragOver}
                                 onDrop={(e) => handleDrop(e, col.id)}
-                                className="bg-gray-50/70 dark:bg-gray-900/40 rounded-3xl p-4 border border-gray-200/70 dark:border-gray-700/60 flex flex-col min-h-[550px] transition-colors"
+                                className={`bg-gray-50/70 dark:bg-gray-900/40 rounded-3xl p-4 border border-gray-200/70 dark:border-gray-700/60 flex-col min-h-[550px] transition-colors ${
+                                    isMobileActive ? 'flex' : 'hidden md:flex'
+                                }`}
                             >
                                 <div className="flex items-center justify-between mb-3 px-1">
                                     <div>
@@ -1109,7 +1306,8 @@ const Sistemas = () => {
                                                     key={task.id}
                                                     draggable
                                                     onDragStart={(e) => handleDragStart(e, task.id)}
-                                                    className="bg-white dark:bg-gray-800 rounded-2xl p-4 border border-gray-100 dark:border-gray-700/70 shadow-sm hover:shadow-md transition-all cursor-grab active:cursor-grabbing group relative"
+                                                    onClick={() => handleOpenTaskDetail(task)}
+                                                    className="bg-white dark:bg-gray-800 rounded-2xl p-4 border border-gray-100 dark:border-gray-700/70 shadow-sm hover:shadow-md transition-all cursor-pointer active:cursor-grabbing group relative hover:border-blue-400 dark:hover:border-blue-500"
                                                 >
                                                     {/* Proyecto al que pertenece */}
                                                     <div className="flex items-center justify-between gap-2 mb-2">
@@ -1126,11 +1324,11 @@ const Sistemas = () => {
                                                         </span>
                                                     </div>
 
-                                                    <h4 className="font-bold text-sm text-gray-800 dark:text-white leading-snug mb-1">
+                                                    <h4 className="font-bold text-sm text-gray-800 dark:text-white leading-snug mb-1 group-hover:text-primary transition-colors">
                                                         {task.titulo}
                                                     </h4>
                                                     <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2 mb-3">
-                                                        {task.descripcion || 'Sin descripción detallada.'}
+                                                        {task.descripcion || 'Sin descripción detallada. Clic para ver más.'}
                                                     </p>
 
                                                     {/* Barra de progreso */}
@@ -1166,19 +1364,40 @@ const Sistemas = () => {
                                                         )}
                                                     </div>
 
-                                                    {/* Responsable & Estrellas */}
+                                                    {/* Responsables (1 o más) & Estrellas */}
                                                     <div className="flex items-center justify-between pt-1">
-                                                        <div className="flex items-center gap-1.5">
-                                                            <div className="w-6 h-6 rounded-full bg-primary/20 text-primary dark:text-primary-light flex items-center justify-center text-[10px] font-black uppercase">
-                                                                {(task.responsableNombre || 'S')[0]}
-                                                            </div>
-                                                            <span className="text-[11px] font-medium text-gray-600 dark:text-gray-300 truncate max-w-[120px]">
-                                                                {task.responsableNombre || 'Por asignar'}
-                                                            </span>
+                                                        <div className="flex items-center gap-1.5 min-w-0 flex-1 pr-2">
+                                                            {Array.isArray(task.responsables) && task.responsables.length > 0 ? (
+                                                                <div className="flex items-center gap-1.5 min-w-0">
+                                                                    <div className="flex -space-x-1.5 overflow-hidden flex-shrink-0">
+                                                                        {task.responsables.slice(0, 3).map((r, i) => (
+                                                                            <div
+                                                                                key={r.id || i}
+                                                                                title={r.name}
+                                                                                className="inline-flex items-center justify-center w-6 h-6 rounded-full ring-2 ring-white dark:ring-gray-800 bg-gradient-to-br from-blue-500 to-indigo-600 text-white text-[10px] font-black uppercase"
+                                                                            >
+                                                                                {(r.name || 'C')[0]}
+                                                                            </div>
+                                                                        ))}
+                                                                    </div>
+                                                                    <span className="text-[11px] font-medium text-gray-600 dark:text-gray-300 truncate" title={task.responsableNombre}>
+                                                                        {task.responsables.length === 1 ? task.responsables[0].name : `${task.responsables.length} asignados`}
+                                                                    </span>
+                                                                </div>
+                                                            ) : (
+                                                                <div className="flex items-center gap-1.5 min-w-0">
+                                                                    <div className="w-6 h-6 rounded-full bg-primary/20 text-primary dark:text-primary-light flex items-center justify-center text-[10px] font-black uppercase flex-shrink-0">
+                                                                        {(task.responsableNombre || 'S')[0]}
+                                                                    </div>
+                                                                    <span className="text-[11px] font-medium text-gray-600 dark:text-gray-300 truncate max-w-[120px]">
+                                                                        {task.responsableNombre || 'Por asignar'}
+                                                                    </span>
+                                                                </div>
+                                                            )}
                                                         </div>
 
                                                         {task.evaluaciones && task.evaluaciones.length > 0 && (
-                                                            <div className="flex items-center gap-0.5 text-amber-400 text-xs" title={`Felicitación de ${task.evaluaciones[0].jefeNombre}`}>
+                                                            <div className="flex items-center gap-0.5 text-amber-400 text-xs flex-shrink-0" title={`Felicitación de ${task.evaluaciones[0].jefeNombre}`}>
                                                                 <FaStar />
                                                                 <span className="text-[10px] font-black text-gray-600 dark:text-gray-300">
                                                                     {task.evaluaciones[0].estrellas}
@@ -1197,10 +1416,22 @@ const Sistemas = () => {
                                                         </div>
                                                     )}
 
+                                                    {/* Hint para ver detalle */}
+                                                    <div className="flex items-center justify-between text-[10px] text-blue-600 dark:text-blue-400 font-bold mt-2.5 pt-2 border-t border-gray-100 dark:border-gray-700/60 group-hover:text-primary transition-colors">
+                                                        <span className="flex items-center gap-1">
+                                                            <FaEye className="text-[11px]" /> Ver detalles y requerimientos
+                                                        </span>
+                                                        <span>&rarr;</span>
+                                                    </div>
+
                                                     {/* Botonera de acciones */}
-                                                    <div className="mt-3 pt-2.5 border-t border-gray-100 dark:border-gray-700/60 flex items-center justify-between gap-1">
+                                                    <div className="mt-2 pt-2 border-t border-gray-100 dark:border-gray-700/60 flex items-center justify-between gap-1">
                                                         <button
-                                                            onClick={() => handleOpenNoteModal(task)}
+                                                            type="button"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handleOpenNoteModal(task);
+                                                            }}
                                                             className="flex items-center gap-1 text-[11px] font-bold text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                                                             title="Dejar nota de avance o imprevisto"
                                                         >
@@ -1210,28 +1441,44 @@ const Sistemas = () => {
                                                         {isJefe && (
                                                             <div className="flex items-center gap-1">
                                                                 <button
-                                                                    onClick={() => handleOpenEditTask(task)}
+                                                                    type="button"
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        handleOpenEditTask(task);
+                                                                    }}
                                                                     className="p-1.5 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 rounded-lg transition-colors"
                                                                     title="Editar nombre y datos de la actividad"
                                                                 >
                                                                     <FaEdit size={12} />
                                                                 </button>
                                                                 <button
-                                                                    onClick={() => handleOpenDateModal(task)}
+                                                                    type="button"
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        handleOpenDateModal(task);
+                                                                    }}
                                                                     className="p-1.5 text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg transition-colors"
                                                                     title="Ajustar fecha de entrega"
                                                                 >
                                                                     <FaCalendarAlt size={12} />
                                                                 </button>
                                                                 <button
-                                                                    onClick={() => handleOpenPraiseModal(task)}
+                                                                    type="button"
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        handleOpenPraiseModal(task);
+                                                                    }}
                                                                     className="p-1.5 text-gray-400 hover:text-amber-500 rounded-lg transition-colors"
                                                                     title="Felicitar y otorgar estrellas"
                                                                 >
                                                                     <FaStar size={12} />
                                                                 </button>
                                                                 <button
-                                                                    onClick={() => handleDeleteTask(task)}
+                                                                    type="button"
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        handleDeleteTask(task);
+                                                                    }}
                                                                     className="p-1.5 text-gray-400 hover:text-rose-500 rounded-lg transition-colors"
                                                                     title="Eliminar actividad"
                                                                 >
@@ -1248,6 +1495,7 @@ const Sistemas = () => {
                             </div>
                         );
                     })}
+                    </div>
                 </div>
             )}
 
@@ -1282,10 +1530,12 @@ const Sistemas = () => {
                                 return (
                                     <div 
                                         key={task.id} 
-                                        className="grid grid-cols-12 gap-1 items-center p-3 rounded-2xl bg-gray-50/70 dark:bg-gray-900/40 hover:bg-gray-100/70 dark:hover:bg-gray-900/70 transition-colors"
+                                        onClick={() => handleOpenTaskDetail(task)}
+                                        className="grid grid-cols-12 gap-1 items-center p-3 rounded-2xl bg-gray-50/70 dark:bg-gray-900/40 hover:bg-blue-50/60 dark:hover:bg-blue-950/30 cursor-pointer transition-colors border border-transparent hover:border-blue-200 dark:hover:border-blue-900"
+                                        title="Clic para ver detalles de lo solicitado"
                                     >
                                         <div className="col-span-4 pr-2">
-                                            <p className="font-bold text-xs text-gray-800 dark:text-white truncate">
+                                            <p className="font-bold text-xs text-gray-800 dark:text-white truncate hover:text-primary transition-colors">
                                                 {task.titulo}
                                             </p>
                                             <p className="text-[10px] text-gray-500 dark:text-gray-400 truncate">
@@ -1293,8 +1543,10 @@ const Sistemas = () => {
                                             </p>
                                         </div>
 
-                                        <div className="col-span-2 text-center text-xs text-gray-600 dark:text-gray-300 font-medium">
-                                            {task.responsableNombre || 'Sin asignar'}
+                                        <div className="col-span-2 text-center text-xs text-gray-600 dark:text-gray-300 font-medium truncate" title={task.responsableNombre}>
+                                            {Array.isArray(task.responsables) && task.responsables.length > 0 
+                                                ? task.responsables.map(r => r.name).join(', ') 
+                                                : (task.responsableNombre || 'Sin asignar')}
                                         </div>
 
                                         <div className="col-span-2 text-center text-[10px] font-semibold text-gray-500 dark:text-gray-400">
@@ -1401,8 +1653,8 @@ const Sistemas = () => {
             {/* ========================================== */}
             {/* MODAL: NUEVO / EDITAR PROYECTO (JEFE)       */}
             {/* ========================================== */}
-            {isProjectModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+            {isProjectModalOpen && createPortal(
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-fade-in">
                     <div className="bg-white dark:bg-gray-800 rounded-3xl w-full max-w-lg shadow-2xl border border-gray-100 dark:border-gray-700 overflow-hidden">
                         <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-900/50">
                             <div>
@@ -1489,14 +1741,15 @@ const Sistemas = () => {
                             </div>
                         </form>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
 
             {/* ========================================== */}
             {/* MODAL: NUEVA ACTIVIDAD (JEFE)              */}
             {/* ========================================== */}
-            {isTaskModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+            {isTaskModalOpen && createPortal(
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-fade-in">
                     <div className="bg-white dark:bg-gray-800 rounded-3xl w-full max-w-xl shadow-2xl border border-gray-100 dark:border-gray-700 overflow-hidden">
                         <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-900/50">
                             <div>
@@ -1564,53 +1817,99 @@ const Sistemas = () => {
                                 />
                             </div>
 
-                            <div className="grid grid-cols-2 gap-3">
-                                <div>
-                                    <label className="block text-[11px] font-black uppercase tracking-wider text-gray-500 mb-1">
-                                        Prioridad
+                            <div>
+                                <label className="block text-[11px] font-black uppercase tracking-wider text-gray-500 mb-1">
+                                    Nivel de Prioridad
+                                </label>
+                                <select
+                                    value={taskForm.prioridad}
+                                    onChange={(e) => setTaskForm({ ...taskForm, prioridad: e.target.value })}
+                                    className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-3 text-xs text-gray-800 dark:text-white outline-none focus:ring-2 focus:ring-primary"
+                                >
+                                    <option value="BAJA">☕ Normal</option>
+                                    <option value="MEDIA">⚡ Media</option>
+                                    <option value="ALTA">🔥 Alta</option>
+                                </select>
+                            </div>
+
+                            {/* SELECTOR MULTI-COLABORADOR (1 O MÁS) */}
+                            <div>
+                                <div className="flex items-center justify-between mb-1.5">
+                                    <label className="text-[11px] font-black uppercase tracking-wider text-gray-500 flex items-center gap-1.5">
+                                        <FaUsers className="text-primary text-xs" />
+                                        Colaboradores Asignados * ({taskForm.responsables?.length || 0})
                                     </label>
-                                    <select
-                                        value={taskForm.prioridad}
-                                        onChange={(e) => setTaskForm({ ...taskForm, prioridad: e.target.value })}
-                                        className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-3 text-xs text-gray-800 dark:text-white outline-none focus:ring-2 focus:ring-primary"
-                                    >
-                                        <option value="BAJA">☕ Normal</option>
-                                        <option value="MEDIA">⚡ Media</option>
-                                        <option value="ALTA">🔥 Alta</option>
-                                    </select>
+                                    <span className="text-[10px] text-gray-400 font-medium">
+                                        Asigna 1 o más compañeros activos
+                                    </span>
                                 </div>
 
-                                <div>
-                                    <label className="block text-[11px] font-black uppercase tracking-wider text-gray-500 mb-1">
-                                        Colaborador Responsable
-                                    </label>
-                                    {teamUsers.length > 0 ? (
-                                        <select
-                                            value={taskForm.responsableId}
-                                            onChange={(e) => {
-                                                const selId = e.target.value;
-                                                const found = teamUsers.find(u => u.id === selId);
-                                                setTaskForm({
-                                                    ...taskForm,
-                                                    responsableId: selId,
-                                                    responsableNombre: found ? found.name : 'Por asignar'
-                                                });
-                                            }}
-                                            className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-3 text-xs text-gray-800 dark:text-white outline-none focus:ring-2 focus:ring-primary"
-                                        >
-                                            <option value="">Selecciona al compañero...</option>
-                                            {teamUsers.map(u => (
-                                                <option key={u.id} value={u.id}>{u.name}</option>
-                                            ))}
-                                        </select>
+                                {/* Pills de seleccionados */}
+                                {taskForm.responsables && taskForm.responsables.length > 0 ? (
+                                    <div className="flex flex-wrap items-center gap-1.5 mb-2.5 p-2 bg-blue-50/60 dark:bg-blue-950/20 border border-blue-200/60 dark:border-blue-900/40 rounded-xl">
+                                        {taskForm.responsables.map(resp => (
+                                            <span 
+                                                key={resp.id}
+                                                className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white dark:bg-gray-800 border border-blue-300 dark:border-blue-700 rounded-lg text-xs font-bold text-gray-800 dark:text-white shadow-xs"
+                                            >
+                                                <span className="w-4 h-4 rounded-full bg-primary text-white text-[9px] font-black flex items-center justify-center">
+                                                    {(resp.name || 'C')[0]}
+                                                </span>
+                                                <span className="truncate max-w-[130px]">{resp.name}</span>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleToggleCollaborator(resp)}
+                                                    className="text-gray-400 hover:text-rose-500 font-black ml-0.5 text-xs"
+                                                    title="Quitar"
+                                                >
+                                                    ✕
+                                                </button>
+                                            </span>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="mb-2 p-2.5 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-xl text-xs text-amber-800 dark:text-amber-300 font-medium">
+                                        ⚠️ Por favor selecciona al menos a un colaborador en la lista abajo.
+                                    </div>
+                                )}
+
+                                {/* Lista de colaboradores activos disponibles */}
+                                <div className="border border-gray-200 dark:border-gray-700 rounded-2xl p-2 bg-gray-50/50 dark:bg-gray-900/40 max-h-44 overflow-y-auto space-y-1">
+                                    {teamUsers.length === 0 ? (
+                                        <p className="text-xs text-gray-400 p-2 text-center">No se encontraron colaboradores activos.</p>
                                     ) : (
-                                        <input
-                                            type="text"
-                                            placeholder="Nombre del compañero"
-                                            value={taskForm.responsableNombre}
-                                            onChange={(e) => setTaskForm({ ...taskForm, responsableNombre: e.target.value })}
-                                            className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-3 text-xs text-gray-800 dark:text-white outline-none focus:ring-2 focus:ring-primary"
-                                        />
+                                        teamUsers.map(user => {
+                                            const isSelected = taskForm.responsables?.some(r => r.id === user.id);
+                                            return (
+                                                <div
+                                                    key={user.id}
+                                                    onClick={() => handleToggleCollaborator(user)}
+                                                    className={`p-2.5 rounded-xl border cursor-pointer transition-all flex items-center justify-between gap-3 ${
+                                                        isSelected
+                                                        ? 'bg-blue-50 dark:bg-blue-950/40 border-blue-500 ring-1 ring-blue-500 shadow-xs'
+                                                        : 'bg-white dark:bg-gray-800 border-gray-200/80 dark:border-gray-700/80 hover:border-gray-300'
+                                                    }`}
+                                                >
+                                                    <div className="flex items-center gap-2.5 min-w-0">
+                                                        <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-black text-white ${
+                                                            isSelected ? 'bg-primary' : 'bg-gray-400 dark:bg-gray-600'
+                                                        }`}>
+                                                            {(user.name || 'C')[0]}
+                                                        </div>
+                                                        <div className="min-w-0">
+                                                            <p className="text-xs font-bold text-gray-800 dark:text-white truncate">{user.name}</p>
+                                                            <p className="text-[10px] text-gray-400 truncate">{user.email || user.role || 'Colaborador'}</p>
+                                                        </div>
+                                                    </div>
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={isSelected}
+                                                        readOnly
+                                                        className="w-4 h-4 text-primary rounded border-gray-300 pointer-events-none"
+                                                    />
+                                                </div>
+                                            );
+                                        })
                                     )}
                                 </div>
                             </div>
@@ -1657,14 +1956,15 @@ const Sistemas = () => {
                             </div>
                         </form>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
 
             {/* ========================================== */}
             {/* MODAL: DEJAR NOTA / MOTIVO (COLABORADOR)   */}
             {/* ========================================== */}
-            {isNoteModalOpen && selectedTask && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+            {isNoteModalOpen && selectedTask && createPortal(
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-fade-in">
                     <div className="bg-white dark:bg-gray-800 rounded-3xl w-full max-w-lg shadow-2xl border border-gray-100 dark:border-gray-700 overflow-hidden">
                         <div className="p-6 border-b border-gray-100 dark:border-gray-700 bg-blue-50/50 dark:bg-blue-900/20 flex justify-between items-center">
                             <div>
@@ -1714,14 +2014,15 @@ const Sistemas = () => {
                             </div>
                         </form>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
 
             {/* ========================================== */}
             {/* MODAL: RECONOCIMIENTO CON ESTRELLAS (JEFE) */}
             {/* ========================================== */}
-            {isPraiseModalOpen && selectedTask && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+            {isPraiseModalOpen && selectedTask && createPortal(
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-fade-in">
                     <div className="bg-white dark:bg-gray-800 rounded-3xl w-full max-w-md shadow-2xl border border-gray-100 dark:border-gray-700 overflow-hidden">
                         <div className="p-6 border-b border-gray-100 dark:border-gray-700 bg-amber-50/50 dark:bg-amber-900/20 flex justify-between items-center">
                             <div>
@@ -1802,14 +2103,15 @@ const Sistemas = () => {
                             </div>
                         </form>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
 
             {/* ========================================== */}
             {/* MODAL: AJUSTAR FECHAS (JEFE)               */}
             {/* ========================================== */}
-            {isDateModalOpen && selectedTask && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+            {isDateModalOpen && selectedTask && createPortal(
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-fade-in">
                     <div className="bg-white dark:bg-gray-800 rounded-3xl w-full max-w-sm shadow-2xl border border-gray-100 dark:border-gray-700 overflow-hidden">
                         <div className="p-6 border-b border-gray-100 dark:border-gray-700 bg-indigo-50/50 dark:bg-indigo-900/20 flex justify-between items-center">
                             <div>
@@ -1879,7 +2181,423 @@ const Sistemas = () => {
                             </div>
                         </form>
                     </div>
-                </div>
+                </div>,
+                document.body
+            )}
+
+            {/* ========================================== */}
+            {/* MODAL: DETALLE COMPLETO DE LO SOLICITADO   */}
+            {/* ========================================== */}
+            {isDetailModalOpen && detailTask && createPortal(
+                <div 
+                    className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-5 md:p-6 bg-black/70 backdrop-blur-md animate-fade-in"
+                    onClick={(e) => {
+                        if (e.target === e.currentTarget) {
+                            setIsDetailModalOpen(false);
+                            setDetailTask(null);
+                        }
+                    }}
+                >
+                    <div 
+                        className="bg-white dark:bg-gray-800 rounded-3xl w-full max-w-4xl shadow-2xl border border-gray-100 dark:border-gray-700/80 flex flex-col max-h-[92vh] sm:max-h-[88vh] overflow-hidden transform transition-all duration-200"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {/* Cabecera elegante y compacta */}
+                        <div className="px-5 py-4 sm:px-6 sm:py-5 border-b border-gray-100 dark:border-gray-700/80 bg-gradient-to-r from-slate-50 via-white to-blue-50/40 dark:from-gray-900 dark:via-gray-850 dark:to-blue-950/20 flex items-start justify-between gap-4">
+                            <div className="space-y-1.5 min-w-0 flex-1">
+                                <div className="flex flex-wrap items-center gap-2">
+                                    <span className="text-[10px] font-black uppercase tracking-wider text-blue-600 dark:text-blue-400 bg-blue-100/70 dark:bg-blue-900/40 px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                                        <FaFolderOpen className="text-[9px]" /> {detailTask.proyectoNombre || 'Proyecto General'}
+                                    </span>
+                                    <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full ${
+                                        detailTask.prioridad === 'ALTA' 
+                                        ? 'text-rose-700 bg-rose-100 dark:bg-rose-900/40 dark:text-rose-300' 
+                                        : (detailTask.prioridad === 'MEDIA' ? 'text-amber-700 bg-amber-100 dark:bg-amber-900/40 dark:text-amber-300' : 'text-gray-700 bg-gray-100 dark:bg-gray-700 dark:text-gray-300')
+                                    }`}>
+                                        {detailTask.prioridad === 'ALTA' ? '🔥 Alta' : (detailTask.prioridad === 'MEDIA' ? '⚡ Media' : '☕ Normal')}
+                                    </span>
+                                    {(() => {
+                                        const curCol = WORK_COLUMNS.find(c => c.id === detailTask.estado);
+                                        return (
+                                            <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full ${curCol?.badge || 'bg-gray-100'}`}>
+                                                {curCol?.title || detailTask.estado}
+                                            </span>
+                                        );
+                                    })()}
+                                </div>
+                                <h2 className="text-base sm:text-lg md:text-xl font-black text-gray-900 dark:text-white leading-snug break-words">
+                                    {detailTask.titulo}
+                                </h2>
+                            </div>
+                            <button 
+                                onClick={() => { setIsDetailModalOpen(false); setDetailTask(null); }} 
+                                className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex-shrink-0 active:scale-95"
+                                title="Cerrar ventana"
+                            >
+                                <FaTimes className="text-base" />
+                            </button>
+                        </div>
+
+                        {/* Cuerpo en dos columnas responsivas */}
+                        <div className="flex-1 overflow-y-auto p-5 sm:p-6 custom-scrollbar">
+                            <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6">
+                                {/* COLUMNA IZQUIERDA: Alcance, Estado y Progreso (7 cols) */}
+                                <div className="lg:col-span-7 space-y-5">
+                                    {/* 1. INFORMACIÓN Y ALCANCE DE LO SOLICITADO */}
+                                    <div className="space-y-2">
+                                        <div className="flex items-center justify-between text-xs font-black uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                                            <span className="flex items-center gap-1.5">
+                                                <FaInfoCircle className="text-primary text-sm" />
+                                                Información y Detalles de lo Solicitado
+                                            </span>
+                                            {isJefe && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setIsDetailModalOpen(false);
+                                                        handleOpenEditTask(detailTask);
+                                                    }}
+                                                    className="text-[11px] font-bold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
+                                                >
+                                                    <FaEdit size={11} /> Editar
+                                                </button>
+                                            )}
+                                        </div>
+                                        <div className="p-4 sm:p-5 rounded-2xl bg-blue-50/40 dark:bg-blue-950/20 border border-blue-100/80 dark:border-blue-900/40">
+                                            <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-200 whitespace-pre-line leading-relaxed font-normal select-text">
+                                                {detailTask.descripcion?.trim() || 'No se registraron especificaciones adicionales escritas para esta actividad. Consulta a tu encargado si tienes alguna duda sobre el alcance.'}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    {/* 2. CAMBIO DIRECTO DE ESTADO */}
+                                    <div className="space-y-2">
+                                        <span className="text-xs font-black uppercase tracking-wider text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
+                                            <FaExchangeAlt className="text-primary text-xs" /> Mover Estado de la Entrega
+                                        </span>
+                                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                            {WORK_COLUMNS.map(col => {
+                                                const isCurrent = detailTask.estado === col.id;
+                                                return (
+                                                    <button
+                                                        key={col.id}
+                                                        type="button"
+                                                        onClick={() => handleUpdateTaskStatusDirect(detailTask, col.id)}
+                                                        className={`p-2.5 rounded-2xl border text-center transition-all flex flex-col items-center justify-center gap-0.5 active:scale-95 ${
+                                                            isCurrent 
+                                                            ? 'bg-blue-600 text-white border-blue-600 shadow-md ring-2 ring-blue-400/40 font-black' 
+                                                            : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:border-blue-300 dark:hover:border-blue-700 hover:bg-blue-50/40 dark:hover:bg-blue-950/20'
+                                                        }`}
+                                                    >
+                                                        <span className="text-xs font-bold leading-tight truncate w-full">{col.title}</span>
+                                                        <span className={`text-[9px] ${isCurrent ? 'text-blue-100 font-bold' : 'text-gray-400'}`}>
+                                                            {isCurrent ? '● Actual' : 'Mover'}
+                                                        </span>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+
+                                    {/* 3. AVANCE Y PROGRESO INTERACTIVO */}
+                                    <div className="p-4 rounded-2xl bg-slate-50/80 dark:bg-gray-900/60 border border-slate-200/80 dark:border-gray-700/80 space-y-3">
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-xs font-black uppercase tracking-wider text-gray-600 dark:text-gray-300 flex items-center gap-2">
+                                                <FaChartBar className="text-primary text-xs" /> Avance Reportado
+                                            </span>
+                                            <span className="text-sm font-black text-primary px-2 py-0.5 rounded-lg bg-blue-50 dark:bg-blue-900/30 border border-blue-100 dark:border-blue-800">
+                                                {detailTask.progreso || 0}%
+                                            </span>
+                                        </div>
+
+                                        <div className="w-full bg-gray-200 dark:bg-gray-700 h-2.5 rounded-full overflow-hidden">
+                                            <div 
+                                                className={`h-full rounded-full transition-all duration-300 ${
+                                                    (detailTask.progreso || 0) >= 100 
+                                                    ? 'bg-emerald-500' 
+                                                    : ((detailTask.progreso || 0) >= 50 ? 'bg-blue-500' : 'bg-amber-500')
+                                                }`} 
+                                                style={{ width: `${detailTask.progreso || 0}%` }}
+                                            ></div>
+                                        </div>
+
+                                        {/* Botones de actualización rápida */}
+                                        <div className="flex items-center justify-between pt-1 gap-1">
+                                            <span className="text-[10px] text-gray-400 font-bold">Ajuste rápido:</span>
+                                            <div className="flex items-center gap-1.5">
+                                                {[0, 25, 50, 75, 100].map(pct => (
+                                                    <button
+                                                        key={pct}
+                                                        type="button"
+                                                        onClick={() => handleUpdateTaskProgressDirect(detailTask, pct)}
+                                                        className={`px-2.5 py-1 rounded-xl text-[10px] font-black transition-all active:scale-95 ${
+                                                            detailTask.progreso === pct 
+                                                            ? 'bg-primary text-white shadow-xs' 
+                                                            : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:border-gray-300'
+                                                        }`}
+                                                    >
+                                                        {pct}%
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* COLUMNA DERECHA: Equipo, Fechas, Bitácora y Reconocimientos (5 cols) */}
+                                <div className="lg:col-span-5 space-y-5">
+                                    {/* 1. COLABORADORES ASIGNADOS */}
+                                    <div className="space-y-2">
+                                        <div className="flex items-center justify-between text-xs font-black uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                                            <span className="flex items-center gap-1.5">
+                                                <FaUsers className="text-primary text-sm" />
+                                                Colaboradores Responsables
+                                            </span>
+                                            <span className="text-[10px] font-bold text-gray-400">
+                                                {Array.isArray(detailTask.responsables) && detailTask.responsables.length > 0 
+                                                    ? `${detailTask.responsables.length} asignado${detailTask.responsables.length > 1 ? 's' : ''}` 
+                                                    : '1 asignado'}
+                                            </span>
+                                        </div>
+
+                                        <div className="space-y-2 max-h-36 overflow-y-auto custom-scrollbar pr-0.5">
+                                            {Array.isArray(detailTask.responsables) && detailTask.responsables.length > 0 ? (
+                                                detailTask.responsables.map((r, i) => {
+                                                    const isMe = r.id === authUser?.id;
+                                                    return (
+                                                        <div 
+                                                            key={r.id || i}
+                                                            className={`p-2.5 rounded-2xl border flex items-center gap-2.5 transition-colors ${
+                                                                isMe 
+                                                                ? 'bg-emerald-50/70 border-emerald-300 dark:bg-emerald-950/20 dark:border-emerald-800' 
+                                                                : 'bg-white dark:bg-gray-800/80 border-gray-200 dark:border-gray-700'
+                                                            }`}
+                                                        >
+                                                            <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-black text-xs text-white flex-shrink-0 ${
+                                                                isMe ? 'bg-emerald-600 shadow-xs' : 'bg-primary'
+                                                            }`}>
+                                                                {(r.name || 'C')[0]}
+                                                            </div>
+                                                            <div className="min-w-0 flex-1">
+                                                                <div className="flex items-center gap-1.5">
+                                                                    <p className="text-xs font-bold text-gray-800 dark:text-white truncate">{r.name}</p>
+                                                                    {isMe && (
+                                                                        <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300">
+                                                                            Tú
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                                {r.email && (
+                                                                    <p className="text-[10px] text-gray-400 truncate">{r.email}</p>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })
+                                            ) : (
+                                                <div className="p-2.5 rounded-2xl bg-white dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 flex items-center gap-2.5">
+                                                    <div className="w-8 h-8 rounded-xl bg-primary text-white flex items-center justify-center font-black text-xs">
+                                                        {(detailTask.responsableNombre || 'C')[0]}
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-xs font-bold text-gray-800 dark:text-white truncate">{detailTask.responsableNombre || 'Por asignar'}</p>
+                                                        <p className="text-[10px] text-gray-400">Responsable asignado</p>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* 2. CRONOGRAMA Y TIEMPO */}
+                                    <div className="p-3.5 rounded-2xl bg-slate-50/80 dark:bg-gray-900/60 border border-slate-200/80 dark:border-gray-700/80 space-y-2">
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-[10px] font-black uppercase tracking-wider text-gray-400 flex items-center gap-1.5">
+                                                <FaCalendarAlt className="text-primary text-[10px]" /> Fechas de Compromiso
+                                            </span>
+                                            {isJefe && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setIsDetailModalOpen(false);
+                                                        handleOpenDateModal(detailTask);
+                                                    }}
+                                                    className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline"
+                                                >
+                                                    Ajustar fechas
+                                                </button>
+                                            )}
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-2 text-xs">
+                                            <div>
+                                                <span className="text-[9px] uppercase tracking-wider text-gray-400 font-bold block">Inicio</span>
+                                                <p className="font-bold text-gray-800 dark:text-gray-200 truncate">
+                                                    {detailTask.fechaInicio ? format(parseISO(detailTask.fechaInicio), "dd MMM, yyyy", { locale: es }) : 'Sin fecha'}
+                                                </p>
+                                            </div>
+                                            <div>
+                                                <span className="text-[9px] uppercase tracking-wider text-gray-400 font-bold block">Meta Entrega</span>
+                                                <p className="font-bold text-rose-600 dark:text-rose-400 truncate">
+                                                    {detailTask.fechaFin ? format(parseISO(detailTask.fechaFin), "dd MMM, yyyy", { locale: es }) : 'Sin fecha'}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* 3. BITÁCORA Y RECONOCIMIENTOS CON TABS */}
+                                    <div className="space-y-2">
+                                        <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700/80 pb-1.5">
+                                            <div className="flex items-center gap-3">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setDetailSubTab('NOTAS')}
+                                                    className={`text-xs font-black transition-colors flex items-center gap-1.5 pb-1 ${
+                                                        detailSubTab === 'NOTAS'
+                                                        ? 'text-amber-600 dark:text-amber-400 border-b-2 border-amber-500'
+                                                        : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
+                                                    }`}
+                                                >
+                                                    <FaComments size={12} /> Bitácora ({detailTask.notas?.length || 0})
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setDetailSubTab('RECONOCIMIENTOS')}
+                                                    className={`text-xs font-black transition-colors flex items-center gap-1.5 pb-1 ${
+                                                        detailSubTab === 'RECONOCIMIENTOS'
+                                                        ? 'text-amber-600 dark:text-amber-400 border-b-2 border-amber-500'
+                                                        : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
+                                                    }`}
+                                                >
+                                                    <FaStar size={12} /> Felicitaciones ({detailTask.evaluaciones?.length || 0})
+                                                </button>
+                                            </div>
+
+                                            {detailSubTab === 'NOTAS' ? (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleOpenNoteModal(detailTask)}
+                                                    className="text-[11px] font-bold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
+                                                >
+                                                    <FaPlus size={9} /> Dejar Nota
+                                                </button>
+                                            ) : (
+                                                isJefe && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setIsDetailModalOpen(false);
+                                                            handleOpenPraiseModal(detailTask);
+                                                        }}
+                                                        className="text-[11px] font-bold text-amber-600 dark:text-amber-400 hover:underline flex items-center gap-1"
+                                                    >
+                                                        <FaStar size={9} /> Calificar
+                                                    </button>
+                                                )
+                                            )}
+                                        </div>
+
+                                        {/* Contenido dinámico según Tab */}
+                                        {detailSubTab === 'NOTAS' ? (
+                                            detailTask.notas && detailTask.notas.length > 0 ? (
+                                                <div className="space-y-2 max-h-40 overflow-y-auto custom-scrollbar pr-0.5">
+                                                    {detailTask.notas.map((n, i) => (
+                                                        <div key={n.id || i} className="p-2.5 rounded-2xl bg-amber-50/70 dark:bg-amber-950/20 border border-amber-200/60 dark:border-amber-800/40 text-xs">
+                                                            <div className="flex items-center justify-between mb-1">
+                                                                <span className="font-bold text-amber-900 dark:text-amber-200 truncate">{n.autor || 'Compañero'}</span>
+                                                                <span className="text-[9px] text-gray-400 whitespace-nowrap">
+                                                                    {n.fecha ? format(new Date(n.fecha), 'dd MMM, HH:mm', { locale: es }) : ''}
+                                                                </span>
+                                                            </div>
+                                                            <p className="text-gray-700 dark:text-gray-300 italic text-[11px] leading-relaxed">"{n.mensaje}"</p>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <div className="p-3 text-center rounded-2xl border border-dashed border-gray-200 dark:border-gray-700 text-xs text-gray-400 italic">
+                                                    Sin notas ni bloqueos registrados.
+                                                </div>
+                                            )
+                                        ) : (
+                                            detailTask.evaluaciones && detailTask.evaluaciones.length > 0 ? (
+                                                <div className="space-y-2 max-h-40 overflow-y-auto custom-scrollbar pr-0.5">
+                                                    {detailTask.evaluaciones.map((ev, i) => (
+                                                        <div key={ev.id || i} className="p-2.5 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 text-xs space-y-1">
+                                                            <div className="flex items-center justify-between">
+                                                                <span className="font-black text-gray-800 dark:text-white truncate">De: {ev.jefeNombre}</span>
+                                                                <div className="flex text-amber-400 text-xs gap-0.5">
+                                                                    {[...Array(ev.estrellas || 5)].map((_, idx) => (
+                                                                        <FaStar key={idx} />
+                                                                    ))}
+                                                                </div>
+                                                            </div>
+                                                            <p className="text-gray-700 dark:text-gray-200 italic text-[11px]">"{ev.felicitacion}"</p>
+                                                            {ev.puntosMejora && (
+                                                                <p className="text-[10px] text-gray-500 dark:text-gray-400 pt-1 border-t border-amber-200/50">
+                                                                    💡 Sugerencia: {ev.puntosMejora}
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <div className="p-3 text-center rounded-2xl border border-dashed border-gray-200 dark:border-gray-700 text-xs text-gray-400 italic">
+                                                    Aún no hay calificaciones registradas.
+                                                </div>
+                                            )
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Pie de modal fijo y visible */}
+                        <div className="px-5 py-3.5 sm:px-6 sm:py-4 border-t border-gray-100 dark:border-gray-700 bg-gray-50/90 dark:bg-gray-900/60 flex flex-wrap items-center justify-between gap-2.5">
+                            <div className="flex items-center gap-2">
+                                {isJefe && (
+                                    <>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setIsDetailModalOpen(false);
+                                                handleOpenEditTask(detailTask);
+                                            }}
+                                            className="px-3 py-1.5 text-xs font-bold text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40 border border-blue-200 dark:border-blue-800 rounded-xl transition-colors flex items-center gap-1.5 active:scale-95"
+                                        >
+                                            <FaEdit size={11} /> Editar
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setIsDetailModalOpen(false);
+                                                handleOpenDateModal(detailTask);
+                                            }}
+                                            className="px-3 py-1.5 text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800 rounded-xl transition-colors flex items-center gap-1.5 active:scale-95"
+                                        >
+                                            <FaCalendarAlt size={11} /> Fechas
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setIsDetailModalOpen(false);
+                                                handleOpenPraiseModal(detailTask);
+                                            }}
+                                            className="px-3 py-1.5 text-xs font-bold text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-xl transition-colors flex items-center gap-1.5 active:scale-95"
+                                        >
+                                            <FaStar size={11} /> Calificar
+                                        </button>
+                                    </>
+                                )}
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => { setIsDetailModalOpen(false); setDetailTask(null); }}
+                                className="px-5 py-2 bg-gray-900 text-white dark:bg-gray-700 hover:bg-black dark:hover:bg-gray-600 text-xs font-bold rounded-xl transition-colors active:scale-95 shadow-sm ml-auto"
+                            >
+                                Cerrar Detalle
+                            </button>
+                        </div>
+                    </div>
+                </div>,
+                document.body
             )}
         </div>
     );

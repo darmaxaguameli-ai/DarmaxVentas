@@ -1330,6 +1330,7 @@ model SistemasTask {
   progreso          Int       @default(0)
   responsableId     String?
   responsableNombre String?
+  responsables      Json?     @default("[]")
   notas             Json?     @default("[]")
   evaluaciones      Json?     @default("[]")
   createdAt         DateTime  @default(now())

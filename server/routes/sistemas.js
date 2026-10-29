@@ -137,6 +137,7 @@ router.post('/sistemas/tasks/sync', verifyToken, async (req, res) => {
                         progreso: parseInt(t.progreso) || 0,
                         responsableId: t.responsableId,
                         responsableNombre: t.responsableNombre,
+                        responsables: t.responsables || [],
                         notas: t.notas || [],
                         evaluaciones: t.evaluaciones || []
                     },
@@ -153,6 +154,7 @@ router.post('/sistemas/tasks/sync', verifyToken, async (req, res) => {
                         progreso: parseInt(t.progreso) || 0,
                         responsableId: t.responsableId,
                         responsableNombre: t.responsableNombre,
+                        responsables: t.responsables || [],
                         notas: t.notas || [],
                         evaluaciones: t.evaluaciones || []
                     }
