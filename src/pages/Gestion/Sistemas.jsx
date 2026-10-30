@@ -125,6 +125,60 @@ const INITIAL_DEMO_TASKS = [
 const LOCAL_STORAGE_TASKS = 'darmax_sistemas_tasks_v2';
 const LOCAL_STORAGE_PROJECTS = 'darmax_sistemas_projects_v2';
 
+// Cabecera interactiva nativa para modales móviles (tirador de píldora central con gestos táctiles de deslizamiento y tap)
+const MobileSheetHeader = ({ isExpanded, onToggleExpand, onClose, canExpand = true }) => {
+    const [touchStartY, setTouchStartY] = useState(0);
+
+    const handleTouchStart = (e) => {
+        setTouchStartY(e.touches[0].clientY);
+    };
+
+    const handleTouchEnd = (e) => {
+        const diff = e.changedTouches[0].clientY - touchStartY;
+        if (diff > 45) {
+            // Deslizar hacia abajo: cerrar/bajar el modal
+            onClose();
+        } else if (diff < -40 && canExpand && !isExpanded) {
+            // Deslizar hacia arriba: expandir
+            onToggleExpand();
+        }
+    };
+
+    const handlePillClick = () => {
+        if (!canExpand) {
+            onClose();
+        } else {
+            onToggleExpand();
+        }
+    };
+
+    return (
+        <div 
+            className="w-full pt-3 pb-2 flex flex-col items-center justify-center sm:hidden select-none touch-manipulation cursor-grab active:cursor-grabbing flex-shrink-0 bg-transparent"
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
+        >
+            <button 
+                type="button"
+                onClick={handlePillClick}
+                className="group flex flex-col items-center justify-center px-8 py-1 active:scale-95 focus:outline-none touch-manipulation"
+                aria-label={canExpand ? (isExpanded ? "Reducir y bajar modal" : "Abrir más el modal") : "Bajar y cerrar modal"}
+            >
+                <div 
+                    className={`h-1.5 rounded-full transition-all duration-300 ease-out ${
+                        isExpanded 
+                            ? 'bg-primary dark:bg-blue-400 w-16 shadow-xs' 
+                            : 'bg-gray-300 dark:bg-gray-600 group-hover:bg-gray-400 dark:group-hover:bg-gray-500 w-12'
+                    }`} 
+                />
+                <span className="text-[9px] font-bold text-gray-400 dark:text-gray-500 mt-1 uppercase tracking-wider transition-colors group-hover:text-gray-600 dark:group-hover:text-gray-300">
+                    {canExpand ? (isExpanded ? 'Toca o desliza para bajar' : 'Toca para abrir más') : 'Desliza para bajar'}
+                </span>
+            </button>
+        </div>
+    );
+};
+
 const Sistemas = () => {
     const { user: authUser, hasPermission } = useAuth();
     const { addNotification } = useNotification();
@@ -157,6 +211,11 @@ const Sistemas = () => {
     const [isPraiseModalOpen, setIsPraiseModalOpen] = useState(false);
     const [isDateModalOpen, setIsDateModalOpen] = useState(false);
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+
+    // Estado de expansión de modales en móvil ("abrir más / maximizar")
+    const [isDetailExpanded, setIsDetailExpanded] = useState(false);
+    const [isTaskModalExpanded, setIsTaskModalExpanded] = useState(false);
+    const [isProjectModalExpanded, setIsProjectModalExpanded] = useState(false);
 
     const [selectedTask, setSelectedTask] = useState(null);
     const [selectedProject, setSelectedProject] = useState(null);
@@ -337,6 +396,7 @@ const Sistemas = () => {
             fechaInicio: format(new Date(), 'yyyy-MM-dd'),
             fechaFin: format(addDays(new Date(), 30), 'yyyy-MM-dd')
         });
+        setIsProjectModalExpanded(false);
         setIsProjectModalOpen(true);
     };
 
@@ -348,6 +408,7 @@ const Sistemas = () => {
             fechaInicio: project.fechaInicio ? (project.fechaInicio.includes('T') ? project.fechaInicio.split('T')[0] : project.fechaInicio) : format(new Date(), 'yyyy-MM-dd'),
             fechaFin: project.fechaFin ? (project.fechaFin.includes('T') ? project.fechaFin.split('T')[0] : project.fechaFin) : format(addDays(new Date(), 30), 'yyyy-MM-dd')
         });
+        setIsProjectModalExpanded(false);
         setIsProjectModalOpen(true);
     };
 
@@ -472,6 +533,7 @@ const Sistemas = () => {
             responsableNombre: '',
             responsables: initialResp
         });
+        setIsTaskModalExpanded(false);
         setIsTaskModalOpen(true);
     };
 
@@ -500,6 +562,7 @@ const Sistemas = () => {
             responsableNombre: task.responsableNombre || '',
             responsables: currentResp
         });
+        setIsTaskModalExpanded(false);
         setIsTaskModalOpen(true);
     };
 
@@ -572,6 +635,7 @@ const Sistemas = () => {
     // ==========================================
     const handleOpenTaskDetail = (task) => {
         setDetailTask(task);
+        setIsDetailExpanded(false);
         setIsDetailModalOpen(true);
     };
 
@@ -927,7 +991,7 @@ const Sistemas = () => {
     const rateVisible = totalVisible > 0 ? Math.round((completedVisible / totalVisible) * 100) : 0;
 
     return (
-        <div className="space-y-6 animate-fade-in pb-16">
+        <div className="space-y-6 animate-fade-in pb-16 w-full max-w-full overflow-x-clip sm:overflow-x-visible">
             {/* Header del Área de Sistemas */}
             <div className="bg-gradient-to-r from-slate-900 via-blue-950 to-indigo-950 rounded-3xl p-6 md:p-8 text-white shadow-xl relative overflow-hidden">
                 <div className="absolute right-0 top-0 -mt-10 -mr-10 w-72 h-72 bg-blue-500/10 rounded-full blur-3xl pointer-events-none"></div>
@@ -1168,14 +1232,14 @@ const Sistemas = () => {
             })()}
 
             {/* Barra de Filtros y Vistas */}
-            <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 select-none">
-                <div className="flex flex-wrap items-center gap-2">
+            <div className="bg-white dark:bg-gray-800 p-3.5 sm:p-4 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4 select-none w-full max-w-full overflow-hidden">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full md:w-auto min-w-0 max-w-full">
                     {/* Botones de Vistas */}
-                    <div className="bg-gray-100 dark:bg-gray-900 p-1 rounded-xl flex items-center overflow-x-auto overscroll-contain touch-pan-x [scrollbar-width:none]">
+                    <div className="bg-gray-100 dark:bg-gray-900 p-1 rounded-xl flex items-center overflow-x-auto overscroll-contain touch-pan-x [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden w-full sm:w-auto max-w-full flex-shrink-0">
                         <button
                             type="button"
                             onClick={() => setViewMode('TABLERO')}
-                            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-bold transition-all min-h-[38px] touch-manipulation active:scale-95 ${
+                            className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-bold transition-all min-h-[38px] touch-manipulation active:scale-95 whitespace-nowrap ${
                                 viewMode === 'TABLERO'
                                 ? 'bg-white dark:bg-gray-800 text-primary shadow-sm'
                                 : 'text-gray-500 hover:text-gray-900 dark:text-gray-400'
@@ -1186,7 +1250,7 @@ const Sistemas = () => {
                         <button
                             type="button"
                             onClick={() => setViewMode('GANTT')}
-                            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-bold transition-all min-h-[38px] touch-manipulation active:scale-95 whitespace-nowrap ${
+                            className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-bold transition-all min-h-[38px] touch-manipulation active:scale-95 whitespace-nowrap ${
                                 viewMode === 'GANTT'
                                 ? 'bg-white dark:bg-gray-800 text-primary shadow-sm'
                                 : 'text-gray-500 hover:text-gray-900 dark:text-gray-400'
@@ -1197,7 +1261,7 @@ const Sistemas = () => {
                         <button
                             type="button"
                             onClick={() => setViewMode('NOTAS')}
-                            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-bold transition-all min-h-[38px] touch-manipulation active:scale-95 whitespace-nowrap ${
+                            className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-bold transition-all min-h-[38px] touch-manipulation active:scale-95 whitespace-nowrap ${
                                 viewMode === 'NOTAS'
                                 ? 'bg-white dark:bg-gray-800 text-primary shadow-sm'
                                 : 'text-gray-500 hover:text-gray-900 dark:text-gray-400'
@@ -1209,12 +1273,12 @@ const Sistemas = () => {
 
                     {/* Filtro por Colaborador (Exclusivo para el Jefe) */}
                     {isJefe && distinctCollaborators.length > 0 && (
-                        <div className="flex items-center gap-1.5 bg-gray-50 dark:bg-gray-900 px-3 py-1.5 rounded-xl border border-gray-200 dark:border-gray-700 min-h-[38px]">
-                            <FaFilter className="text-gray-400 text-xs" />
+                        <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-900 px-3 py-1.5 rounded-xl border border-gray-200 dark:border-gray-700 min-h-[40px] w-full sm:w-auto max-w-full min-w-0">
+                            <FaFilter className="text-gray-400 text-xs flex-shrink-0" />
                             <select
                                 value={filterCollaborator}
                                 onChange={(e) => setFilterCollaborator(e.target.value)}
-                                className="bg-transparent text-base sm:text-xs font-bold text-gray-700 dark:text-gray-200 outline-none cursor-pointer py-1"
+                                className="bg-transparent text-base sm:text-xs font-bold text-gray-700 dark:text-gray-200 outline-none cursor-pointer py-1 flex-1 w-0 min-w-0 max-w-full truncate"
                             >
                                 <option value="TODOS" className="dark:bg-gray-800">Todo el equipo</option>
                                 {distinctCollaborators.map(c => (
@@ -1226,7 +1290,7 @@ const Sistemas = () => {
                 </div>
 
                 {/* Buscador */}
-                <div className="relative w-full md:w-64">
+                <div className="relative w-full md:w-64 max-w-full">
                     <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs pointer-events-none" />
                     <input
                         type="search"
@@ -1673,15 +1737,26 @@ const Sistemas = () => {
                         if (e.target === e.currentTarget) {
                             setIsProjectModalOpen(false);
                             setSelectedProject(null);
+                            setIsProjectModalExpanded(false);
                         }
                     }}
                 >
                     <div 
-                        className="bg-white dark:bg-gray-800 rounded-t-3xl sm:rounded-3xl w-full max-w-lg shadow-2xl border-t sm:border border-gray-100 dark:border-gray-700/80 overflow-hidden flex flex-col max-h-[92dvh] sm:max-h-[85vh]"
+                        className={`bg-white dark:bg-gray-800 rounded-t-3xl sm:rounded-3xl w-full max-w-lg shadow-2xl border-t sm:border border-gray-100 dark:border-gray-700/80 overflow-hidden flex flex-col transition-all duration-300 ease-out ${
+                            isProjectModalExpanded ? 'h-[96dvh] max-h-[96dvh]' : 'max-h-[92dvh] sm:max-h-[85vh]'
+                        }`}
                         onClick={(e) => e.stopPropagation()}
                     >
-                        {/* Drag Handle Indicator en Móvil */}
-                        <div className="w-12 h-1.5 bg-gray-300 dark:bg-gray-600 rounded-full mx-auto mt-2.5 mb-1 sm:hidden flex-shrink-0" />
+                        {/* Cabecera interactiva para móvil (deslizar para bajar/abrir más, botones de acción) */}
+                        <MobileSheetHeader 
+                            isExpanded={isProjectModalExpanded}
+                            onToggleExpand={() => setIsProjectModalExpanded(!isProjectModalExpanded)}
+                            onClose={() => {
+                                setIsProjectModalOpen(false);
+                                setSelectedProject(null);
+                                setIsProjectModalExpanded(false);
+                            }}
+                        />
 
                         <div className="p-4 sm:p-6 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-900/50 flex-shrink-0">
                             <div>
@@ -1697,7 +1772,7 @@ const Sistemas = () => {
                             </div>
                             <button 
                                 type="button"
-                                onClick={() => { setIsProjectModalOpen(false); setSelectedProject(null); }} 
+                                onClick={() => { setIsProjectModalOpen(false); setSelectedProject(null); setIsProjectModalExpanded(false); }} 
                                 className="w-9 h-9 min-h-[36px] flex items-center justify-center rounded-xl text-gray-400 hover:text-gray-700 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 active:scale-95 touch-manipulation select-none"
                                 aria-label="Cerrar modal"
                             >
@@ -1763,7 +1838,7 @@ const Sistemas = () => {
                             <div className="pt-2 flex gap-3 select-none">
                                 <button
                                     type="button"
-                                    onClick={() => { setIsProjectModalOpen(false); setSelectedProject(null); }}
+                                    onClick={() => { setIsProjectModalOpen(false); setSelectedProject(null); setIsProjectModalExpanded(false); }}
                                     className="flex-1 min-h-[46px] py-3 text-xs font-bold text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-100 ease-out active:scale-[0.98] touch-manipulation flex items-center justify-center"
                                 >
                                     Cancelar
@@ -1791,15 +1866,26 @@ const Sistemas = () => {
                         if (e.target === e.currentTarget) {
                             setIsTaskModalOpen(false);
                             setSelectedTask(null);
+                            setIsTaskModalExpanded(false);
                         }
                     }}
                 >
                     <div 
-                        className="bg-white dark:bg-gray-800 rounded-t-3xl sm:rounded-3xl w-full max-w-xl shadow-2xl border-t sm:border border-gray-100 dark:border-gray-700/80 overflow-hidden flex flex-col max-h-[92dvh] sm:max-h-[85vh]"
+                        className={`bg-white dark:bg-gray-800 rounded-t-3xl sm:rounded-3xl w-full max-w-xl shadow-2xl border-t sm:border border-gray-100 dark:border-gray-700/80 overflow-hidden flex flex-col transition-all duration-300 ease-out ${
+                            isTaskModalExpanded ? 'h-[96dvh] max-h-[96dvh]' : 'max-h-[92dvh] sm:max-h-[85vh]'
+                        }`}
                         onClick={(e) => e.stopPropagation()}
                     >
-                        {/* Drag Handle Indicator en Móvil */}
-                        <div className="w-12 h-1.5 bg-gray-300 dark:bg-gray-600 rounded-full mx-auto mt-2.5 mb-1 sm:hidden flex-shrink-0" />
+                        {/* Cabecera interactiva para móvil (deslizar para bajar/abrir más, botones de acción) */}
+                        <MobileSheetHeader 
+                            isExpanded={isTaskModalExpanded}
+                            onToggleExpand={() => setIsTaskModalExpanded(!isTaskModalExpanded)}
+                            onClose={() => {
+                                setIsTaskModalOpen(false);
+                                setSelectedTask(null);
+                                setIsTaskModalExpanded(false);
+                            }}
+                        />
 
                         <div className="p-4 sm:p-6 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-900/50 flex-shrink-0">
                             <div>
@@ -1813,7 +1899,7 @@ const Sistemas = () => {
                             </div>
                             <button 
                                 type="button"
-                                onClick={() => { setIsTaskModalOpen(false); setSelectedTask(null); }} 
+                                onClick={() => { setIsTaskModalOpen(false); setSelectedTask(null); setIsTaskModalExpanded(false); }} 
                                 className="w-9 h-9 min-h-[36px] flex items-center justify-center rounded-xl text-gray-400 hover:text-gray-700 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 active:scale-95 touch-manipulation select-none"
                                 aria-label="Cerrar modal"
                             >
@@ -2001,7 +2087,7 @@ const Sistemas = () => {
                             <div className="pt-2 flex gap-3 select-none">
                                 <button
                                     type="button"
-                                    onClick={() => { setIsTaskModalOpen(false); setSelectedTask(null); }}
+                                    onClick={() => { setIsTaskModalOpen(false); setSelectedTask(null); setIsTaskModalExpanded(false); }}
                                     className="flex-1 min-h-[46px] py-3 text-xs font-bold text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-100 ease-out active:scale-[0.98] touch-manipulation flex items-center justify-center"
                                 >
                                     Cancelar
@@ -2033,8 +2119,11 @@ const Sistemas = () => {
                         className="bg-white dark:bg-gray-800 rounded-t-3xl sm:rounded-3xl w-full max-w-lg shadow-2xl border-t sm:border border-gray-100 dark:border-gray-700/80 overflow-hidden flex flex-col max-h-[92dvh] sm:max-h-[85vh]"
                         onClick={(e) => e.stopPropagation()}
                     >
-                        {/* Drag Handle Indicator en Móvil */}
-                        <div className="w-12 h-1.5 bg-gray-300 dark:bg-gray-600 rounded-full mx-auto mt-2.5 mb-1 sm:hidden flex-shrink-0" />
+                        {/* Cabecera interactiva para móvil */}
+                        <MobileSheetHeader 
+                            canExpand={false}
+                            onClose={() => setIsNoteModalOpen(false)}
+                        />
 
                         <div className="p-4 sm:p-6 border-b border-gray-100 dark:border-gray-700 bg-blue-50/50 dark:bg-blue-900/20 flex justify-between items-center flex-shrink-0">
                             <div>
@@ -2110,8 +2199,11 @@ const Sistemas = () => {
                         className="bg-white dark:bg-gray-800 rounded-t-3xl sm:rounded-3xl w-full max-w-md shadow-2xl border-t sm:border border-gray-100 dark:border-gray-700/80 overflow-hidden flex flex-col max-h-[92dvh] sm:max-h-[85vh]"
                         onClick={(e) => e.stopPropagation()}
                     >
-                        {/* Drag Handle Indicator en Móvil */}
-                        <div className="w-12 h-1.5 bg-gray-300 dark:bg-gray-600 rounded-full mx-auto mt-2.5 mb-1 sm:hidden flex-shrink-0" />
+                        {/* Cabecera interactiva para móvil */}
+                        <MobileSheetHeader 
+                            canExpand={false}
+                            onClose={() => setIsPraiseModalOpen(false)}
+                        />
 
                         <div className="p-4 sm:p-6 border-b border-gray-100 dark:border-gray-700 bg-amber-50/50 dark:bg-amber-900/20 flex justify-between items-center flex-shrink-0">
                             <div>
@@ -2220,8 +2312,11 @@ const Sistemas = () => {
                         className="bg-white dark:bg-gray-800 rounded-t-3xl sm:rounded-3xl w-full max-w-sm shadow-2xl border-t sm:border border-gray-100 dark:border-gray-700/80 overflow-hidden flex flex-col max-h-[92dvh] sm:max-h-[85vh]"
                         onClick={(e) => e.stopPropagation()}
                     >
-                        {/* Drag Handle Indicator en Móvil */}
-                        <div className="w-12 h-1.5 bg-gray-300 dark:bg-gray-600 rounded-full mx-auto mt-2.5 mb-1 sm:hidden flex-shrink-0" />
+                        {/* Cabecera interactiva para móvil */}
+                        <MobileSheetHeader 
+                            canExpand={false}
+                            onClose={() => setIsDateModalOpen(false)}
+                        />
 
                         <div className="p-4 sm:p-6 border-b border-gray-100 dark:border-gray-700 bg-indigo-50/50 dark:bg-indigo-900/20 flex justify-between items-center flex-shrink-0">
                             <div>
@@ -2313,15 +2408,28 @@ const Sistemas = () => {
                         if (e.target === e.currentTarget) {
                             setIsDetailModalOpen(false);
                             setDetailTask(null);
+                            setIsDetailExpanded(false);
                         }
                     }}
                 >
                     <div 
-                        className="bg-white dark:bg-gray-800 rounded-t-3xl sm:rounded-3xl w-full max-w-4xl shadow-2xl border-t sm:border border-gray-100 dark:border-gray-700/80 flex flex-col max-h-[94dvh] sm:max-h-[88vh] overflow-hidden"
+                        className={`bg-white dark:bg-gray-800 rounded-t-3xl sm:rounded-3xl w-full max-w-4xl shadow-2xl border-t sm:border border-gray-100 dark:border-gray-700/80 flex flex-col overflow-hidden transition-all duration-300 ease-out ${
+                            isDetailExpanded 
+                                ? 'h-[96dvh] max-h-[96dvh] sm:max-h-[88vh]' 
+                                : 'max-h-[82dvh] sm:max-h-[88vh]'
+                        }`}
                         onClick={(e) => e.stopPropagation()}
                     >
-                        {/* Drag Handle Indicator en Móvil */}
-                        <div className="w-12 h-1.5 bg-gray-300 dark:bg-gray-600 rounded-full mx-auto mt-2.5 mb-1 sm:hidden flex-shrink-0" />
+                        {/* Cabecera interactiva para móvil (deslizar para bajar/abrir más, botones de acción) */}
+                        <MobileSheetHeader 
+                            isExpanded={isDetailExpanded}
+                            onToggleExpand={() => setIsDetailExpanded(!isDetailExpanded)}
+                            onClose={() => {
+                                setIsDetailModalOpen(false);
+                                setDetailTask(null);
+                                setIsDetailExpanded(false);
+                            }}
+                        />
 
                         {/* Cabecera elegante y compacta */}
                         <div className="px-5 py-4 sm:px-6 sm:py-5 border-b border-gray-100 dark:border-gray-700/80 bg-gradient-to-r from-slate-50 via-white to-blue-50/40 dark:from-gray-900 dark:via-gray-850 dark:to-blue-950/20 flex items-start justify-between gap-4 flex-shrink-0">
@@ -2352,7 +2460,7 @@ const Sistemas = () => {
                             </div>
                             <button 
                                 type="button"
-                                onClick={() => { setIsDetailModalOpen(false); setDetailTask(null); }} 
+                                onClick={() => { setIsDetailModalOpen(false); setDetailTask(null); setIsDetailExpanded(false); }} 
                                 className="w-9 h-9 min-h-[36px] flex items-center justify-center rounded-xl text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 active:scale-95 touch-manipulation select-none flex-shrink-0"
                                 title="Cerrar ventana"
                             >
@@ -2443,24 +2551,31 @@ const Sistemas = () => {
                                             ></div>
                                         </div>
 
-                                        {/* Botones de actualización rápida */}
-                                        <div className="flex items-center justify-between pt-1 gap-1 select-none">
-                                            <span className="text-[10px] text-gray-400 font-bold">Ajuste rápido:</span>
-                                            <div className="flex items-center gap-1.5">
-                                                {[0, 25, 50, 75, 100].map(pct => (
-                                                    <button
-                                                        key={pct}
-                                                        type="button"
-                                                        onClick={() => handleUpdateTaskProgressDirect(detailTask, pct)}
-                                                        className={`px-3 py-1.5 rounded-xl text-[11px] font-black transition-all active:scale-95 min-h-[38px] min-w-[42px] touch-manipulation flex items-center justify-center ${
-                                                            detailTask.progreso === pct 
-                                                            ? 'bg-primary text-white shadow-xs' 
-                                                            : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:border-gray-300'
-                                                        }`}
-                                                    >
-                                                        {pct}%
-                                                    </button>
-                                                ))}
+                                        {/* Selector de actualización rápida de porcentaje sin desborde horizontal */}
+                                        <div className="pt-1.5 space-y-1.5 select-none">
+                                            <div className="flex items-center justify-between text-[11px]">
+                                                <span className="text-gray-500 dark:text-gray-400 font-bold">Ajuste rápido de avance:</span>
+                                                <span className="text-[10px] font-medium text-gray-400">Toca para fijar</span>
+                                            </div>
+                                            {/* Segmented Control de 5 opciones al 100% de ancho */}
+                                            <div className="grid grid-cols-5 gap-1 sm:gap-1.5 w-full bg-gray-100 dark:bg-gray-800/80 p-1 rounded-2xl border border-gray-200/70 dark:border-gray-700/60">
+                                                {[0, 25, 50, 75, 100].map(pct => {
+                                                    const isSelected = (detailTask.progreso || 0) === pct;
+                                                    return (
+                                                        <button
+                                                            key={pct}
+                                                            type="button"
+                                                            onClick={() => handleUpdateTaskProgressDirect(detailTask, pct)}
+                                                            className={`py-2 px-1 rounded-xl text-xs sm:text-xs font-black transition-all active:scale-95 min-h-[40px] touch-manipulation flex items-center justify-center ${
+                                                                isSelected 
+                                                                ? 'bg-primary text-white shadow-sm ring-1 ring-primary/40 font-black' 
+                                                                : 'bg-white dark:bg-gray-700/70 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 shadow-2xs'
+                                                            }`}
+                                                        >
+                                                            {pct}%
+                                                        </button>
+                                                    );
+                                                })}
                                             </div>
                                         </div>
                                     </div>
@@ -2711,7 +2826,7 @@ const Sistemas = () => {
                             </div>
                             <button
                                 type="button"
-                                onClick={() => { setIsDetailModalOpen(false); setDetailTask(null); }}
+                                onClick={() => { setIsDetailModalOpen(false); setDetailTask(null); setIsDetailExpanded(false); }}
                                 className="px-5 py-2.5 bg-gray-900 text-white dark:bg-gray-700 hover:bg-black dark:hover:bg-gray-600 text-xs font-black uppercase tracking-wider rounded-xl transition-all duration-100 ease-out active:scale-95 touch-manipulation shadow-sm ml-auto min-h-[40px]"
                             >
                                 Cerrar Detalle

@@ -2,8 +2,63 @@ import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import apiClient from "@/api/apiClient";
 
+// Cabecera interactiva nativa para modales móviles (tirador de píldora central con gestos táctiles de deslizamiento y tap)
+const MobileSheetHeader = ({ isExpanded, onToggleExpand, onClose, canExpand = true }) => {
+  const [touchStartY, setTouchStartY] = useState(0);
+
+  const handleTouchStart = (e) => {
+    setTouchStartY(e.touches[0].clientY);
+  };
+
+  const handleTouchEnd = (e) => {
+    const diff = e.changedTouches[0].clientY - touchStartY;
+    if (diff > 45) {
+      // Deslizar hacia abajo: cerrar/bajar el modal
+      onClose();
+    } else if (diff < -40 && canExpand && !isExpanded) {
+      // Deslizar hacia arriba: expandir
+      onToggleExpand();
+    }
+  };
+
+  const handlePillClick = () => {
+    if (!canExpand) {
+      onClose();
+    } else {
+      onToggleExpand();
+    }
+  };
+
+  return (
+    <div 
+      className="w-full pt-3 pb-2 flex flex-col items-center justify-center sm:hidden select-none touch-manipulation cursor-grab active:cursor-grabbing flex-shrink-0 bg-transparent"
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+    >
+      <button 
+        type="button"
+        onClick={handlePillClick}
+        className="group flex flex-col items-center justify-center px-8 py-1 active:scale-95 focus:outline-none touch-manipulation"
+        aria-label={canExpand ? (isExpanded ? "Reducir y bajar modal" : "Abrir más el modal") : "Bajar y cerrar modal"}
+      >
+        <div 
+          className={`h-1.5 rounded-full transition-all duration-300 ease-out ${
+            isExpanded 
+              ? 'bg-primary dark:bg-blue-400 w-16 shadow-xs' 
+              : 'bg-gray-300 dark:bg-gray-600 group-hover:bg-gray-400 dark:group-hover:bg-gray-500 w-12'
+          }`} 
+        />
+        <span className="text-[9px] font-bold text-gray-400 dark:text-gray-500 mt-1 uppercase tracking-wider transition-colors group-hover:text-gray-600 dark:group-hover:text-gray-300">
+          {canExpand ? (isExpanded ? 'Toca o desliza para bajar' : 'Toca para abrir más') : 'Desliza para bajar'}
+        </span>
+      </button>
+    </div>
+  );
+};
+
 const EmpleadoModal = ({ onClose, empleadoToEdit, onSave, empleados = [], users = [], roles = [], allStores = [] }) => {
   const [activeTab, setActiveTab] = useState("personal"); // 'personal' | 'laboral' | 'acceso'
+  const [isExpanded, setIsExpanded] = useState(false);
   const [systemAccessEnabled, setSystemAccessEnabled] = useState(!!empleadoToEdit?.userId);
   const [changePassword, setChangePassword] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -156,14 +211,33 @@ const EmpleadoModal = ({ onClose, empleadoToEdit, onSave, empleados = [], users 
 
   return createPortal(
     <div 
-      className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-200"
-      onClick={onClose}
+      className="fixed inset-0 z-[9999] bg-black/75 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          setIsExpanded(false);
+          onClose();
+        }
+      }}
     >
       <div 
-        className="bg-white dark:bg-gray-850 rounded-3xl w-full max-w-3xl shadow-2xl border border-gray-200/80 dark:border-gray-700/80 flex flex-col max-h-[92vh] sm:max-h-[88vh] overflow-hidden transform transition-all duration-200"
+        className={`bg-white dark:bg-gray-850 rounded-t-3xl sm:rounded-3xl w-full max-w-3xl shadow-2xl border-t sm:border border-gray-200/80 dark:border-gray-700/80 flex flex-col overflow-hidden transition-all duration-300 ease-out ${
+          isExpanded 
+            ? 'h-[96dvh] max-h-[96dvh] sm:max-h-[88vh]' 
+            : 'max-h-[90dvh] sm:max-h-[88vh]'
+        }`}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Cabecera Fija del Modal (Estilo Sistemas) */}
+        {/* Cabecera interactiva táctil para móvil (deslizar para bajar/abrir más) */}
+        <MobileSheetHeader 
+          isExpanded={isExpanded}
+          onToggleExpand={() => setIsExpanded(!isExpanded)}
+          onClose={() => {
+            setIsExpanded(false);
+            onClose();
+          }}
+        />
+
+        {/* Cabecera Fija del Modal */}
         <div className="px-5 py-4 sm:px-6 sm:py-5 border-b border-gray-100 dark:border-gray-800 bg-gradient-to-r from-slate-50 via-white to-blue-50/40 dark:from-gray-900 dark:via-gray-850 dark:to-blue-950/20 flex items-start justify-between gap-4 flex-shrink-0">
           <div className="space-y-1 min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
@@ -190,8 +264,11 @@ const EmpleadoModal = ({ onClose, empleadoToEdit, onSave, empleados = [], users 
 
           <button 
             type="button"
-            onClick={onClose} 
-            className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex-shrink-0 active:scale-95"
+            onClick={() => {
+              setIsExpanded(false);
+              onClose();
+            }} 
+            className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex-shrink-0 active:scale-95 touch-manipulation"
             title="Cerrar modal"
           >
             <span className="material-symbols-outlined text-xl">close</span>
@@ -267,7 +344,7 @@ const EmpleadoModal = ({ onClose, empleadoToEdit, onSave, empleados = [], users 
                       onChange={handleChange} 
                       required 
                       placeholder="Ej: Carlos Eduardo Ramírez Soto"
-                      className="w-full bg-gray-50/80 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700/80 rounded-xl px-3.5 py-2.5 text-xs font-bold text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all"
+                      className="w-full bg-gray-50/80 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700/80 rounded-xl px-3.5 py-2.5 text-base sm:text-xs font-bold text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all"
                     />
                   </div>
 
@@ -286,7 +363,7 @@ const EmpleadoModal = ({ onClose, empleadoToEdit, onSave, empleados = [], users 
                         onChange={handleChange} 
                         required 
                         placeholder="ejemplo@darmax.com" 
-                        className="w-full pl-9 pr-3.5 py-2.5 bg-gray-50/80 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700/80 rounded-xl text-xs font-bold text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all"
+                        className="w-full pl-9 pr-3.5 py-2.5 bg-gray-50/80 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700/80 rounded-xl text-base sm:text-xs font-bold text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all min-w-0"
                       />
                     </div>
                   </div>
@@ -304,7 +381,7 @@ const EmpleadoModal = ({ onClose, empleadoToEdit, onSave, empleados = [], users 
                         value={empleado.telefono || ""} 
                         onChange={handleChange} 
                         placeholder="Ej: 998 123 4567" 
-                        className="w-full pl-9 pr-3.5 py-2.5 bg-gray-50/80 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700/80 rounded-xl text-xs font-bold text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all"
+                        className="w-full pl-9 pr-3.5 py-2.5 bg-gray-50/80 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700/80 rounded-xl text-base sm:text-xs font-bold text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all"
                       />
                     </div>
                   </div>
@@ -353,7 +430,7 @@ const EmpleadoModal = ({ onClose, empleadoToEdit, onSave, empleados = [], users 
                       value={empleado.street || ""} 
                       onChange={handleChange} 
                       placeholder="Ej: Av. Kabah Mz 4 Lt 12"
-                      className="w-full bg-gray-50/80 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700/80 rounded-xl px-3.5 py-2.5 text-xs font-bold text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all"
+                      className="w-full bg-gray-50/80 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700/80 rounded-xl px-3.5 py-2.5 text-base sm:text-xs font-bold text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all"
                     />
                   </div>
 
@@ -367,7 +444,7 @@ const EmpleadoModal = ({ onClose, empleadoToEdit, onSave, empleados = [], users 
                       onChange={handleChange} 
                       placeholder="77500" 
                       maxLength="5" 
-                      className="w-full bg-gray-50/80 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700/80 rounded-xl px-3.5 py-2.5 text-xs font-bold text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all"
+                      className="w-full bg-gray-50/80 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700/80 rounded-xl px-3.5 py-2.5 text-base sm:text-xs font-bold text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all"
                     />
                   </div>
 
@@ -380,7 +457,7 @@ const EmpleadoModal = ({ onClose, empleadoToEdit, onSave, empleados = [], users 
                       value={empleado.neighborhood || ""} 
                       onChange={handleChange} 
                       placeholder="Ej: Región 95"
-                      className="w-full bg-gray-50/80 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700/80 rounded-xl px-3.5 py-2.5 text-xs font-bold text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all"
+                      className="w-full bg-gray-50/80 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700/80 rounded-xl px-3.5 py-2.5 text-base sm:text-xs font-bold text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all"
                     />
                   </div>
 
@@ -393,7 +470,7 @@ const EmpleadoModal = ({ onClose, empleadoToEdit, onSave, empleados = [], users 
                       value={empleado.city || ""} 
                       onChange={handleChange} 
                       placeholder="Ej: Cancún, Q. Roo"
-                      className="w-full bg-gray-50/80 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700/80 rounded-xl px-3.5 py-2.5 text-xs font-bold text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all"
+                      className="w-full bg-gray-50/80 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700/80 rounded-xl px-3.5 py-2.5 text-base sm:text-xs font-bold text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all"
                     />
                   </div>
                 </div>
@@ -422,7 +499,7 @@ const EmpleadoModal = ({ onClose, empleadoToEdit, onSave, empleados = [], users 
                     onChange={handleChange} 
                     required 
                     placeholder="Ej: Encargado de Purificadora" 
-                    className="w-full bg-gray-50/80 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700/80 rounded-xl px-3.5 py-2.5 text-xs font-bold text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all uppercase"
+                    className="w-full bg-gray-50/80 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700/80 rounded-xl px-3.5 py-2.5 text-base sm:text-xs font-bold text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all uppercase"
                   />
                 </div>
 
@@ -439,7 +516,7 @@ const EmpleadoModal = ({ onClose, empleadoToEdit, onSave, empleados = [], users 
                       value={empleado.sueldo || 0} 
                       onChange={handleChange} 
                       required 
-                      className="w-full pl-8 pr-3.5 py-2.5 bg-gray-50/80 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700/80 rounded-xl text-xs font-bold text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all"
+                      className="w-full pl-8 pr-3.5 py-2.5 bg-gray-50/80 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700/80 rounded-xl text-base sm:text-xs font-bold text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all"
                     />
                   </div>
                 </div>
@@ -454,7 +531,7 @@ const EmpleadoModal = ({ onClose, empleadoToEdit, onSave, empleados = [], users 
                     value={empleado.fechaContratacion || ""} 
                     onChange={handleChange} 
                     required 
-                    className="w-full bg-gray-50/80 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700/80 rounded-xl px-3.5 py-2.5 text-xs font-bold text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all"
+                    className="w-full bg-gray-50/80 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700/80 rounded-xl px-3.5 py-2.5 text-base sm:text-xs font-bold text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all"
                   />
                 </div>
 
@@ -466,7 +543,7 @@ const EmpleadoModal = ({ onClose, empleadoToEdit, onSave, empleados = [], users 
                     name="storeId" 
                     value={empleado.storeId || ""} 
                     onChange={handleChange} 
-                    className="w-full bg-gray-50/80 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700/80 rounded-xl px-3.5 py-2.5 text-xs font-bold text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all cursor-pointer"
+                    className="w-full bg-gray-50/80 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700/80 rounded-xl px-3.5 py-2.5 text-base sm:text-xs font-bold text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all cursor-pointer"
                   >
                     <option value="">-- Sin Sucursal (Acceso Global) --</option>
                     {(allStores || []).map(s => (
@@ -703,8 +780,11 @@ const EmpleadoModal = ({ onClose, empleadoToEdit, onSave, empleados = [], users 
           <div className="pt-4 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between gap-3">
             <button 
               type="button" 
-              onClick={onClose} 
-              className="py-2.5 px-4 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 font-bold rounded-xl text-xs hover:bg-gray-200 dark:hover:bg-gray-700 active:scale-95 transition-all"
+              onClick={() => {
+                setIsExpanded(false);
+                onClose();
+              }} 
+              className="py-2.5 px-4 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 font-bold rounded-xl text-xs hover:bg-gray-200 dark:hover:bg-gray-700 active:scale-95 transition-all touch-manipulation min-h-[40px] flex items-center justify-center"
             >
               Cancelar
             </button>
@@ -714,7 +794,7 @@ const EmpleadoModal = ({ onClose, empleadoToEdit, onSave, empleados = [], users 
                 <button
                   type="button"
                   onClick={() => setActiveTab(activeTab === "personal" ? "laboral" : "acceso")}
-                  className="py-2.5 px-4 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 font-bold rounded-xl text-xs hover:bg-gray-200 dark:hover:bg-gray-700 active:scale-95 transition-all flex items-center gap-1"
+                  className="py-2.5 px-4 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 font-bold rounded-xl text-xs hover:bg-gray-200 dark:hover:bg-gray-700 active:scale-95 transition-all flex items-center gap-1 touch-manipulation min-h-[40px]"
                 >
                   <span>Siguiente</span>
                   <span className="material-symbols-outlined text-sm">arrow_forward</span>
@@ -723,7 +803,7 @@ const EmpleadoModal = ({ onClose, empleadoToEdit, onSave, empleados = [], users 
 
               <button 
                 type="submit" 
-                className="py-2.5 px-5 bg-primary text-white font-bold rounded-xl text-xs shadow-xs hover:bg-primary-dark active:scale-95 transition-all flex items-center gap-1.5"
+                className="py-2.5 px-5 bg-primary text-white font-bold rounded-xl text-xs shadow-xs hover:bg-primary-dark active:scale-95 transition-all flex items-center gap-1.5 touch-manipulation min-h-[40px]"
               >
                 <span className="material-symbols-outlined text-sm">check</span>
                 <span>{isEditing ? "Guardar Cambios" : "Dar de Alta"}</span>

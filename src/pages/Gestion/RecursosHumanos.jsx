@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
 import { useGestion } from './context/GestionContext';
 import Organigrama from './components/Organigrama';
@@ -41,8 +42,262 @@ const StatCard = ({ icon, title, value, subtitle, badge, badgeColor, iconColor, 
     </div>
 );
 
+// Modal de Expediente Laboral (Estilo Bottom-Sheet nativo con gestos y píldora central)
+const ExpedienteModal = ({ empleado, onClose, onEdit, allStores = [] }) => {
+    const [isExpanded, setIsExpanded] = useState(false);
+    const [touchStartY, setTouchStartY] = useState(0);
+
+    const handleTouchStart = (e) => {
+        setTouchStartY(e.touches[0].clientY);
+    };
+
+    const handleTouchEnd = (e) => {
+        const diff = e.changedTouches[0].clientY - touchStartY;
+        if (diff > 45) {
+            onClose();
+        } else if (diff < -40 && !isExpanded) {
+            setIsExpanded(true);
+        }
+    };
+
+    const handlePillClick = () => {
+        setIsExpanded(!isExpanded);
+    };
+
+    if (!empleado) return null;
+
+    const storeName = empleado.user?.store?.name || empleado.store?.name || 
+        allStores.find(s => s.id === (empleado.user?.storeId || empleado.storeId))?.name || 
+        'Acceso Global / Corporativo';
+
+    const formattedSueldo = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(empleado.sueldo || 0);
+
+    return createPortal(
+        <div 
+            className="fixed inset-0 z-[9999] bg-black/75 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fade-in"
+            onClick={(e) => {
+                if (e.target === e.currentTarget) onClose();
+            }}
+        >
+            <div 
+                className={`bg-white dark:bg-gray-850 rounded-t-3xl sm:rounded-3xl w-full max-w-2xl shadow-2xl border-t sm:border border-gray-200/80 dark:border-gray-700/80 flex flex-col overflow-hidden transition-all duration-300 ease-out ${
+                    isExpanded ? 'h-[96dvh] max-h-[96dvh] sm:max-h-[88vh]' : 'max-h-[85dvh] sm:max-h-[88vh]'
+                }`}
+                onClick={(e) => e.stopPropagation()}
+            >
+                {/* Cabecera interactiva táctil para móvil */}
+                <div 
+                    className="w-full pt-3 pb-2 flex flex-col items-center justify-center sm:hidden select-none touch-manipulation cursor-grab active:cursor-grabbing flex-shrink-0 bg-transparent"
+                    onTouchStart={handleTouchStart}
+                    onTouchEnd={handleTouchEnd}
+                >
+                    <button 
+                        type="button"
+                        onClick={handlePillClick}
+                        className="group flex flex-col items-center justify-center px-8 py-1 active:scale-95 focus:outline-none touch-manipulation"
+                        aria-label={isExpanded ? "Reducir y bajar modal" : "Abrir más el modal"}
+                    >
+                        <div 
+                            className={`h-1.5 rounded-full transition-all duration-300 ease-out ${
+                                isExpanded 
+                                    ? 'bg-primary dark:bg-blue-400 w-16 shadow-xs' 
+                                    : 'bg-gray-300 dark:bg-gray-600 group-hover:bg-gray-400 dark:group-hover:bg-gray-500 w-12'
+                            }`} 
+                        />
+                        <span className="text-[9px] font-bold text-gray-400 dark:text-gray-500 mt-1 uppercase tracking-wider transition-colors group-hover:text-gray-600 dark:group-hover:text-gray-300">
+                            {isExpanded ? 'Toca o desliza para bajar' : 'Toca para abrir más'}
+                        </span>
+                    </button>
+                </div>
+
+                {/* Cabecera del Modal */}
+                <div className="px-5 py-4 sm:px-6 sm:py-5 border-b border-gray-100 dark:border-gray-800 bg-gradient-to-r from-slate-50 via-white to-blue-50/40 dark:from-gray-900 dark:via-gray-850 dark:to-blue-950/20 flex items-start justify-between gap-3 flex-shrink-0">
+                    <div className="space-y-1 min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                            <span className="text-[10px] font-black uppercase tracking-wider text-blue-600 dark:text-blue-400 bg-blue-100/70 dark:bg-blue-900/40 px-2.5 py-0.5 rounded-full flex items-center gap-1 select-none">
+                                <span className="material-symbols-outlined text-[11px]">folder_shared</span> Expediente Laboral
+                            </span>
+                            <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full select-none ${
+                                empleado.estatus === 'ACTIVO'
+                                    ? 'bg-emerald-50 text-emerald-600 border border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400'
+                                    : 'bg-rose-50 text-rose-600 border border-rose-200 dark:bg-rose-900/30 dark:text-rose-400'
+                            }`}>
+                                {empleado.estatus}
+                            </span>
+                        </div>
+                        <h2 className="text-base sm:text-lg md:text-xl font-black text-gray-900 dark:text-white leading-snug break-words">
+                            {empleado.nombreCompleto}
+                        </h2>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 font-medium truncate">
+                            {empleado.puesto || 'Sin puesto'} • {storeName}
+                        </p>
+                    </div>
+
+                    <button 
+                        type="button"
+                        onClick={onClose} 
+                        className="w-9 h-9 min-h-[36px] flex items-center justify-center rounded-xl text-gray-400 hover:text-gray-700 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-95 touch-manipulation select-none flex-shrink-0"
+                        aria-label="Cerrar modal"
+                    >
+                        <span className="material-symbols-outlined text-xl">close</span>
+                    </button>
+                </div>
+
+                {/* Contenido con Scroll */}
+                <div className="flex-1 overflow-y-auto overscroll-contain p-4 sm:p-6 custom-scrollbar space-y-4 touch-pan-y">
+                    {/* Tarjeta de Cuenta de Usuario Vinculada (con protección contra correos largos) */}
+                    {empleado.user ? (
+                        <div className="p-4 rounded-2xl bg-blue-50/60 dark:bg-blue-950/20 border border-blue-200/80 dark:border-blue-800/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3 min-w-0 max-w-full overflow-hidden">
+                            <div className="flex items-start gap-3 min-w-0 max-w-full overflow-hidden flex-1">
+                                <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 flex items-center justify-center flex-shrink-0">
+                                    <span className="material-symbols-outlined text-xl">account_circle</span>
+                                </div>
+                                <div className="min-w-0 max-w-full overflow-hidden flex-1">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                        <p className="text-sm font-black text-gray-900 dark:text-white truncate">
+                                            {empleado.user.name || empleado.nombreCompleto}
+                                        </p>
+                                        {empleado.user.customId && (
+                                            <span className="text-[10px] font-black bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-full">
+                                                {empleado.user.customId}
+                                            </span>
+                                        )}
+                                    </div>
+                                    {/* CORREO ELECTRÓNICO CON MANEJO SEGURO DE TEXTO LARGO */}
+                                    <div className="flex items-center gap-1.5 mt-1 min-w-0 max-w-full overflow-hidden text-gray-600 dark:text-gray-300 text-xs">
+                                        <span className="material-symbols-outlined text-sm text-gray-400 flex-shrink-0">mail</span>
+                                        <span 
+                                            className="font-medium truncate break-all min-w-0 max-w-full overflow-hidden select-text text-ellipsis"
+                                            title={empleado.user.email}
+                                        >
+                                            {empleado.user.email || 'Sin correo registrado'}
+                                        </span>
+                                    </div>
+                                    {/* Roles del Colaborador */}
+                                    <div className="flex flex-wrap gap-1 mt-2">
+                                        {Array.isArray(empleado.user.roles) && empleado.user.roles.length > 0 ? (
+                                            empleado.user.roles.map(r => (
+                                                <span key={r.id} className="text-[9px] font-black bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 px-2 py-0.5 rounded-md border border-gray-200 dark:border-gray-700 uppercase">
+                                                    🛡️ {r.name}
+                                                </span>
+                                            ))
+                                        ) : (
+                                            <span className="text-[9px] font-black bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 px-2 py-0.5 rounded-md border border-gray-200 dark:border-gray-700 uppercase">
+                                                {empleado.user.role || 'SIN ROL'}
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="p-3.5 rounded-2xl bg-gray-50 dark:bg-gray-800/40 border border-gray-200/70 dark:border-gray-700/60 flex items-center gap-3">
+                            <span className="material-symbols-outlined text-gray-400 text-xl">lock_open</span>
+                            <div>
+                                <p className="text-xs font-bold text-gray-700 dark:text-gray-300">Sin cuenta de acceso asignada</p>
+                                <p className="text-[11px] text-gray-400">Este colaborador está registrado solo en nómina y expediente.</p>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Resumen de Datos Clave en Grid */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 select-none">
+                        <div className="p-3 rounded-2xl bg-gray-50/80 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700/60">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 block">Sueldo Base</span>
+                            <span className="text-sm font-black text-gray-900 dark:text-white mt-0.5 block truncate">
+                                {formattedSueldo}
+                            </span>
+                        </div>
+                        <div className="p-3 rounded-2xl bg-gray-50/80 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700/60">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 block">Fecha Ingreso</span>
+                            <span className="text-xs font-bold text-gray-800 dark:text-gray-200 mt-0.5 block truncate">
+                                {empleado.fechaContratacion ? format(new Date(empleado.fechaContratacion), 'dd MMM yyyy', { locale: es }) : 'N/A'}
+                            </span>
+                        </div>
+                        <div className="p-3 rounded-2xl bg-gray-50/80 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700/60">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 block">Teléfono</span>
+                            <span className="text-xs font-bold text-gray-800 dark:text-gray-200 mt-0.5 block truncate">
+                                {empleado.telefono || 'Sin teléfono'}
+                            </span>
+                        </div>
+                        <div className="p-3 rounded-2xl bg-gray-50/80 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700/60">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 block">Jefe Inmediato</span>
+                            <span className="text-xs font-bold text-gray-800 dark:text-gray-200 mt-0.5 block truncate">
+                                {empleado.manager?.nombreCompleto || 'Dirección General'}
+                            </span>
+                        </div>
+                    </div>
+
+                    {/* Fila de Contacto Personal (con protección especial contra correos largos) */}
+                    <div className="p-3.5 rounded-2xl bg-gray-50/70 dark:bg-gray-800/40 border border-gray-200/70 dark:border-gray-700/60 space-y-2 min-w-0 max-w-full overflow-hidden">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-gray-400 flex items-center gap-1.5">
+                            <span className="material-symbols-outlined text-xs">contact_mail</span>
+                            Contacto Personal & Domicilio
+                        </span>
+                        
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 min-w-0 max-w-full overflow-hidden text-xs">
+                            <div className="min-w-0 max-w-full overflow-hidden">
+                                <span className="text-gray-400 font-bold block text-[11px]">Email Personal:</span>
+                                <p 
+                                    className="font-medium text-gray-800 dark:text-gray-200 truncate break-all min-w-0 max-w-full overflow-hidden select-text text-ellipsis"
+                                    title={empleado.emailPersonal || 'N/A'}
+                                >
+                                    {empleado.emailPersonal || 'No registrado'}
+                                </p>
+                            </div>
+
+                            <div className="min-w-0 max-w-full overflow-hidden">
+                                <span className="text-gray-400 font-bold block text-[11px]">Dirección:</span>
+                                <p className="font-medium text-gray-800 dark:text-gray-200 truncate" title={[empleado.street, empleado.neighborhood, empleado.city, empleado.postalCode].filter(Boolean).join(', ')}>
+                                    {[empleado.street, empleado.neighborhood, empleado.city].filter(Boolean).join(', ') || 'Sin domicilio registrado'}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Pie de Acciones del Expediente */}
+                <div className="px-5 py-3.5 sm:px-6 bg-gray-50/80 dark:bg-gray-900/70 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between gap-2.5 flex-shrink-0">
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        className="py-2.5 px-4 rounded-xl text-xs font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors active:scale-95 touch-manipulation min-h-[40px]"
+                    >
+                        Cerrar
+                    </button>
+
+                    <div className="flex items-center gap-2">
+                        {onEdit && (
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    onClose();
+                                    onEdit(empleado);
+                                }}
+                                className="py-2.5 px-4 rounded-xl text-xs font-bold bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-300 hover:bg-blue-100 transition-colors active:scale-95 touch-manipulation min-h-[40px] flex items-center gap-1.5"
+                            >
+                                <span className="material-symbols-outlined text-base">edit</span>
+                                <span>Editar</span>
+                            </button>
+                        )}
+
+                        <Link
+                            to={`/gestion/recursos-humanos/${empleado.id}`}
+                            className="py-2.5 px-4 rounded-xl text-xs font-black bg-primary text-white hover:bg-primary-dark transition-colors active:scale-95 touch-manipulation min-h-[40px] flex items-center gap-1.5 shadow-xs"
+                        >
+                            <span>Expediente Completo</span>
+                            <span className="material-symbols-outlined text-base">arrow_forward</span>
+                        </Link>
+                    </div>
+                </div>
+            </div>
+        </div>,
+        document.body
+    );
+};
+
 const RecursosHumanos = () => {
-    const { state, addEmpleado } = useGestion();
+    const { state, addEmpleado, updateEmpleado } = useGestion();
     const { empleados, loading: loadingContext, error, users, roles, stores } = state;
     const [view, setView] = useState('resumen'); // 'resumen' | 'nominas'
     const [nominas, setNominas] = useState([]);
@@ -51,6 +306,8 @@ const RecursosHumanos = () => {
     const [bancos, setBancos] = useState([]);
     const [loadingNominas, setLoadingNominas] = useState(false);
     const [isEmpleadoModalOpen, setIsEmpleadoModalOpen] = useState(false);
+    const [selectedEmpleadoExpediente, setSelectedEmpleadoExpediente] = useState(null);
+    const [empleadoToEdit, setEmpleadoToEdit] = useState(null);
 
     useEffect(() => {
         fetchContableEmpresas().then(data => {
@@ -91,10 +348,19 @@ const RecursosHumanos = () => {
 
     const handleSaveEmpleado = async (empleadoData) => {
         try {
-            await addEmpleado(empleadoData);
+            if (empleadoToEdit) {
+                await updateEmpleado(empleadoToEdit.id, empleadoData);
+                toast.success('Expediente actualizado correctamente');
+                setSelectedEmpleadoExpediente(prev => prev && prev.id === empleadoToEdit.id ? { ...prev, ...empleadoData } : prev);
+            } else {
+                await addEmpleado(empleadoData);
+                toast.success('Colaborador registrado correctamente');
+            }
             setIsEmpleadoModalOpen(false);
+            setEmpleadoToEdit(null);
         } catch (err) {
             console.error("Error al guardar empleado:", err);
+            toast.error('Ocurrió un error al guardar el colaborador');
         }
     };
 
@@ -241,14 +507,32 @@ const RecursosHumanos = () => {
 
     return (
         <div className="space-y-6 pb-20">
-            {/* Modal de Alta de Empleado */}
+            {/* Modal de Alta o Edición de Empleado */}
             {isEmpleadoModalOpen && (
                 <EmpleadoModal
-                    onClose={() => setIsEmpleadoModalOpen(false)}
+                    onClose={() => {
+                        setIsEmpleadoModalOpen(false);
+                        setEmpleadoToEdit(null);
+                    }}
                     onSave={handleSaveEmpleado}
+                    empleadoToEdit={empleadoToEdit}
                     empleados={empleados}
                     users={users}
                     roles={roles}
+                    allStores={stores}
+                />
+            )}
+
+            {/* Modal de Expediente Laboral (Estilo Bottom Sheet nativo) */}
+            {selectedEmpleadoExpediente && (
+                <ExpedienteModal
+                    empleado={selectedEmpleadoExpediente}
+                    onClose={() => setSelectedEmpleadoExpediente(null)}
+                    onEdit={(emp) => {
+                        setSelectedEmpleadoExpediente(null);
+                        setEmpleadoToEdit(emp);
+                        setIsEmpleadoModalOpen(true);
+                    }}
                     allStores={stores}
                 />
             )}
@@ -300,7 +584,10 @@ const RecursosHumanos = () => {
 
                     <button 
                         type="button"
-                        onClick={() => setIsEmpleadoModalOpen(true)}
+                        onClick={() => {
+                            setEmpleadoToEdit(null);
+                            setIsEmpleadoModalOpen(true);
+                        }}
                         className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary text-white text-xs font-bold shadow-xs hover:bg-primary-dark active:scale-95 transition-all"
                     >
                         <span className="material-symbols-outlined text-base">person_add</span>
@@ -429,21 +716,21 @@ const RecursosHumanos = () => {
                         ) : (
                             <div className="divide-y divide-gray-100 dark:divide-gray-800">
                                 {contratacionesRecientes.map(empleado => (
-                                    <Link 
+                                    <div 
                                         key={empleado.id} 
-                                        to={`/gestion/recursos-humanos/${empleado.id}`}
-                                        className="flex items-center justify-between py-3 hover:bg-gray-50/80 dark:hover:bg-gray-800/50 px-2 rounded-2xl transition-all"
+                                        onClick={() => setSelectedEmpleadoExpediente(empleado)}
+                                        className="flex items-center justify-between py-3 hover:bg-gray-50/80 dark:hover:bg-gray-800/50 px-2 rounded-2xl transition-all cursor-pointer group active:scale-[0.99] touch-manipulation"
                                     >
-                                        <div className="flex items-center gap-3">
-                                            <div>
-                                                <p className="text-sm font-bold text-gray-900 dark:text-white leading-tight">
+                                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                                            <div className="min-w-0 flex-1">
+                                                <p className="text-sm font-bold text-gray-900 dark:text-white leading-tight truncate group-hover:text-primary transition-colors">
                                                     {empleado.nombreCompleto}
                                                 </p>
                                                 <div className="flex items-center gap-2 mt-0.5">
-                                                    <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400">
+                                                    <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400 truncate">
                                                         {empleado.puesto || 'Sin puesto'}
                                                     </span>
-                                                    <span className={`text-[9px] px-1.5 py-0.2 rounded font-black uppercase ${
+                                                    <span className={`text-[9px] px-1.5 py-0.2 rounded font-black uppercase flex-shrink-0 ${
                                                         empleado.estatus === 'ACTIVO'
                                                             ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400'
                                                             : 'bg-rose-50 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400'
@@ -454,7 +741,7 @@ const RecursosHumanos = () => {
                                             </div>
                                         </div>
 
-                                        <div className="flex items-center gap-3">
+                                        <div className="flex items-center gap-3 flex-shrink-0">
                                             <div className="text-right hidden sm:block">
                                                 <p className="text-xs font-bold text-gray-800 dark:text-gray-200">
                                                     {new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(empleado.sueldo || 0)}
@@ -463,16 +750,21 @@ const RecursosHumanos = () => {
                                                     Ingreso: {format(new Date(empleado.fechaContratacion), 'dd MMM yyyy', { locale: es })}
                                                 </p>
                                             </div>
-                                            <span className="material-symbols-outlined text-gray-400 text-lg">chevron_right</span>
+                                            <span className="material-symbols-outlined text-gray-400 group-hover:text-primary group-hover:translate-x-0.5 text-lg transition-all">
+                                                chevron_right
+                                            </span>
                                         </div>
-                                    </Link>
+                                    </div>
                                 ))}
                             </div>
                         )}
                     </div>
 
                     {/* Estructura Organizacional / Organigrama */}
-                    <Organigrama empleados={empleados} />
+                    <Organigrama 
+                        empleados={empleados} 
+                        onSelectEmpleado={(emp) => setSelectedEmpleadoExpediente(emp)} 
+                    />
                 </div>
             ) : (
                 /* Vista de Nóminas */

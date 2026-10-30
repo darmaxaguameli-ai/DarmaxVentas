@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useContext, useMemo } from "react";
 import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { useTheme } from "../../context/ThemeContext";
+import { GestionContext } from "./context/GestionContext";
 
 // Definición de la estructura del menú
 const menuStructure = [
@@ -302,6 +303,41 @@ const GestionSidebar = ({ isOpen, onClose, isCollapsed, toggleCollapsed }) => {
   const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
   const location = useLocation();
+  const gestionContext = useContext(GestionContext);
+  const empleados = gestionContext?.state?.empleados || [];
+
+  // Puesto de trabajo real vinculado desde Empleados
+  const userPuesto = useMemo(() => {
+    if (!user) return 'Colaborador';
+    if (Array.isArray(empleados) && empleados.length > 0) {
+      // 1. Coincidencia directa por userId
+      const byUserId = empleados.find(e => e.userId && e.userId === user.id);
+      if (byUserId?.puesto) return byUserId.puesto;
+
+      // 2. Coincidencia por correo
+      const byEmail = empleados.find(e => 
+        (e.emailPersonal && user.email && e.emailPersonal.toLowerCase() === user.email.toLowerCase()) ||
+        (e.user?.email && user.email && e.user.email.toLowerCase() === user.email.toLowerCase())
+      );
+      if (byEmail?.puesto) return byEmail.puesto;
+
+      // 3. Coincidencia por nombre completo
+      const byName = empleados.find(e => 
+        e.nombreCompleto && user.name && e.nombreCompleto.trim().toLowerCase() === user.name.trim().toLowerCase()
+      );
+      if (byName?.puesto) return byName.puesto;
+    }
+
+    // 4. Si el usuario de sesión ya tiene el empleado embebido
+    if (user.empleado?.puesto) return user.empleado.puesto;
+    if (user.puesto) return user.puesto;
+
+    // 5. Fallback por rol si es Administrador o rol específico
+    if (user.role === 'ADMIN' || user.roles?.some(r => r.name?.toUpperCase() === 'ADMIN')) {
+      return 'Dirección General';
+    }
+    return user.roleRef?.name || user.roles?.[0]?.name || user.role || 'Colaborador';
+  }, [user, empleados]);
 
   // Find the active group based on the current URL to open it on load
   const getActiveGroup = () => {
@@ -420,7 +456,7 @@ const GestionSidebar = ({ isOpen, onClose, isCollapsed, toggleCollapsed }) => {
                     {user?.name || 'Usuario'}
                   </p>
                   <p className="text-[10px] text-gray-400 dark:text-gray-500 font-medium truncate capitalize">
-                    {user?.roleRef?.name || user?.roles?.[0]?.name || user?.role || 'Colaborador'}
+                    {userPuesto}
                   </p>
                 </div>
               </div>
@@ -461,7 +497,7 @@ const GestionSidebar = ({ isOpen, onClose, isCollapsed, toggleCollapsed }) => {
                 {(user?.name || 'U')[0]}
                 <DropletTooltip 
                   text={user?.name || 'Usuario'} 
-                  subtext={user?.roleRef?.name || user?.roles?.[0]?.name || user?.role || 'Colaborador'} 
+                  subtext={userPuesto} 
                 />
               </div>
               <div className="relative group">

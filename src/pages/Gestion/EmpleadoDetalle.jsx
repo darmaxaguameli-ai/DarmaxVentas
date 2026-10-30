@@ -306,9 +306,11 @@ const InfoGeneral = ({ empleado }) => (
                             </span>
                         )}
                     </div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1 mt-2">
-                        <span className="material-symbols-outlined text-[12px]">mail</span>
-                        {empleado.user.email || 'Sin correo registrado'}
+                    <p className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1 mt-2 min-w-0 max-w-full">
+                        <span className="material-symbols-outlined text-[12px] flex-shrink-0">mail</span>
+                        <span className="truncate break-all min-w-0 max-w-full" title={empleado.user.email || 'Sin correo registrado'}>
+                            {empleado.user.email || 'Sin correo registrado'}
+                        </span>
                     </p>
                 </div>
             </div>
@@ -342,9 +344,9 @@ const InfoGeneral = ({ empleado }) => (
 );
 
 const InfoItem = ({ label, value }) => (
-    <div>
+    <div className="min-w-0 max-w-full overflow-hidden">
         <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{label}</p>
-        <p className="text-base text-gray-800 dark:text-gray-200 font-semibold">{value}</p>
+        <p className="text-base text-gray-800 dark:text-gray-200 font-semibold truncate break-all min-w-0" title={typeof value === 'string' ? value : undefined}>{value}</p>
     </div>
 );
 

@@ -63,7 +63,7 @@ import {
   deleteInstallationModel as apiDeleteInstallationModel,
 } from "../../../api/apiClient";
 
-const GestionContext = createContext(null);
+export const GestionContext = createContext(null);
 
 export const useGestion = () => {
   const context = useContext(GestionContext);

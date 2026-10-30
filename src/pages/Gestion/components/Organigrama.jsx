@@ -1,4 +1,4 @@
-import React, { useRef, useState, useMemo } from 'react';
+import React, { useRef, useState, useMemo, useEffect } from 'react';
 import { Tree, TreeNode } from 'react-organizational-chart';
 import { Link } from 'react-router-dom';
 import html2canvas from 'html2canvas';
@@ -50,7 +50,7 @@ const getRoleConfig = (puesto = '') => {
 };
 
 // Tarjeta ejecutiva individual de colaborador en el organigrama
-const EmployeeNode = ({ employee, searchQuery }) => {
+const EmployeeNode = ({ employee, searchQuery, onSelectEmpleado }) => {
   const config = getRoleConfig(employee.puesto);
   const reportsCount = employee.children ? employee.children.length : 0;
   
@@ -63,89 +63,152 @@ const EmployeeNode = ({ employee, searchQuery }) => {
     )
   );
 
+  const cardContent = (
+    <div className={`
+      relative flex flex-col justify-between p-3.5 rounded-2xl border transition-all duration-200
+      bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm
+      w-48 sm:w-52 shadow-xs hover:shadow-lg hover:-translate-y-1 active:translate-y-0
+      ${isMatch 
+        ? 'ring-2 ring-primary ring-offset-2 dark:ring-offset-gray-900 border-primary shadow-md scale-105' 
+        : `border-gray-200/90 dark:border-gray-700/80 ${config.borderHover}`
+      }
+    `}>
+      {/* Fila Superior: Badge de Departamento y Conteo de Reportes a Cargo */}
+      <div className="flex items-center justify-between gap-1 mb-2">
+        <span className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border ${config.badge}`}>
+          {config.dept}
+        </span>
+
+        {reportsCount > 0 && (
+          <span 
+            className="text-[9px] font-bold text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded-md flex items-center gap-0.5" 
+            title={`${reportsCount} colaborador(es) a su cargo`}
+          >
+            <span className="material-symbols-outlined text-xs">group</span>
+            <span>{reportsCount}</span>
+          </span>
+        )}
+      </div>
+
+      {/* Cuerpo: Nombre Completo y Puesto */}
+      <div className="min-w-0">
+        <h4 className="font-bold text-xs text-gray-900 dark:text-white truncate leading-tight group-hover:text-primary transition-colors">
+          {employee.nombreCompleto}
+        </h4>
+        <p className="text-[11px] text-gray-500 dark:text-gray-400 font-medium truncate mt-0.5">
+          {employee.puesto || 'Sin cargo asignado'}
+        </p>
+      </div>
+
+      {/* Pie de Tarjeta: Sucursal Asignada y Acción Ver Expediente */}
+      <div className="mt-2.5 pt-2 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between text-[10px]">
+        <span className="text-gray-400 truncate flex items-center gap-1">
+          <span className="material-symbols-outlined text-xs">store</span>
+          <span className="truncate">{employee.user?.store?.name || employee.store?.name || 'Acceso Global'}</span>
+        </span>
+
+        <span className="text-primary opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5 font-bold">
+          <span>Expediente</span>
+          <span className="material-symbols-outlined text-xs">arrow_forward</span>
+        </span>
+      </div>
+    </div>
+  );
+
   return (
     <div className="inline-block p-1.5 sm:p-2">
-      <Link 
-        to={`/gestion/recursos-humanos/${employee.id}`} 
-        className="block outline-none text-left group"
-        title={`Ver expediente completo de ${employee.nombreCompleto}`}
-      >
-        <div className={`
-          relative flex flex-col justify-between p-3.5 rounded-2xl border transition-all duration-200
-          bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm
-          w-48 sm:w-52 shadow-xs hover:shadow-lg hover:-translate-y-1 active:translate-y-0
-          ${isMatch 
-            ? 'ring-2 ring-primary ring-offset-2 dark:ring-offset-gray-900 border-primary shadow-md scale-105' 
-            : `border-gray-200/90 dark:border-gray-700/80 ${config.borderHover}`
-          }
-        `}>
-          {/* Fila Superior: Badge de Departamento y Conteo de Reportes a Cargo */}
-          <div className="flex items-center justify-between gap-1 mb-2">
-            <span className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border ${config.badge}`}>
-              {config.dept}
-            </span>
-
-            {reportsCount > 0 && (
-              <span 
-                className="text-[9px] font-bold text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded-md flex items-center gap-0.5" 
-                title={`${reportsCount} colaborador(es) a su cargo`}
-              >
-                <span className="material-symbols-outlined text-xs">group</span>
-                <span>{reportsCount}</span>
-              </span>
-            )}
-          </div>
-
-          {/* Cuerpo: Nombre Completo y Puesto */}
-          <div className="min-w-0">
-            <h4 className="font-bold text-xs text-gray-900 dark:text-white truncate leading-tight group-hover:text-primary transition-colors">
-              {employee.nombreCompleto}
-            </h4>
-            <p className="text-[11px] text-gray-500 dark:text-gray-400 font-medium truncate mt-0.5">
-              {employee.puesto || 'Sin cargo asignado'}
-            </p>
-          </div>
-
-          {/* Pie de Tarjeta: Sucursal Asignada y Acción Ver Expediente */}
-          <div className="mt-2.5 pt-2 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between text-[10px]">
-            <span className="text-gray-400 truncate flex items-center gap-1">
-              <span className="material-symbols-outlined text-xs">store</span>
-              <span className="truncate">{employee.user?.store?.name || employee.store?.name || 'Acceso Global'}</span>
-            </span>
-
-            <span className="text-primary opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5 font-bold">
-              <span>Expediente</span>
-              <span className="material-symbols-outlined text-xs">arrow_forward</span>
-            </span>
-          </div>
-        </div>
-      </Link>
+      {onSelectEmpleado ? (
+        <button 
+          type="button"
+          onClick={() => onSelectEmpleado(employee)} 
+          className="block outline-none text-left group w-full cursor-pointer touch-manipulation"
+          title={`Ver expediente de ${employee.nombreCompleto}`}
+        >
+          {cardContent}
+        </button>
+      ) : (
+        <Link 
+          to={`/gestion/recursos-humanos/${employee.id}`} 
+          className="block outline-none text-left group"
+          title={`Ver expediente completo de ${employee.nombreCompleto}`}
+        >
+          {cardContent}
+        </Link>
+      )}
     </div>
   );
 };
 
-const renderTree = (nodes, searchQuery) => {
+const renderTree = (nodes, searchQuery, onSelectEmpleado) => {
   return nodes.map(node => (
     <TreeNode 
       key={node.id} 
-      label={<EmployeeNode employee={node} searchQuery={searchQuery} />}
+      label={<EmployeeNode employee={node} searchQuery={searchQuery} onSelectEmpleado={onSelectEmpleado} />}
     >
-      {node.children && node.children.length > 0 && renderTree(node.children, searchQuery)}
+      {node.children && node.children.length > 0 && renderTree(node.children, searchQuery, onSelectEmpleado)}
     </TreeNode>
   ));
 };
 
-const Organigrama = ({ empleados }) => {
+const Organigrama = ({ empleados, onSelectEmpleado }) => {
   const chartRef = useRef(null);
+  const containerRef = useRef(null);
   const { user, hasPermission } = useAuth();
   const [zoom, setZoom] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
   const [isExporting, setIsExporting] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0, scrollLeft: 0, scrollTop: 0 });
 
   // Zoom handlers
   const handleZoomIn = () => setZoom(z => Math.min(1.4, Number((z + 0.1).toFixed(1))));
   const handleZoomOut = () => setZoom(z => Math.max(0.6, Number((z - 0.1).toFixed(1))));
   const handleZoomReset = () => setZoom(1);
+
+  // Arrastre panorámico suave con cursor / touch
+  const handleMouseDown = (e) => {
+    if (e.target.closest('button, a, input, select')) return;
+    setIsDragging(true);
+    setDragStart({
+      x: e.clientX,
+      y: e.clientY,
+      scrollLeft: containerRef.current ? containerRef.current.scrollLeft : 0,
+      scrollTop: containerRef.current ? containerRef.current.scrollTop : 0
+    });
+  };
+
+  const handleMouseMove = (e) => {
+    if (!isDragging || !containerRef.current) return;
+    e.preventDefault();
+    const dx = e.clientX - dragStart.x;
+    const dy = e.clientY - dragStart.y;
+    containerRef.current.scrollLeft = dragStart.scrollLeft - dx;
+    containerRef.current.scrollTop = dragStart.scrollTop - dy;
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+
+  // Desplazamiento horizontal controlado (permite navegar libremente a la izquierda o derecha)
+  const scrollHorizontally = (offset) => {
+    if (containerRef.current) {
+      containerRef.current.scrollBy({ left: offset, behavior: 'smooth' });
+    }
+  };
+
+  // Centrar vista en el organigrama
+  const centerOrganigrama = () => {
+    if (containerRef.current) {
+      const { scrollWidth, clientWidth } = containerRef.current;
+      if (scrollWidth > clientWidth) {
+        containerRef.current.scrollTo({
+          left: (scrollWidth - clientWidth) / 2,
+          behavior: 'smooth'
+        });
+      }
+    }
+  };
 
   const buildTree = (employees) => {
     if (!employees || employees.length === 0) return [];
@@ -249,6 +312,13 @@ const Organigrama = ({ empleados }) => {
 
   const treeData = useMemo(() => buildTree(empleados), [empleados, user]);
 
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      centerOrganigrama();
+    }, 150);
+    return () => clearTimeout(timer);
+  }, [treeData, zoom]);
+
   return (
     <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border border-gray-200/80 dark:border-gray-800/80 rounded-3xl p-5 sm:p-6 shadow-xs overflow-hidden space-y-4">
       {/* Barra de Encabezado y Herramientas del Organigrama */}
@@ -320,12 +390,40 @@ const Organigrama = ({ empleados }) => {
             </button>
           </div>
 
+          {/* Controles de Navegación Lateral (Mover Izquierda / Centrar / Mover Derecha) */}
+          <div className="flex items-center bg-gray-100 dark:bg-gray-800/80 rounded-xl p-0.5 border border-gray-200/60 dark:border-gray-700/60">
+            <button 
+              type="button" 
+              onClick={() => scrollHorizontally(-280)} 
+              className="p-1.5 text-gray-500 hover:text-gray-900 dark:hover:text-white rounded-lg active:scale-95 transition-all touch-manipulation"
+              title="Mover a la izquierda"
+            >
+              <span className="material-symbols-outlined text-base">arrow_back</span>
+            </button>
+            <button 
+              type="button" 
+              onClick={centerOrganigrama} 
+              className="px-2 py-1 text-[11px] font-bold text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white active:scale-95 transition-all touch-manipulation"
+              title="Centrar organigrama"
+            >
+              Centrar
+            </button>
+            <button 
+              type="button" 
+              onClick={() => scrollHorizontally(280)} 
+              className="p-1.5 text-gray-500 hover:text-gray-900 dark:hover:text-white rounded-lg active:scale-95 transition-all touch-manipulation"
+              title="Mover a la derecha"
+            >
+              <span className="material-symbols-outlined text-base">arrow_forward</span>
+            </button>
+          </div>
+
           {/* Botón de Exportar a PDF */}
           <button 
             type="button"
             onClick={exportToPdf}
             disabled={isExporting}
-            className="flex items-center gap-1.5 px-3.5 py-2 bg-primary text-white text-xs font-bold rounded-xl shadow-xs hover:bg-primary-dark active:scale-95 transition-all disabled:opacity-50"
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-primary text-white text-xs font-bold rounded-xl shadow-xs hover:bg-primary-dark active:scale-95 transition-all disabled:opacity-50 touch-manipulation"
             title="Descargar diagrama del organigrama en PDF"
           >
             <span className="material-symbols-outlined text-base">picture_as_pdf</span>
@@ -351,42 +449,62 @@ const Organigrama = ({ empleados }) => {
         ))}
       </div>
 
-      {/* Contenedor del Diagrama con Scroll Horizontal y Transformación de Zoom */}
-      <div className="overflow-x-auto overflow-y-hidden custom-scrollbar bg-gray-50/40 dark:bg-gray-950/20 rounded-2xl border border-gray-150 dark:border-gray-800/80 p-4 min-h-[380px] flex justify-center">
-        <div 
-          ref={chartRef} 
-          className="flex justify-center min-w-max p-6 transition-transform duration-200 origin-top"
-          style={{ transform: `scale(${zoom})` }}
-        >
-          {treeData.length > 0 ? (
-            <Tree
-              lineWidth="2px"
-              lineColor="#cbd5e1"
-              lineBorderRadius="12px"
-              label={
-                <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-50/90 dark:bg-blue-900/40 border border-blue-200 dark:border-blue-800 mb-6 shadow-xs">
-                  <span className="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
-                  <span className="text-[10px] font-black uppercase tracking-widest text-primary dark:text-blue-300">
-                    Corporativo Darmax
-                  </span>
-                </div>
-              }
-            >
-              {renderTree(treeData, searchQuery)}
-            </Tree>
-          ) : (
-            <div className="text-center py-16 text-gray-400 space-y-2">
-              <span className="material-symbols-outlined text-4xl text-gray-300 dark:text-gray-600">
-                account_tree
-              </span>
-              <p className="text-sm font-bold text-gray-500 dark:text-gray-400">
-                No hay colaboradores activos para estructurar el organigrama
-              </p>
-              <p className="text-xs text-gray-400">
-                Registra colaboradores en "Nuevo Empleado" y define a quién reportan para conectar el árbol.
-              </p>
-            </div>
-          )}
+      {/* Indicador interactivo de arrastre */}
+      <div className="flex items-center justify-between text-[11px] text-gray-400 dark:text-gray-500 pt-1 px-1 select-none">
+        <span className="flex items-center gap-1">
+          <span className="material-symbols-outlined text-sm text-primary">pan_tool</span>
+          <span>Arrastra con el cursor o el dedo para explorar todo el organigrama</span>
+        </span>
+        <span className="hidden sm:inline font-bold">
+          Zoom: {Math.round(zoom * 100)}%
+        </span>
+      </div>
+
+      {/* Contenedor del Diagrama con Desplazamiento Bidireccional Completo (sin bloqueo a la izquierda) y Arrastre Panorámico */}
+      <div 
+        ref={containerRef}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+        className="overflow-x-auto overflow-y-auto overscroll-contain custom-scrollbar bg-gray-50/40 dark:bg-gray-950/20 rounded-2xl border border-gray-200/80 dark:border-gray-800/80 p-4 min-h-[420px] max-h-[700px] cursor-grab active:cursor-grabbing select-none touch-pan-x touch-pan-y"
+      >
+        <div className="w-fit min-w-full flex justify-center px-12">
+          <div 
+            ref={chartRef} 
+            className="inline-block min-w-max p-6 transition-transform duration-200 origin-top"
+            style={{ transform: `scale(${zoom})` }}
+          >
+            {treeData.length > 0 ? (
+              <Tree
+                lineWidth="2px"
+                lineColor="#cbd5e1"
+                lineBorderRadius="12px"
+                label={
+                  <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-50/90 dark:bg-blue-900/40 border border-blue-200 dark:border-blue-800 mb-6 shadow-xs">
+                    <span className="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-primary dark:text-blue-300">
+                      Corporativo Darmax
+                    </span>
+                  </div>
+                }
+              >
+                {renderTree(treeData, searchQuery, onSelectEmpleado)}
+              </Tree>
+            ) : (
+              <div className="text-center py-16 text-gray-400 space-y-2">
+                <span className="material-symbols-outlined text-4xl text-gray-300 dark:text-gray-600">
+                  account_tree
+                </span>
+                <p className="text-sm font-bold text-gray-500 dark:text-gray-400">
+                  No hay colaboradores activos para estructurar el organigrama
+                </p>
+                <p className="text-xs text-gray-400">
+                  Registra colaboradores en "Nuevo Empleado" y define a quién reportan para conectar el árbol.
+                </p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
