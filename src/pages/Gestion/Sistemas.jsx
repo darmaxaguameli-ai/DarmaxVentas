@@ -12,7 +12,8 @@ import {
     FaLightbulb, FaExchangeAlt, FaRegSmileBeam,
     FaStream, FaChartBar, FaThList, FaThLarge, FaInfoCircle,
     FaFolderPlus, FaFolderOpen, FaLayerGroup, FaUserTie,
-    FaUsers, FaEye, FaTimes
+    FaUsers, FaEye, FaTimes,
+    FaSortAmountDown, FaSortAmountUp
 } from 'react-icons/fa';
 import { 
     format, parseISO, differenceInDays, isAfter, isBefore, 
@@ -186,10 +187,21 @@ const Sistemas = () => {
     // Detección estricta de Jefe vs Colaborador
     const isRealJefe = authUser?.role === 'ADMIN' || 
                         hasPermission('canManageSistemas') ||
-                        authUser?.roles?.some(r => r.name?.toUpperCase() === 'ADMIN' || r.canManageSistemas === true);
+                        hasPermission('canAccessSistemas') ||
+                        authUser?.roles?.some(r => r.name?.toUpperCase() === 'ADMIN' || r.canManageSistemas === true || r.canAccessSistemas === true);
 
     // Si es Colaborador queda bloqueado en Colaborador; si es Jefe puede probar vista previa
     const [viewAsRole, setViewAsRole] = useState(isRealJefe ? 'JEFE' : 'COLABORADOR');
+
+    // Sincronizar automáticamente cuando el usuario de sesión termine de cargar en AuthContext
+    useEffect(() => {
+        if (isRealJefe) {
+            setViewAsRole('JEFE');
+        } else {
+            setViewAsRole('COLABORADOR');
+        }
+    }, [isRealJefe]);
+
     const isJefe = isRealJefe && viewAsRole === 'JEFE';
 
     // Estados principales
@@ -203,6 +215,7 @@ const Sistemas = () => {
     const [selectedProjectId, setSelectedProjectId] = useState('TODOS');
     const [filterCollaborator, setFilterCollaborator] = useState('TODOS');
     const [searchQuery, setSearchQuery] = useState('');
+    const [sortOption, setSortOption] = useState('DIAS_RESTANTES_ASC'); // 'DIAS_RESTANTES_ASC' | 'DIAS_RESTANTES_DESC' | 'FECHA_INICIO_ASC' | 'FECHA_INICIO_DESC' | 'FECHA_FIN_ASC' | 'FECHA_FIN_DESC'
 
     // Modales
     const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
@@ -920,16 +933,78 @@ const Sistemas = () => {
     };
 
     // ==========================================
-    // FILTRADO ESTRICTO SEGÚN ROL
+    // COLABORADORES ACTIVOS CON ACTIVIDADES ASIGNADAS
+    // ==========================================
+    const distinctCollaborators = useMemo(() => {
+        if (!Array.isArray(tasks) || tasks.length === 0) return [];
+
+        const hasTeamUsers = Array.isArray(teamUsers) && teamUsers.length > 0;
+        const activeUserIds = new Set(hasTeamUsers ? teamUsers.map(u => u.id) : []);
+        const activeUserNames = new Set(hasTeamUsers ? teamUsers.map(u => u.name?.trim().toLowerCase()) : []);
+
+        const map = new Map();
+
+        tasks.forEach(t => {
+            // Revisar asignación colaborativa (array de responsables)
+            if (Array.isArray(t.responsables)) {
+                t.responsables.forEach(r => {
+                    const rId = r.id;
+                    const rName = r.name?.trim();
+                    if (!rName) return;
+
+                    if (hasTeamUsers) {
+                        const isActive = (rId && activeUserIds.has(rId)) || (rName && activeUserNames.has(rName.toLowerCase()));
+                        if (isActive) {
+                            map.set(rId || rName, rName);
+                        }
+                    } else {
+                        map.set(rId || rName, rName);
+                    }
+                });
+            }
+
+            // Revisar asignación directa (responsableId / responsableNombre)
+            if (t.responsableNombre) {
+                const rId = t.responsableId;
+                const rName = t.responsableNombre.trim();
+
+                if (hasTeamUsers) {
+                    const isActive = (rId && activeUserIds.has(rId)) || (rName && activeUserNames.has(rName.toLowerCase()));
+                    if (isActive) {
+                        map.set(rId || rName, rName);
+                    }
+                } else {
+                    map.set(rId || rName, rName);
+                }
+            }
+        });
+
+        return Array.from(map.entries())
+            .map(([id, name]) => ({ id, name }))
+            .sort((a, b) => a.name.localeCompare(b.name));
+    }, [tasks, teamUsers]);
+
+    // ==========================================
+    // FILTRADO ESTRICTO SEGÚN ROL Y ORDEN POR FECHA INICIAL
     // ==========================================
     const visibleTasks = useMemo(() => {
-        return tasks.filter(t => {
-            // 1. REGLA ESTRICTA DE COLABORADOR: Solo ve sus propias tareas (o donde esté asignado)
+        const filtered = tasks.filter(t => {
+            // 1. REGLA ESTRICTA DE COLABORADOR: Solo ve lo que tenga asignado él y las colaborativas en las que participa
             if (!isJefe) {
-                const isMine = (t.responsables && t.responsables.some(r => r.id === authUser?.id)) ||
-                               (t.responsableId && t.responsableId === authUser?.id) ||
-                               (t.responsableNombre && authUser?.name && t.responsableNombre.toLowerCase().includes(authUser.name.toLowerCase()));
-                if (!isMine) return false;
+                const isMineDirect = 
+                    (t.responsableId && t.responsableId === authUser?.id) ||
+                    (t.responsableNombre && authUser?.name && t.responsableNombre.trim().toLowerCase() === authUser.name.trim().toLowerCase());
+
+                const isMineCollaborative = 
+                    Array.isArray(t.responsables) && t.responsables.some(r => 
+                        (r.id && r.id === authUser?.id) ||
+                        (r.name && authUser?.name && r.name.trim().toLowerCase() === authUser.name.trim().toLowerCase())
+                    );
+
+                // Si no está asignado individual ni colaborativamente, no la ve
+                if (!isMineDirect && !isMineCollaborative) {
+                    return false;
+                }
             }
 
             // 2. Filtro por Proyecto
@@ -937,10 +1012,19 @@ const Sistemas = () => {
                 return false;
             }
 
-            // 3. Filtro por Colaborador (solo disponible cuando es Jefe)
+            // 3. Filtro por Colaborador (Exclusivo para el Jefe)
             if (isJefe && filterCollaborator !== 'TODOS') {
-                const matchesCollab = (t.responsables && t.responsables.some(r => r.id === filterCollaborator)) ||
-                                      (t.responsableId === filterCollaborator);
+                const selectedCollab = distinctCollaborators.find(c => c.id === filterCollaborator);
+                const collabName = selectedCollab?.name?.toLowerCase();
+
+                const matchesCollab = 
+                    (t.responsables && t.responsables.some(r => 
+                        r.id === filterCollaborator || 
+                        (collabName && r.name && r.name.toLowerCase() === collabName)
+                    )) ||
+                    (t.responsableId && t.responsableId === filterCollaborator) ||
+                    (collabName && t.responsableNombre && t.responsableNombre.toLowerCase().includes(collabName));
+
                 if (!matchesCollab) return false;
             }
 
@@ -957,32 +1041,102 @@ const Sistemas = () => {
 
             return true;
         });
-    }, [tasks, isJefe, authUser, selectedProjectId, filterCollaborator, searchQuery]);
 
-    // Lista de colaboradores activos presentes en las tareas para el filtro del Jefe
-    const distinctCollaborators = useMemo(() => {
-        const map = new Map();
-        tasks.forEach(t => {
-            if (Array.isArray(t.responsables)) {
-                t.responsables.forEach(r => {
-                    if (r.id && r.name) map.set(r.id, r.name);
-                });
+        // Ordenamiento según la opción seleccionada (Días restantes, Fecha inicial o Fecha entrega)
+        return filtered.sort((a, b) => {
+            const getSafeTime = (dateStr) => {
+                if (!dateStr) return null;
+                try {
+                    const parsed = parseISO(dateStr);
+                    const time = parsed.getTime();
+                    if (!isNaN(time)) return time;
+                } catch {}
+                const d = new Date(dateStr);
+                const time = d.getTime();
+                return isNaN(time) ? null : time;
+            };
+
+            const getDaysLeft = (t) => {
+                if (!t?.fechaFin) return null;
+                try {
+                    const parsed = parseISO(t.fechaFin);
+                    if (!isNaN(parsed.getTime())) {
+                        return differenceInDays(parsed, new Date());
+                    }
+                } catch {}
+                const d = new Date(t.fechaFin);
+                return isNaN(d.getTime()) ? null : differenceInDays(d, new Date());
+            };
+
+            // 1. ORDEN POR DÍAS RESTANTES
+            if (sortOption === 'DIAS_RESTANTES_ASC' || sortOption === 'DIAS_RESTANTES_DESC') {
+                // Tareas ya terminadas van al final para priorizar las entregas pendientes
+                const isTerminadoA = a.estado === 'TERMINADO';
+                const isTerminadoB = b.estado === 'TERMINADO';
+                if (isTerminadoA && !isTerminadoB) return 1;
+                if (!isTerminadoA && isTerminadoB) return -1;
+
+                const daysA = getDaysLeft(a);
+                const daysB = getDaysLeft(b);
+
+                // Tareas sin fecha van después de las que tienen fecha establecida
+                if (daysA === null && daysB === null) return 0;
+                if (daysA === null) return 1;
+                if (daysB === null) return -1;
+
+                if (daysA === daysB) {
+                    // Desempate por fecha inicial
+                    const startA = getSafeTime(a.fechaInicio);
+                    const startB = getSafeTime(b.fechaInicio);
+                    if (startA !== null && startB !== null && startA !== startB) {
+                        return startA - startB;
+                    }
+                    return (a.titulo || '').localeCompare(b.titulo || '');
+                }
+
+                return sortOption === 'DIAS_RESTANTES_ASC' ? daysA - daysB : daysB - daysA;
             }
-            if (t.responsableId && t.responsableNombre) {
-                map.set(t.responsableId, t.responsableNombre);
+
+            // 2. ORDEN POR FECHA DE ENTREGA / FIN
+            if (sortOption === 'FECHA_FIN_ASC' || sortOption === 'FECHA_FIN_DESC') {
+                const finA = getSafeTime(a.fechaFin);
+                const finB = getSafeTime(b.fechaFin);
+
+                if (finA === null && finB === null) return 0;
+                if (finA === null) return 1;
+                if (finB === null) return -1;
+
+                if (finA === finB) {
+                    const startA = getSafeTime(a.fechaInicio);
+                    const startB = getSafeTime(b.fechaInicio);
+                    if (startA !== null && startB !== null) return startA - startB;
+                    return (a.titulo || '').localeCompare(b.titulo || '');
+                }
+
+                return sortOption === 'FECHA_FIN_DESC' ? finB - finA : finA - finB;
             }
+
+            // 3. ORDEN POR FECHA INICIAL (FECHA_INICIO_ASC o FECHA_INICIO_DESC)
+            const timeA = getSafeTime(a.fechaInicio);
+            const timeB = getSafeTime(b.fechaInicio);
+
+            if (timeA === null && timeB === null) return 0;
+            if (timeA === null) return 1;
+            if (timeB === null) return -1;
+
+            if (timeA === timeB) {
+                // Desempate secundario por días restantes
+                const daysA = getDaysLeft(a);
+                const daysB = getDaysLeft(b);
+                if (daysA !== null && daysB !== null && daysA !== daysB) {
+                    return daysA - daysB;
+                }
+                return (a.titulo || '').localeCompare(b.titulo || '');
+            }
+
+            return sortOption === 'FECHA_INICIO_DESC' ? timeB - timeA : timeA - timeB;
         });
-
-        // Filtrar solo colaboradores que sigan activos en teamUsers
-        if (teamUsers.length > 0) {
-            const activeIds = new Set(teamUsers.map(u => u.id));
-            return Array.from(map.entries())
-                .filter(([id]) => activeIds.has(id))
-                .map(([id, name]) => ({ id, name }));
-        }
-
-        return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
-    }, [tasks, teamUsers]);
+    }, [tasks, isJefe, authUser, selectedProjectId, filterCollaborator, searchQuery, sortOption, distinctCollaborators]);
 
     // Métricas
     const totalVisible = visibleTasks.length;
@@ -1232,8 +1386,8 @@ const Sistemas = () => {
             })()}
 
             {/* Barra de Filtros y Vistas */}
-            <div className="bg-white dark:bg-gray-800 p-3.5 sm:p-4 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4 select-none w-full max-w-full overflow-hidden">
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full md:w-auto min-w-0 max-w-full">
+            <div className="bg-white dark:bg-gray-800 p-3.5 sm:p-4 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm flex flex-col xl:flex-row xl:items-center justify-between gap-3 sm:gap-4 select-none w-full max-w-full overflow-hidden">
+                <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2.5 w-full xl:w-auto min-w-0 max-w-full">
                     {/* Botones de Vistas */}
                     <div className="bg-gray-100 dark:bg-gray-900 p-1 rounded-xl flex items-center overflow-x-auto overscroll-contain touch-pan-x [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden w-full sm:w-auto max-w-full flex-shrink-0">
                         <button
@@ -1271,13 +1425,14 @@ const Sistemas = () => {
                         </button>
                     </div>
 
-                    {/* Filtro por Colaborador (Exclusivo para el Jefe) */}
+                    {/* Filtro por Colaborador Activo (Exclusivo para el Jefe/Encargado) */}
                     {isJefe && distinctCollaborators.length > 0 && (
                         <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-900 px-3 py-1.5 rounded-xl border border-gray-200 dark:border-gray-700 min-h-[40px] w-full sm:w-auto max-w-full min-w-0">
                             <FaFilter className="text-gray-400 text-xs flex-shrink-0" />
                             <select
                                 value={filterCollaborator}
                                 onChange={(e) => setFilterCollaborator(e.target.value)}
+                                aria-label="Filtrar por colaborador activo"
                                 className="bg-transparent text-base sm:text-xs font-bold text-gray-700 dark:text-gray-200 outline-none cursor-pointer py-1 flex-1 w-0 min-w-0 max-w-full truncate"
                             >
                                 <option value="TODOS" className="dark:bg-gray-800">Todo el equipo</option>
@@ -1287,10 +1442,50 @@ const Sistemas = () => {
                             </select>
                         </div>
                     )}
+
+                    {/* Selector de Orden: Días restantes / Fecha Inicial / Fecha Entrega */}
+                    <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-900 px-3 py-1.5 rounded-xl border border-gray-200 dark:border-gray-700 min-h-[40px] w-full sm:w-auto max-w-full min-w-0">
+                        {sortOption.startsWith('DIAS_RESTANTES') ? (
+                            <FaClock className="text-amber-500 text-xs flex-shrink-0" />
+                        ) : (
+                            <FaCalendarAlt className="text-primary text-xs flex-shrink-0" />
+                        )}
+                        <select
+                            value={sortOption}
+                            onChange={(e) => setSortOption(e.target.value)}
+                            aria-label="Ordenar actividades"
+                            className="bg-transparent text-base sm:text-xs font-bold text-gray-700 dark:text-gray-200 outline-none cursor-pointer py-1 flex-1 w-0 min-w-0 max-w-full truncate"
+                        >
+                            <option value="DIAS_RESTANTES_ASC" className="dark:bg-gray-800">⏳ Días restantes (Urgentes primero)</option>
+                            <option value="DIAS_RESTANTES_DESC" className="dark:bg-gray-800">⏳ Días restantes (Más holgadas)</option>
+                            <option value="FECHA_INICIO_ASC" className="dark:bg-gray-800">📅 Fecha inicial (Cronológico)</option>
+                            <option value="FECHA_INICIO_DESC" className="dark:bg-gray-800">📅 Fecha inicial (Recientes primero)</option>
+                            <option value="FECHA_FIN_ASC" className="dark:bg-gray-800">🏁 Fecha entrega (Próximas primero)</option>
+                            <option value="FECHA_FIN_DESC" className="dark:bg-gray-800">🏁 Fecha entrega (Lejanas primero)</option>
+                        </select>
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setSortOption(prev => {
+                                    if (prev === 'DIAS_RESTANTES_ASC') return 'DIAS_RESTANTES_DESC';
+                                    if (prev === 'DIAS_RESTANTES_DESC') return 'DIAS_RESTANTES_ASC';
+                                    if (prev === 'FECHA_INICIO_ASC') return 'FECHA_INICIO_DESC';
+                                    if (prev === 'FECHA_INICIO_DESC') return 'FECHA_INICIO_ASC';
+                                    if (prev === 'FECHA_FIN_ASC') return 'FECHA_FIN_DESC';
+                                    if (prev === 'FECHA_FIN_DESC') return 'FECHA_FIN_ASC';
+                                    return 'DIAS_RESTANTES_ASC';
+                                });
+                            }}
+                            title={sortOption.endsWith('_ASC') ? "Orden ascendente. Clic para invertir a descendente" : "Orden descendente. Clic para invertir a ascendente"}
+                            className="p-1.5 rounded-lg text-gray-500 hover:text-primary hover:bg-gray-200/60 dark:hover:bg-gray-700/60 transition-colors flex-shrink-0 active:scale-90"
+                        >
+                            {sortOption.endsWith('_ASC') ? <FaSortAmountDown size={13} className="text-primary" /> : <FaSortAmountUp size={13} className="text-primary" />}
+                        </button>
+                    </div>
                 </div>
 
                 {/* Buscador */}
-                <div className="relative w-full md:w-64 max-w-full">
+                <div className="relative w-full xl:w-64 max-w-full flex-shrink-0">
                     <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs pointer-events-none" />
                     <input
                         type="search"
@@ -1420,19 +1615,26 @@ const Sistemas = () => {
                                                         </div>
                                                     </div>
 
-                                                    {/* Fechas de entrega */}
-                                                    <div className="flex items-center justify-between text-[11px] text-gray-400 dark:text-gray-500 pt-2 border-t border-gray-50 dark:border-gray-700/60 mb-2">
-                                                        <div className="flex items-center gap-1">
-                                                            <FaCalendarAlt className="text-[10px]" />
-                                                            <span>{task.fechaFin ? format(parseISO(task.fechaFin), 'dd MMM', { locale: es }) : 'Sin fecha'}</span>
+                                                    {/* Fechas: Inicio y Entrega */}
+                                                    <div className="flex items-center justify-between text-[11px] text-gray-400 dark:text-gray-500 pt-2 border-t border-gray-50 dark:border-gray-700/60 mb-2 gap-2">
+                                                        <div 
+                                                            className="flex items-center gap-1.5 min-w-0 truncate"
+                                                            title={`Fecha Inicial: ${task.fechaInicio ? format(parseISO(task.fechaInicio), 'dd MMMM yyyy', { locale: es }) : 'Sin fecha inicial'} | Entrega: ${task.fechaFin ? format(parseISO(task.fechaFin), 'dd MMMM yyyy', { locale: es }) : 'Sin entrega'}`}
+                                                        >
+                                                            <FaCalendarAlt className="text-[10px] text-primary flex-shrink-0" />
+                                                            <span className="font-semibold text-gray-600 dark:text-gray-300 truncate">
+                                                                {task.fechaInicio ? format(parseISO(task.fechaInicio), 'dd MMM', { locale: es }) : 'Sin inicio'}
+                                                                <span className="text-gray-400 dark:text-gray-600 mx-1">&rarr;</span>
+                                                                {task.fechaFin ? format(parseISO(task.fechaFin), 'dd MMM', { locale: es }) : 'Sin fin'}
+                                                            </span>
                                                         </div>
                                                         {task.fechaFin && (
-                                                            <span className={`font-bold ${
+                                                            <span className={`font-bold flex-shrink-0 px-2 py-0.5 rounded-md text-[10px] ${
                                                                 isOverdue 
-                                                                ? 'text-rose-500 dark:text-rose-400' 
-                                                                : (daysLeft <= 3 ? 'text-amber-500' : 'text-gray-400')
+                                                                ? 'text-rose-600 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50' 
+                                                                : (daysLeft <= 3 ? 'text-amber-600 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/50' : 'text-gray-500 bg-gray-100 dark:bg-gray-700/60')
                                                             }`}>
-                                                                {isOverdue ? '⚠️ Vencida' : (daysLeft === 0 ? 'Hoy vence' : `${daysLeft}d restantes`)}
+                                                                {isOverdue ? `⚠️ Vencida hace ${Math.abs(daysLeft)}d` : (daysLeft === 0 ? '⚡ Hoy vence' : `⏳ ${daysLeft}d restantes`)}
                                                             </span>
                                                         )}
                                                     </div>
