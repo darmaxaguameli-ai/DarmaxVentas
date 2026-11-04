@@ -122,8 +122,70 @@ model Role {
   // Relación Muchos a Muchos con Usuarios
   users User[] @relation("UserRoles")
 
+  // Permisos dinámicos asignados al Rol
+  permisos Permiso[] @relation("RolePermisos")
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// =====================================================================
+// MODELOS DE MÓDULOS, SUBMÓDULOS Y PERMISOS DINÁMICOS
+// =====================================================================
+
+model Modulo {
+  id          String      @id @default(cuid())
+  codigo      String      @unique // ej: "resumenoperativo", "cotizadores"
+  nombre      String      // ej: "Cotizadores"
+  icono       String?     // ej: "request_quote"
+  orden       Int         @default(0)
+  activo      Boolean     @default(true)
+
+  submodulos  Submodulo[]
+  permisos    Permiso[]
+
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+model Submodulo {
+  id          String      @id @default(cuid())
+  codigo      String      @unique // ej: "cotizadordistribuidor"
+  nombre      String      // ej: "Cotizador Dist."
+  path        String      // ej: "cotizador-distribuidores"
+  icono       String?     // ej: "local_shipping"
+  orden       Int         @default(0)
+  activo      Boolean     @default(true)
+
+  modulo      Modulo      @relation(fields: [moduloId], references: [id], onDelete: Cascade)
+  moduloId    String
+
+  permisos    Permiso[]
+
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+model Permiso {
+  id          String      @id @default(cuid())
+  codigo      String      @unique // ej: "acceso.cotizadores", "acceso.cotizadordistribuidor"
+  nombre      String      // ej: "Acceso al módulo de Cotizadores"
+  descripcion String?
+
+  modulo      Modulo?     @relation(fields: [moduloId], references: [id], onDelete: Cascade)
+  moduloId    String?
+
+  submodulo   Submodulo?  @relation(fields: [submoduloId], references: [id], onDelete: Cascade)
+  submoduloId String?
+
+  // Asignación directa a Colaboradores
+  usuarios    User[]      @relation("UserPermisos")
+
+  // Asignación a Roles (para agrupar permisos predeterminados)
+  roles       Role[]      @relation("RolePermisos")
+
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
 }
 
 // =====================================================================
@@ -188,6 +250,9 @@ model User {
   emailVerified        DateTime?
   verificationToken    String?
   mustChangePassword   Boolean   @default(false)
+
+  // Permisos dinámicos asignados al Colaborador
+  permisos Permiso[] @relation("UserPermisos")
 }
 
 // =====================================================================

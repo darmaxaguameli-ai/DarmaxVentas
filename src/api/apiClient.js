@@ -388,5 +388,28 @@ export const createFiscalFacturaPedido = (data) => apiClient.post('/fiscal/factu
 export const cancelFiscalFactura = (id, motive) => apiClient.post(`/fiscal/cancelar/${id}`, { motive }).then(res => res.data);
 
 // =====================================================================
+// ROLES, MÓDULOS Y PERMISOS (SISTEMAS RBAC v2)
+// =====================================================================
+export const createRole = (data) => apiClient.post('/roles', data).then(res => res.data);
+export const updateRole = (id, data) => apiClient.put(`/roles/${id}`, data).then(res => res.data);
+export const deleteRole = (id) => apiClient.delete(`/roles/${id}`).then(res => res.data);
+
+export const fetchModules = () => apiClient.get('/modules').then(res => res.data);
+export const createModule = (data) => apiClient.post('/modules', data).then(res => res.data);
+export const updateModule = (id, data) => apiClient.put(`/modules/${id}`, data).then(res => res.data);
+export const deleteModule = (id) => apiClient.delete(`/modules/${id}`).then(res => res.data);
+
+export const createSubmodule = (data) => apiClient.post('/submodules', data).then(res => res.data);
+export const updateSubmodule = (id, data) => apiClient.put(`/submodules/${id}`, data).then(res => res.data);
+export const deleteSubmodule = (id) => apiClient.delete(`/submodules/${id}`).then(res => res.data);
+
+export const fetchPermissions = () => apiClient.get('/permissions').then(res => res.data);
+export const createPermission = (data) => apiClient.post('/permissions', data).then(res => res.data);
+export const deletePermission = (id) => apiClient.delete(`/permissions/${id}`).then(res => res.data);
+
+export const fetchCollaborators = () => apiClient.get('/collaborators').then(res => res.data);
+export const updateCollaboratorRoles = (userId, roleIds) => apiClient.put(`/users/${userId}/roles`, { roleIds }).then(res => res.data);
+
+// =====================================================================
 // OTROS
 // =====================================================================

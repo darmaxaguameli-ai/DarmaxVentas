@@ -44,9 +44,10 @@ const menuStructure = [
     type: "group",
     name: "Sistemas",
     icon: "terminal",
-    permission: ["canAccessSistemas", "canManageSistemas"],
+    permission: ["canAccessSistemas", "canManageSistemas", "acceso.sistemas"],
     children: [
-      { name: "Proyectos y Actividades", path: "sistemas", icon: "terminal", permission: ["canAccessSistemas", "canManageSistemas"] },
+      { name: "Proyectos y Actividades", path: "sistemas", icon: "terminal", permission: ["canAccessSistemas", "canManageSistemas", "acceso.sistemas"] },
+      { name: "Roles y Permisos", path: "roles", icon: "security", permission: ["acceso.sistemas", "canAccessSistemas", "canManageSistemas"] },
     ],
   },
   {
@@ -96,7 +97,6 @@ const menuStructure = [
     children: [
       { name: "Directorio", path: "usuarios", icon: "group", permission: "canAccessRH" },
       { name: "RRHH y Nóminas", path: "recursos-humanos", icon: "folder_managed", permission: "canAccessRH" },
-      { name: "Roles y Permisos", path: "roles", icon: "security", permission: "canAccessRH" },
       { name: "Configuración Base", path: "configuracion", icon: "tune", permission: "canAccessConfig" },
     ],
   },

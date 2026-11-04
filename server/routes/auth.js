@@ -31,7 +31,14 @@ router.post('/login', authLimiter, async (req, res) => {
     const isEmail = cleanIdentifier.includes('@');
     const user = await prisma.user.findUnique({
       where: isEmail ? { email: cleanIdentifier.toLowerCase() } : { customId: cleanIdentifier.toUpperCase() },
-      include: { store: true, roles: true, empleado: true }
+      include: {
+        store: true,
+        roles: {
+          include: { permisos: true }
+        },
+        permisos: true,
+        empleado: true
+      }
     });
     if (!user || !user.password) return res.status(401).json({ error: 'Credenciales inválidas.' });
     const isPasswordValid = await bcrypt.compare(password, user.password);

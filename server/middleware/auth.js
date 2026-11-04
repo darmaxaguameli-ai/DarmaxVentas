@@ -29,10 +29,15 @@ const verifyToken = async (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.user = decoded;
 
-    // Cargar usuario completo con sus roles para validaciones granulares
+    // Cargar usuario completo con sus roles y permisos para validaciones granulares
     const user = await prisma.user.findUnique({
         where: { id: decoded.id },
-        include: { roles: true }
+        include: {
+            roles: {
+                include: { permisos: true }
+            },
+            permisos: true
+        }
     });
 
     if (!user) return res.status(401).json({ error: 'Usuario no válido o eliminado.' });
