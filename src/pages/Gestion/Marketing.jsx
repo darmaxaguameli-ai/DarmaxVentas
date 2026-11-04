@@ -74,8 +74,22 @@ const WORK_COLUMNS = [
 ];
 
 const Marketing = () => {
-    const { user: authUser } = useAuth();
-    const isAdmin = authUser?.role === 'ADMIN' || (authUser?.roles && authUser.roles.some(r => r.name?.toUpperCase() === 'ADMIN'));
+    const { user: authUser, hasPermission } = useAuth();
+    
+    // Detección estricta de Jefe vs Colaborador (plannerdigital.jefe vs plannerdigital.colaborador)
+    const isRealJefe = authUser?.role === 'ADMIN' || 
+                        hasPermission('plannerdigital.jefe') ||
+                        hasPermission('acceso.plannerdigital.jefe') ||
+                        authUser?.roles?.some(r => r.name?.toUpperCase() === 'ADMIN' || r.isSystem === true);
+
+    const [viewAsRole, setViewAsRole] = useState(isRealJefe ? 'JEFE' : 'COLABORADOR');
+
+    useEffect(() => {
+        setViewAsRole(isRealJefe ? 'JEFE' : 'COLABORADOR');
+    }, [isRealJefe]);
+
+    const isJefe = isRealJefe && viewAsRole === 'JEFE';
+    const isAdmin = isJefe;
     
     const [posts, setPosts] = useState([]);
     const [metrics, setMetrics] = useState([]);
@@ -651,7 +665,28 @@ const Marketing = () => {
                     </p>
                 </div>
 
-                <div className="flex items-center gap-2.5 w-full md:w-auto">
+                <div className="flex flex-wrap items-center gap-2.5 w-full md:w-auto">
+                    {/* Indicador de rol / Conmutador para Encargado */}
+                    {isRealJefe ? (
+                        <button
+                            type="button"
+                            onClick={() => setViewAsRole(viewAsRole === 'JEFE' ? 'COLABORADOR' : 'JEFE')}
+                            className={`flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-95 border ${
+                                viewAsRole === 'COLABORADOR'
+                                    ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-300 dark:border-amber-700/50'
+                                    : 'bg-primary/10 text-primary dark:text-blue-400 border-primary/20 dark:border-blue-800/40'
+                            }`}
+                            title="Alternar entre vista de Encargado y vista de Colaborador"
+                        >
+                            <FaExchangeAlt /> {viewAsRole === 'JEFE' ? 'Simular Creador' : 'Volver a Jefe'}
+                        </button>
+                    ) : (
+                        <div className="hidden sm:flex items-center gap-1.5 px-3 py-2 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-bold">
+                            <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                            <span>Colaborador / Creador</span>
+                        </div>
+                    )}
+
                     <button 
                         onClick={() => setShowMetricsModal(true)} 
                         className="flex-1 md:flex-none px-4 py-2.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-bold hover:bg-gray-50 dark:hover:bg-gray-700 transition-all flex items-center justify-center gap-2 active:scale-95"

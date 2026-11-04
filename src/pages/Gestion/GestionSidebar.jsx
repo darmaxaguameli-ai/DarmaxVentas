@@ -11,93 +11,112 @@ const menuStructure = [
     name: "Resumen Operativo",
     path: "/gestion",
     icon: "dashboard",
-    permission: "canViewSummary",
+    permission: ["acceso.resumenoperativo", "canViewSummary"],
   },
   {
     type: "group",
     name: "Cotizadores",
     icon: "request_quote",
+    permission: ["acceso.cotizadores", "acceso.cotizadordistribuidor", "acceso.cotizadordarmax", "canAccessQuotes", "canAccessDistributorQuotes"],
     children: [
-      { name: "Cotizador Dist.", path: "cotizador-distribuidores", icon: "local_shipping", permission: "canAccessDistributorQuotes" },
-      { name: "Cotizador Darmax", path: "cotizador", icon: "request_quote", permission: "canAccessQuotes" },
+      { name: "Cotizador Dist.", path: "cotizador-distribuidores", icon: "local_shipping", permission: ["acceso.cotizadordistribuidor", "acceso.cotizadores", "canAccessDistributorQuotes"] },
+      { name: "Cotizador Darmax", path: "cotizador", icon: "request_quote", permission: ["acceso.cotizadordarmax", "acceso.cotizadores", "canAccessQuotes"] },
     ],
   },
   {
     type: "group",
     name: "Operaciones",
     icon: "storefront",
+    permission: ["acceso.operaciones", "acceso.inventarioglobal", "acceso.cortesvending", "canAccessInventory", "canAccessVending"],
     children: [
-      { name: "Inventario Global", path: "inventario", icon: "inventory_2", permission: "canAccessInventory" },
-      { name: "Cortes Vending", path: "vending", icon: "smart_toy", permission: "canAccessVending" },
+      { name: "Inventario Global", path: "inventario", icon: "inventory_2", permission: ["acceso.inventarioglobal", "acceso.operaciones", "canAccessInventory"] },
+      { name: "Cortes Vending", path: "vending", icon: "smart_toy", permission: ["acceso.cortesvending", "acceso.operaciones", "canAccessVending"] },
     ],
   },
   {
     type: "group",
     name: "Ingeniería y Proyectos",
     icon: "engineering",
+    permission: ["acceso.ingenieriayproyectos", "acceso.controlinstalacion", "acceso.mapainstalaciones", "canAccessInstallation", "canAccessShowcase"],
     children: [
-      { name: "Control de Instalación", path: "instalacion", icon: "construction", permission: "canAccessInstallation" },
-      { name: "Mapa de Instalaciones", path: "mapa-instalaciones", icon: "map", permission: "canAccessShowcase" },
+      { name: "Control de Instalación", path: "instalacion", icon: "construction", permission: ["acceso.controlinstalacion", "acceso.ingenieriayproyectos", "canAccessInstallation"] },
+      { name: "Mapa de Instalaciones", path: "mapa-instalaciones", icon: "map", permission: ["acceso.mapainstalaciones", "acceso.ingenieriayproyectos", "canAccessShowcase"] },
     ],
   },
   {
     type: "group",
     name: "Sistemas",
     icon: "terminal",
-    permission: ["canAccessSistemas", "canManageSistemas", "acceso.sistemas"],
+    permission: ["acceso.sistemas", "acceso.proyectosactividades", "proyectosactividades.jefe", "proyectosactividades.colaborador", "acceso.proyectosactividades.jefe", "acceso.proyectosactividades.colaborador", "acceso.permisosyroles", "acceso.rolesypermisos", "canAccessSistemas", "canManageSistemas"],
     children: [
-      { name: "Proyectos y Actividades", path: "sistemas", icon: "terminal", permission: ["canAccessSistemas", "canManageSistemas", "acceso.sistemas"] },
-      { name: "Roles y Permisos", path: "roles", icon: "security", permission: ["acceso.sistemas", "canAccessSistemas", "canManageSistemas"] },
+      { name: "Proyectos y Actividades", path: "sistemas", icon: "terminal", permission: ["acceso.proyectosactividades", "proyectosactividades.jefe", "proyectosactividades.colaborador", "acceso.proyectosactividades.jefe", "acceso.proyectosactividades.colaborador", "acceso.sistemas", "canAccessSistemas", "canManageSistemas"] },
+      { name: "Roles y Permisos", path: "roles", icon: "security", permission: ["acceso.permisosyroles", "acceso.rolesypermisos", "acceso.sistemas", "canAccessSistemas", "canManageSistemas"] },
     ],
   },
   {
     type: "group",
     name: "Marketing y Estrategia",
     icon: "campaign",
+    permission: ["acceso.marketingyestrategia", "acceso.plannerdigital", "plannerdigital.jefe", "plannerdigital.colaborador", "acceso.plannerdigital.jefe", "acceso.plannerdigital.colaborador", "acceso.promociones", "canAccessMarketing"],
     children: [
-      { name: "Planner Digital", path: "marketing", icon: "ads_click", permission: "canAccessMarketing" },
-      { name: "Promociones", path: "promociones", icon: "loyalty", permission: "canAccessMarketing" },
+      { name: "Planner Digital", path: "marketing", icon: "ads_click", permission: ["acceso.plannerdigital", "plannerdigital.jefe", "plannerdigital.colaborador", "acceso.plannerdigital.jefe", "acceso.plannerdigital.colaborador", "acceso.marketingyestrategia", "canAccessMarketing"] },
+      { name: "Promociones", path: "promociones", icon: "loyalty", permission: ["acceso.promociones", "acceso.marketingyestrategia", "canAccessMarketing"] },
     ],
   },
   {
     type: "group",
     name: "Contenido y Recursos",
     icon: "auto_stories",
+    permission: ["acceso.contenidoyrecursos", "acceso.editorblog", "acceso.centrodeguias", "canAccessMarketing", "canViewSummary"],
     children: [
-      { name: "Editor de Blog", path: "blog", icon: "newspaper", permission: "canAccessMarketing" },
-      { name: "Centro de Guías", path: "guias", icon: "menu_book", permission: "canViewSummary" },
+      { name: "Editor de Blog", path: "blog", icon: "newspaper", permission: ["acceso.editorblog", "acceso.contenidoyrecursos", "canAccessMarketing"] },
+      { name: "Centro de Guías", path: "guias", icon: "menu_book", permission: ["acceso.centrodeguias", "acceso.contenidoyrecursos", "canViewSummary"] },
     ],
   },
   {
     type: "group",
     name: "Finanzas y Contabilidad",
     icon: "account_balance_wallet",
+    permission: ["acceso.finanzasycontabilidad", "acceso.tesoreriaingresos", "acceso.comprasxcp", "acceso.contabilidaderp", "acceso.facturacioncfdi", "acceso.prospeccionleads", "acceso.crmycobranza", "canAccessFinances", "canAccessAccounting", "canAccessLeads"],
     children: [
-      { name: "Tesorería (Ingresos)", path: "ingresos", icon: "account_balance_wallet", permission: "canAccessFinances" },
-      { name: "Compras y CxP", path: "compras", icon: "shopping_cart", permission: "canAccessFinances" },
-      { name: "Contabilidad ERP", path: "contabilidad", icon: "account_balance", permission: "canAccessAccounting" },
-      { name: "Facturación (CFDI 4.0)", path: "fiscal", icon: "receipt_long", permission: "canAccessAccounting" },
-      { name: "Prospección / Leads", path: "prospeccion", icon: "trending_up", permission: "canAccessLeads" },
-      { name: "CRM y Cobranza", path: "crm", icon: "people", permission: "canAccessLeads" },
+      { name: "Tesorería (Ingresos)", path: "ingresos", icon: "account_balance_wallet", permission: ["acceso.tesoreriaingresos", "acceso.finanzasycontabilidad", "canAccessFinances"] },
+      { name: "Compras y CxP", path: "compras", icon: "shopping_cart", permission: ["acceso.comprasxcp", "acceso.finanzasycontabilidad", "canAccessFinances"] },
+      { name: "Contabilidad ERP", path: "contabilidad", icon: "account_balance", permission: ["acceso.contabilidaderp", "acceso.finanzasycontabilidad", "canAccessAccounting"] },
+      { name: "Facturación (CFDI 4.0)", path: "fiscal", icon: "receipt_long", permission: ["acceso.facturacioncfdi", "acceso.finanzasycontabilidad", "canAccessAccounting"] },
+      { name: "Prospección / Leads", path: "prospeccion", icon: "trending_up", permission: ["acceso.prospeccionleads", "acceso.finanzasycontabilidad", "canAccessLeads"] },
+      { name: "CRM y Cobranza", path: "crm", icon: "people", permission: ["acceso.crmycobranza", "acceso.finanzasycontabilidad", "canAccessLeads"] },
     ],
   },
   {
     type: "group",
     name: "Legal",
     icon: "gavel",
+    permission: ["acceso.legal", "acceso.gestiondocumental", "acceso.arealegal", "canAccessLegal"],
     children: [
-      { name: "Gestión Documental", path: "documentos", icon: "folder_open", permission: "canAccessLegal" },
-      { name: "Área Legal", path: "legal", icon: "balance", permission: "canAccessLegal" },
+      { name: "Gestión Documental", path: "documentos", icon: "folder_open", permission: ["acceso.gestiondocumental", "acceso.legal", "canAccessLegal"] },
+      { name: "Área Legal", path: "legal", icon: "balance", permission: ["acceso.arealegal", "acceso.legal", "canAccessLegal"] },
     ],
   },
   {
     type: "group",
     name: "Administración",
     icon: "settings_suggest",
+    permission: ["acceso.administracion", "acceso.directorio", "acceso.rrhhynominas", "acceso.configuracionbase", "canAccessRH", "canAccessConfig"],
     children: [
-      { name: "Directorio", path: "usuarios", icon: "group", permission: "canAccessRH" },
-      { name: "RRHH y Nóminas", path: "recursos-humanos", icon: "folder_managed", permission: "canAccessRH" },
-      { name: "Configuración Base", path: "configuracion", icon: "tune", permission: "canAccessConfig" },
+      { name: "Directorio", path: "usuarios", icon: "group", permission: ["acceso.directorio", "acceso.administracion", "canAccessRH"] },
+      { name: "RRHH y Nóminas", path: "recursos-humanos", icon: "folder_managed", permission: ["acceso.rrhhynominas", "acceso.administracion", "canAccessRH"] },
+      { name: "Configuración Base", path: "configuracion", icon: "tune", permission: ["acceso.configuracionbase", "acceso.administracion", "canAccessConfig"] },
+    ],
+  },
+  {
+    type: "group",
+    name: "Otros Entornos",
+    icon: "swap_horiz",
+    permission: ["canAccessPOS", "acceso.pos", "canAccessDelivery", "acceso.delivery", "canAccessOrders", "acceso.pedidos"],
+    children: [
+      { name: "Caja y Mostrador (POS)", path: "/ventas/mostrador", icon: "point_of_sale", permission: ["canAccessPOS", "acceso.pos", "acceso.ventasmostrador"] },
+      { name: "Dashboard Repartidor", path: "/repartidor/dashboard", icon: "local_shipping", permission: ["canAccessDelivery", "acceso.delivery", "acceso.repartidor"] },
+      { name: "Selector de Entorno", path: "/role-selector", icon: "apps" },
     ],
   },
 ];
@@ -181,7 +200,7 @@ const SidebarItem = ({ item, isCollapsed, user, onClose, isMobile, isOpen, onTog
 
   const isActive = item.type === 'link'
     ? location.pathname === item.path || (item.path !== '/gestion' && location.pathname.includes(item.path))
-    : visibleChildren.some(child => location.pathname.split('/').includes(child.path));
+    : visibleChildren.some(child => child.path.startsWith('/') ? location.pathname === child.path : location.pathname.split('/').includes(child.path));
 
   const baseClasses = `flex items-center w-full rounded-xl px-3 py-2 transition-all duration-150 cursor-pointer select-none active:scale-[0.98] ${effectiveCollapsed ? 'justify-center relative' : ''}`;
   const activeClasses = "bg-primary/10 text-primary dark:text-blue-400 font-bold border-l-2 border-primary shadow-xs";
@@ -343,7 +362,7 @@ const GestionSidebar = ({ isOpen, onClose, isCollapsed, toggleCollapsed }) => {
   const getActiveGroup = () => {
     const activeGroup = menuStructure.find(item => 
         item.type === 'group' && 
-        item.children.some(child => location.pathname.includes(child.path))
+        item.children?.some(child => child.path.startsWith('/') ? location.pathname === child.path : location.pathname.includes(child.path))
     );
     return activeGroup ? activeGroup.name : null;
   };

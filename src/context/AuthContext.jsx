@@ -3,6 +3,192 @@ import apiClient from '../api/apiClient'; // Importa el apiClient configurado
 
 const AuthContext = createContext(null);
 
+// Mapeo bidireccional exhaustivo entre constantes dinámicas (acceso.*) y banderas booleanas legacy
+const PERMISSION_EQUIVALENTS = {
+    // 1. Resumen Operativo
+    'acceso.resumenoperativo': ['canViewSummary'],
+    'canViewSummary': ['acceso.resumenoperativo'],
+
+    // 2. Cotizadores
+    'acceso.cotizadores': ['canAccessQuotes', 'canAccessDistributorQuotes'],
+    'acceso.cotizadordistribuidor': ['canAccessDistributorQuotes', 'acceso.cotizadores'],
+    'canAccessDistributorQuotes': ['acceso.cotizadordistribuidor', 'acceso.cotizadores'],
+    'acceso.cotizadordarmax': ['canAccessQuotes', 'acceso.cotizadores'],
+    'canAccessQuotes': ['acceso.cotizadordarmax', 'acceso.cotizadores'],
+
+    // 3. Operaciones
+    'acceso.operaciones': ['canAccessInventory', 'canAccessVending'],
+    'acceso.inventarioglobal': ['canAccessInventory', 'acceso.operaciones'],
+    'canAccessInventory': ['acceso.inventarioglobal', 'acceso.operaciones'],
+    'acceso.cortesvending': ['canAccessVending', 'acceso.operaciones'],
+    'canAccessVending': ['acceso.cortesvending', 'acceso.operaciones'],
+
+    // 4. Ingeniería y Proyectos
+    'acceso.ingenieriayproyectos': ['canAccessInstallation', 'canAccessShowcase'],
+    'acceso.controlinstalacion': ['canAccessInstallation', 'acceso.ingenieriayproyectos'],
+    'canAccessInstallation': ['acceso.controlinstalacion', 'acceso.ingenieriayproyectos'],
+    'acceso.mapainstalaciones': ['canAccessShowcase', 'acceso.ingenieriayproyectos'],
+    'canAccessShowcase': ['acceso.mapainstalaciones', 'acceso.ingenieriayproyectos'],
+
+    // 5. Sistemas
+    'acceso.sistemas': ['canAccessSistemas', 'canManageSistemas'],
+    'canAccessSistemas': [
+        'acceso.sistemas',
+        'acceso.proyectosactividades',
+        'proyectosactividades.jefe',
+        'proyectosactividades.colaborador',
+        'acceso.proyectosactividades.jefe',
+        'acceso.proyectosactividades.colaborador',
+        'acceso.permisosyroles',
+        'acceso.rolesypermisos'
+    ],
+    'canManageSistemas': [
+        'acceso.sistemas',
+        'proyectosactividades.jefe',
+        'acceso.proyectosactividades.jefe',
+        'acceso.permisosyroles',
+        'acceso.rolesypermisos'
+    ],
+    'acceso.proyectosactividades': [
+        'canAccessSistemas',
+        'acceso.sistemas',
+        'proyectosactividades.jefe',
+        'proyectosactividades.colaborador',
+        'acceso.proyectosactividades.jefe',
+        'acceso.proyectosactividades.colaborador'
+    ],
+    'proyectosactividades.jefe': [
+        'acceso.proyectosactividades.jefe',
+        'acceso.proyectosactividades',
+        'canManageSistemas',
+        'canAccessSistemas',
+        'acceso.sistemas'
+    ],
+    'acceso.proyectosactividades.jefe': [
+        'proyectosactividades.jefe',
+        'acceso.proyectosactividades',
+        'canManageSistemas',
+        'canAccessSistemas',
+        'acceso.sistemas'
+    ],
+    'proyectosactividades.colaborador': [
+        'acceso.proyectosactividades.colaborador',
+        'acceso.proyectosactividades',
+        'canAccessSistemas',
+        'acceso.sistemas'
+    ],
+    'acceso.proyectosactividades.colaborador': [
+        'proyectosactividades.colaborador',
+        'acceso.proyectosactividades',
+        'canAccessSistemas',
+        'acceso.sistemas'
+    ],
+    'acceso.permisosyroles': [
+        'acceso.rolesypermisos',
+        'canAccessSistemas',
+        'canManageSistemas',
+        'acceso.sistemas'
+    ],
+    'acceso.rolesypermisos': [
+        'acceso.permisosyroles',
+        'canAccessSistemas',
+        'canManageSistemas',
+        'acceso.sistemas'
+    ],
+
+    // 6. Marketing y Estrategia
+    'acceso.marketingyestrategia': ['canAccessMarketing'],
+    'acceso.plannerdigital': [
+        'canAccessMarketing',
+        'acceso.marketingyestrategia',
+        'plannerdigital.jefe',
+        'plannerdigital.colaborador',
+        'acceso.plannerdigital.jefe',
+        'acceso.plannerdigital.colaborador'
+    ],
+    'plannerdigital.jefe': [
+        'acceso.plannerdigital.jefe',
+        'acceso.plannerdigital',
+        'canAccessMarketing',
+        'acceso.marketingyestrategia'
+    ],
+    'acceso.plannerdigital.jefe': [
+        'plannerdigital.jefe',
+        'acceso.plannerdigital',
+        'canAccessMarketing',
+        'acceso.marketingyestrategia'
+    ],
+    'plannerdigital.colaborador': [
+        'acceso.plannerdigital.colaborador',
+        'acceso.plannerdigital',
+        'canAccessMarketing',
+        'acceso.marketingyestrategia'
+    ],
+    'acceso.plannerdigital.colaborador': [
+        'plannerdigital.colaborador',
+        'acceso.plannerdigital',
+        'canAccessMarketing',
+        'acceso.marketingyestrategia'
+    ],
+    'acceso.promociones': ['canAccessMarketing', 'acceso.marketingyestrategia'],
+    'canAccessMarketing': [
+        'acceso.marketingyestrategia',
+        'acceso.plannerdigital',
+        'plannerdigital.jefe',
+        'plannerdigital.colaborador',
+        'acceso.plannerdigital.jefe',
+        'acceso.plannerdigital.colaborador',
+        'acceso.promociones',
+        'acceso.editorblog'
+    ],
+
+    // 7. Contenido y Recursos
+    'acceso.contenidoyrecursos': ['canAccessMarketing', 'canViewSummary'],
+    'acceso.editorblog': ['canAccessMarketing', 'acceso.contenidoyrecursos'],
+    'acceso.centrodeguias': ['canViewSummary', 'acceso.contenidoyrecursos'],
+
+    // 8. Finanzas y Contabilidad
+    'acceso.finanzasycontabilidad': ['canAccessFinances', 'canAccessAccounting', 'canAccessLeads'],
+    'acceso.tesoreriaingresos': ['canAccessFinances', 'acceso.finanzasycontabilidad'],
+    'acceso.comprasxcp': ['canAccessFinances', 'acceso.finanzasycontabilidad'],
+    'canAccessFinances': ['acceso.finanzasycontabilidad', 'acceso.tesoreriaingresos', 'acceso.comprasxcp'],
+    'acceso.contabilidaderp': ['canAccessAccounting', 'acceso.finanzasycontabilidad'],
+    'acceso.facturacioncfdi': ['canAccessAccounting', 'acceso.finanzasycontabilidad'],
+    'canAccessAccounting': ['acceso.finanzasycontabilidad', 'acceso.contabilidaderp', 'acceso.facturacioncfdi'],
+    'acceso.prospeccionleads': ['canAccessLeads', 'acceso.finanzasycontabilidad'],
+    'acceso.crmycobranza': ['canAccessLeads', 'acceso.finanzasycontabilidad'],
+    'canAccessLeads': ['acceso.finanzasycontabilidad', 'acceso.prospeccionleads', 'acceso.crmycobranza'],
+
+    // 9. Legal
+    'acceso.legal': ['canAccessLegal'],
+    'acceso.gestiondocumental': ['canAccessLegal', 'acceso.legal'],
+    'acceso.arealegal': ['canAccessLegal', 'acceso.legal'],
+    'canAccessLegal': ['acceso.legal', 'acceso.gestiondocumental', 'acceso.arealegal'],
+
+    // 10. Administración
+    'acceso.administracion': ['canAccessRH', 'canAccessConfig'],
+    'acceso.directorio': ['canAccessRH', 'acceso.administracion'],
+    'acceso.rrhhynominas': ['canAccessRH', 'acceso.administracion'],
+    'canAccessRH': ['acceso.administracion', 'acceso.directorio', 'acceso.rrhhynominas'],
+    'acceso.configuracionbase': ['canAccessConfig', 'acceso.administracion'],
+    'canAccessConfig': ['acceso.configuracionbase', 'acceso.administracion'],
+
+    // Módulos Principales (Entornos)
+    'acceso.pos': ['canAccessPOS'],
+    'acceso.ventasmostrador': ['canAccessPOS'],
+    'canAccessPOS': ['acceso.pos', 'acceso.ventasmostrador'],
+
+    'acceso.delivery': ['canAccessDelivery'],
+    'acceso.repartidor': ['canAccessDelivery'],
+    'canAccessDelivery': ['acceso.delivery', 'acceso.repartidor'],
+
+    'acceso.pedidos': ['canAccessOrders'],
+    'canAccessOrders': ['acceso.pedidos'],
+
+    'acceso.gestion': ['canAccessManagement'],
+    'canAccessManagement': ['acceso.gestion', 'acceso.resumenoperativo']
+};
+
 export const useAuth = () => {
     const context = useContext(AuthContext);
     if (!context) {
@@ -21,12 +207,21 @@ export const AuthProvider = ({ children }) => {
         if (!user) return false;
         
         // 1. Verificación de SUPERUSUARIO (ADMIN)
-        const isAdmin = user.roles?.some(r => r.name === 'ADMIN') || user.role === 'ADMIN';
+        const isAdmin = user.roles?.some(r => r.name?.toUpperCase() === 'ADMIN') || user.role === 'ADMIN';
         if (isAdmin) return true;
-        
-        // 2. Verificación Dinámica por Permisos del Usuario (tabla Permiso)
+
+        // Lista de claves equivalentes a comprobar
+        const targetsToCheck = [permissionName, ...(PERMISSION_EQUIVALENTS[permissionName] || [])];
+
+        const itemMatches = (p, target) => {
+            if (!p) return false;
+            if (typeof p === 'string') return p === target;
+            return p.codigo === target || p.id === target;
+        };
+
+        // 2. Verificación Dinámica por Permisos Directos del Usuario (tabla Permiso)
         if (user.permisos && Array.isArray(user.permisos)) {
-            if (user.permisos.some(p => p.codigo === permissionName || p.id === permissionName)) {
+            if (user.permisos.some(p => targetsToCheck.some(target => itemMatches(p, target)))) {
                 return true;
             }
         }
@@ -34,35 +229,25 @@ export const AuthProvider = ({ children }) => {
         // 3. Verificación Dinámica por Permisos de los Roles (tabla RolePermisos)
         if (user.roles && user.roles.length > 0) {
             const hasDynamicPerm = user.roles.some(role => 
-                Array.isArray(role.permisos) && role.permisos.some(p => p.codigo === permissionName || p.id === permissionName)
+                Array.isArray(role.permisos) && role.permisos.some(p => targetsToCheck.some(target => itemMatches(p, target)))
             );
             if (hasDynamicPerm) return true;
 
             // Verificación por booleano en el rol (RBAC v2 legado)
-            const hasLegacyBoolean = user.roles.some(role => role[permissionName] === true);
+            const hasLegacyBoolean = user.roles.some(role => targetsToCheck.some(target => role[target] === true));
             if (hasLegacyBoolean) return true;
         }
 
-        // 4. Mapeo de compatibilidad bidireccional (Sistemas y otros)
-        if (permissionName === 'acceso.sistemas') {
-            const hasLegacySistemas = user.roles?.some(r => r.canAccessSistemas || r.canManageSistemas) ||
-                                     user.canAccessSistemas || user.canManageSistemas;
-            if (hasLegacySistemas) return true;
-        }
-        if (permissionName === 'canAccessSistemas' || permissionName === 'canManageSistemas') {
-            const hasCodeSistemas = user.permisos?.some(p => p.codigo === 'acceso.sistemas') ||
-                                    user.roles?.some(r => r.permisos?.some(p => p.codigo === 'acceso.sistemas'));
-            if (hasCodeSistemas) return true;
+        // 4. Fallback: buscar en el rol legacy si existiera
+        if (user.roleRelation) {
+            if (targetsToCheck.some(target => user.roleRelation[target] === true)) {
+                return true;
+            }
         }
 
-        // 5. Fallback: buscar en el rol legacy si existiera
-        if (user.roleRelation && typeof user.roleRelation[permissionName] === 'boolean') {
-            return user.roleRelation[permissionName];
-        }
-
-        // 6. Fallback final: buscar directamente en el objeto user
-        if (typeof user[permissionName] === 'boolean') {
-            return user[permissionName];
+        // 5. Fallback final: buscar directamente en el objeto user
+        if (targetsToCheck.some(target => user[target] === true)) {
+            return true;
         }
         
         return false;
@@ -72,28 +257,47 @@ export const AuthProvider = ({ children }) => {
     const hasModuleAccess = useCallback((moduleName) => {
         if (!user) return false;
 
+        // Superusuario ADMIN tiene acceso universal
+        if (user.roles?.some(r => r.name?.toUpperCase() === 'ADMIN') || user.role === 'ADMIN') return true;
+
         switch (moduleName) {
             case 'management':
-                // Acceso a Gestión si tiene el permiso maestro O cualquier permiso de sub-módulo
+                // Acceso a Gestión si tiene el permiso maestro O cualquier permiso acceso.* de gestión
                 return hasPermission('canAccessManagement') || 
+                       hasPermission('acceso.gestion') ||
+                       hasPermission('acceso.resumenoperativo') ||
                        hasPermission('canViewSummary') ||
-                       hasPermission('canAccessInventory') ||
-                       hasPermission('canAccessRH') ||
-                       hasPermission('canAccessFinances') ||
-                       hasPermission('canAccessConfig') ||
-                       hasPermission('canAccessQuotes') ||
-                       hasPermission('canAccessLeads') ||
-                       hasPermission('canAccessLegal') ||
-                       hasPermission('canAccessInstallation') ||
-                       hasPermission('canAccessMarketing') ||
-                       hasPermission('canAccessSistemas') ||
-                       hasPermission('canManageSistemas');
+                       hasPermission('acceso.cotizadores') ||
+                       hasPermission('acceso.operaciones') ||
+                       hasPermission('acceso.ingenieriayproyectos') ||
+                       hasPermission('acceso.sistemas') ||
+                       hasPermission('proyectosactividades.jefe') ||
+                       hasPermission('proyectosactividades.colaborador') ||
+                       hasPermission('acceso.proyectosactividades') ||
+                       hasPermission('acceso.permisosyroles') ||
+                       hasPermission('acceso.rolesypermisos') ||
+                       hasPermission('acceso.marketingyestrategia') ||
+                       hasPermission('plannerdigital.jefe') ||
+                       hasPermission('plannerdigital.colaborador') ||
+                       hasPermission('acceso.plannerdigital') ||
+                       hasPermission('acceso.contenidoyrecursos') ||
+                       hasPermission('acceso.finanzasycontabilidad') ||
+                       hasPermission('acceso.legal') ||
+                       hasPermission('acceso.administracion') ||
+                       user.permisos?.some(p => {
+                           const c = typeof p === 'string' ? p : p?.codigo;
+                           return c && (c.startsWith('acceso.') || c.startsWith('proyectosactividades.') || c.startsWith('plannerdigital.')) && !c.includes('pos') && !c.includes('delivery');
+                       }) ||
+                       user.roles?.some(r => r.permisos?.some(p => {
+                           const c = typeof p === 'string' ? p : p?.codigo;
+                           return c && (c.startsWith('acceso.') || c.startsWith('proyectosactividades.') || c.startsWith('plannerdigital.')) && !c.includes('pos') && !c.includes('delivery');
+                       }));
             case 'pos':
-                return hasPermission('canAccessPOS');
+                return hasPermission('canAccessPOS') || hasPermission('acceso.pos') || hasPermission('acceso.ventasmostrador');
             case 'delivery':
-                return hasPermission('canAccessDelivery');
+                return hasPermission('canAccessDelivery') || hasPermission('acceso.delivery') || hasPermission('acceso.repartidor');
             case 'orders':
-                return hasPermission('canAccessOrders') || user.type === 'CLIENTE';
+                return hasPermission('canAccessOrders') || hasPermission('acceso.pedidos') || user.type === 'CLIENTE';
             default:
                 return false;
         }

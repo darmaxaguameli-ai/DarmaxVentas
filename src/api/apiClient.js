@@ -408,7 +408,8 @@ export const createPermission = (data) => apiClient.post('/permissions', data).t
 export const deletePermission = (id) => apiClient.delete(`/permissions/${id}`).then(res => res.data);
 
 export const fetchCollaborators = () => apiClient.get('/collaborators').then(res => res.data);
-export const updateCollaboratorRoles = (userId, roleIds) => apiClient.put(`/users/${userId}/roles`, { roleIds }).then(res => res.data);
+export const updateCollaboratorRoles = (userId, roleIds, permisoIds) => apiClient.put(`/users/${userId}/roles`, { roleIds, permisoIds }).then(res => res.data);
+export const updateCollaboratorPermissions = (userId, permisoIds) => apiClient.put(`/users/${userId}/permissions`, { permisoIds }).then(res => res.data);
 
 // =====================================================================
 // OTROS

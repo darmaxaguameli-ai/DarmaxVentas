@@ -62,24 +62,39 @@ const Resumen = () => {
     const [timePeriod, setTimePeriod] = useState('monthly'); // 'monthly' or 'annual'
     const [viewMode, setViewMode] = useState('local'); // 'local' or 'consolidated'
 
-    // El control de acceso centralizado
+    // El control de acceso centralizado (Validación RBAC: acceso.resumenoperativo)
     useEffect(() => {
         if (loading) return;
         
-        if (!hasPermission('canViewSummary')) {
-            console.log("No tienes permiso para ver el resumen. Buscando módulo alternativo...");
+        if (!hasPermission('acceso.resumenoperativo') && !hasPermission('canViewSummary')) {
+            console.log("No cuentas con permiso para ver el Resumen Operativo. Redirigiendo a tu sección asignada...");
             
-            if (hasPermission('canAccessInventory')) navigate('/gestion/inventario', { replace: true });
-            else if (hasPermission('canAccessRH')) navigate('/gestion/recursos-humanos', { replace: true });
-            else if (hasPermission('canAccessFinances')) navigate('/gestion/ingresos', { replace: true });
-            else if (hasPermission('canAccessLeads')) navigate('/gestion/prospeccion', { replace: true });
-            else if (hasPermission('canAccessQuotes')) navigate('/gestion/cotizador-distribuidores', { replace: true });
-            else if (hasPermission('canAccessMarketing')) navigate('/gestion/marketing', { replace: true });
-            else if (hasPermission('canAccessLegal')) navigate('/gestion/legal', { replace: true });
-            else if (hasPermission('canAccessInstallation')) navigate('/gestion/instalacion', { replace: true });
-            else if (hasPermission('canAccessConfig')) navigate('/gestion/configuracion', { replace: true });
+            // Prioridad de redirección según permisos activos del colaborador
+            if (hasPermission('acceso.inventarioglobal') || hasPermission('canAccessInventory')) navigate('/gestion/inventario', { replace: true });
+            else if (hasPermission('acceso.cortesvending') || hasPermission('canAccessVending')) navigate('/gestion/vending', { replace: true });
+            else if (hasPermission('acceso.cotizadordistribuidor') || hasPermission('canAccessDistributorQuotes')) navigate('/gestion/cotizador-distribuidores', { replace: true });
+            else if (hasPermission('acceso.cotizadordarmax') || hasPermission('canAccessQuotes')) navigate('/gestion/cotizador', { replace: true });
+            else if (hasPermission('acceso.controlinstalacion') || hasPermission('canAccessInstallation')) navigate('/gestion/instalacion', { replace: true });
+            else if (hasPermission('acceso.mapainstalaciones') || hasPermission('canAccessShowcase')) navigate('/gestion/mapa-instalaciones', { replace: true });
+            else if (hasPermission('acceso.sistemas') || hasPermission('canAccessSistemas') || hasPermission('proyectosactividades.jefe') || hasPermission('proyectosactividades.colaborador') || hasPermission('acceso.proyectosactividades')) navigate('/gestion/sistemas', { replace: true });
+            else if (hasPermission('acceso.permisosyroles') || hasPermission('acceso.rolesypermisos')) navigate('/gestion/roles', { replace: true });
+            else if (hasPermission('acceso.plannerdigital') || hasPermission('plannerdigital.jefe') || hasPermission('plannerdigital.colaborador') || hasPermission('canAccessMarketing')) navigate('/gestion/marketing', { replace: true });
+            else if (hasPermission('acceso.promociones')) navigate('/gestion/promociones', { replace: true });
+            else if (hasPermission('acceso.editorblog')) navigate('/gestion/blog', { replace: true });
+            else if (hasPermission('acceso.centrodeguias')) navigate('/gestion/guias', { replace: true });
+            else if (hasPermission('acceso.tesoreriaingresos') || hasPermission('canAccessFinances')) navigate('/gestion/ingresos', { replace: true });
+            else if (hasPermission('acceso.comprasxcp')) navigate('/gestion/compras', { replace: true });
+            else if (hasPermission('acceso.contabilidaderp') || hasPermission('canAccessAccounting')) navigate('/gestion/contabilidad', { replace: true });
+            else if (hasPermission('acceso.facturacioncfdi')) navigate('/gestion/fiscal', { replace: true });
+            else if (hasPermission('acceso.prospeccionleads') || hasPermission('canAccessLeads')) navigate('/gestion/prospeccion', { replace: true });
+            else if (hasPermission('acceso.crmycobranza')) navigate('/gestion/crm', { replace: true });
+            else if (hasPermission('acceso.gestiondocumental') || hasPermission('canAccessLegal')) navigate('/gestion/documentos', { replace: true });
+            else if (hasPermission('acceso.arealegal')) navigate('/gestion/legal', { replace: true });
+            else if (hasPermission('acceso.directorio') || hasPermission('canAccessRH')) navigate('/gestion/usuarios', { replace: true });
+            else if (hasPermission('acceso.rrhhynominas')) navigate('/gestion/recursos-humanos', { replace: true });
+            else if (hasPermission('acceso.configuracionbase') || hasPermission('canAccessConfig')) navigate('/gestion/configuracion', { replace: true });
             else {
-                console.warn("Usuario sin sub-módulos de gestión disponibles. Enviando a selector.");
+                console.warn("Usuario sin sub-módulos de gestión disponibles. Enviando a selector de entorno.");
                 navigate('/role-selector', { replace: true });
             }
         }

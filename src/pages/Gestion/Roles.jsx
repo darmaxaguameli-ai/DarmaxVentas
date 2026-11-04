@@ -15,7 +15,8 @@ import apiClient, {
     createPermission,
     deletePermission,
     fetchCollaborators,
-    updateCollaboratorRoles
+    updateCollaboratorRoles,
+    updateCollaboratorPermissions
 } from '@/api/apiClient';
 import Swal from 'sweetalert2';
 import { toast } from 'sonner';
@@ -70,8 +71,29 @@ const DEFAULT_MODULES_TREE = [
     icono: "terminal",
     permisos: [{ id: "p-sistemas", codigo: "acceso.sistemas", nombre: "Acceso a Sistemas" }],
     submodulos: [
-      { id: "sub-proyectosactividades", codigo: "proyectosactividades", nombre: "Proyectos y Actividades", path: "sistemas", icono: "terminal", permisos: [{ id: "p-proyectosactividades", codigo: "acceso.proyectosactividades", nombre: "Acceso a Proyectos y Actividades" }] },
-      { id: "sub-rolesypermisos", codigo: "rolesypermisos", nombre: "Roles y Permisos", path: "roles", icono: "security", permisos: [{ id: "p-rolesypermisos", codigo: "acceso.rolesypermisos", nombre: "Acceso a Roles y Permisos" }] }
+      { 
+        id: "sub-proyectosactividades", 
+        codigo: "proyectosactividades", 
+        nombre: "Proyectos y Actividades", 
+        path: "sistemas", 
+        icono: "terminal", 
+        permisos: [
+          { id: "p-proyectosactividades-jefe", codigo: "proyectosactividades.jefe", nombre: "Jefe / Encargado de Sistemas (Proyectos y Actividades)" },
+          { id: "p-proyectosactividades-colab", codigo: "proyectosactividades.colaborador", nombre: "Colaborador de Sistemas (Proyectos y Actividades)" },
+          { id: "p-proyectosactividades", codigo: "acceso.proyectosactividades", nombre: "Acceso General a Proyectos y Actividades" }
+        ] 
+      },
+      { 
+        id: "sub-rolesypermisos", 
+        codigo: "rolesypermisos", 
+        nombre: "Roles y Permisos", 
+        path: "roles", 
+        icono: "security", 
+        permisos: [
+          { id: "p-permisosyroles", codigo: "acceso.permisosyroles", nombre: "Permisos y Roles (acceso.permisosyroles)" },
+          { id: "p-rolesypermisos", codigo: "acceso.rolesypermisos", nombre: "Roles y Permisos (acceso.rolesypermisos)" }
+        ] 
+      }
     ]
   },
   {
@@ -81,7 +103,18 @@ const DEFAULT_MODULES_TREE = [
     icono: "campaign",
     permisos: [{ id: "p-marketing", codigo: "acceso.marketingyestrategia", nombre: "Acceso a Marketing y Estrategia" }],
     submodulos: [
-      { id: "sub-plannerdigital", codigo: "plannerdigital", nombre: "Planner Digital", path: "marketing", icono: "ads_click", permisos: [{ id: "p-plannerdigital", codigo: "acceso.plannerdigital", nombre: "Acceso a Planner Digital" }] },
+      { 
+        id: "sub-plannerdigital", 
+        codigo: "plannerdigital", 
+        nombre: "Planner Digital", 
+        path: "marketing", 
+        icono: "ads_click", 
+        permisos: [
+          { id: "p-plannerdigital-jefe", codigo: "plannerdigital.jefe", nombre: "Jefe / Encargado de Marketing (Planner Digital)" },
+          { id: "p-plannerdigital-colab", codigo: "plannerdigital.colaborador", nombre: "Colaborador de Marketing (Planner Digital)" },
+          { id: "p-plannerdigital", codigo: "acceso.plannerdigital", nombre: "Acceso General a Planner Digital" }
+        ] 
+      },
       { id: "sub-promociones", codigo: "promociones", nombre: "Promociones", path: "promociones", icono: "loyalty", permisos: [{ id: "p-promociones", codigo: "acceso.promociones", nombre: "Acceso a Promociones" }] }
     ]
   },
@@ -141,16 +174,16 @@ const mapPermisoCodesToBooleans = (permCodes) => {
     const s = new Set(permCodes || []);
     return {
         canViewSummary: s.has('acceso.resumenoperativo'),
-        canAccessManagement: s.has('acceso.resumenoperativo') || s.has('acceso.sistemas'),
+        canAccessManagement: s.has('acceso.resumenoperativo') || s.has('acceso.sistemas') || s.has('acceso.permisosyroles') || s.has('acceso.rolesypermisos'),
         canAccessQuotes: s.has('acceso.cotizadores') || s.has('acceso.cotizadordarmax'),
         canAccessDistributorQuotes: s.has('acceso.cotizadordistribuidor'),
         canAccessInventory: s.has('acceso.operaciones') || s.has('acceso.inventarioglobal'),
         canAccessVending: s.has('acceso.cortesvending'),
         canAccessInstallation: s.has('acceso.ingenieriayproyectos') || s.has('acceso.controlinstalacion'),
         canAccessShowcase: s.has('acceso.mapainstalaciones'),
-        canAccessSistemas: s.has('acceso.sistemas') || s.has('acceso.proyectosactividades') || s.has('acceso.rolesypermisos'),
-        canManageSistemas: s.has('acceso.sistemas') || s.has('acceso.rolesypermisos'),
-        canAccessMarketing: s.has('acceso.marketingyestrategia') || s.has('acceso.plannerdigital') || s.has('acceso.promociones') || s.has('acceso.contenidoyrecursos') || s.has('acceso.editorblog'),
+        canAccessSistemas: s.has('acceso.sistemas') || s.has('acceso.proyectosactividades') || s.has('proyectosactividades.jefe') || s.has('proyectosactividades.colaborador') || s.has('acceso.permisosyroles') || s.has('acceso.rolesypermisos'),
+        canManageSistemas: s.has('acceso.sistemas') || s.has('proyectosactividades.jefe') || s.has('acceso.permisosyroles') || s.has('acceso.rolesypermisos'),
+        canAccessMarketing: s.has('acceso.marketingyestrategia') || s.has('acceso.plannerdigital') || s.has('plannerdigital.jefe') || s.has('plannerdigital.colaborador') || s.has('acceso.promociones') || s.has('acceso.contenidoyrecursos') || s.has('acceso.editorblog'),
         canAccessFinances: s.has('acceso.finanzasycontabilidad') || s.has('acceso.tesoreriaingresos') || s.has('acceso.comprasxcp'),
         canAccessAccounting: s.has('acceso.contabilidaderp') || s.has('acceso.facturacioncfdi'),
         canAccessLeads: s.has('acceso.prospeccionleads') || s.has('acceso.crmycobranza'),
@@ -164,11 +197,11 @@ const Roles = () => {
     const { user, hasPermission } = useAuth();
     const { fetchManagementData } = useGestion();
 
-    // Verificación de acceso a Sistemas (acceso.sistemas o ADMIN)
+    // Verificación de acceso a Roles y Permisos (acceso.permisosyroles, acceso.rolesypermisos, acceso.sistemas o ADMIN)
     const canAccessSection = useMemo(() => {
         if (!user) return false;
         if (user.role === 'ADMIN' || user.roles?.some(r => r.name?.toUpperCase() === 'ADMIN')) return true;
-        return hasPermission('acceso.sistemas') || hasPermission('canAccessSistemas') || hasPermission('canManageSistemas');
+        return hasPermission('acceso.permisosyroles') || hasPermission('acceso.rolesypermisos') || hasPermission('acceso.sistemas') || hasPermission('canAccessSistemas') || hasPermission('canManageSistemas');
     }, [user, hasPermission]);
 
     // Pestaña activa: 'roles' | 'asignaciones' | 'estructura'
@@ -206,6 +239,9 @@ const Roles = () => {
     });
 
     const [collabFormRoleIds, setCollabFormRoleIds] = useState([]);
+    const [collabFormPermisoIds, setCollabFormPermisoIds] = useState([]);
+    const [collabModalTab, setCollabModalTab] = useState('roles'); // 'roles' | 'permisos'
+    const [collabPermSearch, setCollabPermSearch] = useState('');
     const [selectedRoleUserIds, setSelectedRoleUserIds] = useState([]);
 
     const [moduleForm, setModuleForm] = useState({
@@ -296,9 +332,9 @@ const Roles = () => {
     const allPermisosList = useMemo(() => {
         const list = [];
         (modules || []).forEach(mod => {
-            (mod.permisos || []).forEach(p => list.push({ ...p, moduloNombre: mod.nombre }));
+            (mod.permisos || []).forEach(p => list.push({ ...p, moduloNombre: mod.nombre, moduloIcono: mod.icono }));
             (mod.submodulos || []).forEach(sub => {
-                (sub.permisos || []).forEach(p => list.push({ ...p, moduloNombre: mod.nombre, submoduloNombre: sub.nombre }));
+                (sub.permisos || []).forEach(p => list.push({ ...p, moduloNombre: mod.nombre, submoduloNombre: sub.nombre, submoduloIcono: sub.icono }));
             });
         });
         return list;
@@ -340,6 +376,26 @@ const Roles = () => {
         return Array.from(new Set(ids));
     };
 
+    // Mapa de permisos heredados por los roles seleccionados para el colaborador
+    const inheritedPermsMap = useMemo(() => {
+        const map = new Map(); // idOrCode -> roleName
+        if (!collabFormRoleIds || collabFormRoleIds.length === 0) return map;
+        collabFormRoleIds.forEach(roleId => {
+            const roleObj = roles.find(r => r.id === roleId);
+            if (roleObj) {
+                const rPerms = extractPermisosFromRole(roleObj);
+                rPerms.forEach(pidOrCode => {
+                    const pObj = allPermisosList.find(p => p.id === pidOrCode || p.codigo === pidOrCode);
+                    const code = pObj ? pObj.codigo : pidOrCode;
+                    const id = pObj ? pObj.id : pidOrCode;
+                    map.set(code, roleObj.name);
+                    map.set(id, roleObj.name);
+                });
+            }
+        });
+        return map;
+    }, [collabFormRoleIds, roles, allPermisosList]);
+
     // =====================================================================
     // ACCIONES: ROLES MAESTROS
     // =====================================================================
@@ -365,7 +421,6 @@ const Roles = () => {
 
     const handleTogglePermisoInRole = (permisoId, permisoCodigo) => {
         setRoleForm(prev => {
-            // Buscamos coincidencia ya sea por ID o por código
             const isMatch = (idOrCode) => idOrCode === permisoId || (permisoCodigo && idOrCode === permisoCodigo);
             const exists = prev.permisoIds.some(isMatch);
 
@@ -515,14 +570,23 @@ const Roles = () => {
         }
     };
 
-    // Modal 2: Desde el Colaborador (seleccionar qué roles tiene ese colaborador)
+    // Modal 2: Desde el Colaborador (gestionar roles y permisos directos)
     const handleOpenCollabRolesModal = (collab) => {
         setEditingCollaborator(collab);
+
+        // Roles asignados
         const currentRoleIds = (collab.roles || []).map(r => r.id);
         if (collab.roleId && !currentRoleIds.includes(collab.roleId)) {
             currentRoleIds.push(collab.roleId);
         }
         setCollabFormRoleIds(currentRoleIds);
+
+        // Permisos directos asignados
+        const currentPermisoIds = (collab.permisos || []).map(p => p.id || p.codigo);
+        setCollabFormPermisoIds(currentPermisoIds);
+
+        setCollabModalTab('roles');
+        setCollabPermSearch('');
         setIsCollabModalOpen(true);
     };
 
@@ -532,24 +596,34 @@ const Roles = () => {
         );
     };
 
-    const handleSaveCollabRoles = async () => {
+    const handleToggleDirectPermisoInCollab = (permisoId, permisoCodigo) => {
+        setCollabFormPermisoIds(prev => {
+            const isMatch = (idOrCode) => idOrCode === permisoId || (permisoCodigo && idOrCode === permisoCodigo);
+            const exists = prev.some(isMatch);
+            return exists
+                ? prev.filter(id => !isMatch(id))
+                : [...prev, permisoId];
+        });
+    };
+
+    const handleSaveCollabAccess = async () => {
         try {
             setLoading(true);
-            // Intentar primero con el endpoint dedicado
             try {
-                await updateCollaboratorRoles(editingCollaborator.id, collabFormRoleIds);
+                await updateCollaboratorRoles(editingCollaborator.id, collabFormRoleIds, collabFormPermisoIds);
             } catch (pErr) {
-                // Fallback con PUT /users/:id si el endpoint nuevo aún no está en el backend remoto
+                // Fallback a PUT /users/:id si el endpoint nuevo no estuviese disponible
                 await apiClient.put(`/users/${editingCollaborator.id}`, {
-                    roleIds: collabFormRoleIds
+                    roleIds: collabFormRoleIds,
+                    permisoIds: collabFormPermisoIds
                 });
             }
-            toast.success(`Roles actualizados para ${editingCollaborator.name}`);
+            toast.success(`Roles y permisos actualizados para ${editingCollaborator.name}`);
             setIsCollabModalOpen(false);
             setEditingCollaborator(null);
             await loadAllData();
         } catch (error) {
-            toast.error(error.message || 'Error al actualizar roles del colaborador');
+            toast.error(error.message || 'Error al actualizar accesos del colaborador');
         } finally {
             setLoading(false);
         }
@@ -895,7 +969,7 @@ const Roles = () => {
                                 value={searchRolesQuery}
                                 onChange={(e) => setSearchRolesQuery(e.target.value)}
                                 placeholder="Buscar rol por nombre o funciones..."
-                                className="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700/60 rounded-xl text-xs font-bold text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all"
+                                className="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-gray-950/70 border border-gray-200 dark:border-gray-800 rounded-xl text-xs font-bold text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all"
                             />
                         </div>
                         <span className="text-[11px] text-gray-400 font-medium hidden sm:inline whitespace-nowrap">
@@ -930,11 +1004,11 @@ const Roles = () => {
                                                 <div>
                                                     <div className="flex items-center gap-2 mb-1">
                                                         {role.isSystem ? (
-                                                            <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-900/30 dark:text-amber-300">
+                                                            <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-900/60">
                                                                 Sistema
                                                             </span>
                                                         ) : (
-                                                            <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200 dark:bg-purple-900/30 dark:text-purple-300">
+                                                            <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-900/60">
                                                                 Personalizado
                                                             </span>
                                                         )}
@@ -950,7 +1024,7 @@ const Roles = () => {
                                                 <button
                                                     type="button"
                                                     onClick={() => handleOpenRoleUsersModal(role)}
-                                                    className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-xs font-bold text-gray-700 dark:text-gray-300 hover:text-primary transition-colors flex-shrink-0"
+                                                    className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-gray-50 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700/80 text-xs font-bold text-gray-700 dark:text-gray-200 hover:text-primary dark:hover:text-primary transition-colors flex-shrink-0"
                                                     title="Asignar o ver colaboradores con este rol"
                                                 >
                                                     <span className="material-symbols-outlined text-sm text-primary">groups</span>
@@ -975,7 +1049,7 @@ const Roles = () => {
                                                             return (
                                                                 <span
                                                                     key={permIdOrCode}
-                                                                    className="text-[9px] font-bold px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800 truncate"
+                                                                    className="text-[9px] font-bold px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-950/50 dark:text-blue-300 dark:border-blue-800/60 truncate"
                                                                     title={code}
                                                                 >
                                                                     {code}
@@ -986,7 +1060,7 @@ const Roles = () => {
                                                         <span className="text-[10px] text-gray-400 italic">Sin permisos activos</span>
                                                     )}
                                                     {rolePerms.length > 6 && (
-                                                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-gray-100 dark:bg-gray-800 text-gray-500">
+                                                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 border border-transparent dark:border-gray-700/60">
                                                             +{rolePerms.length - 6} más
                                                         </span>
                                                     )}
@@ -999,7 +1073,7 @@ const Roles = () => {
                                             <button
                                                 type="button"
                                                 onClick={() => handleOpenRoleUsersModal(role)}
-                                                className="flex items-center gap-1.5 text-xs font-bold text-gray-600 dark:text-gray-300 hover:text-primary transition-colors"
+                                                className="flex items-center gap-1.5 text-xs font-bold text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-primary transition-colors"
                                             >
                                                 <span className="material-symbols-outlined text-base text-primary">person_add</span>
                                                 <span>Personal ({assignedUsersCount})</span>
@@ -1009,7 +1083,7 @@ const Roles = () => {
                                                 <button
                                                     type="button"
                                                     onClick={() => handleOpenRoleModal(role)}
-                                                    className="p-1.5 text-gray-400 hover:text-primary hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-all"
+                                                    className="p-1.5 text-gray-400 hover:text-primary dark:hover:text-primary hover:bg-gray-100 dark:hover:bg-gray-800/80 rounded-xl transition-all"
                                                     title="Editar permisos del rol"
                                                 >
                                                     <span className="material-symbols-outlined text-lg">edit</span>
@@ -1018,7 +1092,7 @@ const Roles = () => {
                                                     <button
                                                         type="button"
                                                         onClick={() => handleDeleteRole(role)}
-                                                        className="p-1.5 text-gray-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-xl transition-all"
+                                                        className="p-1.5 text-gray-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-xl transition-all"
                                                         title="Eliminar rol"
                                                     >
                                                         <span className="material-symbols-outlined text-lg">delete</span>
@@ -1050,7 +1124,7 @@ const Roles = () => {
                                 value={searchCollabQuery}
                                 onChange={(e) => setSearchCollabQuery(e.target.value)}
                                 placeholder="Buscar colaborador por nombre, correo o ID (CO-...)..."
-                                className="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700/60 rounded-xl text-xs font-bold text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all"
+                                className="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-gray-950/70 border border-gray-200 dark:border-gray-800 rounded-xl text-xs font-bold text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all"
                             />
                         </div>
 
@@ -1058,11 +1132,11 @@ const Roles = () => {
                             <select
                                 value={collabRoleFilter}
                                 onChange={(e) => setCollabRoleFilter(e.target.value)}
-                                className="w-full sm:w-48 px-3 py-2.5 bg-gray-50 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700/60 rounded-xl text-xs font-bold text-gray-700 dark:text-gray-300 outline-none focus:ring-2 focus:ring-primary/40 cursor-pointer"
+                                className="w-full sm:w-48 px-3 py-2.5 bg-gray-50 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700/80 rounded-xl text-xs font-bold text-gray-700 dark:text-gray-200 outline-none focus:ring-2 focus:ring-primary/40 cursor-pointer"
                             >
-                                <option value="">Todos los roles</option>
+                                <option value="" className="bg-white dark:bg-gray-900 text-gray-900 dark:text-white">Todos los roles</option>
                                 {roles.map(r => (
-                                    <option key={r.id} value={r.id}>{r.name}</option>
+                                    <option key={r.id} value={r.id} className="bg-white dark:bg-gray-900 text-gray-900 dark:text-white">{r.name}</option>
                                 ))}
                             </select>
                         </div>
@@ -1073,27 +1147,28 @@ const Roles = () => {
                         <div className="overflow-x-auto">
                             <table className="w-full text-left border-collapse">
                                 <thead>
-                                    <tr className="border-b border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-850">
-                                        <th className="py-3 px-4 text-[10px] font-black uppercase tracking-wider text-gray-400">Colaborador</th>
-                                        <th className="py-3 px-4 text-[10px] font-black uppercase tracking-wider text-gray-400">Sucursal</th>
-                                        <th className="py-3 px-4 text-[10px] font-black uppercase tracking-wider text-gray-400">Roles Asignados</th>
-                                        <th className="py-3 px-4 text-[10px] font-black uppercase tracking-wider text-gray-400 text-center">Permisos Efectivos</th>
-                                        <th className="py-3 px-4 text-[10px] font-black uppercase tracking-wider text-gray-400 text-right">Acción</th>
+                                    <tr className="border-b border-gray-100 dark:border-gray-800 bg-gray-50/80 dark:bg-gray-950/90 text-gray-500 dark:text-gray-400">
+                                        <th className="py-3.5 px-4 text-[10px] font-black uppercase tracking-wider text-gray-500 dark:text-gray-400">Colaborador</th>
+                                        <th className="py-3.5 px-4 text-[10px] font-black uppercase tracking-wider text-gray-500 dark:text-gray-400">Sucursal</th>
+                                        <th className="py-3.5 px-4 text-[10px] font-black uppercase tracking-wider text-gray-500 dark:text-gray-400">Roles Asignados</th>
+                                        <th className="py-3.5 px-4 text-[10px] font-black uppercase tracking-wider text-gray-500 dark:text-gray-400 text-center">Permisos Efectivos</th>
+                                        <th className="py-3.5 px-4 text-[10px] font-black uppercase tracking-wider text-gray-500 dark:text-gray-400 text-right">Acción</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                                     {filteredCollaborators.length > 0 ? (
                                         filteredCollaborators.map(collab => {
-                                            // Calcular permisos únicos que tiene por sus roles
+                                            // Calcular permisos únicos que tiene por sus roles + directos
                                             const rolePermCodes = new Set();
                                             (collab.roles || []).forEach(r => {
                                                 const pCodes = extractPermisosFromRole(r);
                                                 pCodes.forEach(c => rolePermCodes.add(c));
                                             });
                                             (collab.permisos || []).forEach(p => rolePermCodes.add(p.codigo || p.id));
+                                            const directPermsCount = (collab.permisos || []).length;
 
                                             return (
-                                                <tr key={collab.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors">
+                                                <tr key={collab.id} className="hover:bg-gray-50/60 dark:hover:bg-gray-800/40 transition-colors">
                                                     <td className="py-3.5 px-4">
                                                         <div className="flex items-center gap-3">
                                                             <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-black text-xs">
@@ -1120,31 +1195,38 @@ const Roles = () => {
                                                                 collab.roles.map(r => (
                                                                     <span
                                                                         key={r.id}
-                                                                        className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800"
+                                                                        className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-950/50 dark:text-blue-300 dark:border-blue-800/60"
                                                                     >
                                                                         {r.name}
                                                                     </span>
                                                                 ))
                                                             ) : (
-                                                                <span className="text-[10px] text-rose-500 font-bold bg-rose-50 dark:bg-rose-950/30 px-2 py-0.5 rounded-lg border border-rose-200 dark:border-rose-900/40">
+                                                                <span className="text-[10px] text-rose-600 dark:text-rose-400 font-bold bg-rose-50 dark:bg-rose-950/40 px-2 py-0.5 rounded-lg border border-rose-200 dark:border-rose-900/60">
                                                                     Sin rol asignado
                                                                 </span>
                                                             )}
                                                         </div>
                                                     </td>
                                                     <td className="py-3.5 px-4 text-center">
-                                                        <span className="text-xs font-black px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-800">
-                                                            {rolePermCodes.size} permisos
-                                                        </span>
+                                                        <div className="inline-flex flex-col items-center">
+                                                            <span className="text-xs font-black px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800/60">
+                                                                {rolePermCodes.size} permisos
+                                                            </span>
+                                                            {directPermsCount > 0 && (
+                                                                <span className="text-[9px] font-bold text-primary mt-0.5">
+                                                                    ★ {directPermsCount} directo{directPermsCount > 1 ? 's' : ''}
+                                                                </span>
+                                                            )}
+                                                        </div>
                                                     </td>
                                                     <td className="py-3.5 px-4 text-right">
                                                         <button
                                                             type="button"
                                                             onClick={() => handleOpenCollabRolesModal(collab)}
-                                                            className="px-3 py-1.5 rounded-xl bg-gray-100 hover:bg-primary hover:text-white dark:bg-gray-800 text-xs font-bold text-gray-700 dark:text-gray-300 transition-all active:scale-95 flex items-center gap-1.5 ml-auto"
+                                                            className="px-3.5 py-1.5 rounded-xl bg-gray-100 hover:bg-primary hover:text-white dark:bg-gray-800 dark:hover:bg-primary dark:hover:text-white text-xs font-bold text-gray-700 dark:text-gray-200 transition-all active:scale-95 flex items-center gap-1.5 ml-auto shadow-xs border border-transparent dark:border-gray-700/60"
                                                         >
                                                             <span className="material-symbols-outlined text-sm">shield</span>
-                                                            <span>Asignar Roles</span>
+                                                            <span>Asignar Roles y Permisos</span>
                                                         </button>
                                                     </td>
                                                 </tr>
@@ -1169,11 +1251,11 @@ const Roles = () => {
             {/* ================================================================ */}
             {activeTab === 'estructura' && (
                 <div className="space-y-4 animate-fade-in">
-                    <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40 p-3.5 rounded-2xl flex items-start gap-3">
+                    <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/50 p-3.5 rounded-2xl flex items-start gap-3">
                         <span className="material-symbols-outlined text-amber-500 text-xl flex-shrink-0 mt-0.5">info</span>
                         <div className="text-xs text-amber-800 dark:text-amber-300 leading-relaxed">
                             <strong>Catálogo Dinámico del Sistema:</strong> Cada módulo y submódulo que des de alta aquí generará 
-                            automáticamente su constante de permiso con formato <code className="bg-amber-100 dark:bg-amber-900/40 px-1 py-0.5 rounded font-black">acceso.[codigo]</code>. 
+                            automáticamente su constante de permiso con formato <code className="bg-amber-100 dark:bg-amber-900/60 px-1 py-0.5 rounded font-black">acceso.[codigo]</code>. 
                             Luego podrás asignarlo a cualquier rol o colaborador.
                         </div>
                     </div>
@@ -1189,7 +1271,7 @@ const Roles = () => {
                                 className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-200/80 dark:border-gray-800/80 overflow-hidden shadow-xs"
                             >
                                 {/* Cabecera del Módulo */}
-                                <div className="p-4 bg-gray-50/70 dark:bg-gray-855 flex items-center justify-between gap-3">
+                                <div className="p-4 bg-gray-50/80 dark:bg-gray-950/90 border-b border-gray-100 dark:border-gray-800/80 flex items-center justify-between gap-3">
                                     <div 
                                         className="flex items-center gap-3 cursor-pointer flex-1 min-w-0"
                                         onClick={() => setExpandedModules(prev => ({ ...prev, [mod.id]: !prev[mod.id] }))}
@@ -1202,7 +1284,7 @@ const Roles = () => {
                                                 <h3 className="text-sm font-black text-gray-900 dark:text-white truncate">
                                                     {mod.nombre}
                                                 </h3>
-                                                <span className="text-[10px] font-black px-2 py-0.2 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300">
+                                                <span className="text-[10px] font-black px-2 py-0.2 rounded-full bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/60">
                                                     código: {mod.codigo}
                                                 </span>
                                             </div>
@@ -1222,7 +1304,7 @@ const Roles = () => {
                                                 setSubmoduleForm(prev => ({ ...prev, moduloId: mod.id }));
                                                 setIsNewSubmoduleModalOpen(true);
                                             }}
-                                            className="px-2.5 py-1 text-[11px] font-bold bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg border border-gray-200 dark:border-gray-700 hover:text-primary transition-colors flex items-center gap-1"
+                                            className="px-2.5 py-1 text-[11px] font-bold bg-white dark:bg-gray-800/90 text-gray-700 dark:text-gray-200 rounded-lg border border-gray-200 dark:border-gray-700 hover:text-primary dark:hover:text-primary transition-colors flex items-center gap-1"
                                             title="Agregar submódulo a este módulo"
                                         >
                                             <span className="material-symbols-outlined text-xs">add</span>
@@ -1232,7 +1314,7 @@ const Roles = () => {
                                         <button
                                             type="button"
                                             onClick={() => handleDeleteModule(mod)}
-                                            className="p-1.5 text-gray-400 hover:text-rose-500 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors"
+                                            className="p-1.5 text-gray-400 hover:text-rose-500 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
                                             title="Eliminar módulo"
                                         >
                                             <span className="material-symbols-outlined text-base">delete</span>
@@ -1241,7 +1323,7 @@ const Roles = () => {
                                         <button
                                             type="button"
                                             onClick={() => setExpandedModules(prev => ({ ...prev, [mod.id]: !prev[mod.id] }))}
-                                            className="p-1 text-gray-400 hover:text-gray-600 transition-colors"
+                                            className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
                                         >
                                             <span className="material-symbols-outlined text-lg">
                                                 {isExpanded ? 'expand_less' : 'expand_more'}
@@ -1252,14 +1334,14 @@ const Roles = () => {
 
                                 {/* Lista de Submódulos del Módulo */}
                                 {isExpanded && (
-                                    <div className="p-4 border-t border-gray-100 dark:border-gray-800 bg-white/50 dark:bg-gray-900/50 space-y-2">
+                                    <div className="p-4 border-t border-gray-100 dark:border-gray-800 bg-white/50 dark:bg-gray-900/40 space-y-2">
                                         {mod.submodulos && mod.submodulos.length > 0 ? (
                                             mod.submodulos.map(sub => {
                                                 const subPerm = sub.permisos?.[0];
                                                 return (
                                                     <div
                                                         key={sub.id}
-                                                        className="p-3 rounded-xl bg-gray-50/80 dark:bg-gray-800/60 border border-gray-200/80 dark:border-gray-700/60 flex items-center justify-between gap-3"
+                                                        className="p-3 rounded-xl bg-gray-50/80 dark:bg-gray-950/60 border border-gray-200/80 dark:border-gray-800 flex items-center justify-between gap-3"
                                                     >
                                                         <div className="flex items-center gap-2.5 min-w-0">
                                                             <span className="material-symbols-outlined text-gray-400 text-base">
@@ -1283,7 +1365,7 @@ const Roles = () => {
                                                             <button
                                                                 type="button"
                                                                 onClick={() => handleDeleteSubmodule(sub)}
-                                                                className="p-1 text-gray-400 hover:text-rose-500 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors"
+                                                                className="p-1 text-gray-400 hover:text-rose-500 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
                                                                 title="Eliminar submódulo"
                                                             >
                                                                 <span className="material-symbols-outlined text-sm">delete</span>
@@ -1314,13 +1396,13 @@ const Roles = () => {
                     onClick={() => setIsRoleModalOpen(false)}
                 >
                     <div 
-                        className="bg-white dark:bg-gray-850 rounded-3xl w-full max-w-4xl shadow-2xl border border-gray-200/80 dark:border-gray-700/80 flex flex-col max-h-[92vh] sm:max-h-[88vh] overflow-hidden"
+                        className="bg-white dark:bg-gray-900 rounded-3xl w-full max-w-4xl shadow-2xl border border-gray-200/80 dark:border-gray-800 flex flex-col max-h-[92vh] sm:max-h-[88vh] overflow-hidden"
                         onClick={(e) => e.stopPropagation()}
                     >
                         {/* Cabecera */}
-                        <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-800 bg-gradient-to-r from-slate-50 via-white to-blue-50/40 dark:from-gray-900 dark:via-gray-850 dark:to-blue-950/20 flex items-start justify-between gap-4 flex-shrink-0">
+                        <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-800 bg-gradient-to-r from-slate-50 via-white to-blue-50/40 dark:from-gray-950 dark:via-gray-900 dark:to-blue-950/40 flex items-start justify-between gap-4 flex-shrink-0">
                             <div>
-                                <span className="text-[10px] font-black uppercase tracking-wider text-blue-600 dark:text-blue-400 bg-blue-100/70 dark:bg-blue-900/40 px-2.5 py-0.5 rounded-full">
+                                <span className="text-[10px] font-black uppercase tracking-wider text-blue-600 dark:text-blue-400 bg-blue-100/70 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800/60 px-2.5 py-0.5 rounded-full">
                                     Configuración de Rol
                                 </span>
                                 <h2 className="text-lg font-black text-gray-900 dark:text-white leading-tight mt-1">
@@ -1334,7 +1416,7 @@ const Roles = () => {
                             <button 
                                 type="button"
                                 onClick={() => setIsRoleModalOpen(false)}
-                                className="p-2 text-gray-400 hover:text-gray-600 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                                className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                             >
                                 <span className="material-symbols-outlined text-xl">close</span>
                             </button>
@@ -1354,7 +1436,7 @@ const Roles = () => {
                                         value={roleForm.name}
                                         onChange={(e) => setRoleForm({ ...roleForm, name: e.target.value })}
                                         placeholder="Ej: SUPERVISOR_PRODUCCION"
-                                        className="w-full px-3.5 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-bold text-gray-900 dark:text-white uppercase focus:outline-none focus:ring-2 focus:ring-primary/40 disabled:opacity-60"
+                                        className="w-full px-3.5 py-2.5 bg-gray-50 dark:bg-gray-950/70 border border-gray-200 dark:border-gray-800 rounded-xl text-xs font-bold text-gray-900 dark:text-white uppercase focus:outline-none focus:ring-2 focus:ring-primary/40 disabled:opacity-60"
                                     />
                                 </div>
 
@@ -1367,7 +1449,7 @@ const Roles = () => {
                                         value={roleForm.description}
                                         onChange={(e) => setRoleForm({ ...roleForm, description: e.target.value })}
                                         placeholder="Funciones y alcance laboral..."
-                                        className="w-full px-3.5 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-medium text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/40"
+                                        className="w-full px-3.5 py-2.5 bg-gray-50 dark:bg-gray-950/70 border border-gray-200 dark:border-gray-800 rounded-xl text-xs font-medium text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/40"
                                     />
                                 </div>
                             </div>
@@ -1387,14 +1469,14 @@ const Roles = () => {
                                     <button
                                         type="button"
                                         onClick={handleSelectAllPerms}
-                                        className="px-2.5 py-1 text-[11px] font-bold rounded-lg bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 transition-colors"
+                                        className="px-2.5 py-1 text-[11px] font-bold rounded-lg bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/60 hover:bg-blue-100 dark:hover:bg-blue-900/60 transition-colors"
                                     >
                                         Seleccionar Todos
                                     </button>
                                     <button
                                         type="button"
                                         onClick={handleDeselectAllPerms}
-                                        className="px-2.5 py-1 text-[11px] font-bold rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 transition-colors"
+                                        className="px-2.5 py-1 text-[11px] font-bold rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-transparent dark:border-gray-700/60 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
                                     >
                                         Limpiar Selección
                                     </button>
@@ -1412,7 +1494,7 @@ const Roles = () => {
                                     return (
                                         <div
                                             key={mod.id}
-                                            className="rounded-2xl border border-gray-200/80 dark:border-gray-700/80 p-4 bg-gray-50/50 dark:bg-gray-800/40 space-y-3"
+                                            className="rounded-2xl border border-gray-200/80 dark:border-gray-800 p-4 bg-gray-50/60 dark:bg-gray-950/60 space-y-3"
                                         >
                                             {/* Header del Módulo con switch maestro */}
                                             <div className="flex items-center justify-between gap-3">
@@ -1447,7 +1529,7 @@ const Roles = () => {
                                                                 onChange={() => handleTogglePermisoInRole(modPerm.id, modPerm.codigo)}
                                                                 className="sr-only peer"
                                                             />
-                                                            <div className="w-8 h-4.5 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3.5 after:w-3.5 after:transition-all peer-checked:bg-primary"></div>
+                                                            <div className="w-8 h-4.5 bg-gray-300 dark:bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 dark:after:border-gray-600 after:border after:rounded-full after:h-3.5 after:w-3.5 after:transition-all peer-checked:bg-primary"></div>
                                                         </label>
                                                     )}
                                                 </div>
@@ -1455,7 +1537,7 @@ const Roles = () => {
 
                                             {/* Submódulos del Módulo */}
                                             {mod.submodulos && mod.submodulos.length > 0 && (
-                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2 border-t border-gray-100 dark:border-gray-700/60">
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2 border-t border-gray-100 dark:border-gray-800">
                                                     {mod.submodulos.map(sub => {
                                                         const subPerm = sub.permisos?.[0];
                                                         if (!subPerm) return null;
@@ -1468,7 +1550,7 @@ const Roles = () => {
                                                                 className={`p-2.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-2 ${
                                                                     isChecked
                                                                         ? 'bg-blue-50 dark:bg-blue-950/40 border-primary text-primary'
-                                                                        : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:border-gray-300'
+                                                                        : 'bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700'
                                                                 }`}
                                                             >
                                                                 <div className="min-w-0 flex-1">
@@ -1502,7 +1584,7 @@ const Roles = () => {
                                 <button
                                     type="button"
                                     onClick={() => setIsRoleModalOpen(false)}
-                                    className="py-2.5 px-4 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 font-bold rounded-xl text-xs hover:bg-gray-200 active:scale-95 transition-all"
+                                    className="py-2.5 px-4 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 font-bold rounded-xl text-xs active:scale-95 transition-all border border-transparent dark:border-gray-700/60"
                                 >
                                     Cancelar
                                 </button>
@@ -1530,12 +1612,12 @@ const Roles = () => {
                     onClick={() => setIsUsersModalOpen(false)}
                 >
                     <div 
-                        className="bg-white dark:bg-gray-850 rounded-3xl w-full max-w-lg shadow-2xl border border-gray-200 dark:border-gray-700 flex flex-col max-h-[85vh] overflow-hidden"
+                        className="bg-white dark:bg-gray-900 rounded-3xl w-full max-w-lg shadow-2xl border border-gray-200 dark:border-gray-800 flex flex-col max-h-[85vh] overflow-hidden"
                         onClick={(e) => e.stopPropagation()}
                     >
-                        <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-800 flex items-start justify-between">
+                        <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-800 bg-gradient-to-r from-slate-50 via-white to-blue-50/40 dark:from-gray-950 dark:via-gray-900 dark:to-blue-950/40 flex items-start justify-between">
                             <div>
-                                <span className="text-[10px] font-black uppercase tracking-wider text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full">
+                                <span className="text-[10px] font-black uppercase tracking-wider text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800/60 px-2.5 py-0.5 rounded-full">
                                     Personal del Rol
                                 </span>
                                 <h3 className="text-base font-black text-gray-900 dark:text-white mt-1">
@@ -1549,7 +1631,7 @@ const Roles = () => {
                             <button 
                                 type="button"
                                 onClick={() => setIsUsersModalOpen(false)}
-                                className="p-1 text-gray-400 hover:text-gray-600"
+                                className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                             >
                                 <span className="material-symbols-outlined text-xl">close</span>
                             </button>
@@ -1563,8 +1645,8 @@ const Roles = () => {
                                         key={c.id}
                                         className={`flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer ${
                                             isSelected 
-                                                ? 'bg-blue-50/60 dark:bg-blue-950/30 border-primary' 
-                                                : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:border-gray-300'
+                                                ? 'bg-blue-50/80 dark:bg-blue-950/40 border-primary' 
+                                                : 'bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700'
                                         }`}
                                     >
                                         <div className="min-w-0 pr-2">
@@ -1591,18 +1673,18 @@ const Roles = () => {
                             })}
                         </div>
 
-                        <div className="p-4 border-t border-gray-100 dark:border-gray-800 flex justify-between gap-3">
+                        <div className="p-4 border-t border-gray-100 dark:border-gray-800 flex justify-between gap-3 bg-gray-50/60 dark:bg-gray-950/80">
                             <button
                                 type="button"
                                 onClick={() => setIsUsersModalOpen(false)}
-                                className="py-2 px-4 bg-gray-100 dark:bg-gray-800 text-xs font-bold rounded-xl"
+                                className="py-2 px-4 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-xs font-bold rounded-xl text-gray-700 dark:text-gray-300 border border-transparent dark:border-gray-700/60"
                             >
                                 Cancelar
                             </button>
                             <button
                                 type="button"
                                 onClick={handleSaveRoleUsers}
-                                className="py-2 px-5 bg-primary text-white text-xs font-bold rounded-xl shadow-xs"
+                                className="py-2 px-5 bg-primary text-white text-xs font-bold rounded-xl shadow-xs hover:bg-primary-dark transition-all"
                             >
                                 Guardar ({selectedRoleUserIds.length})
                             </button>
@@ -1613,7 +1695,7 @@ const Roles = () => {
             )}
 
             {/* ================================================================ */}
-            {/* MODAL 3: ASIGNAR ROLES A UN COLABORADOR ESPECÍFICO               */}
+            {/* MODAL 3: GESTIÓN DE ROLES Y PERMISOS DE UN COLABORADOR           */}
             {/* ================================================================ */}
             {isCollabModalOpen && editingCollaborator && createPortal(
                 <div 
@@ -1621,79 +1703,261 @@ const Roles = () => {
                     onClick={() => setIsCollabModalOpen(false)}
                 >
                     <div 
-                        className="bg-white dark:bg-gray-850 rounded-3xl w-full max-w-md shadow-2xl border border-gray-200 dark:border-gray-700 flex flex-col max-h-[85vh] overflow-hidden"
+                        className="bg-white dark:bg-gray-900 rounded-3xl w-full max-w-3xl shadow-2xl border border-gray-200 dark:border-gray-800 flex flex-col max-h-[92vh] sm:max-h-[88vh] overflow-hidden"
                         onClick={(e) => e.stopPropagation()}
                     >
-                        <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-800 flex items-start justify-between">
+                        {/* Cabecera del Modal */}
+                        <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-800 bg-gradient-to-r from-slate-50 via-white to-blue-50/40 dark:from-gray-950 dark:via-gray-900 dark:to-blue-950/40 flex items-start justify-between gap-4 flex-shrink-0">
                             <div>
-                                <span className="text-[10px] font-black uppercase tracking-wider text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full">
-                                    Asignación de Roles
-                                </span>
-                                <h3 className="text-base font-black text-gray-900 dark:text-white mt-1 truncate">
+                                <div className="flex items-center gap-2 mb-1">
+                                    <span className="text-[10px] font-black uppercase tracking-wider text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800/60 px-2.5 py-0.5 rounded-full">
+                                        Control de Acceso Individual
+                                    </span>
+                                    <span className="text-[10px] font-mono text-gray-400">
+                                        #{editingCollaborator.customId || 'SIN ID'}
+                                    </span>
+                                </div>
+                                <h3 className="text-lg font-black text-gray-900 dark:text-white leading-tight">
                                     {editingCollaborator.name}
                                 </h3>
-                                <p className="text-xs text-gray-400">
-                                    Selecciona uno o más roles maestros para este colaborador.
+                                <p className="text-xs text-gray-500 dark:text-gray-400">
+                                    Personaliza los roles maestros y/o asigna permisos directos individuales a este colaborador.
                                 </p>
                             </div>
 
                             <button 
                                 type="button"
                                 onClick={() => setIsCollabModalOpen(false)}
-                                className="p-1 text-gray-400 hover:text-gray-600"
+                                className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                             >
                                 <span className="material-symbols-outlined text-xl">close</span>
                             </button>
                         </div>
 
-                        <div className="flex-1 overflow-y-auto p-4 space-y-2 custom-scrollbar">
-                            {roles.map(r => {
-                                const isChecked = collabFormRoleIds.includes(r.id);
-                                return (
-                                    <div
-                                        key={r.id}
-                                        onClick={() => handleToggleRoleIdInCollab(r.id)}
-                                        className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
-                                            isChecked 
-                                                ? 'bg-blue-50/70 dark:bg-blue-950/40 border-primary text-primary' 
-                                                : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:border-gray-300'
-                                        }`}
-                                    >
-                                        <div className="min-w-0 flex-1">
-                                            <p className="text-xs font-bold leading-tight uppercase">
-                                                {r.name}
-                                            </p>
-                                            <p className="text-[10px] text-gray-400 truncate mt-0.5">
-                                                {extractPermisosFromRole(r).length} permisos asociados
-                                            </p>
-                                        </div>
+                        {/* Sub-pestañas dentro del Modal */}
+                        <div className="flex px-6 pt-3 border-b border-gray-100 dark:border-gray-800 gap-4 bg-gray-50/60 dark:bg-gray-950/70 flex-shrink-0">
+                            <button
+                                type="button"
+                                onClick={() => setCollabModalTab('roles')}
+                                className={`pb-2.5 font-bold text-xs uppercase tracking-wider transition-all flex items-center gap-2 border-b-2 ${
+                                    collabModalTab === 'roles'
+                                        ? 'border-primary text-primary'
+                                        : 'border-transparent text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'
+                                }`}
+                            >
+                                <span className="material-symbols-outlined text-sm">shield</span>
+                                <span>Roles Maestros</span>
+                                <span className="text-[10px] px-2 py-0.2 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300 border border-blue-200 dark:border-blue-800/60 font-bold">
+                                    {collabFormRoleIds.length}
+                                </span>
+                            </button>
 
-                                        <div className={`w-5 h-5 rounded-md border flex items-center justify-center transition-all flex-shrink-0 ${
-                                            isChecked
-                                                ? 'bg-primary border-primary text-white'
-                                                : 'border-gray-300 dark:border-gray-600'
-                                        }`}>
-                                            {isChecked && <span className="material-symbols-outlined text-xs">check</span>}
-                                        </div>
-                                    </div>
-                                );
-                            })}
+                            <button
+                                type="button"
+                                onClick={() => setCollabModalTab('permisos')}
+                                className={`pb-2.5 font-bold text-xs uppercase tracking-wider transition-all flex items-center gap-2 border-b-2 ${
+                                    collabModalTab === 'permisos'
+                                        ? 'border-primary text-primary'
+                                        : 'border-transparent text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'
+                                }`}
+                            >
+                                <span className="material-symbols-outlined text-sm">key</span>
+                                <span>Permisos Directos del Colaborador</span>
+                                <span className="text-[10px] px-2 py-0.2 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60 font-bold">
+                                    {collabFormPermisoIds.length}
+                                </span>
+                            </button>
                         </div>
 
-                        <div className="p-4 border-t border-gray-100 dark:border-gray-800 flex justify-between gap-3">
+                        {/* Resumen de Métricas de Acceso en Tiempo Real */}
+                        <div className="px-6 py-2.5 bg-slate-50 dark:bg-gray-950 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between text-[11px] font-bold text-gray-600 dark:text-gray-300 flex-shrink-0">
+                            <div className="flex items-center gap-4 flex-wrap">
+                                <span>Roles: <strong className="text-blue-600 dark:text-blue-400">{collabFormRoleIds.length}</strong></span>
+                                <span>Heredados de rol: <strong className="text-emerald-600 dark:text-emerald-400">{inheritedPermsMap.size / 2}</strong></span>
+                                <span>Directos: <strong className="text-amber-600 dark:text-amber-400">{collabFormPermisoIds.length}</strong></span>
+                            </div>
+
+                            <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60 text-[10px] font-black uppercase">
+                                Total Efectivos: {new Set([...Array.from(inheritedPermsMap.keys()), ...collabFormPermisoIds]).size}
+                            </span>
+                        </div>
+
+                        {/* CUERPO: PESTAÑA ROLES */}
+                        {collabModalTab === 'roles' && (
+                            <div className="flex-1 overflow-y-auto p-6 space-y-3 custom-scrollbar">
+                                <div className="text-xs text-gray-400 mb-2">
+                                    Selecciona los puestos de trabajo. Al asignar un rol maestro, el colaborador adquiere automáticamente todos sus permisos.
+                                </div>
+
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    {roles.map(r => {
+                                        const isChecked = collabFormRoleIds.includes(r.id);
+                                        const rPermCount = extractPermisosFromRole(r).length;
+
+                                        return (
+                                            <div
+                                                key={r.id}
+                                                onClick={() => handleToggleRoleIdInCollab(r.id)}
+                                                className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
+                                                    isChecked 
+                                                        ? 'bg-blue-50/80 dark:bg-blue-950/40 border-primary text-primary shadow-xs' 
+                                                        : 'bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700'
+                                                }`}
+                                            >
+                                                <div className="min-w-0 flex-1">
+                                                    <div className="flex items-center gap-2">
+                                                        <p className="text-xs font-bold leading-tight uppercase text-gray-900 dark:text-white">
+                                                            {r.name}
+                                                        </p>
+                                                        {r.isSystem && (
+                                                            <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.2 rounded bg-amber-100 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300 border border-amber-200 dark:border-amber-900/60">
+                                                                Sistema
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <p className="text-[10px] text-gray-400 truncate mt-1">
+                                                        {rPermCount} permisos incluidos
+                                                    </p>
+                                                </div>
+
+                                                <div className={`w-5 h-5 rounded-lg border flex items-center justify-center transition-all flex-shrink-0 ${
+                                                    isChecked
+                                                        ? 'bg-primary border-primary text-white'
+                                                        : 'border-gray-300 dark:border-gray-600'
+                                                }`}>
+                                                    {isChecked && <span className="material-symbols-outlined text-xs">check</span>}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* CUERPO: PESTAÑA PERMISOS DIRECTOS */}
+                        {collabModalTab === 'permisos' && (
+                            <div className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar">
+                                {/* Buscador de Permisos */}
+                                <div className="relative">
+                                    <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-base">
+                                        search
+                                    </span>
+                                    <input
+                                        type="text"
+                                        value={collabPermSearch}
+                                        onChange={(e) => setCollabPermSearch(e.target.value)}
+                                        placeholder="Filtrar permiso por nombre o código (ej: cotizador, sistemas, ventas)..."
+                                        className="w-full pl-9 pr-3.5 py-2 bg-gray-50 dark:bg-gray-950/70 border border-gray-200 dark:border-gray-800 rounded-xl text-xs font-bold text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary/40"
+                                    />
+                                </div>
+
+                                <div className="space-y-4">
+                                    {modules.map(mod => {
+                                        // Todos los permisos de este módulo
+                                        const modPerms = [];
+                                        if (mod.permisos?.[0]) modPerms.push({ ...mod.permisos[0], isRoot: true });
+                                        (mod.submodulos || []).forEach(sub => {
+                                            if (sub.permisos?.[0]) modPerms.push({ ...sub.permisos[0], subName: sub.nombre });
+                                        });
+
+                                        // Filtrar por búsqueda si existe
+                                        const q = collabPermSearch.toLowerCase().trim();
+                                        const visiblePerms = !q 
+                                            ? modPerms 
+                                            : modPerms.filter(p => p.nombre.toLowerCase().includes(q) || p.codigo.toLowerCase().includes(q));
+
+                                        if (visiblePerms.length === 0) return null;
+
+                                        return (
+                                            <div
+                                                key={mod.id}
+                                                className="rounded-2xl border border-gray-200/80 dark:border-gray-800 p-4 bg-gray-50/60 dark:bg-gray-950/60 space-y-2.5"
+                                            >
+                                                <div className="flex items-center gap-2">
+                                                    <span className="material-symbols-outlined text-primary text-base">
+                                                        {mod.icono || 'folder'}
+                                                    </span>
+                                                    <h5 className="text-xs font-black text-gray-900 dark:text-white uppercase tracking-tight">
+                                                        {mod.nombre}
+                                                    </h5>
+                                                </div>
+
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 border-t border-gray-100 dark:border-gray-800">
+                                                    {visiblePerms.map(p => {
+                                                        const isInherited = inheritedPermsMap.has(p.codigo) || inheritedPermsMap.has(p.id);
+                                                        const inheritedRoleName = inheritedPermsMap.get(p.codigo) || inheritedPermsMap.get(p.id);
+                                                        const isDirect = collabFormPermisoIds.includes(p.id) || collabFormPermisoIds.includes(p.codigo);
+                                                        const isActive = isInherited || isDirect;
+
+                                                        return (
+                                                            <div
+                                                                key={p.id}
+                                                                onClick={() => handleToggleDirectPermisoInCollab(p.id, p.codigo)}
+                                                                className={`p-2.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-2 ${
+                                                                    isActive
+                                                                        ? isDirect
+                                                                            ? 'bg-amber-50/80 dark:bg-amber-950/40 border-amber-400 dark:border-amber-700/80 text-amber-900 dark:text-amber-200'
+                                                                            : 'bg-emerald-50/80 dark:bg-emerald-950/40 border-emerald-400 dark:border-emerald-700/80 text-emerald-900 dark:text-emerald-200'
+                                                                        : 'bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700'
+                                                                }`}
+                                                            >
+                                                                <div className="min-w-0 flex-1">
+                                                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                                                        <p className="text-xs font-bold truncate">
+                                                                            {p.nombre}
+                                                                        </p>
+                                                                        {isInherited && (
+                                                                            <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60">
+                                                                                ✓ Rol: {inheritedRoleName}
+                                                                            </span>
+                                                                        )}
+                                                                        {isDirect && (
+                                                                            <span className="text-[9px] font-black px-1.5 py-0.2 rounded bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60">
+                                                                                ★ Directo
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                    <p className="text-[10px] text-gray-400 font-mono truncate mt-0.5">
+                                                                        {p.codigo}
+                                                                    </p>
+                                                                </div>
+
+                                                                <div className={`w-4.5 h-4.5 rounded-md border flex items-center justify-center transition-all flex-shrink-0 ${
+                                                                    isActive
+                                                                        ? isDirect
+                                                                            ? 'bg-amber-500 border-amber-500 text-white'
+                                                                            : 'bg-emerald-600 border-emerald-600 text-white'
+                                                                        : 'border-gray-300 dark:border-gray-600'
+                                                                }`}>
+                                                                    {isActive && <span className="material-symbols-outlined text-[10px]">check</span>}
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Footer de Acciones */}
+                        <div className="p-4 border-t border-gray-100 dark:border-gray-800 flex justify-between gap-3 bg-gray-50/60 dark:bg-gray-950/80 flex-shrink-0">
                             <button
                                 type="button"
                                 onClick={() => setIsCollabModalOpen(false)}
-                                className="py-2 px-4 bg-gray-100 dark:bg-gray-800 text-xs font-bold rounded-xl"
+                                className="py-2.5 px-4 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-xs font-bold rounded-xl text-gray-700 dark:text-gray-300 border border-transparent dark:border-gray-700/60"
                             >
                                 Cancelar
                             </button>
                             <button
                                 type="button"
-                                onClick={handleSaveCollabRoles}
-                                className="py-2 px-5 bg-primary text-white text-xs font-bold rounded-xl shadow-xs"
+                                onClick={handleSaveCollabAccess}
+                                className="py-2.5 px-6 bg-primary text-white text-xs font-bold rounded-xl shadow-xs hover:bg-primary-dark transition-all flex items-center gap-1.5"
                             >
-                                Guardar Roles ({collabFormRoleIds.length})
+                                <span className="material-symbols-outlined text-sm">check</span>
+                                <span>Guardar Accesos ({collabFormRoleIds.length} roles, {collabFormPermisoIds.length} directos)</span>
                             </button>
                         </div>
                     </div>
@@ -1710,7 +1974,7 @@ const Roles = () => {
                     onClick={() => setIsNewModuleModalOpen(false)}
                 >
                     <div 
-                        className="bg-white dark:bg-gray-850 rounded-3xl w-full max-w-md shadow-2xl border border-gray-200 dark:border-gray-700 p-6 space-y-4"
+                        className="bg-white dark:bg-gray-900 rounded-3xl w-full max-w-md shadow-2xl border border-gray-200 dark:border-gray-800 p-6 space-y-4"
                         onClick={(e) => e.stopPropagation()}
                     >
                         <h3 className="text-base font-black text-gray-900 dark:text-white">
@@ -1729,7 +1993,7 @@ const Roles = () => {
                                     value={moduleForm.nombre}
                                     onChange={(e) => setModuleForm({ ...moduleForm, nombre: e.target.value })}
                                     placeholder="Ej: Calidad y Procesos"
-                                    className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-bold"
+                                    className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-950/70 border border-gray-200 dark:border-gray-800 rounded-xl text-xs font-bold text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary/40"
                                 />
                             </div>
 
@@ -1741,7 +2005,7 @@ const Roles = () => {
                                     value={moduleForm.codigo}
                                     onChange={(e) => setModuleForm({ ...moduleForm, codigo: e.target.value })}
                                     placeholder="ej: calidad"
-                                    className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-mono font-bold lowercase"
+                                    className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-950/70 border border-gray-200 dark:border-gray-800 rounded-xl text-xs font-mono font-bold lowercase text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary/40"
                                 />
                             </div>
 
@@ -1753,7 +2017,7 @@ const Roles = () => {
                                         value={moduleForm.icono}
                                         onChange={(e) => setModuleForm({ ...moduleForm, icono: e.target.value })}
                                         placeholder="verified"
-                                        className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-bold"
+                                        className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-950/70 border border-gray-200 dark:border-gray-800 rounded-xl text-xs font-bold text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary/40"
                                     />
                                 </div>
                                 <div>
@@ -1762,7 +2026,7 @@ const Roles = () => {
                                         type="number"
                                         value={moduleForm.orden}
                                         onChange={(e) => setModuleForm({ ...moduleForm, orden: parseInt(e.target.value) || 0 })}
-                                        className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-bold"
+                                        className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-950/70 border border-gray-200 dark:border-gray-800 rounded-xl text-xs font-bold text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/40"
                                     />
                                 </div>
                             </div>
@@ -1771,13 +2035,13 @@ const Roles = () => {
                                 <button
                                     type="button"
                                     onClick={() => setIsNewModuleModalOpen(false)}
-                                    className="px-4 py-2 bg-gray-100 dark:bg-gray-800 text-xs font-bold rounded-xl"
+                                    className="px-4 py-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-xs font-bold rounded-xl text-gray-700 dark:text-gray-300 border border-transparent dark:border-gray-700/60"
                                 >
                                     Cancelar
                                 </button>
                                 <button
                                     type="submit"
-                                    className="px-5 py-2 bg-primary text-white text-xs font-bold rounded-xl"
+                                    className="px-5 py-2 bg-primary text-white text-xs font-bold rounded-xl shadow-xs hover:bg-primary-dark transition-all"
                                 >
                                     Crear Módulo
                                 </button>
@@ -1797,7 +2061,7 @@ const Roles = () => {
                     onClick={() => setIsNewSubmoduleModalOpen(false)}
                 >
                     <div 
-                        className="bg-white dark:bg-gray-850 rounded-3xl w-full max-w-md shadow-2xl border border-gray-200 dark:border-gray-700 p-6 space-y-4"
+                        className="bg-white dark:bg-gray-900 rounded-3xl w-full max-w-md shadow-2xl border border-gray-200 dark:border-gray-800 p-6 space-y-4"
                         onClick={(e) => e.stopPropagation()}
                     >
                         <h3 className="text-base font-black text-gray-900 dark:text-white">
@@ -1814,11 +2078,11 @@ const Roles = () => {
                                     required
                                     value={submoduleForm.moduloId}
                                     onChange={(e) => setSubmoduleForm({ ...submoduleForm, moduloId: e.target.value })}
-                                    className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-bold"
+                                    className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-950/70 border border-gray-200 dark:border-gray-800 rounded-xl text-xs font-bold text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/40 cursor-pointer"
                                 >
-                                    <option value="">Selecciona módulo padre...</option>
+                                    <option value="" className="bg-white dark:bg-gray-900 text-gray-900 dark:text-white">Selecciona módulo padre...</option>
                                     {modules.map(m => (
-                                        <option key={m.id} value={m.id}>{m.nombre} ({m.codigo})</option>
+                                        <option key={m.id} value={m.id} className="bg-white dark:bg-gray-900 text-gray-900 dark:text-white">{m.nombre} ({m.codigo})</option>
                                     ))}
                                 </select>
                             </div>
@@ -1831,7 +2095,7 @@ const Roles = () => {
                                     value={submoduleForm.nombre}
                                     onChange={(e) => setSubmoduleForm({ ...submoduleForm, nombre: e.target.value })}
                                     placeholder="Ej: Bitácora de Filtrado"
-                                    className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-bold"
+                                    className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-950/70 border border-gray-200 dark:border-gray-800 rounded-xl text-xs font-bold text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary/40"
                                 />
                             </div>
 
@@ -1844,7 +2108,7 @@ const Roles = () => {
                                         value={submoduleForm.codigo}
                                         onChange={(e) => setSubmoduleForm({ ...submoduleForm, codigo: e.target.value })}
                                         placeholder="bitacorafiltrado"
-                                        className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-mono font-bold lowercase"
+                                        className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-950/70 border border-gray-200 dark:border-gray-800 rounded-xl text-xs font-mono font-bold lowercase text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary/40"
                                     />
                                 </div>
                                 <div>
@@ -1855,7 +2119,7 @@ const Roles = () => {
                                         value={submoduleForm.path}
                                         onChange={(e) => setSubmoduleForm({ ...submoduleForm, path: e.target.value })}
                                         placeholder="bitacora-filtrado"
-                                        className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-mono font-bold"
+                                        className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-950/70 border border-gray-200 dark:border-gray-800 rounded-xl text-xs font-mono font-bold text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary/40"
                                     />
                                 </div>
                             </div>
@@ -1864,13 +2128,13 @@ const Roles = () => {
                                 <button
                                     type="button"
                                     onClick={() => setIsNewSubmoduleModalOpen(false)}
-                                    className="px-4 py-2 bg-gray-100 dark:bg-gray-800 text-xs font-bold rounded-xl"
+                                    className="px-4 py-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-xs font-bold rounded-xl text-gray-700 dark:text-gray-300 border border-transparent dark:border-gray-700/60"
                                 >
                                     Cancelar
                                 </button>
                                 <button
                                     type="submit"
-                                    className="px-5 py-2 bg-slate-800 text-white text-xs font-bold rounded-xl"
+                                    className="px-5 py-2 bg-slate-800 text-white dark:bg-primary text-xs font-bold rounded-xl hover:bg-slate-900 dark:hover:bg-primary-dark transition-all"
                                 >
                                     Crear Submódulo
                                 </button>
@@ -1890,7 +2154,7 @@ const Roles = () => {
                     onClick={() => setIsNewPermisoModalOpen(false)}
                 >
                     <div 
-                        className="bg-white dark:bg-gray-850 rounded-3xl w-full max-w-md shadow-2xl border border-gray-200 dark:border-gray-700 p-6 space-y-4"
+                        className="bg-white dark:bg-gray-900 rounded-3xl w-full max-w-md shadow-2xl border border-gray-200 dark:border-gray-800 p-6 space-y-4"
                         onClick={(e) => e.stopPropagation()}
                     >
                         <h3 className="text-base font-black text-gray-900 dark:text-white">
@@ -1904,7 +2168,7 @@ const Roles = () => {
                             <div>
                                 <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Código del Permiso</label>
                                 <div className="flex items-center">
-                                    <span className="px-3 py-2 bg-gray-100 dark:bg-gray-700 text-xs font-mono font-bold text-gray-500 rounded-l-xl border border-r-0 border-gray-200 dark:border-gray-700">
+                                    <span className="px-3 py-2 bg-gray-100 dark:bg-gray-800 text-xs font-mono font-bold text-gray-500 dark:text-gray-400 rounded-l-xl border border-r-0 border-gray-200 dark:border-gray-800">
                                         acceso.
                                     </span>
                                     <input
@@ -1913,7 +2177,7 @@ const Roles = () => {
                                         value={permisoForm.codigo.replace(/^acceso\./, '')}
                                         onChange={(e) => setPermisoForm({ ...permisoForm, codigo: `acceso.${e.target.value.toLowerCase().replace(/[^a-z0-9.]/g, '')}` })}
                                         placeholder="cotizadores.exportar"
-                                        className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-r-xl text-xs font-mono font-bold lowercase"
+                                        className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-950/70 border border-gray-200 dark:border-gray-800 rounded-r-xl text-xs font-mono font-bold lowercase text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary/40"
                                     />
                                 </div>
                             </div>
@@ -1926,7 +2190,7 @@ const Roles = () => {
                                     value={permisoForm.nombre}
                                     onChange={(e) => setPermisoForm({ ...permisoForm, nombre: e.target.value })}
                                     placeholder="Ej: Exportar Cotizaciones a PDF"
-                                    className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-bold"
+                                    className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-950/70 border border-gray-200 dark:border-gray-800 rounded-xl text-xs font-bold text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary/40"
                                 />
                             </div>
 
@@ -1935,11 +2199,11 @@ const Roles = () => {
                                 <select
                                     value={permisoForm.moduloId}
                                     onChange={(e) => setPermisoForm({ ...permisoForm, moduloId: e.target.value })}
-                                    className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-bold"
+                                    className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-950/70 border border-gray-200 dark:border-gray-800 rounded-xl text-xs font-bold text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/40 cursor-pointer"
                                 >
-                                    <option value="">Opcional: vincular a un módulo...</option>
+                                    <option value="" className="bg-white dark:bg-gray-900 text-gray-900 dark:text-white">Opcional: vincular a un módulo...</option>
                                     {modules.map(m => (
-                                        <option key={m.id} value={m.id}>{m.nombre}</option>
+                                        <option key={m.id} value={m.id} className="bg-white dark:bg-gray-900 text-gray-900 dark:text-white">{m.nombre}</option>
                                     ))}
                                 </select>
                             </div>
@@ -1948,13 +2212,13 @@ const Roles = () => {
                                 <button
                                     type="button"
                                     onClick={() => setIsNewPermisoModalOpen(false)}
-                                    className="px-4 py-2 bg-gray-100 dark:bg-gray-800 text-xs font-bold rounded-xl"
+                                    className="px-4 py-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-xs font-bold rounded-xl text-gray-700 dark:text-gray-300 border border-transparent dark:border-gray-700/60"
                                 >
                                     Cancelar
                                 </button>
                                 <button
                                     type="submit"
-                                    className="px-5 py-2 bg-emerald-600 text-white text-xs font-bold rounded-xl"
+                                    className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition-all"
                                 >
                                     Crear Permiso
                                 </button>

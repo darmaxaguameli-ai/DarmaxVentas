@@ -24,6 +24,8 @@ module.exports = {
         light: "#F6F7F8",        // Fondo Claro
         dark: "#111418",         // Texto / Fondo Oscuro
         "text-secondary": "#617589", // Texto Secundario
+        "gray-850": "#161d27",   // Dark intermedio premium
+        "gray-855": "#131a24",   // Dark profundo
       },
       fontFamily: {
         sans: ["Inter", "system-ui", "sans-serif"],

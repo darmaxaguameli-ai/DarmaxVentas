@@ -505,21 +505,95 @@ router.get('/collaborators', verifyToken, async (req, res) => {
   }
 });
 
-// PUT actualizar los roles asignados a un colaborador
+// PUT actualizar roles y permisos directos asignados a un colaborador
 router.put('/users/:id/roles', verifyToken, requireSistemasOrAdmin, async (req, res) => {
   try {
     const { id } = req.params;
-    const { roleIds } = req.body;
+    const { roleIds, permisoIds } = req.body;
 
-    if (!Array.isArray(roleIds)) {
-      return res.status(400).json({ error: 'roleIds debe ser un arreglo de IDs de roles.' });
+    const updateData = {};
+
+    if (roleIds && Array.isArray(roleIds)) {
+      updateData.roles = {
+        set: roleIds.map(rid => ({ id: rid }))
+      };
+    }
+
+    if (permisoIds && Array.isArray(permisoIds)) {
+      let pIds = permisoIds;
+      const hasCodes = permisoIds.some(p => typeof p === 'string' && p.startsWith('acceso.'));
+      if (hasCodes) {
+        const foundPerms = await prisma.permiso.findMany({
+          where: {
+            OR: [
+              { id: { in: permisoIds } },
+              { codigo: { in: permisoIds } }
+            ]
+          },
+          select: { id: true }
+        });
+        pIds = foundPerms.map(p => p.id);
+      }
+      updateData.permisos = {
+        set: pIds.map(pid => ({ id: pid }))
+      };
+    }
+
+    const updatedUser = await prisma.user.update({
+      where: { id },
+      data: updateData,
+      select: {
+        id: true,
+        customId: true,
+        name: true,
+        email: true,
+        role: true,
+        roles: {
+          include: {
+            permisos: { select: { id: true, codigo: true, nombre: true } }
+          }
+        },
+        permisos: { select: { id: true, codigo: true, nombre: true } }
+      }
+    });
+
+    res.json(updatedUser);
+  } catch (error) {
+    console.error('Error al actualizar roles y permisos de usuario:', error);
+    res.status(500).json({ error: error.message || 'Error al actualizar roles del colaborador' });
+  }
+});
+
+// PUT actualizar exclusivamente permisos directos de un colaborador
+router.put('/users/:id/permissions', verifyToken, requireSistemasOrAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { permisoIds } = req.body;
+
+    if (!Array.isArray(permisoIds)) {
+      return res.status(400).json({ error: 'permisoIds debe ser un arreglo de IDs o códigos de permisos.' });
+    }
+
+    let pIds = permisoIds;
+    const hasCodes = permisoIds.some(p => typeof p === 'string' && p.startsWith('acceso.'));
+    if (hasCodes) {
+      const foundPerms = await prisma.permiso.findMany({
+        where: {
+          OR: [
+            { id: { in: permisoIds } },
+            { codigo: { in: permisoIds } }
+          ]
+        },
+        select: { id: true }
+      });
+      pIds = foundPerms.map(p => p.id);
     }
 
     const updatedUser = await prisma.user.update({
       where: { id },
       data: {
-        roles: {
-          set: roleIds.map(rid => ({ id: rid }))
+        permisos: {
+          set: pIds.map(pid => ({ id: pid }))
         }
       },
       select: {
@@ -539,8 +613,8 @@ router.put('/users/:id/roles', verifyToken, requireSistemasOrAdmin, async (req, 
 
     res.json(updatedUser);
   } catch (error) {
-    console.error('Error al actualizar roles de usuario:', error);
-    res.status(500).json({ error: error.message || 'Error al actualizar roles del colaborador' });
+    console.error('Error al actualizar permisos directos del colaborador:', error);
+    res.status(500).json({ error: error.message || 'Error al actualizar permisos del colaborador' });
   }
 });
 

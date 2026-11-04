@@ -293,12 +293,21 @@ router.put('/users/:id', verifyToken, async (req, res) => {
         updateData.roles = { set: data.roleIds.map(rid => ({ id: rid })) };
     }
 
+    if (isAdmin && data.permisoIds && Array.isArray(data.permisoIds)) {
+        updateData.permisos = { set: data.permisoIds.map(pid => ({ id: pid })) };
+    }
+
     Object.keys(updateData).forEach(key => updateData[key] === undefined && delete updateData[key]);
 
     const updatedUser = await prisma.user.update({
       where: { id },
       data: updateData,
-      include: { store: true, roles: true, loyaltyTransactions: { orderBy: { createdAt: 'desc' }, take: 5 } }
+      include: { 
+        store: true, 
+        roles: { include: { permisos: true } }, 
+        permisos: true,
+        loyaltyTransactions: { orderBy: { createdAt: 'desc' }, take: 5 } 
+      }
     });
 
     const { password: _, ...userWithoutPassword } = updatedUser;
