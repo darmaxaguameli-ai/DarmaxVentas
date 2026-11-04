@@ -4,7 +4,7 @@ import CustomerModal from "./CustomerModal";
 import PaymentModal from "./PaymentModal";
 import DeliveryModal from "./DeliveryModal";
 import Swal from 'sweetalert2';
-import { createOrder, createUser } from '../../api/apiClient';
+import { createOrder, createUser, createClient } from '../../api/apiClient';
 import { MdPerson, MdLocalShipping, MdReceipt, MdClose, MdCheckCircle } from 'react-icons/md';
 import { useHaptic } from '../../hooks/useHaptic';
 import { formatCurrency } from '@/utils/formatters';
@@ -58,7 +58,7 @@ const NewOrderFlow = ({ onExit, sesionCajaId, onOrderCreated, storeId }) => {
 
             // Auto-creación de cliente si es nuevo
             if (customer?.isNew && deliveryInfo.deliveryDetails?.name) {
-                const createdUser = await createUser({
+                const createdUser = await createClient({
                     name: deliveryInfo.deliveryDetails.name,
                     phone: customer.phone || deliveryInfo.deliveryDetails.phone || '',
                     street: deliveryInfo.deliveryDetails.street || '',

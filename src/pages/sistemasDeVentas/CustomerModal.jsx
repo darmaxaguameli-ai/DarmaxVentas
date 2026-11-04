@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { fetchUsers, checkUser, fetchPostalCodeData } from '../../api/apiClient';
+import { fetchUsers, fetchClients, checkUser, checkClient, fetchPostalCodeData } from '../../api/apiClient';
 import Swal from 'sweetalert2';
 import { MdSearch, MdPersonAdd, MdPhone, MdBadge, MdLocationOn, MdClose } from 'react-icons/md';
 
@@ -85,21 +85,21 @@ const CustomerModal = ({ isOpen, onClose, onCustomerAdd }) => {
     );
   };
 
-  // Load all users for name search if needed
+  // Load all clients for name search if needed
   useEffect(() => {
     if (isOpen && searchMethod === 'name') {
-        const loadUsers = async () => {
+        const loadClients = async () => {
             setLoading(true);
             try {
-                const users = await fetchUsers();
-                setAllUsers(users.filter(u => u.role === 'CLIENTE'));
+                const clients = await fetchClients();
+                setAllUsers(clients);
             } catch (err) {
-                console.error("Error loading users:", err);
+                console.error("Error loading clients:", err);
             } finally {
                 setLoading(false);
             }
         };
-        loadUsers();
+        loadClients();
     }
   }, [isOpen, searchMethod]);
 

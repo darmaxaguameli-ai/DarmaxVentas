@@ -97,14 +97,24 @@ export const updateExpense = (id, expenseData) => apiClient.put(`/expenses/${id}
 export const deleteExpense = (id) => apiClient.delete(`/expenses/${id}`).then(res => res.data);
 
 // ====================================================================
-//  USERS & ROLES
+//  USERS & ROLES (PERSONAL / COLABORADORES)
 // ====================================================================
 export const fetchUsers = () => apiClient.get('/users').then(res => res.data);
 export const fetchRoles = () => apiClient.get('/roles').then(res => res.data); // Nuevo: Obtener roles
 export const createUser = (userData) => apiClient.post('/users', userData).then(res => res.data);
 export const updateUser = (id, userData) => apiClient.put(`/users/${id}`, userData).then(res => res.data);
 export const deleteUser = (id) => apiClient.delete(`/users/${id}`).then(res => res.data);
-export const checkUser = (identifier, type) => apiClient.get('/users/check', { params: { identifier, type } }).then(res => res.data);
+export const checkUser = (identifier, type) => apiClient.get('/clients/check', { params: { identifier, type } }).catch(() => apiClient.get('/users/check', { params: { identifier, type } })).then(res => res.data);
+
+// ====================================================================
+//  CLIENTS (CRM / CLIENTES INDEPENDIENTES)
+// ====================================================================
+export const fetchClients = (params) => apiClient.get('/clients', { params }).then(res => res.data);
+export const fetchClientById = (id) => apiClient.get(`/clients/${id}`).then(res => res.data);
+export const createClient = (clientData) => apiClient.post('/clients', clientData).then(res => res.data);
+export const updateClient = (id, clientData) => apiClient.put(`/clients/${id}`, clientData).then(res => res.data);
+export const deleteClient = (id) => apiClient.delete(`/clients/${id}`).then(res => res.data);
+export const checkClient = (identifier, type) => apiClient.get('/clients/check', { params: { identifier, type } }).then(res => res.data);
 
 // ====================================================================
 //  BUSINESS CONFIGURATION

@@ -13,12 +13,17 @@ import {
   createProduct as apiCreateProduct,
   updateProduct as apiUpdateProduct,
   deleteProduct as apiDeleteProduct,
-  // User (Clients)
+  // User (Personal / Colaboradores)
   fetchUsers as apiFetchUsers,
   fetchRoles as apiFetchRoles,
   createUser as apiCreateUser,
   updateUser as apiUpdateUser,
   deleteUser as apiDeleteUser,
+  // Clients (CRM / Directorio)
+  fetchClients as apiFetchClients,
+  createClient as apiCreateClient,
+  updateClient as apiUpdateClient,
+  deleteClient as apiDeleteClient,
   // Income
   fetchIncomes as apiFetchIncomes,
   createIncome as apiCreateIncome,
@@ -75,7 +80,8 @@ export const useGestion = () => {
 
 const initialState = {
   inventory: [],
-  users: [], // Clientes y Personal
+  users: [], // Personal y Colaboradores
+  clients: [], // Clientes dedicados (CRM)
   roles: [], 
   income: [],
   expenses: [],
@@ -101,6 +107,7 @@ const gestionReducer = (state, action) => {
         ...state,
         inventory: action.payload.inventory || state.inventory,
         users: action.payload.users || state.users,
+        clients: action.payload.clients || state.clients,
         roles: action.payload.roles || state.roles,
         income: action.payload.income || state.income,
         expenses: action.payload.expenses || state.expenses,
@@ -130,14 +137,14 @@ export const GestionProvider = ({ children }) => {
     try {
       const [
         inventory, users, roles, income, expenses,
-        waterTypes, servicePrices, jugBrands, empleados, franchises, stores, installationModels
+        waterTypes, servicePrices, jugBrands, empleados, franchises, stores, installationModels, clients
       ] = await Promise.all([
         apiFetchProducts(), apiFetchUsers(), apiFetchRoles(), apiFetchIncomes(), apiFetchExpenses(),
-        apiFetchWaterTypes(), apiFetchServicePrices(), apiFetchJugBrands(), apiFetchEmpleados(), apiFetchFranchises(), apiFetchStores(), apiFetchInstallationModels()
+        apiFetchWaterTypes(), apiFetchServicePrices(), apiFetchJugBrands(), apiFetchEmpleados(), apiFetchFranchises(), apiFetchStores(), apiFetchInstallationModels(), apiFetchClients()
       ]);
       dispatch({
         type: "SET_INITIAL_DATA",
-        payload: { inventory, users, roles, income, expenses, waterTypes, servicePrices, jugBrands, empleados, franchises, stores, installationModels },
+        payload: { inventory, users, roles, income, expenses, waterTypes, servicePrices, jugBrands, empleados, franchises, stores, installationModels, clients },
       });
     } catch (error) {
       dispatch({ type: "SET_ERROR", payload: error.message });
@@ -184,8 +191,8 @@ export const GestionProvider = ({ children }) => {
 
   const productActions = createCrudActions('Product', { createProduct: apiCreateProduct, updateProduct: apiUpdateProduct, deleteProduct: apiDeleteProduct });
   
-  // Acciones para CLIENTES (mapeadas a las funciones de User en la API)
-  const clientActions = createCrudActions('User', { createUser: apiCreateUser, updateUser: apiUpdateUser, deleteUser: apiDeleteUser }, 'Client');
+  // Acciones para CLIENTES (Ahora conectados directamente a la API de Cliente)
+  const clientActions = createCrudActions('Client', { createClient: apiCreateClient, updateClient: apiUpdateClient, deleteClient: apiDeleteClient }, 'Client');
   
   const waterTypeActions = createCrudActions('WaterType', { createWaterType: apiCreateWaterType, updateWaterType: apiUpdateWaterType, deleteWaterType: apiDeleteWaterType });
   const servicePriceActions = createCrudActions('ServicePrice', { createServicePrice: apiCreateServicePrice, updateServicePrice: apiUpdateServicePrice, deleteServicePrice: apiDeleteServicePrice });

@@ -44,7 +44,7 @@ router.post('/pedidos', async (req, res) => {
 
       if (!storeId) {
           if (clienteId) {
-               const client = await tx.user.findUnique({ where: { id: clienteId } });
+               const client = await tx.cliente.findUnique({ where: { id: clienteId } });
                if (client && client.storeId) storeId = client.storeId;
           }
           if (!storeId) {
@@ -56,11 +56,11 @@ router.post('/pedidos', async (req, res) => {
       
       if (pointsInt > 0) {
           if (!clienteId) throw new Error('Se requiere estar identificado para usar puntos de lealtad.');
-          const client = await tx.user.findUnique({ where: { id: clienteId } });
+          const client = await tx.cliente.findUnique({ where: { id: clienteId } });
           if (!client) throw new Error('Cliente no encontrado para el canje de puntos.');
           if (client.loyaltyPoints < pointsInt) throw new Error(`Puntos insuficientes. Tienes ${client.loyaltyPoints} y requieres ${pointsInt}.`);
           
-          await tx.user.update({ 
+          await tx.cliente.update({ 
             where: { id: clienteId }, 
             data: { loyaltyPoints: { decrement: pointsInt } } 
           });
@@ -71,20 +71,19 @@ router.post('/pedidos', async (req, res) => {
         let isIdUnique = false;
         while (!isIdUnique) {
           const random = String(Math.floor(Math.random() * 9000) + 1000);
-          guestCustomId = `INV-${random}`;
-          const existingUser = await tx.user.findUnique({ where: { customId: guestCustomId } });
-          if (!existingUser) isIdUnique = true;
+          guestCustomId = `CLI-INV-${random}`;
+          const existingClient = await tx.cliente.findUnique({ where: { customId: guestCustomId } });
+          if (!existingClient) isIdUnique = true;
         }
-        const guestUser = await tx.user.create({ 
+        const guestClient = await tx.cliente.create({ 
           data: { 
-            name: 'Invitado', 
+            name: 'Invitado Mostrador', 
             customId: guestCustomId, 
-            role: 'CLIENTE', 
-            type: 'CLIENTE',
+            clientCategory: 'PARTICULAR',
             store: { connect: { id: storeId } } 
           } 
         });
-        clienteId = guestUser.id;
+        clienteId = guestClient.id;
       }
       
       let customId;
@@ -133,7 +132,7 @@ router.post('/pedidos', async (req, res) => {
                 type: 'REDEEMED', 
                 description: `Canje en pedido ${customId}`, 
                 orderId: newPedido.id, 
-                user: { connect: { id: clienteId } } 
+                cliente: { connect: { id: clienteId } } 
             } 
           });
       }
@@ -210,7 +209,7 @@ router.post('/pedidos', async (req, res) => {
   
       // Actualizar la fecha de última compra del cliente
       if (clienteId) {
-        await tx.user.update({
+        await tx.cliente.update({
           where: { id: clienteId },
           data: { lastPurchaseDate: new Date() }
         });
@@ -272,8 +271,8 @@ router.put('/pedidos/:id', verifyToken, async (req, res) => {
       if (status === 'ENTREGADO' && existingPedido.status !== 'ENTREGADO') {
           const pointsEarned = Math.floor(existingPedido.total / 10);
           if (pointsEarned > 0) {
-              await tx.user.update({ where: { id: existingPedido.clienteId }, data: { loyaltyPoints: { increment: pointsEarned } } });
-              await tx.loyaltyTransaction.create({ data: { amount: pointsEarned, type: 'EARNED', description: `Puntos ${existingPedido.customId}`, orderId: id, user: { connect: { id: existingPedido.clienteId } } } });
+              await tx.cliente.update({ where: { id: existingPedido.clienteId }, data: { loyaltyPoints: { increment: pointsEarned } } });
+              await tx.loyaltyTransaction.create({ data: { amount: pointsEarned, type: 'EARNED', description: `Puntos ${existingPedido.customId}`, orderId: id, cliente: { connect: { id: existingPedido.clienteId } } } });
           }
       }
       return pedido;

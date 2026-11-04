@@ -3,14 +3,16 @@ import { useGestion } from "./context/GestionContext";
 import { useAuth } from "../../context/AuthContext";
 import apiClient, { fetchPostalCodeData as apiFetchPostalCode } from "@/api/apiClient";
 import Swal from 'sweetalert2';
-import { FaUserPlus, FaSearch, FaFilter, FaMapMarkerAlt, FaEnvelope, FaPhone, FaStar, FaStore, FaEdit, FaTrash, FaTimes, FaPlus, FaCalendarAlt } from 'react-icons/fa';
+import { FaUserPlus, FaSearch, FaFilter, FaMapMarkerAlt, FaEnvelope, FaPhone, FaStar, FaStore, FaEdit, FaTrash, FaTimes, FaPlus, FaCalendarAlt, FaDownload, FaFileCode, FaFileCsv, FaDatabase } from 'react-icons/fa';
 
 // Componente para gestionar Clientes (Simplificado)
 const ManageClients = ({ selectedStoreFilter }) => {
   const { state, addClient, updateClient, deleteClient } = useGestion();
-  const { users, stores, jugBrands = [] } = state;
+  const { clients = [], stores, jugBrands = [] } = state;
   const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [exportScope, setExportScope] = useState("all");
   const [editingClient, setEditingClient] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
@@ -35,8 +37,7 @@ const ManageClients = ({ selectedStoreFilter }) => {
 
   const [formData, setFormData] = useState(initialClientState);
 
-  // Filtrar solo usuarios que son realmente CLIENTES (usando el nuevo IdentityType)
-  const clients = users.filter(u => u.type === 'CLIENTE' || u.customId?.startsWith('CLI-'));
+  // Base de datos dedicada de Clientes (ya desacoplada de Colaboradores)
 
   const filteredClients = clients.filter(client => {
     const matchesSearch = (client.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -175,6 +176,195 @@ const ManageClients = ({ selectedStoreFilter }) => {
     }
   };
 
+  const handleExportJSON = () => {
+    const targetClients = exportScope === 'filtered' ? filteredClients : clients;
+    if (targetClients.length === 0) {
+      Swal.fire('Atención', 'No hay clientes para exportar con el filtro seleccionado.', 'warning');
+      return;
+    }
+
+    const structuredClients = targetClients.map(c => {
+      let prefs = c.clientPreferences;
+      if (typeof prefs === 'string') {
+        try { prefs = JSON.parse(prefs); } catch (e) { prefs = []; }
+      }
+      if (!Array.isArray(prefs)) prefs = [];
+
+      return {
+        id: c.id,
+        customId: c.customId,
+        name: c.name,
+        phone: c.phone || null,
+        email: c.email || null,
+        sexo: c.sexo || null,
+        clientCategory: c.clientCategory || 'PARTICULAR',
+        address: {
+          street: c.street || null,
+          neighborhood: c.neighborhood || null,
+          municipality: c.municipality || null,
+          city: c.city || null,
+          state: c.state || null,
+          postalCode: c.postalCode || null,
+          references: c.references || null,
+          coordinates: {
+            lat: c.lat || null,
+            lng: c.lng || null
+          }
+        },
+        store: c.store ? {
+          id: c.store.id,
+          name: c.store.name
+        } : null,
+        storeId: c.storeId || null,
+        commercial: {
+          purchaseFrequencyDays: c.purchaseFrequencyDays || null,
+          lastPurchaseDate: c.lastPurchaseDate || null,
+          preferredJugsSummary: getPreferredJugsText(c) || null,
+          preferences: prefs,
+          loyaltyPoints: c.loyaltyPoints || 0
+        },
+        timestamps: {
+          createdAt: c.createdAt || null,
+          updatedAt: c.updatedAt || null
+        }
+      };
+    });
+
+    const flatImportData = targetClients.map(c => ({
+      id: c.id,
+      customId: c.customId,
+      name: c.name,
+      phone: c.phone || null,
+      email: c.email || null,
+      sexo: c.sexo || null,
+      street: c.street || null,
+      neighborhood: c.neighborhood || null,
+      municipality: c.municipality || null,
+      city: c.city || null,
+      state: c.state || null,
+      postalCode: c.postalCode || null,
+      references: c.references || null,
+      lat: c.lat || null,
+      lng: c.lng || null,
+      clientCategory: c.clientCategory || 'PARTICULAR',
+      storeId: c.storeId || null,
+      purchaseFrequencyDays: c.purchaseFrequencyDays || null,
+      lastPurchaseDate: c.lastPurchaseDate || null,
+      preferredJugs: c.preferredJugs || null,
+      clientPreferences: c.clientPreferences || [],
+      loyaltyPoints: c.loyaltyPoints || 0,
+      createdAt: c.createdAt || null,
+      updatedAt: c.updatedAt || null
+    }));
+
+    const jsonPayload = {
+      metadata: {
+        exportDate: new Date().toISOString(),
+        totalClients: targetClients.length,
+        filterScope: exportScope,
+        source: 'DarmaxVentas - Gestión de Clientes',
+        notes: 'Respaldo preparado para separación en multischema o base de datos independiente.'
+      },
+      clients: structuredClients,
+      prismaDirectImport: flatImportData
+    };
+
+    const dateStr = new Date().toISOString().split('T')[0];
+    const blob = new Blob([JSON.stringify(jsonPayload, null, 2)], { type: 'application/json;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `respaldo_clientes_darmax_${dateStr}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    setIsExportModalOpen(false);
+    Swal.fire('Respaldo Generado', `Se descargaron ${targetClients.length} clientes en formato JSON correctamente.`, 'success');
+  };
+
+  const handleExportCSV = () => {
+    const targetClients = exportScope === 'filtered' ? filteredClients : clients;
+    if (targetClients.length === 0) {
+      Swal.fire('Atención', 'No hay clientes para exportar con el filtro seleccionado.', 'warning');
+      return;
+    }
+
+    const escapeCSV = (val) => {
+      if (val === null || val === undefined) return '""';
+      const str = String(val).replace(/"/g, '""');
+      return `"${str}"`;
+    };
+
+    const headers = [
+      'ID_Original',
+      'Codigo_Cliente',
+      'Nombre',
+      'Telefono',
+      'Email',
+      'Categoria',
+      'Sexo',
+      'Calle_Numero',
+      'Colonia',
+      'Municipio',
+      'Ciudad',
+      'Estado',
+      'Codigo_Postal',
+      'Referencias',
+      'Latitud',
+      'Longitud',
+      'ID_Sucursal',
+      'Nombre_Sucursal',
+      'Frecuencia_Dias',
+      'Ultima_Compra',
+      'Preferencias_Garrafones',
+      'Puntos_Lealtad',
+      'Fecha_Creacion'
+    ];
+
+    const rows = targetClients.map(c => [
+      escapeCSV(c.id),
+      escapeCSV(c.customId),
+      escapeCSV(c.name),
+      escapeCSV(c.phone),
+      escapeCSV(c.email),
+      escapeCSV(c.clientCategory || 'PARTICULAR'),
+      escapeCSV(c.sexo),
+      escapeCSV(c.street),
+      escapeCSV(c.neighborhood),
+      escapeCSV(c.municipality),
+      escapeCSV(c.city),
+      escapeCSV(c.state),
+      escapeCSV(c.postalCode),
+      escapeCSV(c.references),
+      escapeCSV(c.lat),
+      escapeCSV(c.lng),
+      escapeCSV(c.storeId),
+      escapeCSV(c.store?.name),
+      escapeCSV(c.purchaseFrequencyDays),
+      escapeCSV(c.lastPurchaseDate ? new Date(c.lastPurchaseDate).toISOString().split('T')[0] : ''),
+      escapeCSV(getPreferredJugsText(c) || ''),
+      escapeCSV(c.loyaltyPoints || 0),
+      escapeCSV(c.createdAt ? new Date(c.createdAt).toISOString() : '')
+    ]);
+
+    const csvContent = '\uFEFF' + [headers.join(','), ...rows.map(r => r.join(','))].join('\r\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    const dateStr = new Date().toISOString().split('T')[0];
+    link.href = url;
+    link.download = `respaldo_clientes_darmax_${dateStr}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    setIsExportModalOpen(false);
+    Swal.fire('Exportación Exitosa', `Se descargaron ${targetClients.length} clientes en formato CSV (Excel) correctamente.`, 'success');
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row justify-between gap-4">
@@ -188,9 +378,19 @@ const ManageClients = ({ selectedStoreFilter }) => {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <button onClick={() => handleOpenModal()} className="btn-primary flex items-center gap-2">
-          <FaUserPlus /> Nuevo Cliente
-        </button>
+        <div className="flex items-center gap-2">
+          <button 
+            type="button"
+            onClick={() => setIsExportModalOpen(true)} 
+            className="flex items-center gap-2 px-4 py-2.5 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 rounded-xl font-black text-xs uppercase tracking-wider transition-all shadow-sm"
+            title="Respaldar o descargar clientes para migración o Excel"
+          >
+            <FaDownload /> Respaldar Clientes
+          </button>
+          <button onClick={() => handleOpenModal()} className="btn-primary flex items-center gap-2">
+            <FaUserPlus /> Nuevo Cliente
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -520,6 +720,159 @@ const ManageClients = ({ selectedStoreFilter }) => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal para Respaldar / Exportar Clientes */}
+      {isExportModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white dark:bg-gray-800 rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden border border-gray-100 dark:border-gray-700">
+            <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gradient-to-r from-emerald-500/10 to-teal-500/10">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                  <FaDatabase size={20} />
+                </div>
+                <div>
+                  <h2 className="text-xl font-black text-gray-800 dark:text-white uppercase tracking-tight">
+                    Respaldar Clientes
+                  </h2>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    Exporta datos para migración o respaldo
+                  </p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setIsExportModalOpen(false)} 
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-white p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              >
+                <FaTimes size={18} />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-6">
+              {/* Selector de Alcance */}
+              <div>
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-2">
+                  Selecciona el universo a respaldar
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setExportScope("all")}
+                    className={`p-3 rounded-2xl border text-left transition-all ${
+                      exportScope === "all"
+                        ? "border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/30 ring-2 ring-emerald-500/20"
+                        : "border-gray-200 dark:border-gray-700 hover:border-gray-300"
+                    }`}
+                  >
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-xs font-black text-gray-800 dark:text-white">Todos</span>
+                      <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300">
+                        {clients.length}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-gray-500 leading-tight">Base completa de clientes</p>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setExportScope("filtered")}
+                    className={`p-3 rounded-2xl border text-left transition-all ${
+                      exportScope === "filtered"
+                        ? "border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/30 ring-2 ring-emerald-500/20"
+                        : "border-gray-200 dark:border-gray-700 hover:border-gray-300"
+                    }`}
+                  >
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-xs font-black text-gray-800 dark:text-white">Filtrados</span>
+                      <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300">
+                        {filteredClients.length}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-gray-500 leading-tight">Por búsqueda o sucursal</p>
+                  </button>
+                </div>
+              </div>
+
+              {/* Métricas rápidas de los datos que se van a descargar */}
+              {(() => {
+                const target = exportScope === 'filtered' ? filteredClients : clients;
+                const withPhone = target.filter(c => !!c.phone).length;
+                const withGPS = target.filter(c => c.lat && c.lng).length;
+                const companies = target.filter(c => c.clientCategory === 'EMPRESA').length;
+
+                return (
+                  <div className="bg-gray-50 dark:bg-gray-900/60 p-4 rounded-2xl border border-gray-100 dark:border-gray-700">
+                    <div className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">
+                      Resumen de datos incluidos ({target.length} registros)
+                    </div>
+                    <div className="grid grid-cols-3 gap-2 text-center">
+                      <div className="bg-white dark:bg-gray-800 p-2 rounded-xl shadow-xs">
+                        <div className="text-sm font-black text-emerald-600 dark:text-emerald-400">{withPhone}</div>
+                        <div className="text-[10px] text-gray-500">Con Teléfono</div>
+                      </div>
+                      <div className="bg-white dark:bg-gray-800 p-2 rounded-xl shadow-xs">
+                        <div className="text-sm font-black text-sky-600 dark:text-sky-400">{withGPS}</div>
+                        <div className="text-[10px] text-gray-500">Con GPS</div>
+                      </div>
+                      <div className="bg-white dark:bg-gray-800 p-2 rounded-xl shadow-xs">
+                        <div className="text-sm font-black text-amber-600 dark:text-amber-400">{companies}</div>
+                        <div className="text-[10px] text-gray-500">Empresas</div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Botones de Descarga */}
+              <div className="space-y-3">
+                <button
+                  type="button"
+                  onClick={handleExportJSON}
+                  className="w-full flex items-center justify-between p-4 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl font-black transition-all shadow-md hover:shadow-lg group"
+                >
+                  <div className="flex items-center gap-3 text-left">
+                    <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-lg">
+                      <FaFileCode />
+                    </div>
+                    <div>
+                      <div className="text-sm uppercase tracking-wider font-black">Descargar JSON Completo</div>
+                      <div className="text-[11px] font-normal text-emerald-100">
+                        Recomendado para migración a nueva BD / Multischema
+                      </div>
+                    </div>
+                  </div>
+                  <FaDownload className="text-emerald-100 group-hover:translate-y-0.5 transition-transform" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleExportCSV}
+                  className="w-full flex items-center justify-between p-4 bg-gray-100 dark:bg-gray-700/80 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-800 dark:text-white rounded-2xl font-black transition-all group"
+                >
+                  <div className="flex items-center gap-3 text-left">
+                    <div className="w-10 h-10 rounded-xl bg-gray-200 dark:bg-gray-600 flex items-center justify-center text-lg text-emerald-600 dark:text-emerald-400">
+                      <FaFileCsv />
+                    </div>
+                    <div>
+                      <div className="text-sm uppercase tracking-wider font-black">Descargar CSV (Excel)</div>
+                      <div className="text-[11px] font-normal text-gray-500 dark:text-gray-300">
+                        Compatible con Microsoft Excel, Google Sheets y UTF-8
+                      </div>
+                    </div>
+                  </div>
+                  <FaDownload className="text-gray-400 group-hover:translate-y-0.5 transition-transform" />
+                </button>
+              </div>
+
+              <div className="text-[11px] text-gray-400 bg-amber-50 dark:bg-amber-950/30 border border-amber-200/50 dark:border-amber-800/40 p-3 rounded-xl flex items-start gap-2">
+                <span className="text-amber-500 font-bold">💡</span>
+                <span>
+                  El archivo <strong>JSON</strong> incluye tanto la jerarquía completa como el arreglo plano compatible con Prisma para importar directamente con <code>createMany</code>.
+                </span>
+              </div>
+            </div>
           </div>
         </div>
       )}

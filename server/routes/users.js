@@ -26,7 +26,7 @@ router.get('/users', verifyToken, async (req, res) => {
   }
 });
 
-// Check if user exists (Public route for client identification)
+// Check if user/client exists (Public route for client identification)
 router.get('/check', async (req, res) => {
   const { identifier, type } = req.query;
   if (!identifier) return res.status(400).json({ error: 'Identificador requerido.' });
@@ -39,7 +39,8 @@ router.get('/check', async (req, res) => {
       where.customId = identifier;
     }
 
-    const user = await prisma.user.findUnique({
+    // Buscar primero en la nueva tabla dedicada de Clientes
+    let found = await prisma.cliente.findFirst({
       where,
       select: {
         id: true,
@@ -58,11 +59,33 @@ router.get('/check', async (req, res) => {
       }
     });
 
-    if (!user) {
+    // Fallback a User si aún no estuviera
+    if (!found) {
+      found = await prisma.user.findFirst({
+        where,
+        select: {
+          id: true,
+          customId: true,
+          name: true,
+          phone: true,
+          street: true,
+          neighborhood: true,
+          municipality: true,
+          state: true,
+          city: true,
+          postalCode: true,
+          references: true,
+          clientCategory: true,
+          storeId: true,
+        }
+      });
+    }
+
+    if (!found) {
       return res.status(404).json({ error: 'Usuario no encontrado.' });
     }
 
-    res.json(user);
+    res.json(found);
   } catch (error) {
     res.status(500).json({ error: 'Error al verificar usuario.' });
   }

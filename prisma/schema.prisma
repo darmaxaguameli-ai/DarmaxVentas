@@ -167,7 +167,6 @@ model User {
   updatedAt         DateTime       @updatedAt
 
   // Relaciones
-  pedidos        Pedido[]
   sesionesCaja   SesionCaja[]
   empleado       Empleado?
   jugPreferences UserJugPreference[]
@@ -189,6 +188,57 @@ model User {
   emailVerified        DateTime?
   verificationToken    String?
   mustChangePassword   Boolean   @default(false)
+}
+
+// =====================================================================
+// MODELOS DE CLIENTES (CRM / DIRECTORIO COMERCIAL)
+// =====================================================================
+
+model Cliente {
+  id           String  @id @default(cuid())
+  customId     String  @unique // CLI-0001
+  name         String
+  email        String? @unique
+  phone        String? @unique
+  street       String?
+  neighborhood String?
+  municipality String?
+  state        String?
+  city         String?
+  postalCode   String?
+  references   String?
+  lat          Float?
+  lng          Float?
+  sexo         String?
+
+  clientCategory        ClientCategory @default(PARTICULAR)
+  clientPreferences     Json?          @default("[]")
+  purchaseFrequencyDays Int?
+  preferredJugs         String?
+  lastPurchaseDate      DateTime?
+
+  loyaltyPoints Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relaciones
+  store               Store?                 @relation(fields: [storeId], references: [id])
+  storeId             String?
+  pedidos             Pedido[]
+  loyaltyTransactions LoyaltyTransaction[]
+  jugPreferences      ClienteJugPreference[]
+}
+
+model ClienteJugPreference {
+  id         String   @id @default(cuid())
+  clienteId  String
+  cliente    Cliente  @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  jugBrandId String
+  jugBrand   JugBrand @relation(fields: [jugBrandId], references: [id])
+  quantity   Int      @default(0)
+
+  @@unique([clienteId, jugBrandId])
 }
 
 // =====================================================================
@@ -226,8 +276,10 @@ model LoyaltyTransaction {
   orderId     String?
   createdAt   DateTime @default(now())
 
-  user   User   @relation(fields: [userId], references: [id])
-  userId String
+  user      User?    @relation(fields: [userId], references: [id])
+  userId    String?
+  cliente   Cliente? @relation(fields: [clienteId], references: [id])
+  clienteId String?
 }
 
 model UserJugPreference {
@@ -277,8 +329,9 @@ model JugBrand {
   compatibleCap   Product? @relation(fields: [compatibleCapId], references: [id])
   compatibleCapId String?
 
-  servicePrices   ServicePrice[]
-  userPreferences UserJugPreference[]
+  servicePrices      ServicePrice[]
+  userPreferences    UserJugPreference[]
+  clientePreferences ClienteJugPreference[]
 }
 
 // =====================================================================
@@ -302,6 +355,7 @@ model Store {
   franchiseId String
 
   users        User[]
+  clientes     Cliente[]
   pedidos      Pedido[]
   sesionesCaja SesionCaja[]
   inventory    StoreInventory[]
@@ -451,7 +505,7 @@ model Pedido {
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
 
-  cliente         User             @relation(fields: [clienteId], references: [id])
+  cliente         Cliente          @relation(fields: [clienteId], references: [id])
   clienteId       String
   items           PedidoItem[]
   sesionCaja      SesionCaja?      @relation(fields: [sesionCajaId], references: [id])
