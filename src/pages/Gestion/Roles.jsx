@@ -194,7 +194,7 @@ const mapPermisoCodesToBooleans = (permCodes) => {
 };
 
 const Roles = () => {
-    const { user, hasPermission } = useAuth();
+    const { user, hasPermission, refreshUser } = useAuth();
     const { fetchManagementData } = useGestion();
 
     // Verificación de acceso a Roles y Permisos (acceso.permisosyroles, acceso.rolesypermisos, acceso.sistemas o ADMIN)
@@ -328,11 +328,11 @@ const Roles = () => {
         }
     }, [canAccessSection]);
 
-    // Todos los permisos planos para búsquedas rápidas
+    // Todos los permisos planos para búsquedas rápidas (filtrando duplicados de submódulos)
     const allPermisosList = useMemo(() => {
         const list = [];
         (modules || []).forEach(mod => {
-            (mod.permisos || []).forEach(p => list.push({ ...p, moduloNombre: mod.nombre, moduloIcono: mod.icono }));
+            (mod.permisos || []).filter(p => !p.submoduloId).forEach(p => list.push({ ...p, moduloNombre: mod.nombre, moduloIcono: mod.icono }));
             (mod.submodulos || []).forEach(sub => {
                 (sub.permisos || []).forEach(p => list.push({ ...p, moduloNombre: mod.nombre, submoduloNombre: sub.nombre, submoduloIcono: sub.icono }));
             });
@@ -435,7 +435,7 @@ const Roles = () => {
 
     const handleToggleAllModulePerms = (mod) => {
         const modPermIds = [];
-        (mod.permisos || []).forEach(p => modPermIds.push(p.id));
+        (mod.permisos || []).filter(p => !p.submoduloId).forEach(p => modPermIds.push(p.id));
         (mod.submodulos || []).forEach(s => {
             (s.permisos || []).forEach(p => modPermIds.push(p.id));
         });
@@ -477,7 +477,7 @@ const Roles = () => {
             roleForm.permisoIds.forEach(idOrCode => {
                 const pObj = allPermisosList.find(p => p.id === idOrCode || p.codigo === idOrCode);
                 if (pObj) selectedCodes.push(pObj.codigo);
-                else if (typeof idOrCode === 'string' && idOrCode.startsWith('acceso.')) selectedCodes.push(idOrCode);
+                else if (typeof idOrCode === 'string') selectedCodes.push(idOrCode);
             });
 
             // Compatibilidad híbrida: enviar tanto los booleanos legados como permisoIds
@@ -499,6 +499,7 @@ const Roles = () => {
             setEditingRole(null);
             await loadAllData();
             if (fetchManagementData) fetchManagementData();
+            if (refreshUser) await refreshUser();
         } catch (error) {
             console.error('Error saving role:', error);
             toast.error(error.message || 'Error al guardar el rol');
@@ -563,6 +564,7 @@ const Roles = () => {
             setIsUsersModalOpen(false);
             setEditingRole(null);
             await loadAllData();
+            if (refreshUser) await refreshUser();
         } catch (error) {
             toast.error(error.message || 'Error al actualizar personal del rol');
         } finally {
@@ -622,6 +624,7 @@ const Roles = () => {
             setIsCollabModalOpen(false);
             setEditingCollaborator(null);
             await loadAllData();
+            if (refreshUser) await refreshUser();
         } catch (error) {
             toast.error(error.message || 'Error al actualizar accesos del colaborador');
         } finally {
@@ -641,6 +644,7 @@ const Roles = () => {
             setIsNewModuleModalOpen(false);
             setModuleForm({ codigo: '', nombre: '', icono: 'folder', orden: 0 });
             await loadAllData();
+            if (refreshUser) await refreshUser();
         } catch (error) {
             toast.error(error.message || 'Error al crear módulo');
         } finally {
@@ -679,6 +683,7 @@ const Roles = () => {
             setIsNewSubmoduleModalOpen(false);
             setSubmoduleForm({ moduloId: '', codigo: '', nombre: '', path: '', icono: 'circle', orden: 0 });
             await loadAllData();
+            if (refreshUser) await refreshUser();
         } catch (error) {
             toast.error(error.message || 'Error al crear submódulo');
         } finally {
@@ -717,6 +722,7 @@ const Roles = () => {
             setIsNewPermisoModalOpen(false);
             setPermisoForm({ codigo: '', nombre: '', descripcion: '', moduloId: '', submoduloId: '' });
             await loadAllData();
+            if (refreshUser) await refreshUser();
         } catch (error) {
             toast.error(error.message || 'Error al crear permiso');
         } finally {
@@ -740,6 +746,7 @@ const Roles = () => {
                 await deletePermission(perm.id);
                 toast.success('Permiso eliminado');
                 await loadAllData();
+                if (refreshUser) await refreshUser();
             } catch (error) {
                 toast.error(error.message || 'Error al eliminar permiso');
             }
@@ -1263,7 +1270,7 @@ const Roles = () => {
                     {modules.map(mod => {
                         const isExpanded = !!expandedModules[mod.id];
                         const subCount = mod.submodulos?.length || 0;
-                        const modPerm = mod.permisos?.[0];
+                        const modPermsList = (mod.permisos || []).filter(p => !p.submoduloId);
 
                         return (
                             <div
@@ -1280,24 +1287,35 @@ const Roles = () => {
                                             <span className="material-symbols-outlined text-xl">{mod.icono || 'folder'}</span>
                                         </div>
                                         <div className="min-w-0">
-                                            <div className="flex items-center gap-2">
+                                            <div className="flex items-center gap-2 flex-wrap">
                                                 <h3 className="text-sm font-black text-gray-900 dark:text-white truncate">
                                                     {mod.nombre}
                                                 </h3>
-                                                <span className="text-[10px] font-black px-2 py-0.2 rounded-full bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/60">
+                                                <span className="text-[10px] font-black px-2 py-0.2 rounded-full bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/60 font-mono">
                                                     código: {mod.codigo}
                                                 </span>
                                             </div>
-                                            <div className="flex items-center gap-2 mt-0.5">
-                                                <span className="text-[10px] text-gray-400 font-mono">
-                                                    Permiso: <strong className="text-primary font-bold">{modPerm?.codigo || `acceso.${mod.codigo}`}</strong>
-                                                </span>
-                                                <span className="text-[10px] text-gray-400">• {subCount} submódulos</span>
+                                            <div className="flex items-center gap-2 mt-0.5 text-[10px] text-gray-400 font-mono flex-wrap">
+                                                <span>• {subCount} submódulos</span>
+                                                <span>• {modPermsList.length} permiso(s) raíz</span>
                                             </div>
                                         </div>
                                     </div>
 
                                     <div className="flex items-center gap-2 flex-shrink-0">
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setPermisoForm({ codigo: '', nombre: '', descripcion: '', moduloId: mod.id, submoduloId: '' });
+                                                setIsNewPermisoModalOpen(true);
+                                            }}
+                                            className="px-2.5 py-1 text-[11px] font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 rounded-lg border border-emerald-200 dark:border-emerald-800/60 hover:bg-emerald-100 transition-colors flex items-center gap-1"
+                                            title="Agregar permiso a este módulo"
+                                        >
+                                            <span className="material-symbols-outlined text-xs">key</span>
+                                            <span>+ Permiso</span>
+                                        </button>
+
                                         <button
                                             type="button"
                                             onClick={() => {
@@ -1332,52 +1350,128 @@ const Roles = () => {
                                     </div>
                                 </div>
 
-                                {/* Lista de Submódulos del Módulo */}
+                                {/* Lista de Submódulos y Permisos del Módulo */}
                                 {isExpanded && (
-                                    <div className="p-4 border-t border-gray-100 dark:border-gray-800 bg-white/50 dark:bg-gray-900/40 space-y-2">
+                                    <div className="p-4 border-t border-gray-100 dark:border-gray-800 bg-white/50 dark:bg-gray-900/40 space-y-4">
+                                        {/* 1. Submódulos */}
                                         {mod.submodulos && mod.submodulos.length > 0 ? (
-                                            mod.submodulos.map(sub => {
-                                                const subPerm = sub.permisos?.[0];
-                                                return (
-                                                    <div
-                                                        key={sub.id}
-                                                        className="p-3 rounded-xl bg-gray-50/80 dark:bg-gray-950/60 border border-gray-200/80 dark:border-gray-800 flex items-center justify-between gap-3"
-                                                    >
-                                                        <div className="flex items-center gap-2.5 min-w-0">
-                                                            <span className="material-symbols-outlined text-gray-400 text-base">
-                                                                {sub.icono || 'circle'}
-                                                            </span>
-                                                            <div className="min-w-0">
-                                                                <p className="text-xs font-bold text-gray-800 dark:text-gray-200 truncate">
-                                                                    {sub.nombre}
-                                                                </p>
-                                                                <div className="flex items-center gap-2 text-[10px] text-gray-400 font-mono mt-0.5">
-                                                                    <span>path: /{sub.path}</span>
-                                                                    <span>•</span>
-                                                                    <span className="text-emerald-600 dark:text-emerald-400 font-bold">
-                                                                        {subPerm?.codigo || `acceso.${sub.codigo}`}
+                                            <div className="space-y-2.5">
+                                                <span className="text-[10px] font-black uppercase tracking-wider text-gray-400 block">
+                                                    Submódulos ({mod.submodulos.length})
+                                                </span>
+                                                {mod.submodulos.map(sub => {
+                                                    const subPermsList = sub.permisos || [];
+                                                    return (
+                                                        <div
+                                                            key={sub.id}
+                                                            className="p-3.5 rounded-xl bg-gray-50/80 dark:bg-gray-950/60 border border-gray-200/80 dark:border-gray-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                                                        >
+                                                            <div className="min-w-0 flex-1">
+                                                                <div className="flex items-center gap-2">
+                                                                    <span className="material-symbols-outlined text-primary text-base">
+                                                                        {sub.icono || 'circle'}
+                                                                    </span>
+                                                                    <p className="text-xs font-bold text-gray-800 dark:text-gray-200 truncate">
+                                                                        {sub.nombre}
+                                                                    </p>
+                                                                    <span className="text-[10px] text-gray-400 font-mono">
+                                                                        /{sub.path}
                                                                     </span>
                                                                 </div>
+
+                                                                {/* Lista de todos los permisos asignados al submódulo */}
+                                                                <div className="flex flex-wrap gap-1.5 mt-2">
+                                                                    {subPermsList.length > 0 ? (
+                                                                        subPermsList.map(p => (
+                                                                            <span 
+                                                                                key={p.id}
+                                                                                className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60 flex items-center gap-1.5"
+                                                                            >
+                                                                                <span>{p.codigo}</span>
+                                                                                <button
+                                                                                    type="button"
+                                                                                    onClick={() => handleDeletePermiso(p)}
+                                                                                    className="text-gray-400 hover:text-rose-500 transition-colors ml-0.5"
+                                                                                    title={`Eliminar permiso ${p.codigo}`}
+                                                                                >
+                                                                                    <span className="material-symbols-outlined text-[10px]">close</span>
+                                                                                </button>
+                                                                            </span>
+                                                                        ))
+                                                                    ) : (
+                                                                        <span className="text-[10px] text-gray-400 font-mono italic">
+                                                                            Sin permisos asociados
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+
+                                                            <div className="flex items-center gap-1.5 self-end sm:self-auto flex-shrink-0">
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        setPermisoForm({ codigo: '', nombre: '', descripcion: '', moduloId: mod.id, submoduloId: sub.id });
+                                                                        setIsNewPermisoModalOpen(true);
+                                                                    }}
+                                                                    className="px-2 py-1 text-[10px] font-bold bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded-lg border border-gray-200 dark:border-gray-700 hover:text-emerald-600 transition-colors flex items-center gap-1"
+                                                                    title="Agregar permiso específico a este submódulo"
+                                                                >
+                                                                    <span className="material-symbols-outlined text-[11px]">add</span>
+                                                                    <span>Permiso</span>
+                                                                </button>
+
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => handleDeleteSubmodule(sub)}
+                                                                    className="p-1 text-gray-400 hover:text-rose-500 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
+                                                                    title="Eliminar submódulo"
+                                                                >
+                                                                    <span className="material-symbols-outlined text-sm">delete</span>
+                                                                </button>
                                                             </div>
                                                         </div>
-
-                                                        <div className="flex items-center gap-1">
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => handleDeleteSubmodule(sub)}
-                                                                className="p-1 text-gray-400 hover:text-rose-500 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
-                                                                title="Eliminar submódulo"
-                                                            >
-                                                                <span className="material-symbols-outlined text-sm">delete</span>
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                );
-                                            })
+                                                    );
+                                                })}
+                                            </div>
                                         ) : (
-                                            <p className="text-xs text-gray-400 italic py-2 pl-2">
+                                            <p className="text-xs text-gray-400 italic py-1 pl-2">
                                                 Sin submódulos registrados en este módulo.
                                             </p>
+                                        )}
+
+                                        {/* 2. Permisos a nivel de Módulo (raíz / adicionales) */}
+                                        {modPermsList.length > 0 && (
+                                            <div className="pt-3 border-t border-gray-100 dark:border-gray-800">
+                                                <span className="text-[10px] font-black uppercase tracking-wider text-gray-400 block mb-2">
+                                                    Permisos a nivel de Módulo ({modPermsList.length})
+                                                </span>
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                                                    {modPermsList.map(p => (
+                                                        <div 
+                                                            key={p.id}
+                                                            className="p-2.5 rounded-xl bg-blue-50/50 dark:bg-blue-950/20 border border-blue-200/60 dark:border-blue-900/40 flex items-center justify-between gap-2"
+                                                        >
+                                                            <div className="min-w-0">
+                                                                <p className="text-xs font-bold text-gray-900 dark:text-white truncate">
+                                                                    {p.nombre}
+                                                                </p>
+                                                                <p className="text-[10px] font-mono text-blue-700 dark:text-blue-300 font-bold truncate">
+                                                                    {p.codigo}
+                                                                </p>
+                                                            </div>
+
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleDeletePermiso(p)}
+                                                                className="p-1 text-gray-400 hover:text-rose-500 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors flex-shrink-0"
+                                                                title={`Eliminar permiso ${p.codigo}`}
+                                                            >
+                                                                <span className="material-symbols-outlined text-sm">close</span>
+                                                            </button>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
                                         )}
                                     </div>
                                 )}
@@ -1486,7 +1580,8 @@ const Roles = () => {
                             {/* Árbol Dinámico de Módulos */}
                             <div className="space-y-4">
                                 {modules.map(mod => {
-                                    const modPerm = mod.permisos?.[0];
+                                    const rootPerms = (mod.permisos || []).filter(p => !p.submoduloId);
+                                    const modPerm = rootPerms[0];
                                     const isModPermChecked = modPerm 
                                         ? (roleForm.permisoIds.includes(modPerm.id) || roleForm.permisoIds.includes(modPerm.codigo))
                                         : false;
@@ -1522,15 +1617,25 @@ const Roles = () => {
                                                     </button>
 
                                                     {modPerm && (
-                                                        <label className="relative inline-flex items-center cursor-pointer">
-                                                            <input
-                                                                type="checkbox"
-                                                                checked={isModPermChecked}
-                                                                onChange={() => handleTogglePermisoInRole(modPerm.id, modPerm.codigo)}
-                                                                className="sr-only peer"
+                                                        <button
+                                                            type="button"
+                                                            role="switch"
+                                                            aria-checked={isModPermChecked}
+                                                            onClick={() => handleTogglePermisoInRole(modPerm.id, modPerm.codigo)}
+                                                            className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center p-0.5 rounded-full transition-colors duration-200 ease-in-out cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/40 focus:ring-offset-1 dark:focus:ring-offset-gray-900 ${
+                                                                isModPermChecked
+                                                                    ? 'bg-primary dark:bg-primary shadow-sm shadow-primary/30'
+                                                                    : 'bg-gray-300 dark:bg-gray-700 hover:bg-gray-400 dark:hover:bg-gray-600'
+                                                            }`}
+                                                            title={isModPermChecked ? `Deshabilitar acceso a ${mod.nombre}` : `Habilitar acceso a ${mod.nombre}`}
+                                                        >
+                                                            <span
+                                                                aria-hidden="true"
+                                                                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform duration-200 ease-in-out ${
+                                                                    isModPermChecked ? 'translate-x-5' : 'translate-x-0'
+                                                                }`}
                                                             />
-                                                            <div className="w-8 h-4.5 bg-gray-300 dark:bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 dark:after:border-gray-600 after:border after:rounded-full after:h-3.5 after:w-3.5 after:transition-all peer-checked:bg-primary"></div>
-                                                        </label>
+                                                        </button>
                                                     )}
                                                 </div>
                                             </div>
@@ -1538,14 +1643,12 @@ const Roles = () => {
                                             {/* Submódulos del Módulo */}
                                             {mod.submodulos && mod.submodulos.length > 0 && (
                                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2 border-t border-gray-100 dark:border-gray-800">
-                                                    {mod.submodulos.map(sub => {
-                                                        const subPerm = sub.permisos?.[0];
-                                                        if (!subPerm) return null;
+                                                    {mod.submodulos.flatMap(sub => (sub.permisos || []).map(subPerm => {
                                                         const isChecked = roleForm.permisoIds.includes(subPerm.id) || roleForm.permisoIds.includes(subPerm.codigo);
 
                                                         return (
                                                             <div
-                                                                key={sub.id}
+                                                                key={subPerm.id}
                                                                 onClick={() => handleTogglePermisoInRole(subPerm.id, subPerm.codigo)}
                                                                 className={`p-2.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-2 ${
                                                                     isChecked
@@ -1555,7 +1658,7 @@ const Roles = () => {
                                                             >
                                                                 <div className="min-w-0 flex-1">
                                                                     <p className={`text-xs font-bold truncate ${isChecked ? 'text-primary dark:text-blue-300' : 'text-gray-800 dark:text-gray-200'}`}>
-                                                                        {sub.nombre}
+                                                                        {subPerm.nombre || sub.nombre}
                                                                     </p>
                                                                     <p className="text-[10px] text-gray-400 font-mono truncate">
                                                                         {subPerm.codigo}
@@ -1571,7 +1674,47 @@ const Roles = () => {
                                                                 </div>
                                                             </div>
                                                         );
-                                                    })}
+                                                    }))}
+                                                </div>
+                                            )}
+
+                                            {/* Permisos adicionales a nivel de módulo */}
+                                            {rootPerms && rootPerms.length > 1 && (
+                                                <div className="pt-2 border-t border-gray-100 dark:border-gray-800 space-y-1.5">
+                                                    <span className="text-[10px] font-black uppercase text-gray-400">Permisos Adicionales de Módulo</span>
+                                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                                        {rootPerms.slice(1).map(modExtraPerm => {
+                                                            const isChecked = roleForm.permisoIds.includes(modExtraPerm.id) || roleForm.permisoIds.includes(modExtraPerm.codigo);
+                                                            return (
+                                                                <div
+                                                                    key={modExtraPerm.id}
+                                                                    onClick={() => handleTogglePermisoInRole(modExtraPerm.id, modExtraPerm.codigo)}
+                                                                    className={`p-2.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-2 ${
+                                                                        isChecked
+                                                                            ? 'bg-blue-50 dark:bg-blue-950/40 border-primary text-primary'
+                                                                            : 'bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700'
+                                                                    }`}
+                                                                >
+                                                                    <div className="min-w-0 flex-1">
+                                                                        <p className={`text-xs font-bold truncate ${isChecked ? 'text-primary dark:text-blue-300' : 'text-gray-800 dark:text-gray-200'}`}>
+                                                                            {modExtraPerm.nombre}
+                                                                        </p>
+                                                                        <p className="text-[10px] text-gray-400 font-mono truncate">
+                                                                            {modExtraPerm.codigo}
+                                                                        </p>
+                                                                    </div>
+
+                                                                    <div className={`w-4.5 h-4.5 rounded-md border flex items-center justify-center transition-all flex-shrink-0 ${
+                                                                        isChecked
+                                                                            ? 'bg-primary border-primary text-white'
+                                                                            : 'border-gray-300 dark:border-gray-600'
+                                                                    }`}>
+                                                                        {isChecked && <span className="material-symbols-outlined text-[10px]">check</span>}
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
                                                 </div>
                                             )}
                                         </div>
@@ -1853,11 +1996,11 @@ const Roles = () => {
 
                                 <div className="space-y-4">
                                     {modules.map(mod => {
-                                        // Todos los permisos de este módulo
+                                        // Todos los permisos de este módulo (raíz sin submoduloId, y de submódulos)
                                         const modPerms = [];
-                                        if (mod.permisos?.[0]) modPerms.push({ ...mod.permisos[0], isRoot: true });
+                                        (mod.permisos || []).filter(p => !p.submoduloId).forEach(p => modPerms.push({ ...p, isRoot: true, modName: mod.nombre }));
                                         (mod.submodulos || []).forEach(sub => {
-                                            if (sub.permisos?.[0]) modPerms.push({ ...sub.permisos[0], subName: sub.nombre });
+                                            (sub.permisos || []).forEach(p => modPerms.push({ ...p, subName: sub.nombre, modName: mod.nombre }));
                                         });
 
                                         // Filtrar por búsqueda si existe
@@ -2167,19 +2310,17 @@ const Roles = () => {
                         <form onSubmit={handleSaveNewPermiso} className="space-y-3">
                             <div>
                                 <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Código del Permiso</label>
-                                <div className="flex items-center">
-                                    <span className="px-3 py-2 bg-gray-100 dark:bg-gray-800 text-xs font-mono font-bold text-gray-500 dark:text-gray-400 rounded-l-xl border border-r-0 border-gray-200 dark:border-gray-800">
-                                        acceso.
-                                    </span>
-                                    <input
-                                        type="text"
-                                        required
-                                        value={permisoForm.codigo.replace(/^acceso\./, '')}
-                                        onChange={(e) => setPermisoForm({ ...permisoForm, codigo: `acceso.${e.target.value.toLowerCase().replace(/[^a-z0-9.]/g, '')}` })}
-                                        placeholder="cotizadores.exportar"
-                                        className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-950/70 border border-gray-200 dark:border-gray-800 rounded-r-xl text-xs font-mono font-bold lowercase text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary/40"
-                                    />
-                                </div>
+                                <input
+                                    type="text"
+                                    required
+                                    value={permisoForm.codigo}
+                                    onChange={(e) => setPermisoForm({ ...permisoForm, codigo: e.target.value.toLowerCase().replace(/[^a-z0-9.]/g, '') })}
+                                    placeholder="ej: acceso.sistemas o proyectosactividades.jefe"
+                                    className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-950/70 border border-gray-200 dark:border-gray-800 rounded-xl text-xs font-mono font-bold lowercase text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary/40"
+                                />
+                                <p className="text-[10px] text-gray-400 mt-1">
+                                    Estándar: <code className="text-primary font-bold">acceso.modulo</code> o especializado como <code className="text-primary font-bold">proyectosactividades.jefe</code>
+                                </p>
                             </div>
 
                             <div>
@@ -2198,15 +2339,31 @@ const Roles = () => {
                                 <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Módulo Asociado</label>
                                 <select
                                     value={permisoForm.moduloId}
-                                    onChange={(e) => setPermisoForm({ ...permisoForm, moduloId: e.target.value })}
+                                    onChange={(e) => setPermisoForm({ ...permisoForm, moduloId: e.target.value, submoduloId: '' })}
                                     className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-950/70 border border-gray-200 dark:border-gray-800 rounded-xl text-xs font-bold text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/40 cursor-pointer"
                                 >
-                                    <option value="" className="bg-white dark:bg-gray-900 text-gray-900 dark:text-white">Opcional: vincular a un módulo...</option>
+                                    <option value="" className="bg-white dark:bg-gray-900 text-gray-900 dark:text-white">Selecciona el módulo padre...</option>
                                     {modules.map(m => (
                                         <option key={m.id} value={m.id} className="bg-white dark:bg-gray-900 text-gray-900 dark:text-white">{m.nombre}</option>
                                     ))}
                                 </select>
                             </div>
+
+                            {permisoForm.moduloId && (
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Submódulo Asociado (Opcional)</label>
+                                    <select
+                                        value={permisoForm.submoduloId}
+                                        onChange={(e) => setPermisoForm({ ...permisoForm, submoduloId: e.target.value })}
+                                        className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-950/70 border border-gray-200 dark:border-gray-800 rounded-xl text-xs font-bold text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/40 cursor-pointer"
+                                    >
+                                        <option value="" className="bg-white dark:bg-gray-900 text-gray-900 dark:text-white">Ninguno (A nivel general del módulo)</option>
+                                        {(modules.find(m => m.id === permisoForm.moduloId)?.submodulos || []).map(s => (
+                                            <option key={s.id} value={s.id} className="bg-white dark:bg-gray-900 text-gray-900 dark:text-white">{s.nombre} (/{s.path})</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            )}
 
                             <div className="pt-3 border-t border-gray-100 dark:border-gray-800 flex justify-end gap-2">
                                 <button

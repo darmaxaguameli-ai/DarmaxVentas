@@ -78,9 +78,9 @@ const Marketing = () => {
     
     // Detección estricta de Jefe vs Colaborador (plannerdigital.jefe vs plannerdigital.colaborador)
     const isRealJefe = authUser?.role === 'ADMIN' || 
+                        authUser?.roles?.some(r => r.name?.toUpperCase() === 'ADMIN') ||
                         hasPermission('plannerdigital.jefe') ||
-                        hasPermission('acceso.plannerdigital.jefe') ||
-                        authUser?.roles?.some(r => r.name?.toUpperCase() === 'ADMIN' || r.isSystem === true);
+                        hasPermission('acceso.plannerdigital.jefe');
 
     const [viewAsRole, setViewAsRole] = useState(isRealJefe ? 'JEFE' : 'COLABORADOR');
 

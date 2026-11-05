@@ -8,6 +8,30 @@ const crypto = require('crypto');
 const { sendEmail } = require('../utils/emailService');
 const { getVerificationEmailTemplate } = require('../utils/templates/authEmailTemplates');
 
+// GET /users/me - Obtener información fresca de la sesión actual con todos sus roles y permisos
+router.get('/users/me', verifyToken, async (req, res) => {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.id },
+      include: {
+        store: true,
+        roles: {
+          include: { permisos: true }
+        },
+        permisos: true,
+        empleado: true
+      }
+    });
+
+    if (!user) return res.status(404).json({ error: 'Usuario no encontrado.' });
+    const { password: _, ...userWithoutPassword } = user;
+    res.json(userWithoutPassword);
+  } catch (error) {
+    console.error('Error in GET /users/me:', error);
+    res.status(500).json({ error: 'Error al obtener sesión de usuario.' });
+  }
+});
+
 // GET all users (Staff only)
 router.get('/users', verifyToken, async (req, res) => {
   try {

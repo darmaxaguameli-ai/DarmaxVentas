@@ -75,8 +75,17 @@ router.post('/roles', verifyToken, requireSistemasOrAdmin, async (req, res) => {
     };
 
     if (permisoIds && Array.isArray(permisoIds) && permisoIds.length > 0) {
+      const foundPerms = await prisma.permiso.findMany({
+        where: {
+          OR: [
+            { id: { in: permisoIds } },
+            { codigo: { in: permisoIds } }
+          ]
+        },
+        select: { id: true }
+      });
       data.permisos = {
-        connect: permisoIds.map(id => ({ id }))
+        connect: foundPerms.map(p => ({ id: p.id }))
       };
     }
 
@@ -138,8 +147,17 @@ router.put('/roles/:id', verifyToken, requireSistemasOrAdmin, async (req, res) =
 
     // Actualizar permisos vinculados
     if (permisoIds && Array.isArray(permisoIds)) {
+      const foundPerms = await prisma.permiso.findMany({
+        where: {
+          OR: [
+            { id: { in: permisoIds } },
+            { codigo: { in: permisoIds } }
+          ]
+        },
+        select: { id: true }
+      });
       updateData.permisos = {
-        set: permisoIds.map(pid => ({ id: pid }))
+        set: foundPerms.map(p => ({ id: p.id }))
       };
     }
 
@@ -212,6 +230,7 @@ router.get('/modules', verifyToken, async (req, res) => {
           }
         },
         permisos: {
+          where: { submoduloId: null },
           orderBy: { codigo: 'asc' }
         }
       }
@@ -421,8 +440,15 @@ router.post('/permissions', verifyToken, requireSistemasOrAdmin, async (req, res
     }
 
     let cleanCodigo = codigo.trim().toLowerCase();
-    if (!cleanCodigo.startsWith('acceso.')) {
+    if (!cleanCodigo.startsWith('acceso.') && !cleanCodigo.includes('.')) {
       cleanCodigo = `acceso.${cleanCodigo}`;
+    }
+
+    let finalModuloId = moduloId || null;
+    let finalSubmoduloId = submoduloId || null;
+    if (finalSubmoduloId && !finalModuloId) {
+      const sub = await prisma.submodulo.findUnique({ where: { id: finalSubmoduloId } });
+      if (sub) finalModuloId = sub.moduloId;
     }
 
     const existing = await prisma.permiso.findUnique({ where: { codigo: cleanCodigo } });
@@ -435,8 +461,8 @@ router.post('/permissions', verifyToken, requireSistemasOrAdmin, async (req, res
         codigo: cleanCodigo,
         nombre: nombre.trim(),
         descripcion: descripcion?.trim() || null,
-        moduloId: moduloId || null,
-        submoduloId: submoduloId || null
+        moduloId: finalModuloId,
+        submoduloId: finalSubmoduloId
       },
       include: {
         modulo: true,
@@ -520,22 +546,17 @@ router.put('/users/:id/roles', verifyToken, requireSistemasOrAdmin, async (req, 
     }
 
     if (permisoIds && Array.isArray(permisoIds)) {
-      let pIds = permisoIds;
-      const hasCodes = permisoIds.some(p => typeof p === 'string' && p.startsWith('acceso.'));
-      if (hasCodes) {
-        const foundPerms = await prisma.permiso.findMany({
-          where: {
-            OR: [
-              { id: { in: permisoIds } },
-              { codigo: { in: permisoIds } }
-            ]
-          },
-          select: { id: true }
-        });
-        pIds = foundPerms.map(p => p.id);
-      }
+      const foundPerms = await prisma.permiso.findMany({
+        where: {
+          OR: [
+            { id: { in: permisoIds } },
+            { codigo: { in: permisoIds } }
+          ]
+        },
+        select: { id: true }
+      });
       updateData.permisos = {
-        set: pIds.map(pid => ({ id: pid }))
+        set: foundPerms.map(p => ({ id: p.id }))
       };
     }
 
@@ -574,20 +595,16 @@ router.put('/users/:id/permissions', verifyToken, requireSistemasOrAdmin, async 
       return res.status(400).json({ error: 'permisoIds debe ser un arreglo de IDs o códigos de permisos.' });
     }
 
-    let pIds = permisoIds;
-    const hasCodes = permisoIds.some(p => typeof p === 'string' && p.startsWith('acceso.'));
-    if (hasCodes) {
-      const foundPerms = await prisma.permiso.findMany({
-        where: {
-          OR: [
-            { id: { in: permisoIds } },
-            { codigo: { in: permisoIds } }
-          ]
-        },
-        select: { id: true }
-      });
-      pIds = foundPerms.map(p => p.id);
-    }
+    const foundPerms = await prisma.permiso.findMany({
+      where: {
+        OR: [
+          { id: { in: permisoIds } },
+          { codigo: { in: permisoIds } }
+        ]
+      },
+      select: { id: true }
+    });
+    const pIds = foundPerms.map(p => p.id);
 
     const updatedUser = await prisma.user.update({
       where: { id },

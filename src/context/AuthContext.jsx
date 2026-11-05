@@ -10,168 +10,78 @@ const PERMISSION_EQUIVALENTS = {
     'canViewSummary': ['acceso.resumenoperativo'],
 
     // 2. Cotizadores
-    'acceso.cotizadores': ['canAccessQuotes', 'canAccessDistributorQuotes'],
-    'acceso.cotizadordistribuidor': ['canAccessDistributorQuotes', 'acceso.cotizadores'],
-    'canAccessDistributorQuotes': ['acceso.cotizadordistribuidor', 'acceso.cotizadores'],
-    'acceso.cotizadordarmax': ['canAccessQuotes', 'acceso.cotizadores'],
-    'canAccessQuotes': ['acceso.cotizadordarmax', 'acceso.cotizadores'],
+    'acceso.cotizadores': ['canAccessQuotes'],
+    'acceso.cotizadordistribuidor': ['canAccessDistributorQuotes'],
+    'canAccessDistributorQuotes': ['acceso.cotizadordistribuidor'],
+    'acceso.cotizadordarmax': ['canAccessQuotes'],
+    'canAccessQuotes': ['acceso.cotizadordarmax'],
 
     // 3. Operaciones
-    'acceso.operaciones': ['canAccessInventory', 'canAccessVending'],
-    'acceso.inventarioglobal': ['canAccessInventory', 'acceso.operaciones'],
-    'canAccessInventory': ['acceso.inventarioglobal', 'acceso.operaciones'],
-    'acceso.cortesvending': ['canAccessVending', 'acceso.operaciones'],
-    'canAccessVending': ['acceso.cortesvending', 'acceso.operaciones'],
+    'acceso.operaciones': ['canAccessInventory'],
+    'acceso.inventarioglobal': ['canAccessInventory'],
+    'canAccessInventory': ['acceso.inventarioglobal'],
+    'acceso.cortesvending': ['canAccessVending'],
+    'canAccessVending': ['acceso.cortesvending'],
 
     // 4. Ingeniería y Proyectos
-    'acceso.ingenieriayproyectos': ['canAccessInstallation', 'canAccessShowcase'],
-    'acceso.controlinstalacion': ['canAccessInstallation', 'acceso.ingenieriayproyectos'],
-    'canAccessInstallation': ['acceso.controlinstalacion', 'acceso.ingenieriayproyectos'],
-    'acceso.mapainstalaciones': ['canAccessShowcase', 'acceso.ingenieriayproyectos'],
-    'canAccessShowcase': ['acceso.mapainstalaciones', 'acceso.ingenieriayproyectos'],
+    'acceso.ingenieriayproyectos': ['canAccessInstallation'],
+    'acceso.controlinstalacion': ['canAccessInstallation'],
+    'canAccessInstallation': ['acceso.controlinstalacion'],
+    'acceso.mapainstalaciones': ['canAccessShowcase'],
+    'canAccessShowcase': ['acceso.mapainstalaciones'],
 
-    // 5. Sistemas
-    'acceso.sistemas': ['canAccessSistemas', 'canManageSistemas'],
-    'canAccessSistemas': [
-        'acceso.sistemas',
-        'acceso.proyectosactividades',
-        'proyectosactividades.jefe',
-        'proyectosactividades.colaborador',
-        'acceso.proyectosactividades.jefe',
-        'acceso.proyectosactividades.colaborador',
-        'acceso.permisosyroles',
-        'acceso.rolesypermisos'
-    ],
-    'canManageSistemas': [
-        'acceso.sistemas',
-        'proyectosactividades.jefe',
-        'acceso.proyectosactividades.jefe',
-        'acceso.permisosyroles',
-        'acceso.rolesypermisos'
-    ],
-    'acceso.proyectosactividades': [
-        'canAccessSistemas',
-        'acceso.sistemas',
-        'proyectosactividades.jefe',
-        'proyectosactividades.colaborador',
-        'acceso.proyectosactividades.jefe',
-        'acceso.proyectosactividades.colaborador'
-    ],
-    'proyectosactividades.jefe': [
-        'acceso.proyectosactividades.jefe',
-        'acceso.proyectosactividades',
-        'canManageSistemas',
-        'canAccessSistemas',
-        'acceso.sistemas'
-    ],
-    'acceso.proyectosactividades.jefe': [
-        'proyectosactividades.jefe',
-        'acceso.proyectosactividades',
-        'canManageSistemas',
-        'canAccessSistemas',
-        'acceso.sistemas'
-    ],
-    'proyectosactividades.colaborador': [
-        'acceso.proyectosactividades.colaborador',
-        'acceso.proyectosactividades',
-        'canAccessSistemas',
-        'acceso.sistemas'
-    ],
-    'acceso.proyectosactividades.colaborador': [
-        'proyectosactividades.colaborador',
-        'acceso.proyectosactividades',
-        'canAccessSistemas',
-        'acceso.sistemas'
-    ],
-    'acceso.permisosyroles': [
-        'acceso.rolesypermisos',
-        'canAccessSistemas',
-        'canManageSistemas',
-        'acceso.sistemas'
-    ],
-    'acceso.rolesypermisos': [
-        'acceso.permisosyroles',
-        'canAccessSistemas',
-        'canManageSistemas',
-        'acceso.sistemas'
-    ],
+    // 5. Sistemas (Estricto: cada permiso a su rol específico, sin filtraciones)
+    'acceso.sistemas': ['canAccessSistemas'],
+    'canAccessSistemas': ['acceso.sistemas', 'acceso.proyectosactividades'],
+    'acceso.proyectosactividades': ['canAccessSistemas'],
+    'proyectosactividades.jefe': ['acceso.proyectosactividades.jefe'],
+    'acceso.proyectosactividades.jefe': ['proyectosactividades.jefe'],
+    'proyectosactividades.colaborador': ['acceso.proyectosactividades.colaborador'],
+    'acceso.proyectosactividades.colaborador': ['proyectosactividades.colaborador'],
+    'acceso.permisosyroles': ['acceso.rolesypermisos', 'canManageSistemas'],
+    'acceso.rolesypermisos': ['acceso.permisosyroles', 'canManageSistemas'],
+    'canManageSistemas': ['acceso.permisosyroles', 'acceso.rolesypermisos'],
 
-    // 6. Marketing y Estrategia
+    // 6. Marketing y Estrategia (Estricto)
     'acceso.marketingyestrategia': ['canAccessMarketing'],
-    'acceso.plannerdigital': [
-        'canAccessMarketing',
-        'acceso.marketingyestrategia',
-        'plannerdigital.jefe',
-        'plannerdigital.colaborador',
-        'acceso.plannerdigital.jefe',
-        'acceso.plannerdigital.colaborador'
-    ],
-    'plannerdigital.jefe': [
-        'acceso.plannerdigital.jefe',
-        'acceso.plannerdigital',
-        'canAccessMarketing',
-        'acceso.marketingyestrategia'
-    ],
-    'acceso.plannerdigital.jefe': [
-        'plannerdigital.jefe',
-        'acceso.plannerdigital',
-        'canAccessMarketing',
-        'acceso.marketingyestrategia'
-    ],
-    'plannerdigital.colaborador': [
-        'acceso.plannerdigital.colaborador',
-        'acceso.plannerdigital',
-        'canAccessMarketing',
-        'acceso.marketingyestrategia'
-    ],
-    'acceso.plannerdigital.colaborador': [
-        'plannerdigital.colaborador',
-        'acceso.plannerdigital',
-        'canAccessMarketing',
-        'acceso.marketingyestrategia'
-    ],
-    'acceso.promociones': ['canAccessMarketing', 'acceso.marketingyestrategia'],
-    'canAccessMarketing': [
-        'acceso.marketingyestrategia',
-        'acceso.plannerdigital',
-        'plannerdigital.jefe',
-        'plannerdigital.colaborador',
-        'acceso.plannerdigital.jefe',
-        'acceso.plannerdigital.colaborador',
-        'acceso.promociones',
-        'acceso.editorblog'
-    ],
+    'canAccessMarketing': ['acceso.marketingyestrategia', 'acceso.plannerdigital'],
+    'acceso.plannerdigital': ['canAccessMarketing'],
+    'plannerdigital.jefe': ['acceso.plannerdigital.jefe'],
+    'acceso.plannerdigital.jefe': ['plannerdigital.jefe'],
+    'plannerdigital.colaborador': ['acceso.plannerdigital.colaborador'],
+    'acceso.plannerdigital.colaborador': ['plannerdigital.colaborador'],
+    'acceso.promociones': [],
 
     // 7. Contenido y Recursos
-    'acceso.contenidoyrecursos': ['canAccessMarketing', 'canViewSummary'],
-    'acceso.editorblog': ['canAccessMarketing', 'acceso.contenidoyrecursos'],
-    'acceso.centrodeguias': ['canViewSummary', 'acceso.contenidoyrecursos'],
+    'acceso.contenidoyrecursos': [],
+    'acceso.editorblog': [],
+    'acceso.centrodeguias': [],
 
     // 8. Finanzas y Contabilidad
-    'acceso.finanzasycontabilidad': ['canAccessFinances', 'canAccessAccounting', 'canAccessLeads'],
-    'acceso.tesoreriaingresos': ['canAccessFinances', 'acceso.finanzasycontabilidad'],
-    'acceso.comprasxcp': ['canAccessFinances', 'acceso.finanzasycontabilidad'],
-    'canAccessFinances': ['acceso.finanzasycontabilidad', 'acceso.tesoreriaingresos', 'acceso.comprasxcp'],
-    'acceso.contabilidaderp': ['canAccessAccounting', 'acceso.finanzasycontabilidad'],
-    'acceso.facturacioncfdi': ['canAccessAccounting', 'acceso.finanzasycontabilidad'],
-    'canAccessAccounting': ['acceso.finanzasycontabilidad', 'acceso.contabilidaderp', 'acceso.facturacioncfdi'],
-    'acceso.prospeccionleads': ['canAccessLeads', 'acceso.finanzasycontabilidad'],
-    'acceso.crmycobranza': ['canAccessLeads', 'acceso.finanzasycontabilidad'],
-    'canAccessLeads': ['acceso.finanzasycontabilidad', 'acceso.prospeccionleads', 'acceso.crmycobranza'],
+    'acceso.finanzasycontabilidad': ['canAccessFinances'],
+    'acceso.tesoreriaingresos': ['canAccessFinances'],
+    'canAccessFinances': ['acceso.tesoreriaingresos'],
+    'acceso.comprasxcp': [],
+    'acceso.contabilidaderp': ['canAccessAccounting'],
+    'canAccessAccounting': ['acceso.contabilidaderp'],
+    'acceso.facturacioncfdi': [],
+    'acceso.prospeccionleads': ['canAccessLeads'],
+    'canAccessLeads': ['acceso.prospeccionleads'],
+    'acceso.crmycobranza': [],
 
     // 9. Legal
     'acceso.legal': ['canAccessLegal'],
-    'acceso.gestiondocumental': ['canAccessLegal', 'acceso.legal'],
-    'acceso.arealegal': ['canAccessLegal', 'acceso.legal'],
-    'canAccessLegal': ['acceso.legal', 'acceso.gestiondocumental', 'acceso.arealegal'],
+    'canAccessLegal': ['acceso.legal'],
+    'acceso.gestiondocumental': [],
+    'acceso.arealegal': ['canAccessLegal'],
 
     // 10. Administración
-    'acceso.administracion': ['canAccessRH', 'canAccessConfig'],
-    'acceso.directorio': ['canAccessRH', 'acceso.administracion'],
-    'acceso.rrhhynominas': ['canAccessRH', 'acceso.administracion'],
-    'canAccessRH': ['acceso.administracion', 'acceso.directorio', 'acceso.rrhhynominas'],
-    'acceso.configuracionbase': ['canAccessConfig', 'acceso.administracion'],
-    'canAccessConfig': ['acceso.configuracionbase', 'acceso.administracion'],
+    'acceso.administracion': ['canAccessRH'],
+    'canAccessRH': ['acceso.administracion', 'acceso.rrhhynominas'],
+    'acceso.directorio': [],
+    'acceso.rrhhynominas': ['canAccessRH'],
+    'acceso.configuracionbase': ['canAccessConfig'],
+    'canAccessConfig': ['acceso.configuracionbase'],
 
     // Módulos Principales (Entornos)
     'acceso.pos': ['canAccessPOS'],
@@ -312,6 +222,22 @@ export const AuthProvider = ({ children }) => {
         localStorage.setItem('logout', Date.now());
     }, []);
 
+    const refreshUser = useCallback(async () => {
+        try {
+            const storedToken = localStorage.getItem('token');
+            if (!storedToken) return null;
+            const res = await apiClient.get('/users/me');
+            if (res.data) {
+                setUser(res.data);
+                localStorage.setItem('user', JSON.stringify(res.data));
+                return res.data;
+            }
+        } catch (e) {
+            console.warn('No se pudo refrescar la sesión del usuario en vivo:', e);
+        }
+        return null;
+    }, []);
+
     useEffect(() => {
         try {
             const storedUser = localStorage.getItem('user');
@@ -322,6 +248,8 @@ export const AuthProvider = ({ children }) => {
                 setUser(parsedUser);
                 setToken(storedToken);
                 apiClient.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`;
+                // Sincronizar roles y permisos actualizados desde la BD en tiempo real
+                refreshUser();
             }
         } catch (error) {
             console.error("No se pudo cargar la sesión:", error);
@@ -330,7 +258,7 @@ export const AuthProvider = ({ children }) => {
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [refreshUser]);
 
     useEffect(() => {
         const handleAuthError = (event) => {
@@ -432,6 +360,7 @@ export const AuthProvider = ({ children }) => {
         login,
         logout,
         updateUser,
+        refreshUser,
         hasPermission, // Exponer la función de permisos
         hasModuleAccess, // Exponer la función de acceso a módulos
     };

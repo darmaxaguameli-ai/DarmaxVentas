@@ -186,10 +186,9 @@ const Sistemas = () => {
 
     // Detección estricta de Jefe vs Colaborador
     const isRealJefe = authUser?.role === 'ADMIN' || 
+                        authUser?.roles?.some(r => r.name?.toUpperCase() === 'ADMIN') ||
                         hasPermission('proyectosactividades.jefe') ||
-                        hasPermission('acceso.proyectosactividades.jefe') ||
-                        hasPermission('canManageSistemas') ||
-                        authUser?.roles?.some(r => r.name?.toUpperCase() === 'ADMIN' || r.isSystem === true || r.canManageSistemas === true);
+                        hasPermission('acceso.proyectosactividades.jefe');
 
     // Si es Colaborador queda bloqueado en Colaborador; si es Jefe puede probar vista previa
     const [viewAsRole, setViewAsRole] = useState(isRealJefe ? 'JEFE' : 'COLABORADOR');

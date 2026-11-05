@@ -23,6 +23,7 @@ import StartDayModal from "./pages/sistemasDeVentas/StartDayModal.jsx";
 import RepartidorDashboard from "./pages/sistemasDeVentas/Repartidor/RepartidorDashboard.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import AdminProtectedRoute from "./components/AdminProtectedRoute.jsx";
+import GestionRouteGuard from "./components/GestionRouteGuard.jsx";
 
 // Gestión
 import { GestionProvider } from "./pages/Gestion/context/GestionContext.jsx";
@@ -187,33 +188,33 @@ function App() {
           }
         >
           <Route index element={<Resumen />} />
-          <Route path="inventario" element={<Inventario />} />
-          <Route path="ingresos" element={<Ingresos />} />
-          <Route path="gastos" element={<Gastos />} />
-          <Route path="usuarios" element={<Usuarios />} />
-          <Route path="empleados" element={<Empleados />} />
-          <Route path="recursos-humanos" element={<RecursosHumanos />} />
-          <Route path="recursos-humanos/:id" element={<EmpleadoDetalle />} />
-          <Route path="roles" element={<Roles />} />
-          <Route path="prospeccion" element={<Leads />} />
-          <Route path="mantenimientos" element={<Leads defaultTab="MANTENIMIENTO" />} />
-          <Route path="marketing" element={<Marketing />} />
-          <Route path="sistemas" element={<Sistemas />} />
-          <Route path="promociones" element={<Promociones />} />
-          <Route path="blog" element={<Blog />} />
-          <Route path="guias" element={<Guides />} />
-          <Route path="legal" element={<Legal />} />
-          <Route path="instalacion" element={<Instalacion />} />
-          <Route path="mapa-instalaciones" element={<ShowcaseMap />} />
-          <Route path="contabilidad" element={<Contabilidad />} />
-          <Route path="vending" element={<Vending />} />
-          <Route path="compras" element={<Compras />} />
-          <Route path="fiscal" element={<Fiscal />} />
-          <Route path="crm" element={<CRM />} />
-          <Route path="documentos" element={<GestionDocumental />} />
-          <Route path="configuracion" element={<Configuracion />} />
-          <Route path="cotizador" element={<DarmaxQuote />} />
-          <Route path="cotizador-distribuidores" element={<CotizadorDistribuidoresPage />} />
+          <Route path="inventario" element={<GestionRouteGuard permission={["acceso.inventarioglobal", "canAccessInventory"]}><Inventario /></GestionRouteGuard>} />
+          <Route path="ingresos" element={<GestionRouteGuard permission={["acceso.tesoreriaingresos", "canAccessFinances"]}><Ingresos /></GestionRouteGuard>} />
+          <Route path="gastos" element={<GestionRouteGuard permission={["acceso.comprasxcp", "canAccessFinances"]}><Gastos /></GestionRouteGuard>} />
+          <Route path="usuarios" element={<GestionRouteGuard permission={["acceso.directorio", "canAccessRH"]}><Usuarios /></GestionRouteGuard>} />
+          <Route path="empleados" element={<GestionRouteGuard permission={["acceso.rrhhynominas", "canAccessRH"]}><Empleados /></GestionRouteGuard>} />
+          <Route path="recursos-humanos" element={<GestionRouteGuard permission={["acceso.rrhhynominas", "canAccessRH"]}><RecursosHumanos /></GestionRouteGuard>} />
+          <Route path="recursos-humanos/:id" element={<GestionRouteGuard permission={["acceso.rrhhynominas", "canAccessRH"]}><EmpleadoDetalle /></GestionRouteGuard>} />
+          <Route path="roles" element={<GestionRouteGuard permission={["acceso.permisosyroles", "acceso.rolesypermisos", "canManageSistemas"]}><Roles /></GestionRouteGuard>} />
+          <Route path="prospeccion" element={<GestionRouteGuard permission={["acceso.prospeccionleads", "canAccessLeads"]}><Leads /></GestionRouteGuard>} />
+          <Route path="mantenimientos" element={<GestionRouteGuard permission={["acceso.prospeccionleads", "canAccessLeads"]}><Leads defaultTab="MANTENIMIENTO" /></GestionRouteGuard>} />
+          <Route path="marketing" element={<GestionRouteGuard permission={["acceso.plannerdigital", "plannerdigital.jefe", "plannerdigital.colaborador", "acceso.plannerdigital.jefe", "acceso.plannerdigital.colaborador"]}><Marketing /></GestionRouteGuard>} />
+          <Route path="sistemas" element={<GestionRouteGuard permission={["acceso.proyectosactividades", "proyectosactividades.jefe", "proyectosactividades.colaborador", "acceso.proyectosactividades.jefe", "acceso.proyectosactividades.colaborador"]}><Sistemas /></GestionRouteGuard>} />
+          <Route path="promociones" element={<GestionRouteGuard permission={["acceso.promociones"]}><Promociones /></GestionRouteGuard>} />
+          <Route path="blog" element={<GestionRouteGuard permission={["acceso.editorblog"]}><Blog /></GestionRouteGuard>} />
+          <Route path="guias" element={<GestionRouteGuard permission={["acceso.centrodeguias"]}><Guides /></GestionRouteGuard>} />
+          <Route path="legal" element={<GestionRouteGuard permission={["acceso.arealegal", "canAccessLegal"]}><Legal /></GestionRouteGuard>} />
+          <Route path="instalacion" element={<GestionRouteGuard permission={["acceso.controlinstalacion", "canAccessInstallation"]}><Instalacion /></GestionRouteGuard>} />
+          <Route path="mapa-instalaciones" element={<GestionRouteGuard permission={["acceso.mapainstalaciones", "canAccessShowcase"]}><ShowcaseMap /></GestionRouteGuard>} />
+          <Route path="contabilidad" element={<GestionRouteGuard permission={["acceso.contabilidaderp", "canAccessAccounting"]}><Contabilidad /></GestionRouteGuard>} />
+          <Route path="vending" element={<GestionRouteGuard permission={["acceso.cortesvending", "canAccessVending"]}><Vending /></GestionRouteGuard>} />
+          <Route path="compras" element={<GestionRouteGuard permission={["acceso.comprasxcp"]}><Compras /></GestionRouteGuard>} />
+          <Route path="fiscal" element={<GestionRouteGuard permission={["acceso.facturacioncfdi"]}><Fiscal /></GestionRouteGuard>} />
+          <Route path="crm" element={<GestionRouteGuard permission={["acceso.crmycobranza"]}><CRM /></GestionRouteGuard>} />
+          <Route path="documentos" element={<GestionRouteGuard permission={["acceso.gestiondocumental"]}><GestionDocumental /></GestionRouteGuard>} />
+          <Route path="configuracion" element={<GestionRouteGuard permission={["acceso.configuracionbase", "canAccessConfig"]}><Configuracion /></GestionRouteGuard>} />
+          <Route path="cotizador" element={<GestionRouteGuard permission={["acceso.cotizadordarmax", "canAccessQuotes"]}><DarmaxQuote /></GestionRouteGuard>} />
+          <Route path="cotizador-distribuidores" element={<GestionRouteGuard permission={["acceso.cotizadordistribuidor", "canAccessDistributorQuotes"]}><CotizadorDistribuidoresPage /></GestionRouteGuard>} />
         </Route>
 
         {/* Cliente – flujo de pedidos */}
