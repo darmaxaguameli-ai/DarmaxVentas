@@ -808,7 +808,7 @@ const Roles = () => {
     }
 
     return (
-        <div className="space-y-6 pb-24 animate-fade-in">
+        <div className="space-y-6 pb-24 animate-fade-in w-full max-w-full min-w-0 overflow-x-hidden">
             {/* CABECERA PRINCIPAL */}
             <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
                 <div>
@@ -909,55 +909,57 @@ const Roles = () => {
                 </div>
             </div>
 
-            {/* SELECTOR DE PESTAÑAS (SEGMENTED TABS) */}
-            <div className="flex border-b border-gray-200 dark:border-gray-800 gap-2">
-                <button
-                    type="button"
-                    onClick={() => setActiveTab('roles')}
-                    className={`pb-3 px-4 font-bold text-xs uppercase tracking-wider transition-all flex items-center gap-2 border-b-2 ${
-                        activeTab === 'roles'
-                            ? 'border-primary text-primary'
-                            : 'border-transparent text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'
-                    }`}
-                >
-                    <span className="material-symbols-outlined text-base">shield</span>
-                    <span>Roles Maestros</span>
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300">
-                        {roles.length}
-                    </span>
-                </button>
+            {/* SELECTOR DE PESTAÑAS (SEGMENTED TABS) CON DESPLAZAMIENTO TÁCTIL */}
+            <div className="w-full max-w-full overflow-x-auto overscroll-contain touch-pan-x [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden select-none border-b border-gray-200 dark:border-gray-800">
+                <div className="flex items-center gap-1 sm:gap-2 min-w-max pb-0.5">
+                    <button
+                        type="button"
+                        onClick={() => setActiveTab('roles')}
+                        className={`pb-3 px-3.5 sm:px-4 font-bold text-xs uppercase tracking-wider transition-all flex items-center gap-2 border-b-2 whitespace-nowrap flex-shrink-0 touch-manipulation active:scale-95 ${
+                            activeTab === 'roles'
+                                ? 'border-primary text-primary'
+                                : 'border-transparent text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'
+                        }`}
+                    >
+                        <span className="material-symbols-outlined text-base">shield</span>
+                        <span>Roles Maestros</span>
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300">
+                            {roles.length}
+                        </span>
+                    </button>
 
-                <button
-                    type="button"
-                    onClick={() => setActiveTab('asignaciones')}
-                    className={`pb-3 px-4 font-bold text-xs uppercase tracking-wider transition-all flex items-center gap-2 border-b-2 ${
-                        activeTab === 'asignaciones'
-                            ? 'border-primary text-primary'
-                            : 'border-transparent text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'
-                    }`}
-                >
-                    <span className="material-symbols-outlined text-base">manage_accounts</span>
-                    <span>Asignación a Colaboradores</span>
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300">
-                        {collaborators.length}
-                    </span>
-                </button>
+                    <button
+                        type="button"
+                        onClick={() => setActiveTab('asignaciones')}
+                        className={`pb-3 px-3.5 sm:px-4 font-bold text-xs uppercase tracking-wider transition-all flex items-center gap-2 border-b-2 whitespace-nowrap flex-shrink-0 touch-manipulation active:scale-95 ${
+                            activeTab === 'asignaciones'
+                                ? 'border-primary text-primary'
+                                : 'border-transparent text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'
+                        }`}
+                    >
+                        <span className="material-symbols-outlined text-base">manage_accounts</span>
+                        <span>Asignación a Colaboradores</span>
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300">
+                            {collaborators.length}
+                        </span>
+                    </button>
 
-                <button
-                    type="button"
-                    onClick={() => setActiveTab('estructura')}
-                    className={`pb-3 px-4 font-bold text-xs uppercase tracking-wider transition-all flex items-center gap-2 border-b-2 ${
-                        activeTab === 'estructura'
-                            ? 'border-primary text-primary'
-                            : 'border-transparent text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'
-                    }`}
-                >
-                    <span className="material-symbols-outlined text-base">account_tree</span>
-                    <span>Módulos y Permisos</span>
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300">
-                        {modules.length} mods
-                    </span>
-                </button>
+                    <button
+                        type="button"
+                        onClick={() => setActiveTab('estructura')}
+                        className={`pb-3 px-3.5 sm:px-4 font-bold text-xs uppercase tracking-wider transition-all flex items-center gap-2 border-b-2 whitespace-nowrap flex-shrink-0 touch-manipulation active:scale-95 ${
+                            activeTab === 'estructura'
+                                ? 'border-primary text-primary'
+                                : 'border-transparent text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'
+                        }`}
+                    >
+                        <span className="material-symbols-outlined text-base">account_tree</span>
+                        <span>Módulos y Permisos</span>
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300">
+                            {modules.length} mods
+                        </span>
+                    </button>
+                </div>
             </div>
 
             {/* ================================================================ */}
@@ -1486,23 +1488,23 @@ const Roles = () => {
             {/* ================================================================ */}
             {isRoleModalOpen && createPortal(
                 <div 
-                    className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 animate-fade-in"
+                    className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 animate-fade-in"
                     onClick={() => setIsRoleModalOpen(false)}
                 >
                     <div 
-                        className="bg-white dark:bg-gray-900 rounded-3xl w-full max-w-4xl shadow-2xl border border-gray-200/80 dark:border-gray-800 flex flex-col max-h-[92vh] sm:max-h-[88vh] overflow-hidden"
+                        className="bg-white dark:bg-gray-900 rounded-3xl w-full max-w-4xl shadow-2xl border border-gray-200/80 dark:border-gray-800 flex flex-col max-h-[94vh] sm:max-h-[88vh] overflow-hidden"
                         onClick={(e) => e.stopPropagation()}
                     >
                         {/* Cabecera */}
-                        <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-800 bg-gradient-to-r from-slate-50 via-white to-blue-50/40 dark:from-gray-950 dark:via-gray-900 dark:to-blue-950/40 flex items-start justify-between gap-4 flex-shrink-0">
-                            <div>
-                                <span className="text-[10px] font-black uppercase tracking-wider text-blue-600 dark:text-blue-400 bg-blue-100/70 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800/60 px-2.5 py-0.5 rounded-full">
+                        <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-gray-100 dark:border-gray-800 bg-gradient-to-r from-slate-50 via-white to-blue-50/40 dark:from-gray-950 dark:via-gray-900 dark:to-blue-950/40 flex items-start justify-between gap-3 flex-shrink-0">
+                            <div className="min-w-0 flex-1">
+                                <span className="text-[10px] font-black uppercase tracking-wider text-blue-600 dark:text-blue-400 bg-blue-100/70 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800/60 px-2.5 py-0.5 rounded-full inline-block">
                                     Configuración de Rol
                                 </span>
-                                <h2 className="text-lg font-black text-gray-900 dark:text-white leading-tight mt-1">
+                                <h2 className="text-base sm:text-lg font-black text-gray-900 dark:text-white leading-tight mt-1 truncate">
                                     {editingRole ? `Editar Rol: ${editingRole.name}` : 'Crear Nuevo Rol Maestro'}
                                 </h2>
-                                <p className="text-xs text-gray-500 dark:text-gray-400">
+                                <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2">
                                     Selecciona los módulos y submódulos que estarán habilitados para este puesto.
                                 </p>
                             </div>
@@ -1510,15 +1512,15 @@ const Roles = () => {
                             <button 
                                 type="button"
                                 onClick={() => setIsRoleModalOpen(false)}
-                                className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                                className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex-shrink-0"
                             >
                                 <span className="material-symbols-outlined text-xl">close</span>
                             </button>
                         </div>
 
                         {/* Formulario */}
-                        <form onSubmit={handleSaveRole} className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <form onSubmit={handleSaveRole} className="flex-1 overflow-y-auto overflow-x-hidden p-3.5 sm:p-6 space-y-4 sm:space-y-6 custom-scrollbar">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                                 <div>
                                     <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
                                         Nombre del Rol / Puesto <span className="text-rose-500">*</span>
@@ -1549,28 +1551,28 @@ const Roles = () => {
                             </div>
 
                             {/* Controles de Selección Masiva de Permisos */}
-                            <div className="pt-2 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between gap-3">
-                                <div>
-                                    <h4 className="text-xs font-black uppercase tracking-wider text-gray-800 dark:text-white">
+                            <div className="pt-2 border-t border-gray-100 dark:border-gray-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                                <div className="min-w-0 flex-1">
+                                    <h4 className="text-xs font-black uppercase tracking-wider text-gray-800 dark:text-white truncate">
                                         Permisos por Módulo y Submódulo ({roleForm.permisoIds.length} seleccionados)
                                     </h4>
                                     <p className="text-[11px] text-gray-400">
-                                        Marca los accesos permitidos. Las constantes corresponden al estándar acceso.*
+                                        Marca los accesos permitidos. Constantes estándar acceso.*
                                     </p>
                                 </div>
 
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-2 flex-shrink-0">
                                     <button
                                         type="button"
                                         onClick={handleSelectAllPerms}
-                                        className="px-2.5 py-1 text-[11px] font-bold rounded-lg bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/60 hover:bg-blue-100 dark:hover:bg-blue-900/60 transition-colors"
+                                        className="px-2.5 py-1.5 text-[11px] font-bold rounded-lg bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/60 hover:bg-blue-100 dark:hover:bg-blue-900/60 transition-colors whitespace-nowrap active:scale-95"
                                     >
                                         Seleccionar Todos
                                     </button>
                                     <button
                                         type="button"
                                         onClick={handleDeselectAllPerms}
-                                        className="px-2.5 py-1 text-[11px] font-bold rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-transparent dark:border-gray-700/60 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                                        className="px-2.5 py-1.5 text-[11px] font-bold rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-transparent dark:border-gray-700/60 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors whitespace-nowrap active:scale-95"
                                     >
                                         Limpiar Selección
                                     </button>
@@ -1578,7 +1580,7 @@ const Roles = () => {
                             </div>
 
                             {/* Árbol Dinámico de Módulos */}
-                            <div className="space-y-4">
+                            <div className="space-y-3 sm:space-y-4">
                                 {modules.map(mod => {
                                     const rootPerms = (mod.permisos || []).filter(p => !p.submoduloId);
                                     const modPerm = rootPerms[0];
@@ -1589,31 +1591,35 @@ const Roles = () => {
                                     return (
                                         <div
                                             key={mod.id}
-                                            className="rounded-2xl border border-gray-200/80 dark:border-gray-800 p-4 bg-gray-50/60 dark:bg-gray-950/60 space-y-3"
+                                            className="rounded-2xl border border-gray-200/80 dark:border-gray-800 p-3 sm:p-4 bg-gray-50/60 dark:bg-gray-950/60 space-y-3 overflow-hidden"
                                         >
                                             {/* Header del Módulo con switch maestro */}
-                                            <div className="flex items-center justify-between gap-3">
-                                                <div className="flex items-center gap-2.5">
-                                                    <span className="material-symbols-outlined text-primary text-xl">
-                                                        {mod.icono || 'folder'}
-                                                    </span>
-                                                    <div>
-                                                        <h5 className="text-xs font-black text-gray-900 dark:text-white uppercase tracking-tight">
+                                            <div className="flex items-center justify-between gap-2 sm:gap-3 min-w-0">
+                                                <div className="flex items-center gap-2 sm:gap-2.5 min-w-0 flex-1">
+                                                    <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
+                                                        <span className="material-symbols-outlined text-base sm:text-lg">
+                                                            {mod.icono || 'folder'}
+                                                        </span>
+                                                    </div>
+                                                    <div className="min-w-0 flex-1">
+                                                        <h5 className="text-xs font-black text-gray-900 dark:text-white uppercase tracking-tight truncate leading-tight" title={mod.nombre}>
                                                             {mod.nombre}
                                                         </h5>
-                                                        <span className="text-[10px] text-gray-400 font-mono">
+                                                        <span className="text-[10px] text-gray-400 font-mono truncate block leading-tight mt-0.5" title={modPerm?.codigo || `acceso.${mod.codigo}`}>
                                                             {modPerm?.codigo || `acceso.${mod.codigo}`}
                                                         </span>
                                                     </div>
                                                 </div>
 
-                                                <div className="flex items-center gap-2">
+                                                <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
                                                     <button
                                                         type="button"
                                                         onClick={() => handleToggleAllModulePerms(mod)}
-                                                        className="text-[10px] font-bold text-primary hover:underline px-2 py-1"
+                                                        className="text-[10px] font-bold text-primary hover:text-primary-dark hover:underline px-1.5 py-0.5 rounded-lg hover:bg-primary/5 transition-colors whitespace-nowrap active:scale-95"
+                                                        title="Alternar selección de submódulos"
                                                     >
-                                                        Alternar Módulo
+                                                        <span className="hidden sm:inline">Alternar Módulo</span>
+                                                        <span className="sm:hidden">Alternar</span>
                                                     </button>
 
                                                     {modPerm && (
@@ -1650,17 +1656,17 @@ const Roles = () => {
                                                             <div
                                                                 key={subPerm.id}
                                                                 onClick={() => handleTogglePermisoInRole(subPerm.id, subPerm.codigo)}
-                                                                className={`p-2.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-2 ${
+                                                                className={`p-2.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-2 active:scale-[0.99] touch-manipulation min-w-0 ${
                                                                     isChecked
                                                                         ? 'bg-blue-50 dark:bg-blue-950/40 border-primary text-primary'
                                                                         : 'bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700'
                                                                 }`}
                                                             >
                                                                 <div className="min-w-0 flex-1">
-                                                                    <p className={`text-xs font-bold truncate ${isChecked ? 'text-primary dark:text-blue-300' : 'text-gray-800 dark:text-gray-200'}`}>
+                                                                    <p className={`text-xs font-bold truncate leading-tight ${isChecked ? 'text-primary dark:text-blue-300' : 'text-gray-800 dark:text-gray-200'}`} title={subPerm.nombre || sub.nombre}>
                                                                         {subPerm.nombre || sub.nombre}
                                                                     </p>
-                                                                    <p className="text-[10px] text-gray-400 font-mono truncate">
+                                                                    <p className="text-[10px] text-gray-400 font-mono truncate leading-tight mt-0.5" title={subPerm.codigo}>
                                                                         {subPerm.codigo}
                                                                     </p>
                                                                 </div>
@@ -1689,17 +1695,17 @@ const Roles = () => {
                                                                 <div
                                                                     key={modExtraPerm.id}
                                                                     onClick={() => handleTogglePermisoInRole(modExtraPerm.id, modExtraPerm.codigo)}
-                                                                    className={`p-2.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-2 ${
+                                                                    className={`p-2.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-2 active:scale-[0.99] touch-manipulation min-w-0 ${
                                                                         isChecked
                                                                             ? 'bg-blue-50 dark:bg-blue-950/40 border-primary text-primary'
                                                                             : 'bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700'
                                                                     }`}
                                                                 >
                                                                     <div className="min-w-0 flex-1">
-                                                                        <p className={`text-xs font-bold truncate ${isChecked ? 'text-primary dark:text-blue-300' : 'text-gray-800 dark:text-gray-200'}`}>
+                                                                        <p className={`text-xs font-bold truncate leading-tight ${isChecked ? 'text-primary dark:text-blue-300' : 'text-gray-800 dark:text-gray-200'}`} title={modExtraPerm.nombre}>
                                                                             {modExtraPerm.nombre}
                                                                         </p>
-                                                                        <p className="text-[10px] text-gray-400 font-mono truncate">
+                                                                        <p className="text-[10px] text-gray-400 font-mono truncate leading-tight mt-0.5" title={modExtraPerm.codigo}>
                                                                             {modExtraPerm.codigo}
                                                                         </p>
                                                                     </div>
@@ -1723,21 +1729,21 @@ const Roles = () => {
                             </div>
 
                             {/* Footer de Acciones */}
-                            <div className="pt-4 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between gap-3">
+                            <div className="pt-3 sm:pt-4 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between gap-2 sm:gap-3 flex-shrink-0">
                                 <button
                                     type="button"
                                     onClick={() => setIsRoleModalOpen(false)}
-                                    className="py-2.5 px-4 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 font-bold rounded-xl text-xs active:scale-95 transition-all border border-transparent dark:border-gray-700/60"
+                                    className="py-2.5 px-3.5 sm:px-4 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 font-bold rounded-xl text-xs active:scale-95 transition-all border border-transparent dark:border-gray-700/60 whitespace-nowrap"
                                 >
                                     Cancelar
                                 </button>
 
                                 <button
                                     type="submit"
-                                    className="py-2.5 px-5 bg-primary text-white font-bold rounded-xl text-xs shadow-xs hover:bg-primary-dark active:scale-95 transition-all flex items-center gap-1.5"
+                                    className="py-2.5 px-4 sm:px-5 bg-primary text-white font-bold rounded-xl text-xs shadow-xs hover:bg-primary-dark active:scale-95 transition-all flex items-center gap-1.5 whitespace-nowrap truncate"
                                 >
                                     <span className="material-symbols-outlined text-sm">check</span>
-                                    <span>{editingRole ? 'Guardar Cambios del Rol' : 'Crear Rol Maestro'}</span>
+                                    <span>{editingRole ? 'Guardar Cambios' : 'Crear Rol Maestro'}</span>
                                 </button>
                             </div>
                         </form>
@@ -1751,22 +1757,22 @@ const Roles = () => {
             {/* ================================================================ */}
             {isUsersModalOpen && createPortal(
                 <div 
-                    className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 animate-fade-in"
+                    className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 animate-fade-in"
                     onClick={() => setIsUsersModalOpen(false)}
                 >
                     <div 
-                        className="bg-white dark:bg-gray-900 rounded-3xl w-full max-w-lg shadow-2xl border border-gray-200 dark:border-gray-800 flex flex-col max-h-[85vh] overflow-hidden"
+                        className="bg-white dark:bg-gray-900 rounded-3xl w-full max-w-lg shadow-2xl border border-gray-200 dark:border-gray-800 flex flex-col max-h-[92vh] sm:max-h-[85vh] overflow-hidden"
                         onClick={(e) => e.stopPropagation()}
                     >
-                        <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-800 bg-gradient-to-r from-slate-50 via-white to-blue-50/40 dark:from-gray-950 dark:via-gray-900 dark:to-blue-950/40 flex items-start justify-between">
-                            <div>
-                                <span className="text-[10px] font-black uppercase tracking-wider text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800/60 px-2.5 py-0.5 rounded-full">
+                        <div className="px-4 sm:px-5 py-3 sm:py-4 border-b border-gray-100 dark:border-gray-800 bg-gradient-to-r from-slate-50 via-white to-blue-50/40 dark:from-gray-950 dark:via-gray-900 dark:to-blue-950/40 flex items-start justify-between">
+                            <div className="min-w-0 flex-1 pr-2">
+                                <span className="text-[10px] font-black uppercase tracking-wider text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800/60 px-2.5 py-0.5 rounded-full inline-block">
                                     Personal del Rol
                                 </span>
-                                <h3 className="text-base font-black text-gray-900 dark:text-white mt-1">
+                                <h3 className="text-base font-black text-gray-900 dark:text-white mt-1 truncate">
                                     Colaboradores en: {editingRole?.name}
                                 </h3>
-                                <p className="text-xs text-gray-400">
+                                <p className="text-xs text-gray-400 line-clamp-1">
                                     Marca los colaboradores que tendrán asignado este puesto.
                                 </p>
                             </div>
@@ -1774,13 +1780,13 @@ const Roles = () => {
                             <button 
                                 type="button"
                                 onClick={() => setIsUsersModalOpen(false)}
-                                className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                                className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex-shrink-0"
                             >
                                 <span className="material-symbols-outlined text-xl">close</span>
                             </button>
                         </div>
 
-                        <div className="flex-1 overflow-y-auto p-4 space-y-2 custom-scrollbar">
+                        <div className="flex-1 overflow-y-auto overflow-x-hidden p-3 sm:p-4 space-y-2 custom-scrollbar">
                             {collaborators.map(c => {
                                 const isSelected = selectedRoleUserIds.includes(c.id);
                                 return (
@@ -1816,18 +1822,18 @@ const Roles = () => {
                             })}
                         </div>
 
-                        <div className="p-4 border-t border-gray-100 dark:border-gray-800 flex justify-between gap-3 bg-gray-50/60 dark:bg-gray-950/80">
+                        <div className="p-3 sm:p-4 border-t border-gray-100 dark:border-gray-800 flex justify-between gap-3 bg-gray-50/60 dark:bg-gray-950/80">
                             <button
                                 type="button"
                                 onClick={() => setIsUsersModalOpen(false)}
-                                className="py-2 px-4 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-xs font-bold rounded-xl text-gray-700 dark:text-gray-300 border border-transparent dark:border-gray-700/60"
+                                className="py-2 px-3.5 sm:px-4 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-xs font-bold rounded-xl text-gray-700 dark:text-gray-300 border border-transparent dark:border-gray-700/60 whitespace-nowrap"
                             >
                                 Cancelar
                             </button>
                             <button
                                 type="button"
                                 onClick={handleSaveRoleUsers}
-                                className="py-2 px-5 bg-primary text-white text-xs font-bold rounded-xl shadow-xs hover:bg-primary-dark transition-all"
+                                className="py-2 px-4 sm:px-5 bg-primary text-white text-xs font-bold rounded-xl shadow-xs hover:bg-primary-dark transition-all whitespace-nowrap"
                             >
                                 Guardar ({selectedRoleUserIds.length})
                             </button>
@@ -1842,28 +1848,28 @@ const Roles = () => {
             {/* ================================================================ */}
             {isCollabModalOpen && editingCollaborator && createPortal(
                 <div 
-                    className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 animate-fade-in"
+                    className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 animate-fade-in"
                     onClick={() => setIsCollabModalOpen(false)}
                 >
                     <div 
-                        className="bg-white dark:bg-gray-900 rounded-3xl w-full max-w-3xl shadow-2xl border border-gray-200 dark:border-gray-800 flex flex-col max-h-[92vh] sm:max-h-[88vh] overflow-hidden"
+                        className="bg-white dark:bg-gray-900 rounded-3xl w-full max-w-3xl shadow-2xl border border-gray-200 dark:border-gray-800 flex flex-col max-h-[94vh] sm:max-h-[88vh] overflow-hidden"
                         onClick={(e) => e.stopPropagation()}
                     >
                         {/* Cabecera del Modal */}
-                        <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-800 bg-gradient-to-r from-slate-50 via-white to-blue-50/40 dark:from-gray-950 dark:via-gray-900 dark:to-blue-950/40 flex items-start justify-between gap-4 flex-shrink-0">
-                            <div>
+                        <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-gray-100 dark:border-gray-800 bg-gradient-to-r from-slate-50 via-white to-blue-50/40 dark:from-gray-950 dark:via-gray-900 dark:to-blue-950/40 flex items-start justify-between gap-3 flex-shrink-0">
+                            <div className="min-w-0 flex-1">
                                 <div className="flex items-center gap-2 mb-1">
-                                    <span className="text-[10px] font-black uppercase tracking-wider text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800/60 px-2.5 py-0.5 rounded-full">
+                                    <span className="text-[10px] font-black uppercase tracking-wider text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800/60 px-2.5 py-0.5 rounded-full inline-block">
                                         Control de Acceso Individual
                                     </span>
                                     <span className="text-[10px] font-mono text-gray-400">
                                         #{editingCollaborator.customId || 'SIN ID'}
                                     </span>
                                 </div>
-                                <h3 className="text-lg font-black text-gray-900 dark:text-white leading-tight">
+                                <h3 className="text-base sm:text-lg font-black text-gray-900 dark:text-white leading-tight truncate">
                                     {editingCollaborator.name}
                                 </h3>
-                                <p className="text-xs text-gray-500 dark:text-gray-400">
+                                <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-1">
                                     Personaliza los roles maestros y/o asigna permisos directos individuales a este colaborador.
                                 </p>
                             </div>
@@ -1871,63 +1877,65 @@ const Roles = () => {
                             <button 
                                 type="button"
                                 onClick={() => setIsCollabModalOpen(false)}
-                                className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                                className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex-shrink-0"
                             >
                                 <span className="material-symbols-outlined text-xl">close</span>
                             </button>
                         </div>
 
-                        {/* Sub-pestañas dentro del Modal */}
-                        <div className="flex px-6 pt-3 border-b border-gray-100 dark:border-gray-800 gap-4 bg-gray-50/60 dark:bg-gray-950/70 flex-shrink-0">
-                            <button
-                                type="button"
-                                onClick={() => setCollabModalTab('roles')}
-                                className={`pb-2.5 font-bold text-xs uppercase tracking-wider transition-all flex items-center gap-2 border-b-2 ${
-                                    collabModalTab === 'roles'
-                                        ? 'border-primary text-primary'
-                                        : 'border-transparent text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'
-                                }`}
-                            >
-                                <span className="material-symbols-outlined text-sm">shield</span>
-                                <span>Roles Maestros</span>
-                                <span className="text-[10px] px-2 py-0.2 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300 border border-blue-200 dark:border-blue-800/60 font-bold">
-                                    {collabFormRoleIds.length}
-                                </span>
-                            </button>
+                        {/* Sub-pestañas dentro del Modal con scroll táctil */}
+                        <div className="w-full max-w-full overflow-x-auto overscroll-contain touch-pan-x [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden select-none px-4 sm:px-6 pt-2.5 sm:pt-3 border-b border-gray-100 dark:border-gray-800 bg-gray-50/60 dark:gray-950/70 flex-shrink-0">
+                            <div className="flex items-center gap-2 sm:gap-4 min-w-max">
+                                <button
+                                    type="button"
+                                    onClick={() => setCollabModalTab('roles')}
+                                    className={`pb-2.5 font-bold text-xs uppercase tracking-wider transition-all flex items-center gap-2 border-b-2 whitespace-nowrap flex-shrink-0 touch-manipulation active:scale-95 ${
+                                        collabModalTab === 'roles'
+                                            ? 'border-primary text-primary'
+                                            : 'border-transparent text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'
+                                    }`}
+                                >
+                                    <span className="material-symbols-outlined text-sm">shield</span>
+                                    <span>Roles Maestros</span>
+                                    <span className="text-[10px] px-2 py-0.2 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300 border border-blue-200 dark:border-blue-800/60 font-bold">
+                                        {collabFormRoleIds.length}
+                                    </span>
+                                </button>
 
-                            <button
-                                type="button"
-                                onClick={() => setCollabModalTab('permisos')}
-                                className={`pb-2.5 font-bold text-xs uppercase tracking-wider transition-all flex items-center gap-2 border-b-2 ${
-                                    collabModalTab === 'permisos'
-                                        ? 'border-primary text-primary'
-                                        : 'border-transparent text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'
-                                }`}
-                            >
-                                <span className="material-symbols-outlined text-sm">key</span>
-                                <span>Permisos Directos del Colaborador</span>
-                                <span className="text-[10px] px-2 py-0.2 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60 font-bold">
-                                    {collabFormPermisoIds.length}
-                                </span>
-                            </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setCollabModalTab('permisos')}
+                                    className={`pb-2.5 font-bold text-xs uppercase tracking-wider transition-all flex items-center gap-2 border-b-2 whitespace-nowrap flex-shrink-0 touch-manipulation active:scale-95 ${
+                                        collabModalTab === 'permisos'
+                                            ? 'border-primary text-primary'
+                                            : 'border-transparent text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'
+                                    }`}
+                                >
+                                    <span className="material-symbols-outlined text-sm">key</span>
+                                    <span>Permisos Directos</span>
+                                    <span className="text-[10px] px-2 py-0.2 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60 font-bold">
+                                        {collabFormPermisoIds.length}
+                                    </span>
+                                </button>
+                            </div>
                         </div>
 
                         {/* Resumen de Métricas de Acceso en Tiempo Real */}
-                        <div className="px-6 py-2.5 bg-slate-50 dark:bg-gray-950 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between text-[11px] font-bold text-gray-600 dark:text-gray-300 flex-shrink-0">
-                            <div className="flex items-center gap-4 flex-wrap">
+                        <div className="px-4 sm:px-6 py-2 sm:py-2.5 bg-slate-50 dark:bg-gray-950 border-b border-gray-100 dark:border-gray-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[11px] font-bold text-gray-600 dark:text-gray-300 flex-shrink-0">
+                            <div className="flex items-center gap-3 sm:gap-4 flex-wrap">
                                 <span>Roles: <strong className="text-blue-600 dark:text-blue-400">{collabFormRoleIds.length}</strong></span>
-                                <span>Heredados de rol: <strong className="text-emerald-600 dark:text-emerald-400">{inheritedPermsMap.size / 2}</strong></span>
+                                <span>Heredados: <strong className="text-emerald-600 dark:text-emerald-400">{inheritedPermsMap.size / 2}</strong></span>
                                 <span>Directos: <strong className="text-amber-600 dark:text-amber-400">{collabFormPermisoIds.length}</strong></span>
                             </div>
 
-                            <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60 text-[10px] font-black uppercase">
+                            <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60 text-[10px] font-black uppercase self-start sm:self-auto">
                                 Total Efectivos: {new Set([...Array.from(inheritedPermsMap.keys()), ...collabFormPermisoIds]).size}
                             </span>
                         </div>
 
                         {/* CUERPO: PESTAÑA ROLES */}
                         {collabModalTab === 'roles' && (
-                            <div className="flex-1 overflow-y-auto p-6 space-y-3 custom-scrollbar">
+                            <div className="flex-1 overflow-y-auto overflow-x-hidden p-3.5 sm:p-6 space-y-3 custom-scrollbar">
                                 <div className="text-xs text-gray-400 mb-2">
                                     Selecciona los puestos de trabajo. Al asignar un rol maestro, el colaborador adquiere automáticamente todos sus permisos.
                                 </div>
@@ -1979,7 +1987,7 @@ const Roles = () => {
 
                         {/* CUERPO: PESTAÑA PERMISOS DIRECTOS */}
                         {collabModalTab === 'permisos' && (
-                            <div className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar">
+                            <div className="flex-1 overflow-y-auto overflow-x-hidden p-3.5 sm:p-6 space-y-3 sm:space-y-4 custom-scrollbar">
                                 {/* Buscador de Permisos */}
                                 <div className="relative">
                                     <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-base">
@@ -1994,7 +2002,7 @@ const Roles = () => {
                                     />
                                 </div>
 
-                                <div className="space-y-4">
+                                <div className="space-y-3 sm:space-y-4">
                                     {modules.map(mod => {
                                         // Todos los permisos de este módulo (raíz sin submoduloId, y de submódulos)
                                         const modPerms = [];
@@ -2014,7 +2022,7 @@ const Roles = () => {
                                         return (
                                             <div
                                                 key={mod.id}
-                                                className="rounded-2xl border border-gray-200/80 dark:border-gray-800 p-4 bg-gray-50/60 dark:bg-gray-950/60 space-y-2.5"
+                                                className="rounded-2xl border border-gray-200/80 dark:border-gray-800 p-3 sm:p-4 bg-gray-50/60 dark:bg-gray-950/60 space-y-2.5 overflow-hidden"
                                             >
                                                 <div className="flex items-center gap-2">
                                                     <span className="material-symbols-outlined text-primary text-base">
@@ -2036,7 +2044,7 @@ const Roles = () => {
                                                             <div
                                                                 key={p.id}
                                                                 onClick={() => handleToggleDirectPermisoInCollab(p.id, p.codigo)}
-                                                                className={`p-2.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-2 ${
+                                                                className={`p-2.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-2 min-w-0 ${
                                                                     isActive
                                                                         ? isDirect
                                                                             ? 'bg-amber-50/80 dark:bg-amber-950/40 border-amber-400 dark:border-amber-700/80 text-amber-900 dark:text-amber-200'
@@ -2046,21 +2054,21 @@ const Roles = () => {
                                                             >
                                                                 <div className="min-w-0 flex-1">
                                                                     <div className="flex items-center gap-1.5 flex-wrap">
-                                                                        <p className="text-xs font-bold truncate">
+                                                                        <p className="text-xs font-bold truncate" title={p.nombre}>
                                                                             {p.nombre}
                                                                         </p>
                                                                         {isInherited && (
-                                                                            <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60">
+                                                                            <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60 whitespace-nowrap">
                                                                                 ✓ Rol: {inheritedRoleName}
                                                                             </span>
                                                                         )}
                                                                         {isDirect && (
-                                                                            <span className="text-[9px] font-black px-1.5 py-0.2 rounded bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60">
+                                                                            <span className="text-[9px] font-black px-1.5 py-0.2 rounded bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60 whitespace-nowrap">
                                                                                 ★ Directo
                                                                             </span>
                                                                         )}
                                                                     </div>
-                                                                    <p className="text-[10px] text-gray-400 font-mono truncate mt-0.5">
+                                                                    <p className="text-[10px] text-gray-400 font-mono truncate mt-0.5" title={p.codigo}>
                                                                         {p.codigo}
                                                                     </p>
                                                                 </div>
@@ -2086,21 +2094,21 @@ const Roles = () => {
                         )}
 
                         {/* Footer de Acciones */}
-                        <div className="p-4 border-t border-gray-100 dark:border-gray-800 flex justify-between gap-3 bg-gray-50/60 dark:bg-gray-950/80 flex-shrink-0">
+                        <div className="p-3 sm:p-4 border-t border-gray-100 dark:border-gray-800 flex justify-between gap-2 sm:gap-3 bg-gray-50/60 dark:bg-gray-950/80 flex-shrink-0">
                             <button
                                 type="button"
                                 onClick={() => setIsCollabModalOpen(false)}
-                                className="py-2.5 px-4 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-xs font-bold rounded-xl text-gray-700 dark:text-gray-300 border border-transparent dark:border-gray-700/60"
+                                className="py-2 sm:py-2.5 px-3.5 sm:px-4 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-xs font-bold rounded-xl text-gray-700 dark:text-gray-300 border border-transparent dark:border-gray-700/60 whitespace-nowrap"
                             >
                                 Cancelar
                             </button>
                             <button
                                 type="button"
                                 onClick={handleSaveCollabAccess}
-                                className="py-2.5 px-6 bg-primary text-white text-xs font-bold rounded-xl shadow-xs hover:bg-primary-dark transition-all flex items-center gap-1.5"
+                                className="py-2 sm:py-2.5 px-4 sm:px-6 bg-primary text-white text-xs font-bold rounded-xl shadow-xs hover:bg-primary-dark transition-all flex items-center gap-1.5 whitespace-nowrap truncate"
                             >
                                 <span className="material-symbols-outlined text-sm">check</span>
-                                <span>Guardar Accesos ({collabFormRoleIds.length} roles, {collabFormPermisoIds.length} directos)</span>
+                                <span>Guardar Accesos</span>
                             </button>
                         </div>
                     </div>
@@ -2113,11 +2121,11 @@ const Roles = () => {
             {/* ================================================================ */}
             {isNewModuleModalOpen && createPortal(
                 <div 
-                    className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 animate-fade-in"
+                    className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 animate-fade-in"
                     onClick={() => setIsNewModuleModalOpen(false)}
                 >
                     <div 
-                        className="bg-white dark:bg-gray-900 rounded-3xl w-full max-w-md shadow-2xl border border-gray-200 dark:border-gray-800 p-6 space-y-4"
+                        className="bg-white dark:bg-gray-900 rounded-3xl w-full max-w-md shadow-2xl border border-gray-200 dark:border-gray-800 p-4 sm:p-6 space-y-4 max-h-[92vh] overflow-y-auto overflow-x-hidden custom-scrollbar"
                         onClick={(e) => e.stopPropagation()}
                     >
                         <h3 className="text-base font-black text-gray-900 dark:text-white">
@@ -2200,11 +2208,11 @@ const Roles = () => {
             {/* ================================================================ */}
             {isNewSubmoduleModalOpen && createPortal(
                 <div 
-                    className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 animate-fade-in"
+                    className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 animate-fade-in"
                     onClick={() => setIsNewSubmoduleModalOpen(false)}
                 >
                     <div 
-                        className="bg-white dark:bg-gray-900 rounded-3xl w-full max-w-md shadow-2xl border border-gray-200 dark:border-gray-800 p-6 space-y-4"
+                        className="bg-white dark:bg-gray-900 rounded-3xl w-full max-w-md shadow-2xl border border-gray-200 dark:border-gray-800 p-4 sm:p-6 space-y-4 max-h-[92vh] overflow-y-auto overflow-x-hidden custom-scrollbar"
                         onClick={(e) => e.stopPropagation()}
                     >
                         <h3 className="text-base font-black text-gray-900 dark:text-white">
@@ -2293,11 +2301,11 @@ const Roles = () => {
             {/* ================================================================ */}
             {isNewPermisoModalOpen && createPortal(
                 <div 
-                    className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 animate-fade-in"
+                    className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 animate-fade-in"
                     onClick={() => setIsNewPermisoModalOpen(false)}
                 >
                     <div 
-                        className="bg-white dark:bg-gray-900 rounded-3xl w-full max-w-md shadow-2xl border border-gray-200 dark:border-gray-800 p-6 space-y-4"
+                        className="bg-white dark:bg-gray-900 rounded-3xl w-full max-w-md shadow-2xl border border-gray-200 dark:border-gray-800 p-4 sm:p-6 space-y-4 max-h-[92vh] overflow-y-auto overflow-x-hidden custom-scrollbar"
                         onClick={(e) => e.stopPropagation()}
                     >
                         <h3 className="text-base font-black text-gray-900 dark:text-white">
