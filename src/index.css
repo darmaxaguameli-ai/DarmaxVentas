@@ -41,8 +41,12 @@
     @apply text-base;
   }
 
+  a:not([class*='text-']) {
+    @apply text-primary hover:text-primary-dark;
+  }
+
   a {
-    @apply text-primary hover:text-primary-dark transition-colors duration-200;
+    @apply transition-colors duration-200;
     /* Deshabilitar el menú contextual en iOS y la acción de arrastrar en enlaces */
     -webkit-touch-callout: none;
     -webkit-user-drag: none;

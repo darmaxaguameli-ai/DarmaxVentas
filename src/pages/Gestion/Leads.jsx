@@ -201,29 +201,34 @@ const Leads = ({ defaultTab }) => {
     );
 
     return (
-        <div className="p-3 sm:p-6 md:p-8 space-y-4 sm:space-y-6">
-            {/* Header Section */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div>
-                    <h1 className="text-2xl sm:text-3xl font-black text-gray-800 dark:text-white flex items-center gap-3 tracking-tighter uppercase">
-                        <FaChartLine className="text-primary shrink-0" />
-                        CRM Ventas
-                    </h1>
-                    <p className="text-xs sm:text-sm text-gray-500 font-medium italic">Prospectos y seguimiento post-venta.</p>
-                </div>
-                <div className="flex w-full md:w-auto gap-2">
-                    <button 
-                        onClick={() => setShowToolsModal(true)}
-                        className="flex-1 md:flex-none flex items-center justify-center gap-2 px-3 py-2.5 bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 rounded-xl font-bold text-xs uppercase hover:bg-amber-200 transition-all shadow-sm"
-                    >
-                        <FaTools /> Herramientas
-                    </button>
-                    <button 
-                        onClick={() => { resetForm(); setShowModal(true); }}
-                        className="flex-1 md:flex-none btn-primary flex items-center justify-center gap-2 py-2.5 px-6 shadow-xl shadow-primary/20 text-xs"
-                    >
-                        <FaPlus /> {activeTab === 'PROSPECTO' ? 'Nuevo Lead' : 'Nueva Venta'}
-                    </button>
+        <div className="space-y-6 pb-20 animate-fade-in">
+            {/* Bento Card: Encabezado CRM Ventas & Leads */}
+            <div className="p-5 sm:p-6 lg:p-7 bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-3xl shadow-xs border border-gray-100 dark:border-gray-700/80 mb-5 sm:mb-6 transition-all">
+                <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
+                    <div className="space-y-1">
+                        <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-gray-900 dark:text-white">
+                            CRM Ventas
+                        </h1>
+                        <p className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">
+                            Gestión integral de prospectos, clientes potenciales y seguimiento post-venta
+                        </p>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2.5 w-full xl:w-auto">
+                        <button 
+                            onClick={() => setShowToolsModal(true)}
+                            className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/60 rounded-2xl font-bold text-xs sm:text-sm hover:bg-amber-100 dark:hover:bg-amber-900/50 transition-all active:scale-95 shadow-xs"
+                        >
+                            <FaTools className="text-xs" /> 
+                            <span>Herramientas</span>
+                        </button>
+                        <button 
+                            onClick={() => { resetForm(); setShowModal(true); }}
+                            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary-dark active:bg-primary-dark text-white rounded-2xl text-xs sm:text-sm font-bold shadow-md shadow-primary/25 transition-all active:scale-95"
+                        >
+                            <FaPlus className="text-xs" /> 
+                            <span>{activeTab === 'PROSPECTO' ? 'Nuevo Lead' : 'Nueva Venta'}</span>
+                        </button>
+                    </div>
                 </div>
             </div>
 

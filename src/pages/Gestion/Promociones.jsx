@@ -263,13 +263,28 @@ const Promociones = () => {
   };
 
   return (
-    <div>
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-dark dark:text-white">Promociones y Ofertas</h1>
-        <button onClick={() => handleOpenModal()} className="btn-primary flex items-center gap-2">
-          <span className="material-symbols-outlined">add</span>
-          Nueva Promoción
-        </button>
+    <div className="space-y-6 pb-16 animate-fade-in">
+      {/* Bento Card: Encabezado Promociones */}
+      <div className="p-5 sm:p-6 lg:p-7 bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-3xl shadow-xs border border-gray-100 dark:border-gray-700/80 mb-5 sm:mb-6 transition-all">
+        <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
+          <div className="space-y-1">
+            <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-gray-900 dark:text-white">
+              Promociones y Ofertas
+            </h1>
+            <p className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">
+              Gestión de descuentos, cupones promocionales y banners de campaña
+            </p>
+          </div>
+          <div className="flex items-center gap-2.5 w-full xl:w-auto">
+            <button 
+              onClick={() => handleOpenModal()} 
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-2xl text-xs sm:text-sm font-bold bg-primary hover:bg-primary-dark active:bg-primary-dark text-white shadow-md shadow-primary/25 transition-all active:scale-95"
+            >
+              <span className="material-symbols-outlined text-base">add</span>
+              <span>Nueva Promoción</span>
+            </button>
+          </div>
+        </div>
       </div>
 
       <PromotionModal

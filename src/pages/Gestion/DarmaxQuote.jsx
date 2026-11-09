@@ -578,69 +578,73 @@ export default function DarmaxQuote() {
             onDelete={handleDeleteQuote}
           />
         )}
-        {/* Header Responsivo */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4 sm:mb-6">
-            <div>
-                <h1 className="text-xl sm:text-2xl font-black text-gray-800 dark:text-white">Cotizador Darmax</h1>
-                <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">Genera cotizaciones en PDF.</p>
+        {/* Cuadro de Cabecera: Título, Subtítulo y Acciones */}
+        <div className="p-5 sm:p-6 bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-3xl shadow-xs border border-gray-100 dark:border-gray-700/80 mb-5 sm:mb-6 flex flex-col xl:flex-row justify-between items-start xl:items-center gap-5 transition-all duration-200">
+            <div className="space-y-1 min-w-0">
+                <h1 className="text-xl sm:text-2xl lg:text-3xl font-black text-gray-900 dark:text-white tracking-tight leading-tight truncate">
+                    Cotizador Darmax
+                </h1>
+                <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 font-medium leading-relaxed">
+                    Genera, administra y exporta cotizaciones oficiales en PDF y WhatsApp
+                </p>
             </div>
-            <div className="flex gap-2 w-full sm:w-auto grid grid-cols-2 sm:flex">
+            <div className="flex flex-wrap items-center gap-2.5 w-full xl:w-auto">
                 <button
                     onClick={handleNewQuote}
-                    className="flex items-center justify-center gap-2 px-3 py-2 sm:px-4 rounded-xl font-bold shadow-md transition-all active:scale-95 text-xs sm:text-sm bg-white text-gray-700 hover:bg-gray-50 border border-gray-200"
+                    className="flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-2xl font-bold transition-all active:scale-95 text-xs sm:text-sm bg-gray-100/80 dark:bg-gray-700/60 text-gray-700 dark:text-gray-200 hover:bg-gray-200/80 dark:hover:bg-gray-700 border border-gray-200/60 dark:border-gray-600/50 shadow-2xs"
                 >
-                    <span className="material-symbols-outlined text-lg sm:text-xl">add_circle</span>
-                    Nuevo
+                    <span className="material-symbols-outlined text-lg">add_circle</span>
+                    <span>Nuevo</span>
                 </button>
                 <button
                     onClick={handleOpenFolioList}
-                    className="flex items-center justify-center gap-2 px-3 py-2 sm:px-4 rounded-xl font-bold shadow-md transition-all active:scale-95 text-xs sm:text-sm bg-white text-gray-700 hover:bg-gray-50 border border-gray-200"
+                    className="flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-2xl font-bold transition-all active:scale-95 text-xs sm:text-sm bg-gray-100/80 dark:bg-gray-700/60 text-gray-700 dark:text-gray-200 hover:bg-gray-200/80 dark:hover:bg-gray-700 border border-gray-200/60 dark:border-gray-600/50 shadow-2xs"
                 >
-                    <span className="material-symbols-outlined text-lg sm:text-xl">list_alt</span>
-                    Ver Folios
+                    <span className="material-symbols-outlined text-lg">list_alt</span>
+                    <span>Ver Folios</span>
                 </button>
                 <button
                     onClick={handleSaveQuote}
                     disabled={isSaving}
-                    className={`flex items-center justify-center gap-2 px-3 py-2 sm:px-4 rounded-xl font-bold shadow-md transition-all active:scale-95 text-xs sm:text-sm ${
+                    className={`flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-2xl font-bold transition-all active:scale-95 text-xs sm:text-sm border shadow-2xs ${
                         savedQuote 
-                        ? "bg-green-100 text-green-700 cursor-default shadow-none border border-green-200" 
-                        : "bg-white text-gray-700 hover:bg-gray-50 border border-gray-200"
+                        ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800" 
+                        : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/60 border-gray-200/80 dark:border-gray-700/80"
                     }`}
                 >
                     {isSaving ? (
                         "..."
                     ) : savedQuote ? (
                         <>
-                            <span className="material-symbols-outlined text-lg sm:text-xl">check</span>
+                            <span className="material-symbols-outlined text-lg text-emerald-600 dark:text-emerald-400">check</span>
                             <span className="truncate">Folio {String(savedQuote.folio).padStart(4, '0')}</span>
                         </>
                     ) : (
                         <>
-                            <span className="material-symbols-outlined text-lg sm:text-xl">save</span>
-                            Guardar
+                            <span className="material-symbols-outlined text-lg">save</span>
+                            <span>Guardar</span>
                         </>
                     )}
                 </button>
 
                 <button
                     onClick={() => handleSendWhatsApp(pdfData)}
-                    className="flex items-center justify-center gap-2 px-3 py-2 sm:px-4 rounded-xl font-bold shadow-md transition-all active:scale-95 text-xs sm:text-sm bg-[#25D366] text-white hover:bg-[#128C7E]"
+                    className="flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-2xl font-bold transition-all active:scale-95 text-xs sm:text-sm bg-[#25D366] text-white hover:bg-[#128C7E] shadow-sm shadow-[#25D366]/20"
                     title="Enviar por WhatsApp"
                 >
-                    <span className="material-symbols-outlined text-lg sm:text-xl">send</span>
-                    WhatsApp
+                    <span className="material-symbols-outlined text-lg">send</span>
+                    <span>WhatsApp</span>
                 </button>
                 <PDFDownloadLink
                     document={doc}
                     fileName={`Cotizacion-DarmaxAgua-${form.cliente.nombre || "cliente"}-${savedQuote?.folio ? String(savedQuote.folio).padStart(4, '0') : "Borrador"}.pdf`}
-                    className="flex items-center justify-center gap-2 bg-primary hover:bg-primary-dark active:bg-primary-dark text-white active:text-white px-3 py-2 sm:px-4 rounded-xl font-bold shadow-lg shadow-primary/30 transition-all active:scale-95 text-xs sm:text-sm text-center select-none touch-none"
+                    className="flex items-center justify-center gap-2 bg-primary hover:bg-primary-dark active:bg-primary-dark text-white active:text-white px-4 py-2.5 rounded-2xl font-bold shadow-md shadow-primary/25 transition-all active:scale-95 text-xs sm:text-sm text-center select-none touch-none"
                     style={{ WebkitTapHighlightColor: 'transparent' }}
                 >
                     {({ loading }) => (
                         <div className="flex items-center gap-2 text-white">
-                            <span className="material-symbols-outlined text-lg sm:text-xl">download</span>
-                            <span className="font-bold">{loading ? "..." : "PDF"}</span>
+                            <span className="material-symbols-outlined text-lg">download</span>
+                            <span className="font-bold">{loading ? "..." : "Descargar PDF"}</span>
                         </div>
                     )}
                 </PDFDownloadLink>

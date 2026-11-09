@@ -76,20 +76,25 @@ const NotificationTray = () => {
 
     return (
         <div className="relative" ref={dropdownRef}>
+            {/* Botón tipo gota saliendo desde el borde superior */}
             <button 
                 onClick={() => setIsOpen(!isOpen)}
-                className="relative p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors group"
+                aria-label="Ver notificaciones"
+                className="relative group flex items-center justify-center pt-2 pb-2.5 px-3.5 sm:px-4 rounded-b-2xl sm:rounded-b-3xl bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl border-x border-b border-t-0 border-gray-200/80 dark:border-gray-700/80 shadow-md hover:shadow-lg hover:pb-3.5 active:scale-95 transition-all duration-200 text-gray-700 dark:text-gray-200"
             >
-                <FaBell className={`text-xl ${unreadCount > 0 ? 'text-primary animate-ring' : 'text-gray-400 group-hover:text-primary'}`} />
+                <FaBell className={`text-base sm:text-lg transition-transform duration-200 group-hover:rotate-12 ${unreadCount > 0 ? 'text-primary' : 'text-gray-500 dark:text-gray-400'}`} />
                 {unreadCount > 0 && (
-                    <span className="absolute top-1.5 right-1.5 bg-red-500 text-white text-[10px] font-black w-4 h-4 flex items-center justify-center rounded-full border-2 border-white dark:border-gray-900">
-                        {unreadCount > 9 ? '+' : unreadCount}
+                    <span className="absolute -bottom-1 -right-1 flex h-4 w-4">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                        <span className="relative inline-flex items-center justify-center rounded-full h-4 w-4 bg-red-500 text-white text-[9px] font-black shadow-xs">
+                            {unreadCount > 9 ? '9+' : unreadCount}
+                        </span>
                     </span>
                 )}
             </button>
 
             {isOpen && (
-                <div className="absolute right-0 mt-3 w-80 md:w-96 bg-white dark:bg-gray-800 rounded-3xl shadow-2xl border border-gray-100 dark:border-gray-700 overflow-hidden z-[100] animate-in fade-in zoom-in duration-200">
+                <div className="absolute right-0 top-full mt-2 w-80 sm:w-96 bg-white dark:bg-gray-800 rounded-3xl shadow-2xl border border-gray-100 dark:border-gray-700 overflow-hidden z-[100] animate-in fade-in zoom-in-95 duration-200">
                     <div className="p-5 border-b dark:border-gray-700 flex justify-between items-center bg-gray-50/50 dark:bg-gray-900/50">
                         <h3 className="font-black text-xs uppercase tracking-widest text-gray-500">Notificaciones</h3>
                         <div className="flex gap-3">

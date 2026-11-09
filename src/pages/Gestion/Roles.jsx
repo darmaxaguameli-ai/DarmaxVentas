@@ -809,64 +809,60 @@ const Roles = () => {
 
     return (
         <div className="space-y-6 pb-24 animate-fade-in w-full max-w-full min-w-0 overflow-x-hidden">
-            {/* CABECERA PRINCIPAL */}
-            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-                <div>
-                    <div className="flex items-center gap-2 mb-1">
-                        <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800 flex items-center gap-1">
-                            <span className="material-symbols-outlined text-xs">terminal</span>
-                            Sistemas • Control de Acceso RBAC v2
-                        </span>
+            {/* Bento Card: Encabezado Roles y Permisos */}
+            <div className="p-5 sm:p-6 lg:p-7 bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-3xl shadow-xs border border-gray-100 dark:border-gray-700/80 mb-5 sm:mb-6 transition-all">
+                <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
+                    <div className="space-y-1">
+                        <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-gray-900 dark:text-white">
+                            Roles y Permisos
+                        </h1>
+                        <p className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">
+                            Administración centralizada de roles maestros, módulos, permisos y asignación a colaboradores
+                        </p>
                     </div>
-                    <h1 className="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white tracking-tight flex items-center gap-2">
-                        <span>Roles y Permisos</span>
-                    </h1>
-                    <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 font-medium">
-                        Administración centralizada de roles maestros, módulos, submódulos, catálogo de permisos y asignación a colaboradores.
-                    </p>
-                </div>
 
-                {/* ACCIONES SUPERIORES SEGÚN PESTAÑA */}
-                <div className="flex items-center gap-2 flex-wrap">
-                    {activeTab === 'roles' && (
-                        <button
-                            type="button"
-                            onClick={() => handleOpenRoleModal()}
-                            className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-primary text-white font-bold text-xs shadow-xs hover:bg-primary-dark active:scale-95 transition-all"
-                        >
-                            <span className="material-symbols-outlined text-base">add_moderator</span>
-                            <span>Nuevo Rol Maestro</span>
-                        </button>
-                    )}
+                    {/* ACCIONES SUPERIORES SEGÚN PESTAÑA */}
+                    <div className="flex items-center gap-2 flex-wrap w-full xl:w-auto">
+                        {activeTab === 'roles' && (
+                            <button
+                                type="button"
+                                onClick={() => handleOpenRoleModal()}
+                                className="flex items-center gap-1.5 px-4 py-2.5 rounded-2xl bg-primary text-white font-bold text-xs shadow-md shadow-primary/25 hover:bg-primary-dark active:scale-95 transition-all"
+                            >
+                                <span className="material-symbols-outlined text-base">add_moderator</span>
+                                <span>Nuevo Rol Maestro</span>
+                            </button>
+                        )}
 
-                    {activeTab === 'estructura' && (
-                        <>
-                            <button
-                                type="button"
-                                onClick={() => setIsNewModuleModalOpen(true)}
-                                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-primary text-white font-bold text-xs shadow-xs hover:bg-primary-dark active:scale-95 transition-all"
-                            >
-                                <span className="material-symbols-outlined text-base">create_new_folder</span>
-                                <span>Nuevo Módulo</span>
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setIsNewSubmoduleModalOpen(true)}
-                                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800 text-white dark:bg-gray-700 font-bold text-xs shadow-xs hover:bg-slate-900 active:scale-95 transition-all"
-                            >
-                                <span className="material-symbols-outlined text-base">post_add</span>
-                                <span>Nuevo Submódulo</span>
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setIsNewPermisoModalOpen(true)}
-                                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-600 text-white font-bold text-xs shadow-xs hover:bg-emerald-700 active:scale-95 transition-all"
-                            >
-                                <span className="material-symbols-outlined text-base">key</span>
-                                <span>Nuevo Permiso</span>
-                            </button>
-                        </>
-                    )}
+                        {activeTab === 'estructura' && (
+                            <>
+                                <button
+                                    type="button"
+                                    onClick={() => setIsNewModuleModalOpen(true)}
+                                    className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-2xl bg-primary text-white font-bold text-xs shadow-md shadow-primary/25 hover:bg-primary-dark active:scale-95 transition-all"
+                                >
+                                    <span className="material-symbols-outlined text-base">create_new_folder</span>
+                                    <span>Nuevo Módulo</span>
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setIsNewSubmoduleModalOpen(true)}
+                                    className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-2xl bg-slate-800 text-white dark:bg-gray-700 font-bold text-xs shadow-md hover:bg-slate-900 active:scale-95 transition-all"
+                                >
+                                    <span className="material-symbols-outlined text-base">post_add</span>
+                                    <span>Nuevo Submódulo</span>
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setIsNewPermisoModalOpen(true)}
+                                    className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-2xl bg-emerald-600 text-white font-bold text-xs shadow-md hover:bg-emerald-700 active:scale-95 transition-all"
+                                >
+                                    <span className="material-symbols-outlined text-base">key</span>
+                                    <span>Nuevo Permiso</span>
+                                </button>
+                            </>
+                        )}
+                    </div>
                 </div>
             </div>
 

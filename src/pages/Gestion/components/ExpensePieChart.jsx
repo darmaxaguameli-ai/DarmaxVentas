@@ -1,13 +1,11 @@
 import React, { useMemo } from 'react';
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
-// Paleta de colores para el gráfico
 const COLORS = [
-    '#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#AF19FF', 
-    '#FF4560', '#775DD0', '#546E7A', '#26a69a', '#D10CE8'
+    '#3b82f6', '#10b981', '#f59e0b', '#f43f5e', '#8b5cf6', 
+    '#06b6d4', '#ec4899', '#6366f1', '#14b8a6', '#d946ef'
 ];
 
-// Función para agrupar gastos por descripción y sumar sus montos
 const processExpenseData = (expenses) => {
     if (!expenses || expenses.length === 0) {
         return [];
@@ -15,29 +13,25 @@ const processExpenseData = (expenses) => {
 
     const expenseMap = new Map();
     expenses.forEach(expense => {
-        // Usamos la descripción como categoría. Se normaliza para agrupar mejor.
-        const category = expense.description.trim().toLowerCase();
+        const category = expense.description ? expense.description.trim().toLowerCase() : 'otros';
         const currentTotal = expenseMap.get(category) || 0;
         expenseMap.set(category, currentTotal + expense.amount);
     });
 
-    // Convertir el mapa a un array para Recharts y ordenar de mayor a menor
-    const chartData = Array.from(expenseMap, ([name, value]) => ({
-        name: name.charAt(0).toUpperCase() + name.slice(1), // Capitalizar para mostrar
+    return Array.from(expenseMap, ([name, value]) => ({
+        name: name.charAt(0).toUpperCase() + name.slice(1),
         value: parseFloat(value.toFixed(2)),
     })).sort((a, b) => b.value - a.value);
-
-    return chartData;
 };
 
 const CustomTooltip = ({ active, payload }) => {
     if (active && payload && payload.length) {
         const data = payload[0];
         return (
-            <div className="p-3 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg">
-                <p className="font-semibold text-gray-900 dark:text-white">{`${data.name}`}</p>
-                <p className="text-primary font-medium">{`${new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(data.value)}`}</p>
-                <p className="text-sm text-gray-500 dark:text-gray-400">{`(${(data.percent * 100).toFixed(2)}%)`}</p>
+            <div className="p-3 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border border-gray-100 dark:border-gray-700/80 rounded-2xl shadow-xl space-y-1">
+                <p className="font-bold text-xs text-gray-900 dark:text-white">{`${data.name}`}</p>
+                <p className="text-primary font-black text-sm">{`${new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(data.value)}`}</p>
+                <p className="text-[10px] font-bold text-gray-400">{`${(data.percent * 100).toFixed(1)}% del total`}</p>
             </div>
         );
     }
@@ -49,17 +43,23 @@ const ExpensePieChart = ({ expenses }) => {
 
     if (chartData.length === 0) {
         return (
-            <div className="p-6 bg-white dark:bg-gray-800 rounded-2xl shadow-lg h-full flex flex-col items-center justify-center">
-                <h3 className="text-lg font-semibold text-[#111418] dark:text-white mb-4">Distribución de Gastos</h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400">No hay datos de gastos para mostrar.</p>
+            <div className="p-5 sm:p-6 bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-3xl shadow-xs border border-gray-100 dark:border-gray-700/80 h-full flex flex-col items-center justify-center text-center">
+                <div className="w-10 h-10 rounded-2xl bg-gray-50 dark:bg-gray-900 text-gray-400 flex items-center justify-center mb-2">
+                    <span className="material-symbols-outlined text-xl">pie_chart</span>
+                </div>
+                <h3 className="text-base font-black text-gray-900 dark:text-white mb-1 tracking-tight">Distribución de Gastos</h3>
+                <p className="text-xs text-gray-400">No hay datos de gastos registrados.</p>
             </div>
         );
     }
 
     return (
-        <div className="p-6 bg-white dark:bg-gray-800 rounded-2xl shadow-lg min-h-[300px] h-[450px] flex flex-col">
-            <h3 className="text-lg font-semibold text-[#111418] dark:text-white mb-4">Distribución de Gastos</h3>
-            <div className="flex-grow w-full">
+        <div className="p-5 sm:p-6 bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-3xl shadow-xs border border-gray-100 dark:border-gray-700/80 hover:border-gray-200 dark:hover:border-gray-600 transition-all duration-200 h-full flex flex-col">
+            <div className="mb-4">
+                <h3 className="text-base font-black text-gray-900 dark:text-white tracking-tight leading-tight">Distribución de Gastos</h3>
+                <p className="text-xs text-gray-400 font-medium mt-0.5">Desglose porcentual por categorías</p>
+            </div>
+            <div className="flex-grow w-full min-h-[260px]">
                 <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                         <Tooltip content={<CustomTooltip />} />
@@ -69,20 +69,18 @@ const ExpensePieChart = ({ expenses }) => {
                             verticalAlign="bottom"
                             align="center"
                             wrapperStyle={{
-                                fontSize: '12px',
-                                color: '#6b7280',
-                                paddingTop: '20px' // Add space between chart and legend
+                                fontSize: '11px',
+                                paddingTop: '10px'
                             }}
-                            formatter={(value) => <span className="dark:text-gray-300 text-gray-600">{value}</span>}
+                            formatter={(value) => <span className="text-gray-600 dark:text-gray-300 font-medium text-[11px]">{value}</span>}
                         />
                         <Pie
                             data={chartData}
                             cx="50%"
                             cy="50%"
-                            innerRadius={60}
-                            outerRadius={110}
-                            fill="#8884d8"
-                            paddingAngle={2}
+                            innerRadius={55}
+                            outerRadius={95}
+                            paddingAngle={3}
                             dataKey="value"
                             nameKey="name"
                         >

@@ -429,67 +429,70 @@ export default function CotizadorDistribuidores() {
               onDelete={handleDeleteSolicitud}
           />
       )}
-      {/* Header Responsivo */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4 sm:mb-6">
-            <div>
-                <h1 className="text-xl sm:text-2xl font-black text-gray-800 dark:text-white">Cotizador para Distribuidores</h1>
-                <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
-                    Genera cotizaciones de materiales para proveedores.
-                </p>
-            </div>
-            <div className="flex gap-2 w-full sm:w-auto grid grid-cols-2 sm:flex">
-                <button
-                    onClick={handleNewSolicitud}
-                    className="flex items-center justify-center gap-2 px-3 py-2 sm:px-4 rounded-xl font-bold shadow-md transition-all active:scale-95 text-xs sm:text-sm bg-white text-gray-700 hover:bg-gray-50 border border-gray-200"
-                >
-                    <span className="material-symbols-outlined text-lg sm:text-xl">add_circle</span>
-                    Nuevo
-                </button>
-                <button
-                    onClick={handleOpenFolioList}
-                    className="flex items-center justify-center gap-2 px-3 py-2 sm:px-4 rounded-xl font-bold shadow-md transition-all active:scale-95 text-xs sm:text-sm bg-white text-gray-700 hover:bg-gray-50 border border-gray-200"
-                >
-                    <span className="material-symbols-outlined text-lg sm:text-xl">list_alt</span>
-                    Ver Folios
-                </button>
-                <button
-                    onClick={handleSaveSolicitud}
-                    disabled={isSaving}
-                    className={`flex items-center justify-center gap-2 px-3 py-2 sm:px-4 rounded-xl font-bold shadow-md transition-all active:scale-95 text-xs sm:text-sm ${
-                        savedSolicitud
-                        ? "bg-green-100 text-green-700 cursor-default shadow-none border border-green-200"
-                        : "bg-white text-gray-700 hover:bg-gray-50 border border-gray-200"
-                    }`}
-                >
-                    {isSaving ? (
-                        "..."
-                    ) : savedSolicitud ? (
-                        <>
-                            <span className="material-symbols-outlined text-lg sm:text-xl">check</span>
-                            <span className="truncate">Folio {String(savedSolicitud.folio).padStart(4, '0')}</span>
-                        </>
-                    ) : (
-                        <>
-                            <span className="material-symbols-outlined text-lg sm:text-xl">save</span>
-                            Guardar
-                        </>
-                    )}
-                </button>
-                <PDFDownloadLink
-                    document={doc}
-                    fileName={`Solicitud-Materiales-${billingInfo.nombre || "cliente"}-${savedSolicitud?.folio ? String(savedSolicitud.folio).padStart(4, '0') : "Borrador"}.pdf`}
-                    className="flex items-center justify-center gap-2 bg-primary hover:bg-primary-dark active:bg-primary-dark text-white active:text-white px-3 py-2 sm:px-4 rounded-xl font-bold shadow-lg shadow-primary/30 transition-all active:scale-95 text-xs sm:text-sm text-center select-none touch-none"
-                    style={{ WebkitTapHighlightColor: 'transparent' }}
-                >
-                    {({ loading }) => (
-                        <div className="flex items-center gap-2 text-white">
-                            <span className="material-symbols-outlined text-lg sm:text-xl">download</span>
-                            <span className="font-bold">{loading ? "..." : "PDF"}</span>
-                        </div>
-                    )}
-                </PDFDownloadLink>
-            </div>
+      {/* Bento Card: Encabezado Cotizador para Distribuidores */}
+      <div className="p-5 sm:p-6 lg:p-7 bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-3xl shadow-xs border border-gray-100 dark:border-gray-700/80 mb-5 sm:mb-6 transition-all">
+        <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
+          <div className="space-y-1">
+            <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-gray-900 dark:text-white">
+              Cotizador para Distribuidores
+            </h1>
+            <p className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">
+              Genera y administra cotizaciones y solicitudes de materiales para proveedores
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2.5 w-full xl:w-auto">
+            <button
+              onClick={handleNewSolicitud}
+              className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-bold bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-200/80 dark:border-gray-700 shadow-xs hover:bg-gray-50 dark:hover:bg-gray-700/60 active:scale-95 transition-all"
+            >
+              <span className="material-symbols-outlined text-lg">add_circle</span>
+              <span>Nuevo</span>
+            </button>
+            <button
+              onClick={handleOpenFolioList}
+              className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-bold bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-200/80 dark:border-gray-700 shadow-xs hover:bg-gray-50 dark:hover:bg-gray-700/60 active:scale-95 transition-all"
+            >
+              <span className="material-symbols-outlined text-lg">list_alt</span>
+              <span>Ver Folios</span>
+            </button>
+            <button
+              onClick={handleSaveSolicitud}
+              disabled={isSaving}
+              className={`flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-bold transition-all active:scale-95 shadow-xs border ${
+                savedSolicitud
+                  ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800"
+                  : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/60 border-gray-200/80 dark:border-gray-700"
+              }`}
+            >
+              {isSaving ? (
+                <span>Guardando...</span>
+              ) : savedSolicitud ? (
+                <>
+                  <span className="material-symbols-outlined text-lg text-emerald-600 dark:text-emerald-400">check</span>
+                  <span className="truncate">Folio {String(savedSolicitud.folio).padStart(4, '0')}</span>
+                </>
+              ) : (
+                <>
+                  <span className="material-symbols-outlined text-lg">save</span>
+                  <span>Guardar</span>
+                </>
+              )}
+            </button>
+            <PDFDownloadLink
+              document={doc}
+              fileName={`Solicitud-Materiales-${billingInfo.nombre || "cliente"}-${savedSolicitud?.folio ? String(savedSolicitud.folio).padStart(4, '0') : "Borrador"}.pdf`}
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-primary hover:bg-primary-dark active:bg-primary-dark text-white px-5 py-2.5 rounded-2xl font-bold shadow-md shadow-primary/25 transition-all active:scale-95 text-xs sm:text-sm text-center select-none"
+            >
+              {({ loading }) => (
+                <div className="flex items-center gap-2 text-white">
+                  <span className="material-symbols-outlined text-lg">download</span>
+                  <span className="font-bold">{loading ? "..." : "Descargar PDF"}</span>
+                </div>
+              )}
+            </PDFDownloadLink>
+          </div>
         </div>
+      </div>
 
         <div className="flex flex-col lg:flex-row gap-6 h-full overflow-hidden">
             {/* Formulario (Izquierda) */}

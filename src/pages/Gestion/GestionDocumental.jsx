@@ -78,7 +78,7 @@ const GestionDocumental = () => {
     };
 
     return (
-        <div className="animate-fade-in space-y-8 pb-20">
+        <div className="animate-fade-in space-y-6 pb-20">
             {/* Input oculto para subida de archivos */}
             <input 
                 type="file" 
@@ -89,48 +89,47 @@ const GestionDocumental = () => {
                 accept=".pdf,.jpg,.jpeg,.png,.xml"
             />
 
-            {/* Header */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-                <div>
-                    <h1 className="text-3xl sm:text-4xl font-black text-gray-800 dark:text-white flex items-center gap-4 tracking-tighter uppercase italic">
-                        <div className="bg-blue-600 p-3 rounded-2xl shadow-lg shadow-blue-600/20 text-white">
-                            <FaFolderOpen className="text-2xl" />
-                        </div> 
-                        GESTIÓN DOCUMENTAL
-                    </h1>
-                    <div className="text-[10px] text-gray-500 font-bold mt-2 flex items-center gap-2 uppercase tracking-widest leading-none">
-                        <div className="w-2 h-2 bg-blue-600 rounded-full animate-pulse"></div> 
-                        Repositorio Central de Evidencia, Contratos y Materialidad
+            {/* Bento Card: Encabezado Gestión Documental */}
+            <div className="p-5 sm:p-6 lg:p-7 bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-3xl shadow-xs border border-gray-100 dark:border-gray-700/80 mb-5 sm:mb-6 transition-all">
+                <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
+                    <div className="space-y-1">
+                        <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-gray-900 dark:text-white">
+                            Gestión Documental
+                        </h1>
+                        <p className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">
+                            Repositorio central de evidencias, contratos, expedientes y materialidad fiscal
+                        </p>
                     </div>
-                </div>
-                
-                <div className="flex items-center gap-3">
-                    {empresas.length > 0 && (
-                        <select 
-                            value={selectedEmpresa?.id || ''} 
-                            onChange={(e) => setSelectedEmpresa(empresas.find(emp => emp.id === e.target.value))}
-                            className="bg-white dark:bg-gray-800 p-3 rounded-2xl border border-gray-100 dark:border-gray-700 text-[10px] font-black uppercase outline-none shadow-sm"
-                        >
-                            {empresas.map(emp => <option key={emp.id} value={emp.id}>{emp.nombre}</option>)}
-                        </select>
-                    )}
-                    <div className="flex gap-2 bg-white dark:bg-gray-800 p-1.5 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-x-auto w-full md:w-auto">
-                        {[
-                            { id: 'recientes', label: 'Recientes', icon: <FaHistory /> },
-                            { id: 'contratos', label: 'Contratos', icon: <FaFilePdf /> },
-                            { id: 'expedientes', label: 'Expedientes RRHH', icon: <FaUserTie /> },
-                            { id: 'fiscal', label: 'Anexos Fiscales', icon: <FaBuilding /> }
-                        ].map(t => (
-                            <button
-                                key={t.id}
-                                onClick={() => setView(t.id)}
-                                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${
-                                    view === t.id ? 'bg-blue-50 text-blue-600 border-2 border-blue-100' : 'text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
-                                }`}
+                    
+                    <div className="flex flex-wrap items-center gap-2.5 w-full xl:w-auto">
+                        {empresas.length > 0 && (
+                            <select 
+                                value={selectedEmpresa?.id || ''} 
+                                onChange={(e) => setSelectedEmpresa(empresas.find(emp => emp.id === e.target.value))}
+                                className="bg-white dark:bg-gray-800 px-4 py-2.5 rounded-2xl border border-gray-200/80 dark:border-gray-700 text-xs sm:text-sm font-bold text-gray-700 dark:text-gray-200 outline-none shadow-xs"
                             >
-                                {t.icon} {t.label}
-                            </button>
-                        ))}
+                                {empresas.map(emp => <option key={emp.id} value={emp.id}>{emp.nombre}</option>)}
+                            </select>
+                        )}
+                        <div className="flex gap-1.5 bg-gray-100 dark:bg-gray-800/80 p-1.5 rounded-2xl border border-gray-200/60 dark:border-gray-700 overflow-x-auto w-full sm:w-auto">
+                            {[
+                                { id: 'recientes', label: 'Recientes', icon: <FaHistory /> },
+                                { id: 'contratos', label: 'Contratos', icon: <FaFilePdf /> },
+                                { id: 'expedientes', label: 'Expedientes RRHH', icon: <FaUserTie /> },
+                                { id: 'fiscal', label: 'Anexos Fiscales', icon: <FaBuilding /> }
+                            ].map(t => (
+                                <button
+                                    key={t.id}
+                                    onClick={() => setView(t.id)}
+                                    className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+                                        view === t.id ? 'bg-white dark:bg-gray-700 text-primary shadow-xs' : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'
+                                    }`}
+                                >
+                                    {t.icon}
+                                    <span>{t.label}</span>
+                                </button>
+                            ))}
+                        </div>
                     </div>
                 </div>
             </div>

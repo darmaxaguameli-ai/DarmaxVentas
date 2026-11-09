@@ -595,13 +595,28 @@ const Blog = () => {
     }
 
     return (
-        <div className="animate-fade-in space-y-8">
-            <div className="flex flex-wrap justify-between items-center gap-6">
-                <div>
-                    <h1 className="text-3xl sm:text-4xl font-black text-gray-800 dark:text-white flex items-center gap-4 tracking-tighter uppercase italic"><div className="bg-primary p-3 rounded-2xl shadow-lg shadow-primary/20 text-white"><FaNewspaper className="text-2xl" /></div> EDITOR DE CONTENIDO</h1>
-                    <div className="text-xs sm:text-sm text-gray-500 font-bold mt-2 flex items-center gap-2"><div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div> Administra artículos web y guías internas</div>
+        <div className="animate-fade-in space-y-6 pb-16">
+            {/* Bento Card: Encabezado Editor de Contenido */}
+            <div className="p-5 sm:p-6 lg:p-7 bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-3xl shadow-xs border border-gray-100 dark:border-gray-700/80 mb-5 sm:mb-6 transition-all">
+                <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
+                    <div className="space-y-1">
+                        <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-gray-900 dark:text-white">
+                            Editor de Contenido
+                        </h1>
+                        <p className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">
+                            Administra artículos del sitio web y guías técnicas internas
+                        </p>
+                    </div>
+                    <div className="flex items-center gap-2.5 w-full xl:w-auto">
+                        <button 
+                            onClick={() => { resetForm(); setBlocks([{id: uuidv4(), type: 'heading', content: ''}]); setView('editor'); }} 
+                            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-2xl text-xs sm:text-sm font-bold bg-primary hover:bg-primary-dark active:bg-primary-dark text-white shadow-md shadow-primary/25 transition-all active:scale-95"
+                        >
+                            <FaPlus className="text-xs" /> 
+                            <span>Nuevo {activeTab === 'WEB' ? 'Artículo' : 'Guía Técnica'}</span>
+                        </button>
+                    </div>
                 </div>
-                <button onClick={() => { resetForm(); setBlocks([{id: uuidv4(), type: 'heading', content: ''}]); setView('editor'); }} className="btn-primary flex items-center justify-center gap-3 py-4 px-8 rounded-3xl shadow-2xl shadow-primary/30 font-black uppercase text-xs tracking-widest hover:scale-105 active:scale-95 transition-all"><FaPlus /> Nuevo {activeTab === 'WEB' ? 'Artículo' : 'Guía Técnica'}</button>
             </div>
 
             <div className="flex bg-gray-100 dark:bg-gray-900/50 p-1 rounded-2xl w-fit">

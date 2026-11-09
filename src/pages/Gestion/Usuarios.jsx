@@ -886,30 +886,32 @@ const Usuarios = () => {
   const [storeFilter, setStoreFilter] = useState("");
 
   return (
-    <div className="animate-fade-in">
-      <div className="flex flex-wrap justify-between items-center mb-8 gap-4">
-        <div>
-          <h1 className="text-3xl font-black text-gray-800 dark:text-white flex items-center gap-3 uppercase tracking-tighter">
-            <span className="p-2 bg-primary/10 text-primary rounded-xl">
-              <FaStar />
-            </span>
-            Gestión de Clientes
-          </h1>
-          <p className="text-gray-500 dark:text-gray-400 mt-1">Administra tu base de datos de clientes particulares y empresas.</p>
-        </div>
+    <div className="animate-fade-in space-y-6 pb-16">
+      {/* Bento Card: Encabezado Gestión de Clientes */}
+      <div className="p-5 sm:p-6 lg:p-7 bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-3xl shadow-xs border border-gray-100 dark:border-gray-700/80 mb-5 sm:mb-6 transition-all">
+        <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
+          <div className="space-y-1">
+            <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-gray-900 dark:text-white">
+              Gestión de Clientes
+            </h1>
+            <p className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">
+              Administra tu base de datos de clientes particulares, empresas y sucursales
+            </p>
+          </div>
 
-        <div className="flex items-center gap-2 bg-white dark:bg-gray-800 p-1.5 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm">
-          <FaFilter className="ml-2 text-gray-400 text-sm" />
-          <select 
-            value={storeFilter} 
-            onChange={(e) => setStoreFilter(e.target.value)}
-            className="bg-transparent text-xs font-bold text-gray-600 dark:text-gray-300 outline-none border-none pr-8 cursor-pointer"
-          >
-            <option value="">Todas las sucursales</option>
-            {stores.map(store => (
-              <option key={store.id} value={store.id}>{store.name}</option>
-            ))}
-          </select>
+          <div className="flex items-center gap-2 bg-white dark:bg-gray-800 px-3.5 py-2.5 rounded-2xl border border-gray-200/80 dark:border-gray-700 shadow-xs w-full xl:w-auto">
+            <FaFilter className="text-gray-400 text-xs shrink-0" />
+            <select 
+              value={storeFilter} 
+              onChange={(e) => setStoreFilter(e.target.value)}
+              className="bg-transparent text-xs font-bold text-gray-700 dark:text-gray-200 outline-none border-none pr-6 cursor-pointer w-full xl:w-auto"
+            >
+              <option value="">Todas las sucursales</option>
+              {stores.map(store => (
+                <option key={store.id} value={store.id}>{store.name}</option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
 

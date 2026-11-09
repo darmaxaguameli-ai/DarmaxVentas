@@ -531,29 +531,30 @@ const Instalacion = () => {
     );
 
     return (
-        <div className="animate-fade-in space-y-8 pb-20">
-            {/* Header Section */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-                <div>
-                    <h1 className="text-3xl sm:text-4xl font-black text-gray-800 dark:text-white flex items-center gap-4 tracking-tighter uppercase italic">
-                        <div className="bg-primary p-3 rounded-2xl shadow-lg shadow-primary/20 text-white">
-                            <FaTools className="text-2xl" />
-                        </div> 
-                        INGENIERÍA
-                    </h1>
-                    <div className="text-[10px] text-gray-500 font-bold mt-2 flex items-center gap-2 uppercase tracking-widest">
-                        <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div> 
-                        Diseño Estructural y Lista de Materiales
+        <div className="animate-fade-in space-y-6 pb-20">
+            {/* Bento Card: Encabezado Ingeniería e Instalación */}
+            <div className="p-5 sm:p-6 lg:p-7 bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-3xl shadow-xs border border-gray-100 dark:border-gray-700/80 mb-5 sm:mb-6 transition-all">
+                <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
+                    <div className="space-y-1">
+                        <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-gray-900 dark:text-white">
+                            Ingeniería e Instalación
+                        </h1>
+                        <p className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">
+                            Diseño estructural, modelos modulares y listas de materiales
+                        </p>
                     </div>
+                    {isAdmin && (
+                        <div className="flex items-center gap-2.5 w-full xl:w-auto">
+                            <button 
+                                onClick={() => { setSelectedModel(null); setIsFormModalOpen(true); }}
+                                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-2xl text-xs sm:text-sm font-bold bg-primary hover:bg-primary-dark active:bg-primary-dark text-white shadow-md shadow-primary/25 active:scale-95 transition-all"
+                            >
+                                <FaPlus className="text-xs" />
+                                <span>Nuevo {activeTab === 'MODELS' ? 'Modelo' : 'Módulo'}</span>
+                            </button>
+                        </div>
+                    )}
                 </div>
-                {isAdmin && (
-                    <button 
-                        onClick={() => { setSelectedModel(null); setIsFormModalOpen(true); }}
-                        className="btn-primary flex items-center justify-center gap-3 py-4 px-8 rounded-3xl shadow-2xl shadow-primary/30 font-black uppercase text-xs tracking-widest hover:scale-105 active:scale-95 transition-all w-full md:w-auto"
-                    >
-                        <FaPlus /> Nuevo {activeTab === 'MODELS' ? 'Modelo' : 'Módulo'}
-                    </button>
-                )}
             </div>
 
             {/* Tabs y Filtros */}

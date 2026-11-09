@@ -651,54 +651,55 @@ const Marketing = () => {
 
     return (
         <div className="space-y-6 animate-fade-in pb-16">
-            {/* Cabecera Principal */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div>
-                    <h1 className="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white flex items-center gap-3 tracking-tight">
-                        <div className="bg-primary p-2.5 rounded-2xl shadow-md shadow-primary/20 text-white">
-                            <FaBullhorn className="text-xl" />
-                        </div>
-                        Marketing Planner
-                    </h1>
-                    <p className="text-xs text-gray-400 font-bold mt-1">
-                        Calendario de contenidos, campañas publicitarias y gestión de redes
-                    </p>
-                </div>
+            {/* Bento Card: Encabezado Marketing Planner */}
+            <div className="p-5 sm:p-6 lg:p-7 bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-3xl shadow-xs border border-gray-100 dark:border-gray-700/80 mb-5 sm:mb-6 transition-all">
+                <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
+                    <div className="space-y-1">
+                        <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-gray-900 dark:text-white">
+                            Marketing Planner
+                        </h1>
+                        <p className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">
+                            Calendario de contenidos, campañas publicitarias y gestión de redes
+                        </p>
+                    </div>
 
-                <div className="flex flex-wrap items-center gap-2.5 w-full md:w-auto">
-                    {/* Indicador de rol / Conmutador para Encargado */}
-                    {isRealJefe ? (
-                        <button
-                            type="button"
-                            onClick={() => setViewAsRole(viewAsRole === 'JEFE' ? 'COLABORADOR' : 'JEFE')}
-                            className={`flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-95 border ${
-                                viewAsRole === 'COLABORADOR'
-                                    ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-300 dark:border-amber-700/50'
-                                    : 'bg-primary/10 text-primary dark:text-blue-400 border-primary/20 dark:border-blue-800/40'
-                            }`}
-                            title="Alternar entre vista de Encargado y vista de Colaborador"
+                    <div className="flex flex-wrap items-center gap-2.5 w-full xl:w-auto">
+                        {/* Indicador de rol / Conmutador para Encargado */}
+                        {isRealJefe ? (
+                            <button
+                                type="button"
+                                onClick={() => setViewAsRole(viewAsRole === 'JEFE' ? 'COLABORADOR' : 'JEFE')}
+                                className={`flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-2xl text-xs font-bold transition-all active:scale-95 border ${
+                                    viewAsRole === 'COLABORADOR'
+                                        ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-300 dark:border-amber-700/50'
+                                        : 'bg-primary/10 text-primary dark:text-blue-400 border-primary/20 dark:border-blue-800/40'
+                                }`}
+                                title="Alternar entre vista de Encargado y vista de Colaborador"
+                            >
+                                <FaExchangeAlt /> <span>{viewAsRole === 'JEFE' ? 'Simular Creador' : 'Volver a Jefe'}</span>
+                            </button>
+                        ) : (
+                            <div className="hidden sm:flex items-center gap-1.5 px-3.5 py-2 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 rounded-2xl text-xs font-bold">
+                                <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                                <span>Colaborador / Creador</span>
+                            </div>
+                        )}
+
+                        <button 
+                            onClick={() => setShowMetricsModal(true)} 
+                            className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-200/80 dark:border-gray-700 rounded-2xl text-xs sm:text-sm font-bold hover:bg-gray-50 dark:hover:bg-gray-700/60 shadow-xs transition-all active:scale-95"
                         >
-                            <FaExchangeAlt /> {viewAsRole === 'JEFE' ? 'Simular Creador' : 'Volver a Jefe'}
+                            <FaChartLine className="text-primary text-sm" /> 
+                            <span>Métricas</span>
                         </button>
-                    ) : (
-                        <div className="hidden sm:flex items-center gap-1.5 px-3 py-2 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-bold">
-                            <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                            <span>Colaborador / Creador</span>
-                        </div>
-                    )}
-
-                    <button 
-                        onClick={() => setShowMetricsModal(true)} 
-                        className="flex-1 md:flex-none px-4 py-2.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-bold hover:bg-gray-50 dark:hover:bg-gray-700 transition-all flex items-center justify-center gap-2 active:scale-95"
-                    >
-                        <FaChartLine /> Métricas
-                    </button>
-                    <button 
-                        onClick={() => { setEditingPost(null); resetFormData(); setShowModal(true); }} 
-                        className="flex-1 md:flex-none px-5 py-2.5 bg-primary text-white rounded-xl text-xs font-black uppercase tracking-wider shadow-md hover:opacity-95 transition-all flex items-center justify-center gap-2 active:scale-95"
-                    >
-                        <FaPlus /> Crear Actividad
-                    </button>
+                        <button 
+                            onClick={() => { setEditingPost(null); resetFormData(); setShowModal(true); }} 
+                            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary-dark active:bg-primary-dark text-white rounded-2xl text-xs sm:text-sm font-bold shadow-md shadow-primary/25 transition-all active:scale-95"
+                        >
+                            <FaPlus className="text-xs" /> 
+                            <span>Crear Actividad</span>
+                        </button>
+                    </div>
                 </div>
             </div>
 

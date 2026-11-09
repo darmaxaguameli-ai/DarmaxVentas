@@ -392,16 +392,41 @@ const Inventario = () => {
     }
 
     return (
-        <div className="animate-fade-in space-y-8 pb-20">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-                <div>
-                    <h1 className="text-3xl sm:text-4xl font-black text-gray-800 dark:text-white flex items-center gap-4 tracking-tighter uppercase italic"><div className="bg-primary p-3 rounded-2xl shadow-lg shadow-primary/20 text-white"><FaBoxOpen className="text-2xl" /></div> INVENTARIO</h1>
-                    <div className="text-[10px] text-gray-500 font-bold mt-2 flex items-center gap-2 uppercase tracking-widest"><div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div> Control de Insumos y Catálogo</div>
-                </div>
-                <div className="flex flex-wrap gap-3 w-full md:w-auto">
-                    <button onClick={() => setIsImportModalOpen(true)} className="flex-1 md:flex-none px-6 py-4 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 font-black rounded-3xl uppercase tracking-widest text-[10px] border border-emerald-100 dark:border-emerald-800 flex items-center justify-center gap-2 shadow-sm hover:bg-emerald-100 transition-all"><FaFileCode size={14}/> Carga Masiva</button>
-                    <button onClick={() => setIsCatModalOpen(true)} className="flex-1 md:flex-none px-6 py-4 bg-white dark:bg-gray-800 text-gray-400 font-black rounded-3xl uppercase tracking-widest text-[10px] border border-gray-100 dark:border-gray-700 flex items-center justify-center gap-2 shadow-sm hover:bg-gray-50 transition-all"><FaLayerGroup size={14}/> Categorías</button>
-                    <button onClick={() => { setProductToEdit(null); setIsModalOpen(true); }} className="w-full sm:w-auto md:flex-none btn-primary py-4 px-8 rounded-3xl shadow-2xl font-black uppercase text-[10px] tracking-widest transition-all"><FaPlus /> Nuevo Producto</button>
+        <div className="animate-fade-in space-y-6 pb-20">
+            {/* Bento Card: Encabezado Inventario */}
+            <div className="p-5 sm:p-6 lg:p-7 bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-3xl shadow-xs border border-gray-100 dark:border-gray-700/80 mb-5 sm:mb-6 transition-all">
+                <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
+                    <div className="space-y-1">
+                        <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-gray-900 dark:text-white">
+                            Inventario Global
+                        </h1>
+                        <p className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">
+                            Control de existencias, precios y catálogo de insumos en tiempo real
+                        </p>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2.5 w-full xl:w-auto">
+                        <button 
+                            onClick={() => setIsImportModalOpen(true)} 
+                            className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-bold bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-200/80 dark:border-gray-700 shadow-xs hover:bg-gray-50 dark:hover:bg-gray-700/60 active:scale-95 transition-all"
+                        >
+                            <FaFileCode className="text-emerald-500 text-sm" /> 
+                            <span>Carga Masiva</span>
+                        </button>
+                        <button 
+                            onClick={() => setIsCatModalOpen(true)} 
+                            className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-bold bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-200/80 dark:border-gray-700 shadow-xs hover:bg-gray-50 dark:hover:bg-gray-700/60 active:scale-95 transition-all"
+                        >
+                            <FaLayerGroup className="text-primary text-sm" /> 
+                            <span>Categorías</span>
+                        </button>
+                        <button 
+                            onClick={() => { setProductToEdit(null); setIsModalOpen(true); }} 
+                            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-2xl text-xs sm:text-sm font-bold bg-primary hover:bg-primary-dark active:bg-primary-dark text-white shadow-md shadow-primary/25 active:scale-95 transition-all"
+                        >
+                            <FaPlus className="text-xs" /> 
+                            <span>Nuevo Producto</span>
+                        </button>
+                    </div>
                 </div>
             </div>
 

@@ -194,30 +194,28 @@ const Guides = () => {
     }
 
     return (
-        <div className="animate-fade-in space-y-8 pb-20">
-            {/* Header de Índice */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-                <div>
-                    <h1 className="text-3xl sm:text-4xl font-black text-gray-800 dark:text-white flex items-center gap-4 tracking-tighter uppercase italic">
-                        <div className="bg-indigo-600 p-3 rounded-2xl shadow-lg shadow-indigo-600/20 text-white">
-                            <FaBook className="text-2xl" />
-                        </div> 
-                        CENTRO DE GUÍAS
-                    </h1>
-                    <p className="text-xs sm:text-sm text-gray-500 font-bold mt-2 flex items-center gap-2">
-                        <div className="w-2 h-2 bg-indigo-500 rounded-full animate-pulse"></div>
-                        Base de conocimientos para mantenimiento y operación técnica
-                    </p>
-                </div>
-                <div className="relative w-full md:w-96 group">
-                    <FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 transition-colors" />
-                    <input 
-                        type="text" 
-                        placeholder="Buscar por título, categoría o procesos..." 
-                        className="w-full pl-11 pr-4 py-4 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 outline-none focus:ring-4 focus:ring-indigo-500/5 font-bold text-sm shadow-sm transition-all" 
-                        value={searchQuery} 
-                        onChange={e => setSearchQuery(e.target.value)} 
-                    />
+        <div className="animate-fade-in space-y-6 pb-20">
+            {/* Bento Card: Encabezado Centro de Guías */}
+            <div className="p-5 sm:p-6 lg:p-7 bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-3xl shadow-xs border border-gray-100 dark:border-gray-700/80 mb-5 sm:mb-6 transition-all">
+                <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
+                    <div className="space-y-1">
+                        <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-gray-900 dark:text-white">
+                            Centro de Guías
+                        </h1>
+                        <p className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">
+                            Base de conocimientos técnicos, mantenimiento y manuales de operación
+                        </p>
+                    </div>
+                    <div className="relative w-full xl:w-96 group">
+                        <FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-primary transition-colors text-sm" />
+                        <input 
+                            type="text" 
+                            placeholder="Buscar por título, categoría o procesos..." 
+                            className="w-full pl-11 pr-4 py-2.5 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200/80 dark:border-gray-700 outline-none focus:border-primary font-medium text-xs sm:text-sm shadow-xs transition-all text-gray-900 dark:text-white placeholder:text-gray-400" 
+                            value={searchQuery} 
+                            onChange={e => setSearchQuery(e.target.value)} 
+                        />
+                    </div>
                 </div>
             </div>
 

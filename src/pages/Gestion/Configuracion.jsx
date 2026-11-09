@@ -10,35 +10,45 @@ const Configuracion = () => {
     const [activeTab, setActiveTab] = useState('franchises'); // Default to structural config
 
     const getTabClassName = (tabName) => {
-        return `px-4 py-2 font-medium rounded-t-lg transition-colors ${
+        return `px-4 py-2.5 text-xs sm:text-sm font-bold rounded-2xl transition-all ${
             activeTab === tabName
-                ? 'bg-primary text-white border-b-2 border-primary-dark'
-                : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                ? 'bg-primary text-white shadow-md shadow-primary/25'
+                : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white'
         }`;
     };
 
     return (
-        <div>
-            <h1 className="text-3xl font-bold text-[#111418] dark:text-white mb-6">Configuración del Negocio</h1>
+        <div className="space-y-6 pb-16 animate-fade-in">
+            {/* Bento Card: Encabezado Configuración del Negocio */}
+            <div className="p-5 sm:p-6 lg:p-7 bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-3xl shadow-xs border border-gray-100 dark:border-gray-700/80 mb-5 sm:mb-6 transition-all">
+                <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
+                    <div className="space-y-1">
+                        <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-gray-900 dark:text-white">
+                            Configuración del Negocio
+                        </h1>
+                        <p className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">
+                            Parámetros operativos de sucursales, tipos de agua, precios de servicios y marcas
+                        </p>
+                    </div>
+                </div>
+            </div>
             
-            <div className="border-b border-gray-200 dark:border-gray-700 mb-6">
-                <nav className="flex flex-wrap space-x-2 sm:space-x-4"> {/* Añadido flex-wrap y ajustado space-x */}
-                    <button onClick={() => setActiveTab('franchises')} className={getTabClassName('franchises')}>
-                        Sucursales y Franquicias
-                    </button>
-                    <button onClick={() => setActiveTab('waterTypes')} className={getTabClassName('waterTypes')}>
-                        Tipos de Agua
-                    </button>
-                    <button onClick={() => setActiveTab('servicePrices')} className={getTabClassName('servicePrices')}>
-                        Precios de Servicios
-                    </button>
-                    <button onClick={() => setActiveTab('jugBrands')} className={getTabClassName('jugBrands')}>
-                        Marcas de Garrafón
-                    </button>
-                </nav>
+            <div className="flex flex-wrap gap-2 mb-6">
+                <button onClick={() => setActiveTab('franchises')} className={getTabClassName('franchises')}>
+                    Sucursales y Franquicias
+                </button>
+                <button onClick={() => setActiveTab('waterTypes')} className={getTabClassName('waterTypes')}>
+                    Tipos de Agua
+                </button>
+                <button onClick={() => setActiveTab('servicePrices')} className={getTabClassName('servicePrices')}>
+                    Precios de Servicios
+                </button>
+                <button onClick={() => setActiveTab('jugBrands')} className={getTabClassName('jugBrands')}>
+                    Marcas de Garrafón
+                </button>
             </div>
 
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-xs border border-gray-100 dark:border-gray-700/80 p-6">
                 {activeTab === 'franchises' && <ManageFranchisesStores />}
                 {activeTab === 'waterTypes' && <ManageWaterTypes />}
                 {activeTab === 'servicePrices' && <ManageServicePrices />}
