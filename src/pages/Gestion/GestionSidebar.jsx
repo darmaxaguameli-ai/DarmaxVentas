@@ -522,8 +522,9 @@ const GestionSidebar = ({ isOpen, onClose, isCollapsed, toggleCollapsed }) => {
         border border-gray-200/80 dark:border-gray-800/80
         transition-all duration-200 ease-out
         
-        /* Móvil: Drawer flotante tipo Sheet con respeto de safe-area */
-        top-[max(0.75rem,env(safe-area-inset-top,0px))] bottom-[max(0.75rem,env(safe-area-inset-bottom,0px))] left-3 w-72 max-w-[calc(100vw-1.5rem)] rounded-3xl shadow-2xl
+        /* Móvil: Drawer flotante moderno con padding confortable y safe-areas */
+        top-[max(0.75rem,env(safe-area-inset-top,0px))] bottom-[max(0.75rem,env(safe-area-inset-bottom,0px))] left-3 w-[296px] sm:w-80 max-w-[calc(100vw-1.5rem)]
+        p-3.5 sm:p-4 rounded-3xl shadow-2xl ring-1 ring-black/5 dark:ring-white/10
         ${isOpen 
           ? 'translate-x-0 opacity-100 visible pointer-events-auto' 
           : '-translate-x-[calc(100%+1.5rem)] opacity-0 invisible pointer-events-none'
@@ -554,8 +555,8 @@ const GestionSidebar = ({ isOpen, onClose, isCollapsed, toggleCollapsed }) => {
       </button>
 
       <div className="flex flex-col h-full min-h-0 overflow-hidden md:overflow-visible">
-        {/* Encabezado con Logo, Empresa y Cerrar en móvil (Sin botón debajo del logo) */}
-        <div className={`flex items-center justify-between pb-3.5 pt-1.5 px-1.5 mb-3 select-none flex-shrink-0 border-b border-gray-100 dark:border-gray-800/70 ${isCollapsed ? 'md:justify-center' : ''}`}>
+        {/* Encabezado con Logo, Empresa y Cerrar en móvil */}
+        <div className={`flex items-center justify-between pb-3.5 pt-1 px-1 mb-2.5 select-none flex-shrink-0 border-b border-gray-100 dark:border-gray-800/80 ${isCollapsed ? 'md:justify-center' : ''}`}>
           <div className={`flex items-center gap-3 overflow-hidden ${isCollapsed ? 'md:justify-center' : ''}`}>
             <button
               type="button"
@@ -563,11 +564,13 @@ const GestionSidebar = ({ isOpen, onClose, isCollapsed, toggleCollapsed }) => {
               className={`flex-shrink-0 transition-transform active:scale-95 ${isCollapsed ? 'cursor-pointer hover:opacity-80' : 'cursor-default'}`}
               title={isCollapsed ? "Click para expandir barra lateral" : undefined}
             >
-              <img 
-                src={theme === 'dark' ? '/img/logos/LogoTO.png' : '/img/logos/darmax-logo.png'} 
-                alt="Darmax Logo" 
-                className="h-9 w-9 object-contain drop-shadow-xs" 
-              />
+              <div className="h-10 w-10 rounded-2xl bg-white dark:bg-gray-800 flex items-center justify-center p-1.5 shadow-2xs border border-gray-150 dark:border-gray-700/60">
+                <img 
+                  src={theme === 'dark' ? '/img/logos/LogoTO.png' : '/img/logos/darmax-logo.png'} 
+                  alt="Darmax Logo" 
+                  className="h-full w-full object-contain" 
+                />
+              </div>
             </button>
 
             {(!isCollapsed || isOpen) && (
@@ -575,11 +578,11 @@ const GestionSidebar = ({ isOpen, onClose, isCollapsed, toggleCollapsed }) => {
                 <span className="text-sm font-black tracking-tight text-gray-900 dark:text-white truncate">
                   Darmax Gestión
                 </span>
-                <div className="flex items-center mt-1.5">
+                <div className="flex items-center mt-1">
                   <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider truncate border ${
                       user?.store 
                       ? 'bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800' 
-                      : 'bg-purple-50 text-purple-600 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-800'
+                      : 'bg-primary/10 text-primary border-primary/20 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800'
                   }`}>
                       {user?.store?.name || 'Acceso Global'}
                   </span>
@@ -588,14 +591,14 @@ const GestionSidebar = ({ isOpen, onClose, isCollapsed, toggleCollapsed }) => {
             )}
           </div>
 
-          {/* Botón cerrar en móvil integrado en el header */}
+          {/* Botón cerrar en móvil circular y táctil */}
           <button 
             type="button"
             onClick={onClose} 
             aria-label="Cerrar barra lateral"
-            className="md:hidden h-9 w-9 flex items-center justify-center rounded-xl text-gray-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-95 transition-all flex-shrink-0 touch-manipulation"
+            className="md:hidden h-8 w-8 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-700 dark:hover:text-white bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 active:scale-90 transition-all flex-shrink-0 touch-manipulation"
           >
-            <span className="material-symbols-outlined text-xl">close</span>
+            <span className="material-symbols-outlined text-lg">close</span>
           </button>
         </div>
 
@@ -616,12 +619,12 @@ const GestionSidebar = ({ isOpen, onClose, isCollapsed, toggleCollapsed }) => {
         </div>
 
         {/* Perfil del Usuario y Acciones Rápidas */}
-        <div className={`flex-shrink-0 mt-auto pt-2.5 border-t border-gray-100 dark:border-gray-800/70 ${isCollapsed ? 'md:flex md:flex-col md:items-center' : ''}`}>
+        <div className={`flex-shrink-0 mt-auto pt-2.5 border-t border-gray-100 dark:border-gray-800/80 ${isCollapsed ? 'md:flex md:flex-col md:items-center' : ''}`}>
           {(!isCollapsed || isOpen) ? (
-            <div className="p-2 sm:p-2.5 rounded-2xl bg-gray-50/70 dark:bg-gray-800/40 backdrop-blur-md border border-gray-200/50 dark:border-gray-700/40 shadow-xs space-y-2">
+            <div className="p-2.5 rounded-2xl bg-gray-50/80 dark:bg-gray-800/50 backdrop-blur-md border border-gray-200/60 dark:border-gray-700/50 shadow-xs space-y-2.5">
               {/* Información de Usuario */}
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-primary to-blue-500 text-white flex items-center justify-center font-black text-xs shadow-xs flex-shrink-0">
+                <div className="w-9 h-9 rounded-2xl bg-gradient-to-tr from-primary to-blue-500 text-white flex items-center justify-center font-black text-xs shadow-xs flex-shrink-0">
                   {(user?.name || 'U')[0]}
                 </div>
                 <div className="min-w-0 flex-1">
@@ -635,14 +638,14 @@ const GestionSidebar = ({ isOpen, onClose, isCollapsed, toggleCollapsed }) => {
               </div>
 
               {/* Botones de Modo Claro/Oscuro y Salir */}
-              <div className="grid grid-cols-2 gap-1.5 pt-1.5 border-t border-gray-200/40 dark:border-gray-700/50">
+              <div className="grid grid-cols-2 gap-2 pt-2 border-t border-gray-200/50 dark:border-gray-700/60">
                 <button
                   type="button"
                   onClick={toggleTheme}
-                  className="flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-xl text-[11px] font-bold text-gray-600 dark:text-gray-300 hover:bg-white dark:hover:bg-gray-700/60 transition-all active:scale-95 border border-gray-200/60 dark:border-gray-700/50 shadow-2xs"
+                  className="flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl text-xs font-bold text-gray-700 dark:text-gray-200 hover:bg-white dark:hover:bg-gray-700/70 transition-all active:scale-95 border border-gray-200/70 dark:border-gray-700/60 shadow-xs"
                   title={theme === 'dark' ? 'Cambiar a Modo Claro' : 'Cambiar a Modo Oscuro'}
                 >
-                  <span className="material-symbols-outlined text-sm">
+                  <span className="material-symbols-outlined text-base">
                     {theme === 'dark' ? 'light_mode' : 'dark_mode'}
                   </span>
                   <span>{theme === 'dark' ? 'Claro' : 'Oscuro'}</span>
@@ -651,10 +654,10 @@ const GestionSidebar = ({ isOpen, onClose, isCollapsed, toggleCollapsed }) => {
                 <button
                   type="button"
                   onClick={() => { handleLogout(); onClose(); }}
-                  className="flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-xl text-[11px] font-bold text-rose-600 dark:text-rose-400 hover:bg-rose-50/80 dark:hover:bg-rose-950/30 transition-all active:scale-95 border border-rose-200/60 dark:border-rose-900/40 shadow-2xs"
+                  className="flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl text-xs font-bold text-rose-600 dark:text-rose-400 hover:bg-rose-50/90 dark:hover:bg-rose-950/40 transition-all active:scale-95 border border-rose-200/70 dark:border-rose-900/50 shadow-xs"
                   title="Cerrar Sesión"
                 >
-                  <span className="material-symbols-outlined text-sm">logout</span>
+                  <span className="material-symbols-outlined text-base">logout</span>
                   <span>Salir</span>
                 </button>
               </div>

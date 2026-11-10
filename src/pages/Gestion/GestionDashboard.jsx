@@ -71,19 +71,19 @@ const GestionDashboard = () => {
           ></div>
         )}
 
-        {/* Gota saliendo de arriba en móvil para abrir menú de navegación */}
-        <div className="md:hidden fixed top-0 left-4 sm:left-6 z-40 select-none">
+        {/* Botón flotante móvil para abrir menú lateral */}
+        <div className="md:hidden fixed top-3.5 left-4 z-40 select-none">
           <button
-            className="flex items-center justify-center pt-2 pb-2.5 px-3 rounded-b-2xl bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl text-gray-700 dark:text-gray-200 shadow-md border-x border-b border-t-0 border-gray-200/80 dark:border-gray-700/80 active:scale-95 transition-all touch-manipulation"
+            className="h-11 w-11 flex items-center justify-center rounded-2xl bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl text-gray-700 dark:text-gray-200 shadow-md border border-gray-200/80 dark:border-gray-700/80 active:scale-95 transition-all touch-manipulation"
             onClick={() => setSidebarOpen(true)}
             aria-label="Abrir menú de navegación"
           >
-            <span className="material-symbols-outlined text-xl">menu</span>
+            <span className="material-symbols-outlined text-2xl">menu</span>
           </button>
         </div>
 
-        {/* Gota saliendo de arriba para Notificaciones (Opción 1: suspendida desde el techo superior) */}
-        <div className="fixed top-0 right-4 sm:right-8 md:right-12 z-40 select-none">
+        {/* Notificaciones (Botón flotante en móvil y escritorio) */}
+        <div className="fixed top-3.5 right-4 sm:top-4 sm:right-6 md:right-8 z-40 select-none">
           <NotificationTray />
         </div>
 

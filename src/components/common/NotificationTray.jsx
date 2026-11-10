@@ -76,15 +76,15 @@ const NotificationTray = () => {
 
     return (
         <div className="relative" ref={dropdownRef}>
-            {/* Botón tipo gota saliendo desde el borde superior */}
+            {/* Botón flotante uniforme (Móvil y Escritorio) */}
             <button 
                 onClick={() => setIsOpen(!isOpen)}
                 aria-label="Ver notificaciones"
-                className="relative group flex items-center justify-center pt-2 pb-2.5 px-3.5 sm:px-4 rounded-b-2xl sm:rounded-b-3xl bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl border-x border-b border-t-0 border-gray-200/80 dark:border-gray-700/80 shadow-md hover:shadow-lg hover:pb-3.5 active:scale-95 transition-all duration-200 text-gray-700 dark:text-gray-200"
+                className="relative group flex items-center justify-center h-10 w-10 sm:h-11 sm:w-11 rounded-2xl bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl border border-gray-200/80 dark:border-gray-700/80 shadow-md hover:shadow-lg hover:scale-105 active:scale-95 transition-all duration-200 text-gray-700 dark:text-gray-200"
             >
                 <FaBell className={`text-base sm:text-lg transition-transform duration-200 group-hover:rotate-12 ${unreadCount > 0 ? 'text-primary' : 'text-gray-500 dark:text-gray-400'}`} />
                 {unreadCount > 0 && (
-                    <span className="absolute -bottom-1 -right-1 flex h-4 w-4">
+                    <span className="absolute -top-1 -right-1 flex h-4 w-4">
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
                         <span className="relative inline-flex items-center justify-center rounded-full h-4 w-4 bg-red-500 text-white text-[9px] font-black shadow-xs">
                             {unreadCount > 9 ? '9+' : unreadCount}

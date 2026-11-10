@@ -1146,101 +1146,92 @@ const Sistemas = () => {
 
     return (
         <div className="space-y-6 animate-fade-in pb-16 w-full max-w-full overflow-x-clip sm:overflow-x-visible">
-            {/* Header del Área de Sistemas */}
-            <div className="bg-gradient-to-r from-slate-900 via-blue-950 to-indigo-950 rounded-3xl p-6 md:p-8 text-white shadow-xl relative overflow-hidden">
-                <div className="absolute right-0 top-0 -mt-10 -mr-10 w-72 h-72 bg-blue-500/10 rounded-full blur-3xl pointer-events-none"></div>
-
-                <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-                    <div>
-                        <div className="flex items-center gap-3 mb-2">
-                            <span className="p-2.5 bg-blue-500/20 text-blue-400 rounded-2xl backdrop-blur-sm border border-blue-400/20">
-                                <FaFolderOpen className="text-2xl" />
-                            </span>
-                            <div>
-                                <span className="text-xs uppercase tracking-widest text-blue-400 font-extrabold">Departamento de Sistemas</span>
-                                <h1 className="text-2xl md:text-3xl font-black tracking-tight">Proyectos y Entregas de Sistemas</h1>
-                            </div>
-                        </div>
-                        <p className="text-sm text-gray-300 max-w-2xl leading-relaxed">
+            {/* Bento Card: Encabezado Sistemas & Proyectos */}
+            <div className="p-5 sm:p-6 lg:p-7 bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-3xl shadow-xs border border-gray-100 dark:border-gray-700/80 mb-5 sm:mb-6 transition-all">
+                <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6">
+                    <div className="space-y-1">
+                        <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-gray-900 dark:text-white">
+                            Proyectos y Actividades de Sistemas
+                        </h1>
+                        <p className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 max-w-2xl">
                             {isJefe 
                                 ? 'Monitorea el avance integral de los proyectos, asigna actividades y acompaña al equipo con fechas y reconocimientos.'
-                                : 'Consulta tus actividades asignadas, mueve tus entregas y déjanos saber cualquier imprevisto de la semana.'}
+                                : 'Consulta tus actividades asignadas, mueve tus entregas y registra cualquier imprevisto de la semana.'}
                         </p>
                     </div>
 
                     {/* Botones de acción y control según rol */}
-                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 select-none">
+                    <div className="flex flex-wrap items-center gap-2.5 w-full xl:w-auto">
                         {isRealJefe ? (
-                            <div className="bg-black/30 backdrop-blur-md p-1.5 rounded-2xl border border-white/10 flex items-center gap-2">
-                                <div className="flex items-center gap-1.5 px-3 py-2 bg-blue-500/20 text-blue-300 border border-blue-400/30 rounded-xl text-xs font-black min-h-[40px]">
-                                    <FaUserTie /> Modo Encargado
+                            <div className="bg-gray-100 dark:bg-gray-900/60 p-1 rounded-2xl border border-gray-200/60 dark:border-gray-700/60 flex items-center gap-1.5">
+                                <div className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 text-primary dark:text-blue-300 border border-primary/20 dark:border-blue-800/40 rounded-xl text-xs font-bold">
+                                    <FaUserTie /> <span>Modo Encargado</span>
                                 </div>
                                 <button
                                     type="button"
                                     onClick={() => setViewAsRole(viewAsRole === 'JEFE' ? 'COLABORADOR' : 'JEFE')}
-                                    className={`flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all min-h-[40px] touch-manipulation active:scale-95 ${
+                                    className={`flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all active:scale-95 ${
                                         viewAsRole === 'COLABORADOR'
-                                        ? 'bg-emerald-600 text-white shadow-md'
-                                        : 'text-gray-300 hover:text-white hover:bg-white/10'
+                                        ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-300 dark:border-amber-700/50'
+                                        : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
                                     }`}
                                     title="Previsualizar el tablero exactamente como lo ve un colaborador"
                                 >
-                                    <FaExchangeAlt /> {viewAsRole === 'JEFE' ? 'Simular Colaborador' : 'Volver a Encargado'}
+                                    <FaExchangeAlt /> <span>{viewAsRole === 'JEFE' ? 'Simular Colaborador' : 'Volver a Jefe'}</span>
                                 </button>
                             </div>
                         ) : (
-                            <div className="bg-emerald-500/10 backdrop-blur-md px-4 py-2.5 rounded-2xl border border-emerald-400/20 flex items-center gap-2 text-emerald-300 text-xs font-black min-h-[44px]">
-                                <FaUserCheck className="text-base text-emerald-400 flex-shrink-0" />
-                                <div>
-                                    <p className="leading-tight font-black uppercase text-[10px] text-emerald-400">Tus Entregas Asignadas</p>
-                                    <p className="text-[11px] text-gray-300 font-medium">Solo tú y tu encargado tienen visibilidad de tu avance</p>
-                                </div>
+                            <div className="bg-emerald-50 dark:bg-emerald-950/30 px-3.5 py-2 rounded-2xl border border-emerald-200 dark:border-emerald-800/40 flex items-center gap-2 text-emerald-700 dark:text-emerald-300 text-xs font-bold">
+                                <FaUserCheck className="text-sm text-emerald-500 flex-shrink-0" />
+                                <span>Tus Entregas Asignadas</span>
                             </div>
                         )}
 
                         {isJefe && (
-                            <div className="flex items-center gap-2 w-full sm:w-auto">
+                            <>
                                 <button
                                     type="button"
                                     onClick={handleOpenCreateProject}
-                                    className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-3 bg-white/10 hover:bg-white/20 text-white font-bold text-xs rounded-2xl border border-white/20 transition-all min-h-[46px] touch-manipulation active:scale-95"
+                                    className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 font-bold text-xs sm:text-sm rounded-2xl border border-gray-200/80 dark:border-gray-700 shadow-xs hover:bg-gray-50 dark:hover:bg-gray-700/60 transition-all active:scale-95"
                                 >
-                                    <FaFolderPlus /> Nuevo Proyecto
+                                    <FaFolderPlus className="text-primary text-sm" /> 
+                                    <span>Nuevo Proyecto</span>
                                 </button>
                                 <button
                                     type="button"
                                     onClick={handleOpenCreateTask}
-                                    className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-5 py-3 bg-white text-gray-900 hover:bg-gray-100 font-black text-xs uppercase tracking-wider rounded-2xl shadow-lg transition-transform min-h-[46px] touch-manipulation active:scale-95"
+                                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary-dark active:bg-primary-dark text-white font-bold text-xs sm:text-sm rounded-2xl shadow-md shadow-primary/25 transition-all active:scale-95"
                                 >
-                                    <FaPlus /> Nueva Actividad
+                                    <FaPlus className="text-xs" /> 
+                                    <span>Nueva Actividad</span>
                                 </button>
-                            </div>
+                            </>
                         )}
                     </div>
                 </div>
 
-                {/* Resumen de avance */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6 pt-6 border-t border-white/10">
-                    <div className="bg-white/5 backdrop-blur-sm p-3 rounded-2xl border border-white/5">
-                        <span className="text-[10px] uppercase font-bold text-gray-400">
+                {/* Resumen de avance armonizado con Bento Dashboard */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6 pt-5 border-t border-gray-100 dark:border-gray-700/80">
+                    <div className="bg-gray-50/80 dark:bg-gray-900/40 p-3.5 rounded-2xl border border-gray-100 dark:border-gray-700/60">
+                        <span className="text-[10px] uppercase font-bold text-gray-500 dark:text-gray-400">
                             {isJefe ? 'Total de Actividades' : 'Mis Actividades'}
                         </span>
-                        <p className="text-xl font-black text-white">{totalVisible}</p>
+                        <p className="text-xl font-black text-gray-900 dark:text-white mt-0.5">{totalVisible}</p>
                     </div>
-                    <div className="bg-white/5 backdrop-blur-sm p-3 rounded-2xl border border-white/5">
-                        <span className="text-[10px] uppercase font-bold text-blue-400">En Marcha</span>
-                        <p className="text-xl font-black text-blue-400">{inProgressVisible}</p>
+                    <div className="bg-primary/5 dark:bg-primary/10 p-3.5 rounded-2xl border border-primary/15 dark:border-primary/20">
+                        <span className="text-[10px] uppercase font-bold text-primary dark:text-blue-400">En Marcha</span>
+                        <p className="text-xl font-black text-primary dark:text-blue-400 mt-0.5">{inProgressVisible}</p>
                     </div>
-                    <div className="bg-white/5 backdrop-blur-sm p-3 rounded-2xl border border-white/5">
-                        <span className="text-[10px] uppercase font-bold text-emerald-400">Concluidas</span>
-                        <p className="text-xl font-black text-emerald-400">{completedVisible}</p>
+                    <div className="bg-emerald-50 dark:bg-emerald-950/30 p-3.5 rounded-2xl border border-emerald-200/60 dark:border-emerald-800/40">
+                        <span className="text-[10px] uppercase font-bold text-emerald-700 dark:text-emerald-400">Concluidas</span>
+                        <p className="text-xl font-black text-emerald-700 dark:text-emerald-400 mt-0.5">{completedVisible}</p>
                     </div>
-                    <div className="bg-white/5 backdrop-blur-sm p-3 rounded-2xl border border-white/5">
-                        <span className="text-[10px] uppercase font-bold text-purple-400">Avance General</span>
-                        <div className="flex items-center gap-2">
-                            <p className="text-xl font-black text-purple-400">{rateVisible}%</p>
-                            <div className="flex-1 bg-white/10 h-2 rounded-full overflow-hidden">
-                                <div className="bg-purple-500 h-full rounded-full transition-all duration-500" style={{ width: `${rateVisible}%` }}></div>
+                    <div className="bg-purple-50 dark:bg-purple-950/30 p-3.5 rounded-2xl border border-purple-200/60 dark:border-purple-800/40">
+                        <span className="text-[10px] uppercase font-bold text-purple-700 dark:text-purple-400">Avance General</span>
+                        <div className="flex items-center gap-2 mt-0.5">
+                            <p className="text-xl font-black text-purple-700 dark:text-purple-400">{rateVisible}%</p>
+                            <div className="flex-1 bg-gray-200 dark:bg-gray-700 h-2 rounded-full overflow-hidden">
+                                <div className="bg-primary h-full rounded-full transition-all duration-500" style={{ width: `${rateVisible}%` }}></div>
                             </div>
                         </div>
                     </div>
@@ -1264,7 +1255,7 @@ const Sistemas = () => {
                         onClick={() => setSelectedProjectId('TODOS')}
                         className={`p-4 rounded-2xl border cursor-pointer transition-all touch-manipulation select-none active:scale-[0.98] ${
                             selectedProjectId === 'TODOS'
-                            ? 'bg-blue-50/70 dark:bg-blue-900/30 border-blue-500 shadow-sm'
+                            ? 'bg-primary/10 text-primary dark:bg-primary/20 border-primary/40 shadow-xs ring-1 ring-primary/40'
                             : 'bg-gray-50/50 dark:bg-gray-900/30 border-gray-200 dark:border-gray-700 hover:border-gray-300'
                         }`}
                     >
@@ -1290,7 +1281,7 @@ const Sistemas = () => {
                                 onClick={() => setSelectedProjectId(proj.id)}
                                 className={`p-4 rounded-2xl border cursor-pointer transition-all touch-manipulation select-none active:scale-[0.98] ${
                                     isSelected
-                                    ? 'bg-blue-50/70 dark:bg-blue-900/30 border-blue-500 shadow-sm ring-1 ring-blue-500'
+                                    ? 'bg-primary/10 text-primary dark:bg-primary/20 border-primary/40 shadow-xs ring-1 ring-primary/40'
                                     : 'bg-gray-50/50 dark:bg-gray-900/30 border-gray-200 dark:border-gray-700 hover:border-gray-300'
                                 }`}
                             >
@@ -1352,13 +1343,13 @@ const Sistemas = () => {
                 const activeProj = projects.find(p => p.id === selectedProjectId);
                 if (!activeProj) return null;
                 return (
-                    <div className="bg-blue-50/70 dark:bg-blue-950/20 border border-blue-200/80 dark:border-blue-800/40 rounded-2xl p-3 px-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
+                    <div className="bg-primary/5 dark:bg-primary/10 border border-primary/20 dark:border-primary/30 rounded-2xl p-3 px-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
                         <div className="flex items-center gap-3">
-                            <span className="p-2 bg-blue-500/10 text-primary rounded-xl">
+                            <span className="p-2 bg-primary/10 text-primary rounded-xl">
                                 <FaLayerGroup />
                             </span>
                             <div>
-                                <span className="text-[10px] font-black uppercase tracking-wider text-blue-600 dark:text-blue-400">Filtrando por Proyecto</span>
+                                <span className="text-[10px] font-black uppercase tracking-wider text-primary dark:text-blue-400">Filtrando por Proyecto</span>
                                 <h3 className="text-sm font-black text-gray-800 dark:text-white">{activeProj.nombre}</h3>
                                 {activeProj.descripcion && (
                                     <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-1">{activeProj.descripcion}</p>
@@ -1628,7 +1619,11 @@ const Sistemas = () => {
                                                                 {task.fechaFin ? format(parseISO(task.fechaFin), 'dd MMM', { locale: es }) : 'Sin fin'}
                                                             </span>
                                                         </div>
-                                                        {task.fechaFin && (
+                                                        {task.estado === 'TERMINADO' ? (
+                                                            <span className="font-bold flex-shrink-0 px-2 py-0.5 rounded-md text-[10px] text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/50">
+                                                                ✅ Concluida
+                                                            </span>
+                                                        ) : task.fechaFin ? (
                                                             <span className={`font-bold flex-shrink-0 px-2 py-0.5 rounded-md text-[10px] ${
                                                                 isOverdue 
                                                                 ? 'text-rose-600 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50' 
@@ -1636,7 +1631,7 @@ const Sistemas = () => {
                                                             }`}>
                                                                 {isOverdue ? `⚠️ Vencida hace ${Math.abs(daysLeft)}d` : (daysLeft === 0 ? '⚡ Hoy vence' : `⏳ ${daysLeft}d restantes`)}
                                                             </span>
-                                                        )}
+                                                        ) : null}
                                                     </div>
 
                                                     {/* Responsables (1 o más) & Estrellas */}
