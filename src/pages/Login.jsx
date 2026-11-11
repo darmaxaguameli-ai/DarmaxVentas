@@ -7,19 +7,19 @@ import Button from "../components/common/Button";
 import { MdVisibility, MdVisibilityOff, MdEmail, MdLock } from 'react-icons/md';
 
 const InputField = ({ label, type, value, onChange, placeholder, icon, required = true }) => (
-  <div className="mb-5">
-    <label className="block text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider mb-1.5 ml-1">
+  <div className="mb-3.5 sm:mb-4">
+    <label className="block text-[11px] sm:text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider mb-1 ml-1">
       {label}
     </label>
-    <div className="relative flex items-center bg-gray-50 dark:bg-gray-700 rounded-xl border border-gray-300 dark:border-gray-600 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all">
-      {icon && <div className="pl-4 text-gray-400 dark:text-gray-500 text-xl">{icon}</div>}
+    <div className="relative flex items-center bg-gray-50/90 dark:bg-gray-700/80 rounded-xl border border-gray-300 dark:border-gray-600 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all shadow-xs">
+      {icon && <div className="pl-3.5 text-gray-400 dark:text-gray-500 text-lg sm:text-xl flex-shrink-0">{icon}</div>}
       <input
         type={type}
         value={value}
         onChange={onChange}
         placeholder={placeholder}
         required={required}
-        className="w-full py-3.5 px-4 bg-transparent outline-none text-gray-800 dark:text-white placeholder:text-gray-400 text-base"
+        className="w-full py-2.5 sm:py-3 px-3.5 bg-transparent outline-none text-gray-800 dark:text-white placeholder:text-gray-400 text-base"
       />
     </div>
   </div>
@@ -60,18 +60,18 @@ const Login = () => {
 
   return (
     <MainLayout>
-      <div className="min-h-[80vh] flex flex-col justify-center items-center px-4 py-8 w-full font-display">
-        <div className="w-full max-w-md bg-white dark:bg-gray-800 rounded-[2.5rem] shadow-xl border border-gray-100 dark:border-gray-700 p-8 sm:p-10 transition-all overflow-hidden flex flex-col justify-center animate-in fade-in zoom-in-105 slide-in-from-bottom-4 duration-500 ease-out">
+      <div className="min-h-[calc(100dvh-4rem)] sm:min-h-[80vh] flex flex-col justify-center items-center px-4 py-3 sm:py-8 w-full font-display">
+        <div className="w-full max-w-sm sm:max-w-md bg-white dark:bg-gray-800 rounded-3xl sm:rounded-[2.5rem] shadow-xl border border-gray-100 dark:border-gray-700/80 p-5 sm:p-8 transition-all overflow-hidden flex flex-col justify-center animate-in fade-in zoom-in-105 slide-in-from-bottom-4 duration-500 ease-out">
           
           {/* Header */}
-          <div className="mb-10 text-center">
-            <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4 text-primary animate-fade-in">
-                <span className="material-symbols-outlined text-4xl">login</span>
+          <div className="mb-4 sm:mb-6 text-center">
+            <div className="w-12 h-12 sm:w-14 sm:h-14 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-2 text-primary shadow-xs animate-fade-in">
+              <span className="material-symbols-outlined text-2xl sm:text-3xl">login</span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white tracking-tight">
+            <h1 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white tracking-tight">
               Bienvenido de nuevo
             </h1>
-            <p className="mt-2 text-gray-500 dark:text-gray-400 text-sm sm:text-base">
+            <p className="mt-0.5 sm:mt-1 text-gray-500 dark:text-gray-400 text-xs sm:text-sm">
               Accede a tu cuenta Darmax
             </p>
           </div>
@@ -87,37 +87,38 @@ const Login = () => {
                 icon={<MdEmail />}
             />
 
-            <div className="mb-6">
-              <label className="block text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider mb-1.5 ml-1">
+            <div className="mb-3.5 sm:mb-4">
+              <label className="block text-[11px] sm:text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider mb-1 ml-1">
                 Contraseña
               </label>
-              <div className="relative flex items-center bg-gray-50 dark:bg-gray-700 rounded-xl border border-gray-300 dark:border-gray-600 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all">
-                <div className="pl-4 text-gray-400 dark:text-gray-500 text-xl"><MdLock /></div>
+              <div className="relative flex items-center bg-gray-50/90 dark:bg-gray-700/80 rounded-xl border border-gray-300 dark:border-gray-600 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all shadow-xs">
+                <div className="pl-3.5 text-gray-400 dark:text-gray-500 text-lg sm:text-xl flex-shrink-0"><MdLock /></div>
                 <input
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full py-3.5 px-4 bg-transparent outline-none text-gray-800 dark:text-white placeholder:text-gray-400 text-base"
+                  className="w-full py-2.5 sm:py-3 px-3.5 bg-transparent outline-none text-gray-800 dark:text-white placeholder:text-gray-400 text-base"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="p-3 pr-4 text-gray-400 hover:text-primary transition-colors"
+                  className="p-2.5 pr-3.5 text-gray-400 hover:text-primary transition-colors cursor-pointer"
+                  aria-label={showPassword ? "Ocultar contraseña" : "Ver contraseña"}
                 >
-                  {showPassword ? <MdVisibilityOff size={22}/> : <MdVisibility size={22}/>}
+                  {showPassword ? <MdVisibilityOff size={20}/> : <MdVisibility size={20}/>}
                 </button>
               </div>
             </div>
 
             {error && (
-              <div className="mb-6 p-3 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 rounded-xl text-red-600 dark:text-red-400 text-sm text-center font-medium animate-shake">
+              <div className="mb-4 p-2.5 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 rounded-xl text-red-600 dark:text-red-400 text-xs sm:text-sm text-center font-medium animate-shake">
                 {error}
               </div>
             )}
 
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+            <div className="flex items-center justify-between gap-2 mb-4 sm:mb-6">
               <label className="flex items-center cursor-pointer group">
                 <input
                   type="checkbox"
@@ -125,14 +126,14 @@ const Login = () => {
                   checked={rememberMe}
                   onChange={(e) => setRememberMe(e.target.checked)}
                 />
-                <span className="ml-2 text-sm text-gray-600 dark:text-gray-400 group-hover:text-primary transition-colors select-none">
+                <span className="ml-2 text-xs sm:text-sm text-gray-600 dark:text-gray-400 group-hover:text-primary transition-colors select-none">
                   Recuérdame
                 </span>
               </label>
               
               <Link 
                 to="/forgot-password"
-                className="text-sm font-bold text-primary hover:text-primary-dark hover:underline transition-colors"
+                className="text-xs sm:text-sm font-bold text-primary hover:text-primary-dark hover:underline transition-colors"
               >
                 ¿Olvidaste tu contraseña?
               </Link>
@@ -141,22 +142,23 @@ const Login = () => {
             <Button
               type="submit"
               disabled={isSubmitting}
-              className="w-full py-4 text-lg shadow-lg shadow-primary/25"
+              className="w-full py-3 sm:py-3.5 text-base font-bold shadow-md shadow-primary/20"
             >
               {isSubmitting ? 'Iniciando...' : 'Iniciar Sesión'}
             </Button>
           </form>
 
-          <div className="mt-8 pt-6 border-t border-gray-100 dark:border-gray-700 text-center animate-fade-in">
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              ¿No tienes una cuenta?{" "}
-              <Link
-                to="/registro"
-                className="font-bold text-primary hover:text-primary-dark hover:underline ml-1"
-              >
-                Regístrate gratis
-              </Link>
+          {/* Registro - Pregunta arriba y botón debajo */}
+          <div className="mt-4 sm:mt-6 pt-3.5 sm:pt-4 border-t border-gray-100 dark:border-gray-700/80 text-center animate-fade-in">
+            <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mb-2">
+              ¿No tienes una cuenta?
             </p>
+            <Link
+              to="/registro"
+              className="inline-flex items-center justify-center w-full py-2.5 px-4 rounded-xl font-bold text-sm text-primary dark:text-blue-400 bg-primary/10 hover:bg-primary/20 dark:bg-primary/20 dark:hover:bg-primary/30 border border-primary/20 transition-all active:scale-95"
+            >
+              Regístrate gratis
+            </Link>
           </div>
 
         </div>

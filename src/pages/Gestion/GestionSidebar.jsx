@@ -4,9 +4,10 @@ import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { useTheme } from "../../context/ThemeContext";
 import { GestionContext } from "./context/GestionContext";
+import { triggerHaptic } from "../../utils/haptics";
 
-// Definición de la estructura del menú
-const menuStructure = [
+// Definición de la estructura del menú (exportada para el buscador rápido)
+export const menuStructure = [
   {
     type: "link",
     name: "Resumen Operativo",
@@ -520,21 +521,18 @@ const GestionSidebar = ({ isOpen, onClose, isCollapsed, toggleCollapsed }) => {
       className={`fixed z-50 flex flex-col flex-shrink-0
         bg-white/95 dark:bg-gray-900/95 backdrop-blur-2xl backdrop-saturate-150
         border border-gray-200/80 dark:border-gray-800/80
-        transition-all duration-200 ease-out
         
-        /* Móvil: Drawer flotante moderno con padding confortable y safe-areas */
+        /* Móvil: Drawer flotante moderno con animación morphing circular desde el botón */
         top-[max(0.75rem,env(safe-area-inset-top,0px))] bottom-[max(0.75rem,env(safe-area-inset-bottom,0px))] left-3 w-[296px] sm:w-80 max-w-[calc(100vw-1.5rem)]
         p-3.5 sm:p-4 rounded-3xl shadow-2xl ring-1 ring-black/5 dark:ring-white/10
-        ${isOpen 
-          ? 'translate-x-0 opacity-100 visible pointer-events-auto' 
-          : '-translate-x-[calc(100%+1.5rem)] opacity-0 invisible pointer-events-none'
-        }
+        sidebar-mobile-morph ${isOpen ? 'sidebar-open' : 'sidebar-closed'}
         
         /* Escritorio: Isla flotante independiente */
         md:relative md:top-auto md:bottom-auto md:left-auto md:translate-x-0 md:opacity-100 md:visible md:pointer-events-auto
         md:my-3 md:ml-3 md:h-[calc(100dvh-1.5rem)] md:max-h-[calc(100dvh-1.5rem)]
         md:rounded-3xl md:shadow-xl md:shadow-gray-900/5 dark:md:shadow-black/35
         md:overflow-visible
+        md:transition-all md:duration-200 md:ease-out
         ${isCollapsed 
           ? 'md:w-20 md:p-2.5' 
           : 'md:w-64 md:p-3.5'
@@ -591,12 +589,15 @@ const GestionSidebar = ({ isOpen, onClose, isCollapsed, toggleCollapsed }) => {
             )}
           </div>
 
-          {/* Botón cerrar en móvil circular y táctil */}
+          {/* Botón cerrar en móvil circular y táctil con respuesta háptica */}
           <button 
             type="button"
-            onClick={onClose} 
+            onClick={() => {
+              triggerHaptic(10);
+              onClose?.();
+            }} 
             aria-label="Cerrar barra lateral"
-            className="md:hidden h-8 w-8 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-700 dark:hover:text-white bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 active:scale-90 transition-all flex-shrink-0 touch-manipulation"
+            className="md:hidden h-8 w-8 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-700 dark:hover:text-white bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 active:scale-90 transition-all flex-shrink-0 touch-manipulation cursor-pointer"
           >
             <span className="material-symbols-outlined text-lg">close</span>
           </button>
