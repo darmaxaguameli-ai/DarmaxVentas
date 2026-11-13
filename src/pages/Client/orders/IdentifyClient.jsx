@@ -73,96 +73,106 @@ const IdentifyClient = () => {
   return (
     <OrderLayout
       title="Identifícate como cliente"
-      subtitle="Usa tu ID de cliente o teléfono para cargar tus datos y agilizar tu pedido."
+      subtitle="Ingresa tu ID de cliente o teléfono para cargar automáticamente tus datos y agilizar tu pedido."
       step={0}
       totalSteps={4}
     >
-      <div className="max-w-lg mx-auto mt-8 flex flex-col gap-6">
+      <div className="max-w-md mx-auto mt-6 flex flex-col gap-5 sm:gap-6">
         
-        <div className="flex gap-2 p-1 rounded-lg bg-light dark:bg-dark/70 w-full">
+        {/* Segmented Control Glass */}
+        <div className="flex gap-1.5 p-1.5 rounded-2xl bg-white/70 dark:bg-gray-800/70 border border-white/80 dark:border-white/10 backdrop-blur-xl shadow-xs w-full">
           <button
             type="button"
             onClick={() => setSearchType("customId")}
-            className={`w-1/2 px-3 py-2 text-sm font-bold rounded-md transition-colors ${
+            className={`flex-1 py-3 text-xs sm:text-sm font-bold rounded-xl transition-all active:scale-95 ${
               searchType === "customId"
-                ? "bg-primary text-white shadow"
-                : "bg-transparent text-text-secondary dark:text-white/60 hover:bg-black/5 dark:hover:bg-white/5"
+                ? "bg-primary text-white shadow-md shadow-primary/25"
+                : "bg-transparent text-gray-600 dark:text-gray-300 hover:text-primary"
             }`}
           >
-            ID Cliente
+            ID de Cliente
           </button>
           <button
             type="button"
             onClick={() => setSearchType("phone")}
-            className={`w-1/2 px-3 py-2 text-sm font-bold rounded-md transition-colors ${
+            className={`flex-1 py-3 text-xs sm:text-sm font-bold rounded-xl transition-all active:scale-95 ${
               searchType === "phone"
-                ? "bg-primary text-white shadow"
-                : "bg-transparent text-text-secondary dark:text-white/60 hover:bg-black/5 dark:hover:bg-white/5"
+                ? "bg-primary text-white shadow-md shadow-primary/25"
+                : "bg-transparent text-gray-600 dark:text-gray-300 hover:text-primary"
             }`}
           >
-            Teléfono
+            Número de Teléfono
           </button>
         </div>
 
         {searchType === "customId" && (
-          <label className="flex flex-col">
-            <p className="pb-2 text-sm font-medium text-dark dark:text-white">
-              Tu ID de Cliente
-            </p>
-            <div className="flex items-center h-14 w-full rounded-xl border border-slate-300 bg-white px-4 text-lg
-                          dark:border-slate-700 dark:bg-dark
-                          focus-within:ring-2 ring-primary outline-none">
-              <span className="text-text-secondary dark:text-white/50 mr-1">CLI-</span>
+          <label className="flex flex-col gap-2">
+            <span className="text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
+              Tu ID de Cliente Darmax
+            </span>
+            <div className="flex items-center h-14 w-full rounded-2xl border border-white/80 dark:border-white/10 bg-white/80 dark:bg-gray-800/80 px-4 text-xl backdrop-blur-xl shadow-xs focus-within:ring-2 focus-within:ring-primary/50 transition-all">
+              <span className="text-primary font-black mr-1.5 text-lg select-none">CLI-</span>
               <input
                 type="text"
                 value={searchIdentifier}
                 onChange={handleCustomIdChange}
                 placeholder="1234"
-                className="flex-1 bg-transparent outline-none text-dark dark:text-white placeholder:text-text-secondary dark:placeholder:text-white/50"
+                className="flex-1 bg-transparent outline-none font-bold text-gray-900 dark:text-white placeholder:text-gray-400"
+                autoFocus
               />
             </div>
           </label>
         )}
 
         {searchType === "phone" && (
-          <label className="flex flex-col">
-            <p className="pb-2 text-sm font-medium text-dark dark:text-white">
-              Tu número de teléfono
-            </p>
-            <input
-              type="tel"
-              value={searchIdentifier}
-              onChange={handlePhoneChange}
-              placeholder="Ej. 5512345678"
-              className="h-14 w-full rounded-xl border border-slate-300 bg-white px-4 text-lg
-                         dark:border-slate-700 dark:bg-dark text-dark dark:text-white
-                         placeholder:text-text-secondary dark:placeholder:text-white/50
-                         focus:ring-2 ring-primary outline-none"
-            />
+          <label className="flex flex-col gap-2">
+            <span className="text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
+              Tu número de teléfono (10 dígitos)
+            </span>
+            <div className="flex items-center h-14 w-full rounded-2xl border border-white/80 dark:border-white/10 bg-white/80 dark:bg-gray-800/80 px-4 text-xl backdrop-blur-xl shadow-xs focus-within:ring-2 focus-within:ring-primary/50 transition-all">
+              <span className="material-symbols-outlined text-primary mr-2 text-2xl select-none">phone</span>
+              <input
+                type="tel"
+                value={searchIdentifier}
+                onChange={handlePhoneChange}
+                placeholder="Ej. 5512345678"
+                className="flex-1 bg-transparent outline-none font-bold text-gray-900 dark:text-white placeholder:text-gray-400"
+                autoFocus
+              />
+            </div>
           </label>
         )}
 
         {error && (
-            <div className="text-red-500 text-sm text-center p-2 bg-red-500/10 rounded-md -mt-2">
+            <div className="text-red-500 text-xs sm:text-sm font-bold text-center p-3 bg-red-500/10 border border-red-500/20 rounded-2xl animate-shake">
                 {error}
             </div>
         )}
 
-        <Button
+        <button
           onClick={handleSearchAndContinue}
           disabled={isSearching}
-          fullWidth
-          size="large"
+          className="h-11 sm:h-12 w-full flex items-center justify-center gap-2 rounded-2xl bg-primary hover:bg-primary-dark font-bold text-white text-sm sm:text-base shadow-md shadow-primary/25 hover:shadow-lg transition-all duration-200 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
         >
-          {isSearching ? 'Buscando...' : 'Buscar y Continuar'}
-        </Button>
+          {isSearching ? (
+            <span className="flex items-center gap-2">
+              <span className="material-symbols-outlined animate-spin text-lg">progress_activity</span>
+              Buscando cuenta...
+            </span>
+          ) : (
+            <>
+              <span>Buscar y Continuar</span>
+              <span className="material-symbols-outlined text-lg">arrow_forward</span>
+            </>
+          )}
+        </button>
         
         <button
             type="button"
             onClick={handleGoToStart}
-            className="text-sm text-center font-medium text-text-secondary dark:text-white/70 hover:text-primary dark:hover:text-primary transition-colors"
+            className="text-xs sm:text-sm text-center font-bold text-text-secondary dark:text-white/70 hover:text-primary dark:hover:text-primary transition-colors py-1"
           >
-            &larr; O volver al inicio
+            ← O volver a la pantalla principal
         </button>
       </div>
     </OrderLayout>

@@ -217,16 +217,16 @@ const ClientProfile = () => {
       return <div className="text-center py-10 text-dark dark:text-white">Cargando perfil...</div>;
     }
     return (
-      <main className="w-full max-w-4xl mx-auto p-4 sm:p-10 bg-white dark:bg-gray-800 rounded-2xl shadow-xl mt-2 sm:mt-6">
-        <h1 className="text-xl sm:text-3xl font-black text-center text-dark dark:text-white mb-4 sm:mb-6">
+      <main className="w-full max-w-4xl mx-auto p-5 sm:p-10 bg-white/85 dark:bg-gray-800/85 backdrop-blur-2xl rounded-3xl border border-white/80 dark:border-white/10 shadow-2xl mt-2 sm:mt-6">
+        <h1 className="text-2xl sm:text-3xl font-black text-center text-dark dark:text-white mb-4 sm:mb-6">
           Tu Perfil de Cliente
         </h1>
-        {successMessage && <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4 text-sm">{successMessage}</div>}
-        {error && <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4 text-sm">{error}</div>}
-        {postalCodeApiError && <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4 text-sm">{postalCodeApiError}</div>}
+        {successMessage && <div className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 px-4 py-3 rounded-2xl relative mb-4 text-sm font-bold">{successMessage}</div>}
+        {error && <div className="bg-red-500/10 border border-red-500/30 text-red-600 dark:text-red-400 px-4 py-3 rounded-2xl relative mb-4 text-sm font-bold">{error}</div>}
+        {postalCodeApiError && <div className="bg-red-500/10 border border-red-500/30 text-red-600 dark:text-red-400 px-4 py-3 rounded-2xl relative mb-4 text-sm font-bold">{postalCodeApiError}</div>}
         
         {/* Loyalty Points Section */}
-        <section className="mb-6 sm:mb-8 p-4 sm:p-6 bg-gradient-to-r from-primary/10 to-transparent rounded-xl border border-primary/20">
+        <section className="mb-6 sm:mb-8 p-5 sm:p-6 bg-gradient-to-r from-primary/10 via-cyan-500/10 to-teal-500/10 rounded-2xl border border-primary/20 backdrop-blur-xl">
             <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg sm:text-xl font-bold text-primary flex items-center gap-2">
                     <span className="material-symbols-outlined text-2xl">loyalty</span> Puntos
@@ -428,8 +428,13 @@ const ClientProfile = () => {
           </section>
           
           <div className="flex justify-end pt-4">
-            <button type="submit" className="btn-primary w-full sm:w-auto px-12 py-3 sm:py-4 text-base sm:text-lg shadow-lg hover:scale-[1.02] transition-transform" disabled={loading || postalCodeApiLoading}>
-                {loading ? 'Guardando...' : 'Guardar Cambios'}
+            <button 
+              type="submit" 
+              className="w-full sm:w-auto flex items-center justify-center gap-2 h-11 sm:h-12 px-8 rounded-2xl bg-primary hover:bg-primary-dark font-bold text-white text-sm sm:text-base shadow-md shadow-primary/25 hover:shadow-lg transition-all duration-200 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer" 
+              disabled={loading || postalCodeApiLoading}
+            >
+              {loading && <span className="material-symbols-outlined animate-spin text-lg">progress_activity</span>}
+              <span>{loading ? 'Guardando...' : 'Guardar Cambios'}</span>
             </button>
           </div>
         </form>
@@ -438,17 +443,24 @@ const ClientProfile = () => {
   };
 
   return (
-    <div className="font-display relative flex min-h-screen w-full flex-col bg-light dark:bg-dark text-dark dark:text-white overflow-x-hidden select-none pb-[72px] sm:pb-0">
-      <div className="flex flex-1 justify-center px-4 sm:px-6 lg:px-12 py-8">
+    <div className="font-display relative flex min-h-screen w-full flex-col bg-slate-50/50 dark:bg-[#0c1322] text-dark dark:text-white overflow-x-hidden select-none">
+      {/* Ambient water glow background */}
+      <div className="pointer-events-none fixed inset-0 overflow-hidden -z-10">
+        <div className="absolute top-10 left-10 h-96 w-96 rounded-full bg-cyan-400/15 dark:bg-cyan-500/10 blur-3xl" />
+        <div className="absolute bottom-20 right-10 h-80 w-80 rounded-full bg-blue-500/15 dark:bg-blue-600/10 blur-3xl" />
+      </div>
+
+      <div className="flex flex-1 justify-center px-4 pb-[130px] pt-[calc(1rem+env(safe-area-inset-top))] sm:p-6 md:p-8">
         <div className="flex h-full w-full max-w-4xl flex-col items-center justify-between">
           <ClientOrderHeader primaryLink={{ to: '/pedidos', label: 'Hacer Pedido' }} />
           {renderContent()}
-          <footer className="flex w-full flex-col items-center gap-6 py-10 text-center text-text-secondary dark:text-white/60">
+          <footer className="hidden sm:flex w-full flex-col items-center gap-4 py-8 text-center text-text-secondary dark:text-white/60">
             <div className="flex flex-col items-center gap-3 sm:flex-row sm:gap-8">
-              <a href="#" className="text-sm sm:text-base hover:text-primary dark:hover:text-primary">Ayuda y soporte</a>
-              <a href="#" className="text-sm sm:text-base hover:text-primary dark:hover:text-primary">Términos de servicio</a>
+              <a href="#" className="text-xs sm:text-sm font-medium hover:text-primary dark:hover:text-primary transition-colors">Ayuda y soporte</a>
+              <span className="text-gray-300 dark:text-gray-700 hidden sm:inline">•</span>
+              <a href="#" className="text-xs sm:text-sm font-medium hover:text-primary dark:hover:text-primary transition-colors">Términos de servicio</a>
             </div>
-            <p className="text-xs sm:text-sm">© {new Date().getFullYear()} Darmax. Todos los derechos reservados.</p>
+            <p className="text-[11px] sm:text-xs text-gray-400 dark:text-gray-500">© {new Date().getFullYear()} Darmax Agua Purificada. Todos los derechos reservados.</p>
           </footer>
         </div>
       </div>

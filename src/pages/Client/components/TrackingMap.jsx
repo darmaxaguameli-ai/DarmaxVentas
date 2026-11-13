@@ -3,6 +3,7 @@ import { MapContainer, TileLayer, Marker, Popup, useMap, Polyline } from 'react-
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { useTheme } from '../../../context/ThemeContext';
+import { getCartoTileUrl, CARTO_ATTRIBUTION, TILE_LAYER_OPTS } from '../../../utils/mapConfig';
 
 // --- Icons ---
 const createIcon = (bgColor, iconColor = 'white', iconPath) => {
@@ -67,7 +68,7 @@ const TrackingMap = ({ driverPosition, order }) => {
       return null;
   }, [driverPosition]);
 
-  const tileLayerUrl = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
+  const tileLayerUrl = getCartoTileUrl('voyager');
 
   return (
     <div className="w-full h-48 sm:h-64 rounded-xl overflow-hidden shadow-inner border border-gray-200 dark:border-gray-700 relative z-0">
@@ -81,7 +82,9 @@ const TrackingMap = ({ driverPosition, order }) => {
         >
             <MapController driverPosition={driverPos} destinationPosition={destinationPosition} />
             <TileLayer
+                attribution={CARTO_ATTRIBUTION}
                 url={tileLayerUrl}
+                {...TILE_LAYER_OPTS}
                 className={theme === 'dark' ? '!filter !invert-[0.9] !hue-rotate-180 !brightness-95 !saturate-[0.6] !contrast-[1.1]' : ''}
             />
 

@@ -5,6 +5,7 @@ const path = require('path');
 // https://vitejs.dev/config/
 module.exports = defineConfig({
   plugins: [react()],
+  envPrefix: ['VITE_', 'CATONMAPS'],
   server: {
     proxy: {
       '/api': {

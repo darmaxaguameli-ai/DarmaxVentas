@@ -70,7 +70,6 @@ const OrderCard = ({ order, onCancel }) => {
 
   // Extract driver position if available
   const driverPosition = useMemo(() => {
-      // Accessing via the 'repartidor' relation populated by the API
       const lat = order.repartidor?.lat;
       const lng = order.repartidor?.lng;
       if (lat && lng) return [lat, lng];
@@ -80,39 +79,42 @@ const OrderCard = ({ order, onCancel }) => {
   const showMap = order.status === 'EN_RUTA';
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md transition-shadow hover:shadow-lg overflow-hidden">
-      <div className="p-4 md:p-6 cursor-pointer" onClick={() => setIsExpanded(!isExpanded)}>
+    <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-2xl rounded-3xl border border-white/80 dark:border-white/10 shadow-md shadow-cyan-500/5 transition-all hover:shadow-xl hover:border-primary/40 overflow-hidden">
+      <div className="p-5 md:p-6 cursor-pointer" onClick={() => setIsExpanded(!isExpanded)}>
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div className="flex-grow">
-            <p className="font-bold text-lg text-primary">{order.customId}</p>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-primary text-xl">receipt</span>
+              <p className="font-black text-lg text-primary">{order.customId}</p>
+            </div>
+            <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-0.5">
               {formatDate(order.createdAt)}
             </p>
           </div>
-          <div className="flex flex-col sm:items-end gap-2">
+          <div className="flex flex-row sm:flex-col sm:items-end items-center justify-between w-full sm:w-auto gap-2">
             <StatusBadge status={order.status} />
-            <p className="font-bold text-xl text-gray-800 dark:text-white">${order.total.toFixed(2)}</p>
+            <p className="font-black text-xl text-gray-900 dark:text-white tabular-nums">${order.total.toFixed(2)}</p>
           </div>
-          <div className="flex items-center gap-4 text-gray-500 dark:text-gray-400">
+          <div className="flex items-center gap-3 text-gray-500 dark:text-gray-400 self-end sm:self-center">
              {isCancellable && (
                 <button
                     onClick={handleCancel}
-                    className="px-3 py-1 text-xs font-bold text-red-600 bg-red-100 dark:bg-red-900/30 dark:text-red-400 rounded-full border border-red-200 dark:border-red-800 hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors z-10"
+                    className="px-3.5 py-1 text-xs font-bold text-red-600 bg-red-100 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400 rounded-full border border-red-200 dark:border-red-800 transition-colors z-10"
                 >
                     Cancelar
                 </button>
              )}
-            <span className={`material-symbols-outlined transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}>
-              expand_more
-            </span>
+            <div className="h-8 w-8 rounded-full bg-gray-100 dark:bg-gray-700/60 flex items-center justify-center">
+              <span className={`material-symbols-outlined text-xl transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}>
+                expand_more
+              </span>
+            </div>
           </div>
         </div>
       </div>
       
-      {/* Map Section (Always visible if expanded OR if status is EN_RUTA and expanded is default behavior for tracking) */}
-      {/* We'll keep it inside expansion for clean UI, but maybe default expand if EN_RUTA? */}
       {isExpanded && (
-        <div className="border-t border-gray-200 dark:border-gray-700 p-4 md:p-6">
+        <div className="border-t border-gray-100 dark:border-gray-700/60 p-5 md:p-6 bg-gray-50/50 dark:bg-gray-900/30">
           
           {showMap && (
               <div className="mb-6">
@@ -124,7 +126,7 @@ const OrderCard = ({ order, onCancel }) => {
               </div>
           )}
 
-          <h4 className="font-semibold mb-2 text-gray-700 dark:text-gray-300">Detalles del Pedido:</h4>
+          <h4 className="font-black text-xs uppercase tracking-wider mb-3 text-gray-500 dark:text-gray-400">Detalles del Pedido:</h4>
           <div className="space-y-2">
             {order.items.map(item => <OrderItemDetails key={item.id} item={item} />)}
           </div>
@@ -212,8 +214,12 @@ const MisPedidos = () => {
         <div className="text-center py-10 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
           <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-300">No has realizado ningún pedido todavía.</h3>
           <p className="mt-2 text-gray-500 dark:text-gray-400">¡Anímate a hacer tu primer pedido!</p>
-          <Link to="/pedidos" className="mt-4 inline-block btn-primary">
-            Hacer un Pedido
+          <Link 
+            to="/pedidos" 
+            className="mt-4 inline-flex items-center justify-center gap-2 h-11 sm:h-12 px-6 rounded-2xl bg-primary hover:bg-primary-dark text-white font-bold text-sm sm:text-base shadow-md shadow-primary/25 hover:shadow-lg transition-all duration-200 active:scale-95 cursor-pointer"
+          >
+            <span>Hacer un Pedido</span>
+            <span className="material-symbols-outlined text-lg">arrow_forward</span>
           </Link>
         </div>
       );
@@ -264,28 +270,35 @@ const MisPedidos = () => {
   };
 
   return (
-    <div className="font-display relative flex min-h-screen w-full flex-col bg-light dark:bg-dark text-dark dark:text-white overflow-x-hidden select-none pb-[72px] sm:pb-0">
-      <div className="flex flex-1 justify-center px-4 sm:px-6 lg:px-12 py-8">
+    <div className="font-display relative flex min-h-screen w-full flex-col bg-slate-50/50 dark:bg-[#0c1322] text-dark dark:text-white overflow-x-hidden select-none">
+      {/* Ambient water glow background */}
+      <div className="pointer-events-none fixed inset-0 overflow-hidden -z-10">
+        <div className="absolute top-10 left-10 h-96 w-96 rounded-full bg-cyan-400/15 dark:bg-cyan-500/10 blur-3xl" />
+        <div className="absolute bottom-20 right-10 h-80 w-80 rounded-full bg-blue-500/15 dark:bg-blue-600/10 blur-3xl" />
+      </div>
+
+      <div className="flex flex-1 justify-center px-4 pb-[130px] pt-[calc(1rem+env(safe-area-inset-top))] sm:p-6 md:p-8">
         <div className="flex h-full w-full max-w-4xl flex-col items-center justify-between">
           <ClientOrderHeader primaryLink={{ to: '/pedidos', label: 'Hacer Pedido' }} />
 
           <main className="w-full flex flex-col mt-4">
             <div className="mb-6 w-full text-center sm:mb-8 sm:text-left">
-               <h1 className="text-2xl sm:text-3xl md:text-4xl font-black leading-tight tracking-[-0.03em]">Mis Pedidos</h1>
-               <p className="text-text-secondary dark:text-white/70 text-base leading-normal">
-                 Aquí puedes ver el historial y el estado de todos tus pedidos, {user?.name}.
+               <h1 className="text-2xl sm:text-3xl md:text-4xl font-black leading-tight tracking-tight">Mis Pedidos</h1>
+               <p className="text-text-secondary dark:text-white/70 text-sm sm:text-base leading-normal mt-1">
+                 Aquí puedes consultar el estado en tiempo real y el historial de tus pedidos{user?.name ? `, ${user.name}` : ''}.
                </p>
             </div>
             {renderContent()}
           </main>
 
-          <footer className="flex w-full flex-col items-center gap-6 py-10 text-center text-text-secondary dark:text-white/60">
+          <footer className="hidden sm:flex w-full flex-col items-center gap-4 py-8 text-center text-text-secondary dark:text-white/60">
             <div className="flex flex-col items-center gap-3 sm:flex-row sm:gap-8">
-              <a href="#" className="text-sm sm:text-base hover:text-primary dark:hover:text-primary">Ayuda y soporte</a>
-              <a href="#" className="text-sm sm:text-base hover:text-primary dark:hover:text-primary">Términos de servicio</a>
+              <a href="#" className="text-xs sm:text-sm font-medium hover:text-primary dark:hover:text-primary transition-colors">Ayuda y soporte</a>
+              <span className="text-gray-300 dark:text-gray-700 hidden sm:inline">•</span>
+              <a href="#" className="text-xs sm:text-sm font-medium hover:text-primary dark:hover:text-primary transition-colors">Términos de servicio</a>
             </div>
-            <p className="text-xs sm:text-sm">
-              © {new Date().getFullYear()} Darmax. Todos los derechos reservados.
+            <p className="text-[11px] sm:text-xs text-gray-400 dark:text-gray-500">
+              © {new Date().getFullYear()} Darmax Agua Purificada. Todos los derechos reservados.
             </p>
           </footer>
         </div>

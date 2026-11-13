@@ -14,6 +14,7 @@ import { useAuth } from '../../context/AuthContext';
 import { FaMapMarkerAlt, FaDirections, FaSearch, FaPlus, FaEdit, FaTrash, FaFileContract, FaPhone } from 'react-icons/fa';
 import Swal from 'sweetalert2';
 import { toast } from 'sonner';
+import { TILE_LAYER_OPTS } from '../../utils/mapConfig';
 
 // Solución para los iconos de Leaflet que a veces no cargan en React
 delete L.Icon.Default.prototype._getIconUrl;
@@ -427,6 +428,7 @@ const ShowcaseMap = () => {
                     <TileLayer
                         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                        {...TILE_LAYER_OPTS}
                     />
 
                     {/* Controlador de movimiento */}

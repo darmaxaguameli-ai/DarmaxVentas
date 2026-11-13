@@ -167,23 +167,25 @@ const RefillJugStepOne = () => {
 
     return (
       <>
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="flex flex-col gap-1">
-            <span className="text-sm sm:text-base text-text-secondary dark:text-white/80">
-              Garrafones seleccionados:{" "}
-              <span className="font-bold text-primary text-lg">
-                {totalJugs}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 rounded-2xl bg-white/60 dark:bg-gray-800/60 border border-white/60 dark:border-white/10 backdrop-blur-xl">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+              <span className="material-symbols-outlined text-2xl">water_drop</span>
+            </div>
+            <div className="flex flex-col">
+              <span className="text-xs sm:text-sm text-text-secondary dark:text-white/70">
+                Garrafones a rellenar:
               </span>
-            </span>
-            <span className="text-xs text-gray-500">
-              <span className="font-semibold text-dark dark:text-white">Tip:</span> toca el garrafón para agregar uno.
-            </span>
+              <span className="font-black text-primary text-xl sm:text-2xl leading-tight">
+                {totalJugs} {totalJugs === 1 ? 'garrafón' : 'garrafones'}
+              </span>
+            </div>
           </div>
 
           {preferences && (
             <button 
               onClick={applyPreferences}
-              className="flex items-center gap-2 px-4 py-2 bg-primary/10 text-primary rounded-full text-sm font-bold hover:bg-primary/20 transition-all active:scale-95"
+              className="flex items-center justify-center gap-2 px-5 py-2.5 bg-primary/10 hover:bg-primary hover:text-white text-primary rounded-2xl text-xs sm:text-sm font-bold border border-primary/20 transition-all active:scale-95 shadow-sm"
             >
               <span className="material-symbols-outlined text-lg">history</span>
               Cargar mi pedido habitual
@@ -239,21 +241,22 @@ const RefillJugStepOne = () => {
             </label>
           )}
 
-          <div className="flex justify-between items-center">
+          <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
             <button
               type="button"
               onClick={handleGoToStart}
-              className="hidden md:block text-sm font-medium text-text-secondary dark:text-white/70 hover:text-primary dark:hover:text-primary transition-colors"
+              className="hidden md:flex h-11 sm:h-12 items-center justify-center rounded-2xl border border-white/80 dark:border-white/10 bg-white/80 dark:bg-gray-800/80 text-gray-700 dark:text-gray-200 text-sm sm:text-base font-bold px-6 hover:bg-white dark:hover:bg-gray-700 backdrop-blur-xl shadow-sm transition-all duration-200 active:scale-95 cursor-pointer"
             >
-              &larr; Volver al inicio
+              Volver al inicio
             </button>
             <button
               type="button"
               onClick={handleContinue}
-              className="w-full md:w-auto flex items-center justify-center rounded-xl bg-primary text-white px-10 h-14 text-lg font-black shadow-xl shadow-primary/30 hover:bg-primary-dark transition-all active:scale-[0.98] disabled:opacity-50 disabled:scale-100"
+              className="w-full md:w-auto flex items-center justify-center gap-2 rounded-2xl bg-primary text-white px-7 h-11 sm:h-12 text-sm sm:text-base font-bold shadow-md shadow-primary/25 hover:shadow-lg hover:bg-primary-dark transition-all duration-200 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               disabled={totalJugs === 0}
             >
-              Continuar al paso 2
+              <span>Continuar al paso 2</span>
+              <span className="material-symbols-outlined text-lg">arrow_forward</span>
             </button>
           </div>
         </div>

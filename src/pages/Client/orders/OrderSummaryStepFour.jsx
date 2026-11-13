@@ -312,40 +312,55 @@ const OrderSummaryStepFour = () => {
       step={4}
       totalSteps={4}
     >
-      <div className="w-full max-w-2xl mx-auto flex flex-col gap-4 sm:gap-6">
+      <div className="w-full max-w-2xl mx-auto flex flex-col gap-5 sm:gap-6">
         
-        {/* Banner de Unificación */}
-        <div className="bg-primary/10 border border-primary/20 p-4 rounded-xl flex items-center gap-3">
-            <div className="h-10 w-10 rounded-full bg-primary flex items-center justify-center text-white shrink-0">
-                <span className="material-symbols-outlined">shopping_bag</span>
+        {/* Banner de Unificación / Status */}
+        <div className="bg-gradient-to-r from-primary/10 via-cyan-500/10 to-teal-500/10 border border-primary/20 p-4 rounded-3xl flex items-center gap-3 backdrop-blur-xl">
+            <div className="h-11 w-11 rounded-2xl bg-gradient-to-br from-primary to-cyan-600 flex items-center justify-center text-white shrink-0 shadow-md shadow-primary/25">
+                <span className="material-symbols-outlined text-2xl">shopping_bag</span>
             </div>
-            <p className="text-sm font-bold text-primary leading-tight">
-                Revisa tu pedido final. Si tienes un cupón, puedes aplicarlo abajo.
+            <p className="text-xs sm:text-sm font-bold text-gray-800 dark:text-gray-100 leading-tight">
+                Revisa tu pedido final. Si tienes un cupón de descuento, puedes aplicarlo abajo.
             </p>
         </div>
 
-        {/* Detalle de Entrega */}
-        <div className="rounded-xl bg-light/60 dark:bg-dark/70 border border-light/60 dark:border-white/15 p-4 flex flex-col gap-1">
-          <p className="text-[10px] font-black text-text-secondary dark:text-white/50 uppercase tracking-widest">Entrega</p>
-          <p className="text-base font-bold text-dark dark:text-white">{deliveryLabels[deliveryMethod] || "Entrega a domicilio"}</p>
+        {/* Detalle de Entrega Glass */}
+        <div className="rounded-3xl bg-white/70 dark:bg-gray-800/70 border border-white/80 dark:border-white/10 p-5 flex items-center justify-between backdrop-blur-xl shadow-xs">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+              <span className="material-symbols-outlined text-xl">
+                {deliveryMethod === 'pickup' ? 'storefront' : deliveryMethod === 'home_collection' ? 'recycling' : 'local_shipping'}
+              </span>
+            </div>
+            <div>
+              <p className="text-[10px] font-black text-text-secondary dark:text-white/50 uppercase tracking-widest">Método de Entrega</p>
+              <p className="text-base font-bold text-dark dark:text-white leading-tight">{deliveryLabels[deliveryMethod] || "Entrega a domicilio"}</p>
+            </div>
+          </div>
+          <span className="text-xs font-bold px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+            Confirmado
+          </span>
         </div>
 
         {/* Sección de Cupones */}
-        <div className="rounded-xl border border-dashed border-gray-300 dark:border-gray-700 p-4 bg-white dark:bg-dark/40">
-          <p className="text-xs font-bold text-gray-500 uppercase mb-2">¿Tienes un código de descuento?</p>
+        <div className="rounded-3xl border border-white/80 dark:border-white/10 p-5 bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl shadow-xs">
+          <p className="text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
+            <span className="material-symbols-outlined text-primary text-base">confirmation_number</span>
+            ¿Tienes un código de descuento?
+          </p>
           <div className="flex gap-2">
             <input 
               type="text" 
               value={couponInput}
               onChange={(e) => setCouponInput(e.target.value)}
               placeholder="Escribe tu código..."
-              className="flex-1 input-style uppercase"
+              className="flex-1 px-4 py-2.5 rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-sm font-bold uppercase focus:ring-2 focus:ring-primary/50 outline-none"
               disabled={!!appliedPromotion}
             />
             {appliedPromotion ? (
               <button 
                 onClick={() => { setAppliedPromotion(null); setCouponInput(""); }}
-                className="px-4 py-2 bg-red-100 text-red-600 rounded-lg font-bold text-sm hover:bg-red-200"
+                className="px-5 py-2.5 bg-red-100 hover:bg-red-200 text-red-600 rounded-2xl font-bold text-sm transition-all active:scale-95"
               >
                 Quitar
               </button>
@@ -353,20 +368,20 @@ const OrderSummaryStepFour = () => {
               <button 
                 onClick={handleApplyCoupon}
                 disabled={!couponInput || isValidatingCoupon}
-                className="px-4 py-2 bg-dark dark:bg-white dark:text-dark text-white rounded-lg font-bold text-sm hover:opacity-90 disabled:opacity-50"
+                className="px-6 py-2.5 bg-primary hover:bg-primary-dark text-white rounded-2xl font-bold text-sm shadow-md shadow-primary/25 disabled:opacity-50 transition-all active:scale-95"
               >
                 {isValidatingCoupon ? "..." : "Aplicar"}
               </button>
             )}
           </div>
           {appliedPromotion && (
-            <p className="text-[11px] text-emerald-600 font-bold mt-2 flex items-center gap-1">
+            <p className="text-xs text-emerald-600 dark:text-emerald-400 font-bold mt-2.5 flex items-center gap-1">
               <span className="material-symbols-outlined text-sm">check_circle</span>
               Promoción "{appliedPromotion.name}" aplicada correctamente.
             </p>
           )}
           {autoPromotion && (
-            <p className="text-[11px] text-primary font-bold mt-2 flex items-center gap-1">
+            <p className="text-xs text-primary font-bold mt-2.5 flex items-center gap-1">
               <span className="material-symbols-outlined text-sm">auto_awesome</span>
               Descuento automático: "{autoPromotion.name}" activo.
             </p>
@@ -375,96 +390,122 @@ const OrderSummaryStepFour = () => {
 
         {/* Sección de Recompensas (Puntos) */}
         {isAuthenticated && redeemableItem && (
-            <div className="rounded-xl bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/10 dark:to-orange-900/10 border border-yellow-200 dark:border-yellow-700/30 p-4">
+            <div className="rounded-3xl bg-gradient-to-r from-amber-500/10 via-yellow-500/10 to-orange-500/10 dark:from-amber-950/20 dark:via-yellow-950/20 dark:to-orange-950/20 border border-amber-300/40 dark:border-amber-600/30 p-5 backdrop-blur-xl shadow-xs">
                 <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-                    <div>
-                        <h3 className="font-bold text-yellow-800 dark:text-yellow-400 flex items-center gap-2">
-                            <span className="material-symbols-outlined">stars</span> ¡Canje de Puntos!
-                        </h3>
-                        <p className="text-[11px] text-yellow-900/80 dark:text-yellow-200/60 mt-1">
-                            Tienes <strong>{user.loyaltyPoints} puntos</strong>. <br/>
-                            Puedes canjear <strong>{redeemableItem.price * 10} puntos</strong> por un <strong>{redeemableItem.name}</strong> gratis.
-                        </p>
+                    <div className="flex items-center gap-3">
+                        <div className="h-11 w-11 rounded-2xl bg-gradient-to-br from-amber-400 to-yellow-500 flex items-center justify-center text-white shrink-0 shadow-md shadow-amber-500/25">
+                            <span className="material-symbols-outlined text-2xl">stars</span>
+                        </div>
+                        <div>
+                            <h3 className="font-bold text-amber-900 dark:text-amber-300 text-base">
+                                ¡Canje de Puntos de Lealtad!
+                            </h3>
+                            <p className="text-xs text-amber-800/80 dark:text-amber-200/70 mt-0.5 leading-snug">
+                                Tienes <strong>{user.loyaltyPoints} puntos</strong>. Puedes canjear <strong>{redeemableItem.price * 10} pts</strong> por un <strong>{redeemableItem.name}</strong> gratis.
+                            </p>
+                        </div>
                     </div>
                     <button 
                       onClick={toggleRedemption} 
-                      className={`px-4 py-2 rounded-lg font-bold text-sm shadow-sm transition-all ${pointsToRedeem > 0 ? 'bg-red-500 text-white' : 'bg-yellow-400 text-yellow-900 hover:bg-yellow-500'}`}
+                      className={`px-5 py-2.5 rounded-2xl font-bold text-xs sm:text-sm shadow-sm transition-all active:scale-95 shrink-0 ${pointsToRedeem > 0 ? 'bg-red-500 text-white hover:bg-red-600' : 'bg-gradient-to-r from-amber-400 to-yellow-500 text-yellow-950 hover:brightness-105 font-black'}`}
                     >
-                        {pointsToRedeem > 0 ? 'Cancelar' : 'Canjear'}
+                        {pointsToRedeem > 0 ? 'Cancelar canje' : 'Canjear ahora'}
                     </button>
                 </div>
             </div>
         )}
 
-        {/* Lista de Productos */}
-        <div className="flex flex-col gap-4">
-          <h2 className="text-lg font-black text-dark dark:text-white uppercase tracking-tight">Tu Detalle</h2>
-          <div className="flex flex-col divide-y divide-light/60 dark:divide-white/10">
+        {/* Lista de Productos Glass Card */}
+        <div className="rounded-3xl bg-white/80 dark:bg-gray-800/80 border border-white/80 dark:border-white/10 p-5 sm:p-6 backdrop-blur-2xl shadow-xl flex flex-col gap-4">
+          <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-700/60 pb-3">
+            <h2 className="text-base font-black text-dark dark:text-white uppercase tracking-tight flex items-center gap-2">
+              <span className="material-symbols-outlined text-primary text-xl">receipt_long</span>
+              Tu Detalle de Compra
+            </h2>
+            <span className="text-xs font-bold text-gray-500 dark:text-gray-400">
+              {orderItems.length} {orderItems.length === 1 ? 'artículo' : 'artículos'}
+            </span>
+          </div>
+
+          <div className="flex flex-col divide-y divide-gray-100 dark:divide-gray-700/60">
             {orderItems.map((item, index) => (
-              <div key={`${index}`} className="flex items-center justify-between py-3">
+              <div key={`${index}`} className="flex items-center justify-between py-3.5">
                 <div className="flex items-center gap-3">
-                  <div className="h-12 w-12 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center overflow-hidden border dark:border-white/5">
+                  <div className="h-12 w-12 rounded-2xl bg-gray-50 dark:bg-gray-700/50 flex items-center justify-center p-1 border border-white/60 dark:border-white/5">
                     <img src={item.imageUrl || item.jugBrandImageUrl} alt="img" className="h-full w-full object-contain" />
                   </div>
                   <div>
-                    <p className="font-bold text-sm sm:text-base leading-none">{item.name || item.jugBrandName}</p>
-                    <p className="text-[11px] text-text-secondary dark:text-white/60 mt-1.5">{item.quantity} x {item.description}</p>
+                    <p className="font-bold text-sm sm:text-base text-gray-900 dark:text-white leading-tight">{item.name || item.jugBrandName}</p>
+                    <p className="text-xs text-text-secondary dark:text-white/60 mt-0.5">{item.quantity} x {item.description}</p>
                   </div>
                 </div>
-                <span className="font-black text-sm sm:text-base text-dark dark:text-white">
+                <span className="font-black text-base text-gray-900 dark:text-white tabular-nums">
                     {item.price === 0 ? "GRATIS" : `$${(item.price * item.quantity).toFixed(2)}`}
                 </span>
               </div>
             ))}
             
             {/* Desglose de Descuentos */}
-            <div className="pt-3 flex flex-col gap-2">
+            <div className="pt-4 flex flex-col gap-2.5">
                 <div className="flex items-center justify-between text-sm">
-                    <span className="text-text-secondary">Subtotal</span>
-                    <span className="font-bold">${subtotal.toFixed(2)}</span>
+                    <span className="text-text-secondary font-medium">Subtotal</span>
+                    <span className="font-bold text-gray-900 dark:text-white">${subtotal.toFixed(2)}</span>
                 </div>
                 
                 {collectionFee > 0 && (
                     <div className="flex items-center justify-between text-sm">
-                        <span className="text-text-secondary uppercase">Costo de recolección</span>
+                        <span className="text-text-secondary uppercase text-xs font-semibold">Costo de recolección</span>
                         <span className="font-bold text-dark dark:text-white">${collectionFee.toFixed(2)}</span>
                     </div>
                 )}
 
                 {discountTotal > 0 && (
-                    <div className="flex items-center justify-between text-emerald-600 font-bold text-sm">
-                        <span className="uppercase">Ahorro por Promoción</span>
+                    <div className="flex items-center justify-between text-emerald-600 dark:text-emerald-400 font-bold text-sm">
+                        <span className="uppercase text-xs tracking-wider">Ahorro por Promoción</span>
                         <span>-${discountTotal.toFixed(2)}</span>
                     </div>
                 )}
 
                 {pointsToRedeem > 0 && (
-                    <div className="flex items-center justify-between text-yellow-600 dark:text-yellow-400 font-bold text-sm">
-                        <span className="uppercase tracking-tighter">Canje de Puntos ({pointsCost} pts)</span>
+                    <div className="flex items-center justify-between text-amber-600 dark:text-amber-400 font-bold text-sm">
+                        <span className="uppercase text-xs tracking-wider">Canje de Puntos ({pointsCost} pts)</span>
                         <span>-${pointsToRedeem.toFixed(2)}</span>
                     </div>
                 )}
             </div>
           </div>
-        </div>
 
-        {/* Total Final */}
-        <div className="border-t-2 border-dashed border-light dark:border-white/10 pt-6">
-            <div className="flex items-center justify-between font-black">
-                <p className="text-xl uppercase tracking-tighter">Total Final</p>
-                <p className="text-4xl text-primary tracking-tighter">${displayTotal.toFixed(2)}</p>
+          {/* Total Final destacado */}
+          <div className="border-t-2 border-dashed border-gray-200 dark:border-gray-700 pt-5 mt-2">
+            <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs uppercase font-black text-gray-500 tracking-wider">Total a Pagar</p>
+                  <p className="text-sm text-text-secondary dark:text-white/60 font-medium">IVA incluido</p>
+                </div>
+                <p className="text-3xl sm:text-4xl font-black text-primary tracking-tight tabular-nums">
+                  ${displayTotal.toFixed(2)}
+                </p>
             </div>
+          </div>
         </div>
 
-        <footer className="mt-8 flex flex-col sm:flex-row gap-4 justify-between pb-10">
-            <button type="button" onClick={() => navigate(-1)} className="btn-secondary w-full sm:w-auto h-14">Regresar</button>
+        <footer className="mt-4 flex flex-col sm:flex-row gap-4 justify-between pb-10">
+            <button 
+              type="button" 
+              onClick={() => navigate(-1)} 
+              className="hidden md:flex h-11 sm:h-12 w-full sm:w-auto items-center justify-center rounded-2xl border border-white/80 dark:border-white/10 bg-white/80 dark:bg-gray-800/80 text-gray-700 dark:text-gray-200 text-sm sm:text-base font-bold px-6 hover:bg-white dark:hover:bg-gray-700 backdrop-blur-xl shadow-sm transition-all duration-200 active:scale-95 cursor-pointer"
+            >
+              Regresar
+            </button>
             <button
                 type="button"
                 onClick={handleConfirm}
                 disabled={isSubmitting || orderItems.length === 0}
-                className="btn-primary w-full sm:w-auto h-14 px-12 text-lg font-black shadow-xl shadow-primary/20"
+                className="w-full sm:w-auto flex items-center justify-center gap-2 rounded-2xl bg-primary hover:bg-primary-dark px-8 h-11 sm:h-12 text-sm sm:text-base font-bold text-white shadow-md shadow-primary/25 hover:shadow-lg transition-all duration-200 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
-                {isSubmitting ? "Finalizando..." : "Confirmar mi Pedido"}
+                {isSubmitting && <span className="material-symbols-outlined animate-spin text-lg">progress_activity</span>}
+                <span>{isSubmitting ? "Finalizando pedido..." : "Confirmar mi Pedido"}</span>
+                {!isSubmitting && <span className="material-symbols-outlined text-lg">check_circle</span>}
             </button>
         </footer>
       </div>

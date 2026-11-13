@@ -2,15 +2,30 @@ import React from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { useClient } from '../pages/Client/context/ClientContext'; // Import useClient
+import { triggerHaptic } from '../utils/haptics';
 import Swal from 'sweetalert2';
+import {
+  RiHome5Line,
+  RiHome5Fill,
+  RiFileList3Line,
+  RiFileList3Fill,
+  RiShoppingBag3Line,
+  RiShoppingBag3Fill,
+  RiUser3Line,
+  RiUser3Fill,
+  RiSunLine,
+  RiSunFill,
+  RiMoonClearLine,
+  RiMoonClearFill,
+  RiLogoutBoxRLine,
+  RiLoginCircleLine,
+} from 'react-icons/ri';
 
 const ClientOrderHeader = ({ primaryLink, showOrderSelectionButton }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { logout, user, isAuthenticated } = useAuth(); 
   const { theme, toggleTheme } = useTheme();
-  const { selectedStore, loadingLocation } = useClient(); // Use client context
 
   const linkToShow = primaryLink || { to: '/mis-pedidos', label: 'Pedidos' };
   const currentPath = location.pathname;
@@ -35,10 +50,8 @@ const ClientOrderHeader = ({ primaryLink, showOrderSelectionButton }) => {
     if (result.isConfirmed) {
       const userName = user?.name; // Guardar nombre antes de limpiar
       navigate('/logout-success', { state: { name: userName } });
-      // Pequeño delay para asegurar que la navegación ocurra antes de que 
-      // AuthContext actualice y potencialmente redirija a /login
       setTimeout(() => {
-          logout();
+        logout();
       }, 100);
     }
   };
@@ -46,138 +59,202 @@ const ClientOrderHeader = ({ primaryLink, showOrderSelectionButton }) => {
   return (
     <nav
       className="flex items-center justify-between 
-                 fixed bottom-0 left-0 w-full z-[100]
-                 rounded-t-[1.5rem] 
-                 border-t border-gray-200 dark:border-gray-700
-                 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md
-                 px-4 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))]
+                 fixed bottom-3 left-1/2 -translate-x-1/2 w-[calc(100%-1.25rem)] max-w-lg z-[100]
+                 rounded-3xl 
+                 border border-white/70 dark:border-white/10
+                 bg-white/90 dark:bg-gray-900/90 backdrop-blur-2xl
+                 shadow-2xl shadow-black/15
+                 px-2 py-1 pb-[max(0.35rem,env(safe-area-inset-bottom))]
                  
-                 sm:relative sm:inset-auto sm:w-full sm:rounded-2xl sm:border sm:border-b sm:shadow-md sm:px-6 sm:py-4 sm:bg-white/90 sm:dark:bg-dark/60 sm:pb-4 sm:pt-4"
+                 sm:relative sm:bottom-auto sm:left-auto sm:translate-x-0 sm:w-full sm:max-w-none sm:rounded-3xl 
+                 sm:border sm:border-white/70 sm:dark:border-white/10 sm:shadow-xl sm:shadow-primary/5 
+                 sm:px-6 sm:py-3.5 sm:bg-white/80 sm:dark:bg-gray-800/80 sm:backdrop-blur-2xl"
     >
-      {/* --- DESKTOP LOGO & INFO (Hidden on mobile) --- */}
-      <Link to="/pedidos" className="hidden sm:flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl text-primary bg-transparent">
-          <img 
-            src={theme === 'dark' ? '/img/logos/LogoTO.png' : '/img/logos/darmax-logo.png'} 
-            alt="Darmax Logo" 
-            className="h-full w-auto object-contain" 
-          />
-        </div>
-
-        <div className="flex flex-col items-start">
-          <span className="text-xs font-semibold text-text-secondary dark:text-white/60">
-            Sistema de pedidos
-          </span>
-          <h2 className="text-xl font-bold tracking-[-0.02em] leading-tight">
-            Darmax Agua
-          </h2>
-          {/* Store Indicator Desktop */}
-          <div className="flex items-center gap-1 mt-0.5">
-            {loadingLocation ? (
-                <span className="text-xs text-gray-400 animate-pulse">Ubicando sucursal...</span>
-            ) : selectedStore ? (
-                <span className="bg-primary/10 text-primary px-1.5 py-0.5 rounded text-xs font-medium flex items-center gap-1">
-                    <span className="material-symbols-outlined text-xs">store</span>
-                    <span className="truncate">{selectedStore.name}</span>
-                </span>
-            ) : (
-                <span className="text-xs text-gray-400">Sin sucursal cercana</span>
-            )}
-          </div>
-        </div>
+      {/* --- DESKTOP / TOTEM LOGO & INFO (Hidden on mobile) --- */}
+      <Link 
+        to="/pedidos" 
+        onClick={() => triggerHaptic(10)}
+        className="hidden sm:flex items-center gap-3.5 group cursor-pointer select-none"
+      >
+        <img 
+          src={theme === 'dark' ? '/img/logos/LogoTO.png' : '/img/logos/darmax-logo.png'} 
+          alt="Darmax Logo" 
+          className="h-12 w-auto object-contain drop-shadow-sm group-hover:scale-105 transition-transform duration-200" 
+        />
+        <h2 className="text-2xl font-black tracking-tight leading-none text-gray-900 dark:text-white group-hover:text-primary transition-colors">
+          Darmax Agua
+        </h2>
       </Link>
 
-      {/* --- MOBILE NAVIGATION BAR (Visible only on mobile) --- */}
-      <div className="flex sm:hidden w-full items-center justify-around px-1 py-2">
-        {/* Helper for Nav Items */}
+      {/* --- MOBILE NAVIGATION DOCK (Visible only on mobile) --- */}
+      <div className="flex sm:hidden w-full items-center justify-between px-0.5 py-0.5">
         {[
-            { to: '/pedidos', icon: 'home', label: 'Inicio', active: currentPath === '/pedidos' },
-            { 
-                to: linkToShow.to, 
-                icon: linkToShow.to === '/mis-pedidos' ? 'receipt_long' : 'add_shopping_cart', 
-                label: 'Pedidos', 
-                active: currentPath === '/mis-pedidos' || (currentPath.startsWith('/pedidos/') && currentPath !== '/pedidos'), 
-                show: isAuthenticated 
-            },
-            { to: '/login', icon: 'login', label: 'Entrar', active: isActive('/login'), show: !isAuthenticated },
-            { to: '/profile', icon: 'person', label: 'Perfil', active: isActive('/profile'), show: isAuthenticated },
-            { action: toggleTheme, icon: theme === 'dark' ? 'light_mode' : 'dark_mode', label: 'Tema', active: false, show: isAuthenticated },
-            { action: handleLogout, icon: 'logout', label: 'Salir', active: false, isDanger: true, show: isAuthenticated }
+          {
+            to: '/pedidos',
+            icon: RiHome5Line,
+            activeIcon: RiHome5Fill,
+            label: 'Inicio',
+            active: currentPath === '/pedidos',
+          },
+          {
+            to: linkToShow.to,
+            icon: linkToShow.to === '/mis-pedidos' ? RiFileList3Line : RiShoppingBag3Line,
+            activeIcon: linkToShow.to === '/mis-pedidos' ? RiFileList3Fill : RiShoppingBag3Fill,
+            label: linkToShow.label || 'Pedidos',
+            active: currentPath === '/mis-pedidos' || (currentPath.startsWith('/pedidos/') && currentPath !== '/pedidos'),
+            show: isAuthenticated,
+          },
+          {
+            to: '/login',
+            icon: RiLoginCircleLine,
+            activeIcon: RiLoginCircleLine,
+            label: 'Entrar',
+            active: isActive('/login'),
+            show: !isAuthenticated,
+          },
+          {
+            to: '/profile',
+            icon: RiUser3Line,
+            activeIcon: RiUser3Fill,
+            label: 'Perfil',
+            active: isActive('/profile'),
+            show: isAuthenticated,
+          },
+          {
+            action: toggleTheme,
+            icon: theme === 'dark' ? RiSunLine : RiMoonClearLine,
+            activeIcon: theme === 'dark' ? RiSunFill : RiMoonClearFill,
+            iconColor: theme === 'dark' ? 'text-amber-400' : 'text-indigo-500',
+            label: theme === 'dark' ? 'Claro' : 'Oscuro',
+            active: false,
+            show: isAuthenticated,
+          },
+          {
+            action: handleLogout,
+            icon: RiLogoutBoxRLine,
+            activeIcon: RiLogoutBoxRLine,
+            label: 'Salir',
+            active: false,
+            isDanger: true,
+            show: isAuthenticated,
+          },
         ].filter(item => item.show !== false).map((item, index) => {
-            const activeClass = item.active 
-                ? 'bg-primary/10 text-primary' 
-                : 'text-text-secondary/70 dark:text-white/50 hover:bg-gray-50 dark:hover:bg-white/5';
-            
-            const iconClass = item.active ? 'text-primary' : 'text-current';
+          const IconComponent = item.active ? item.activeIcon : item.icon;
 
-            // Common content for Link and Button
-            const Content = () => (
-                <>
-                    <div className={`
-                        flex items-center justify-center rounded-2xl px-5 py-1.5 mb-1 transition-all duration-300
-                        ${item.isDanger ? 'bg-red-50 text-red-500 dark:bg-red-900/20' : activeClass}
-                    `}>
-                        <span className="material-symbols-outlined text-2xl">
-                            {item.icon}
-                        </span>
-                    </div>
-                    <span className={`text-[10px] font-bold ${item.active ? 'text-primary' : (item.isDanger ? 'text-red-500' : 'text-text-secondary/70 dark:text-white/50')}`}>
-                        {item.label}
-                    </span>
-                </>
-            );
+          const Content = () => (
+            <div className="flex flex-col items-center justify-center gap-1 select-none w-full">
+              <div
+                className={`flex items-center justify-center w-10 h-8 rounded-full transition-all duration-200 ${
+                  item.isDanger
+                    ? 'text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 active:scale-90'
+                    : item.active
+                    ? 'bg-primary/15 dark:bg-primary/25 text-primary dark:text-blue-400 shadow-sm shadow-primary/20 scale-105'
+                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100/70 dark:hover:bg-gray-800/70 active:scale-95'
+                }`}
+              >
+                <IconComponent className={`text-[21px] transition-transform ${item.iconColor || ''}`} />
+              </div>
+              <span
+                className={`text-[10px] tracking-tight leading-none transition-colors ${
+                  item.isDanger
+                    ? 'text-rose-500 font-semibold'
+                    : item.active
+                    ? 'text-primary dark:text-blue-400 font-bold'
+                    : 'text-gray-500 dark:text-gray-400 font-medium'
+                }`}
+              >
+                {item.label}
+              </span>
+            </div>
+          );
 
-            return item.to ? (
-                <Link key={index} to={item.to} className="flex flex-col items-center justify-center w-full">
-                    <Content />
-                </Link>
-            ) : (
-                <button key={index} onClick={item.action} className="flex flex-col items-center justify-center w-full">
-                    <Content />
-                </button>
-            );
+          return item.to ? (
+            <Link 
+              key={index} 
+              to={item.to} 
+              onClick={() => triggerHaptic(10)}
+              className="flex-1 flex items-center justify-center py-1 touch-manipulation cursor-pointer"
+            >
+              <Content />
+            </Link>
+          ) : (
+            <button 
+              key={index} 
+              type="button"
+              onClick={() => {
+                triggerHaptic(12);
+                item.action();
+              }} 
+              className="flex-1 flex items-center justify-center py-1 touch-manipulation cursor-pointer border-0 bg-transparent"
+            >
+              <Content />
+            </button>
+          );
         })}
       </div>
 
-      {/* --- DESKTOP RIGHT MENU (Hidden on mobile) --- */}
-      <div className="hidden sm:flex items-center gap-4">
+      {/* --- DESKTOP / TOTEM RIGHT MENU (Touch-friendly & Glassmorphic) --- */}
+      <div className="hidden sm:flex items-center gap-3">
         {isAuthenticated ? (
           <>
             <Link
               to={linkToShow.to}
-              className="text-sm font-medium text-text-secondary dark:text-white/70 hover:text-primary dark:hover:text-primary transition-colors"
+              onClick={() => triggerHaptic(10)}
+              className="flex items-center gap-2 h-11 px-4 rounded-2xl bg-white/70 dark:bg-gray-700/60 border border-gray-200/80 dark:border-gray-600/80 text-sm font-bold text-gray-700 dark:text-gray-200 hover:text-primary dark:hover:text-primary shadow-xs hover:scale-105 active:scale-95 transition-all"
             >
-              {linkToShow.label}
+              <RiFileList3Line className="text-xl text-primary" />
+              <span>{linkToShow.label}</span>
             </Link>
+
             <button
-              onClick={toggleTheme}
-              className="hidden sm:flex h-10 w-10 items-center justify-center rounded-full bg-light dark:bg-primary/20 text-text-secondary dark:text-white"
+              type="button"
+              onClick={() => {
+                triggerHaptic(12);
+                toggleTheme();
+              }}
+              className="h-11 w-11 flex items-center justify-center rounded-2xl bg-white/70 dark:bg-gray-700/60 border border-gray-200/80 dark:border-gray-600/80 text-gray-700 dark:text-gray-200 hover:text-primary shadow-xs hover:scale-105 active:scale-95 transition-all cursor-pointer"
               aria-label="Cambiar tema"
+              title={theme === 'dark' ? 'Modo claro' : 'Modo oscuro'}
             >
-              <span className="material-symbols-outlined text-2xl">
-                {theme === 'dark' ? 'light_mode' : 'dark_mode'}
-              </span>
+              {theme === 'dark' ? (
+                <RiSunLine className="text-xl text-amber-400" />
+              ) : (
+                <RiMoonClearLine className="text-xl text-indigo-500" />
+              )}
             </button>
+
             <button
-              onClick={() => navigate('/profile')}
-              className="hidden sm:flex h-10 w-10 items-center justify-center rounded-full bg-light dark:bg-primary/20 text-text-secondary dark:text-white"
+              type="button"
+              onClick={() => {
+                triggerHaptic(10);
+                navigate('/profile');
+              }}
+              className="h-11 w-11 flex items-center justify-center rounded-2xl bg-white/70 dark:bg-gray-700/60 border border-gray-200/80 dark:border-gray-600/80 text-gray-700 dark:text-gray-200 hover:text-primary shadow-xs hover:scale-105 active:scale-95 transition-all cursor-pointer"
               aria-label="Perfil"
+              title="Mi Perfil"
             >
-              <span className="material-symbols-outlined text-2xl">person</span>
+              <RiUser3Line className="text-xl" />
             </button>
+
             <button
-              onClick={handleLogout}
-              className="hidden sm:flex h-10 w-10 items-center justify-center rounded-full bg-light dark:bg-primary/20 text-text-secondary dark:text-white"
+              type="button"
+              onClick={() => {
+                triggerHaptic(12);
+                handleLogout();
+              }}
+              className="h-11 w-11 flex items-center justify-center rounded-2xl bg-white/70 dark:bg-gray-700/60 border border-gray-200/80 dark:border-gray-600/80 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 shadow-xs hover:scale-105 active:scale-95 transition-all cursor-pointer"
               aria-label="Cerrar Sesión"
+              title="Cerrar Sesión"
             >
-              <span className="material-symbols-outlined text-2xl">logout</span>
+              <RiLogoutBoxRLine className="text-xl" />
             </button>
           </>
         ) : (
           showOrderSelectionButton && (
             <Link
               to="/pedidos"
-              className="flex h-10 items-center justify-center rounded-lg bg-primary px-4 text-sm font-semibold text-white shadow-sm hover:bg-primary/90 transition-colors"
+              onClick={() => triggerHaptic(10)}
+              className="flex h-11 items-center justify-center rounded-2xl bg-primary px-5 text-sm font-bold text-white shadow-md shadow-primary/25 hover:bg-primary-dark hover:scale-105 active:scale-95 transition-all cursor-pointer"
             >
               Inicio
             </Link>

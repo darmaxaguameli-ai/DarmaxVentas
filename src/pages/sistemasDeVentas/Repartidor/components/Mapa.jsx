@@ -4,6 +4,7 @@ import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { geocodeAddress } from '../../../../api/apiClient'; // Import API helper
 import { useTheme } from '../../../../context/ThemeContext'; // Importar ThemeContext
+import { OSM_TILE_URL, OSM_ATTRIBUTION, TILE_LAYER_OPTS } from '../../../../utils/mapConfig';
 
 // --- Icon Definitions ---
 const createIcon = (bgColor, iconColor = 'white') => {
@@ -86,9 +87,9 @@ const Mapa = ({ driverPosition, orders, selectedOrder, onOrderLocationUpdate }) 
   const [isGeocoding, setIsGeocoding] = useState(false);
   const mapRef = useRef(null);
 
-  // Define Tile Layers based on Theme (Same as Client)
-  const tileLayerUrl = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
-  const attribution = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>';
+  // OpenStreetMap para repartidores (ahorro de cuota de API de Carto para clientes)
+  const tileLayerUrl = OSM_TILE_URL;
+  const attribution = OSM_ATTRIBUTION;
 
   // Auto-geocode selected order if missing coordinates
   useEffect(() => {
@@ -328,6 +329,7 @@ const Mapa = ({ driverPosition, orders, selectedOrder, onOrderLocationUpdate }) 
             <TileLayer
                 attribution={attribution}
                 url={tileLayerUrl}
+                {...TILE_LAYER_OPTS}
                 className={theme === 'dark' ? '!filter !invert-[0.9] !hue-rotate-180 !brightness-95 !saturate-[0.6] !contrast-[1.1]' : ''}
             />
             

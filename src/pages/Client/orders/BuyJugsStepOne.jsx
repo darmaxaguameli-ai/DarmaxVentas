@@ -169,33 +169,47 @@ const BuyJugsStepOne = () => {
 
         {/* Categorías */}
         {!loading && categories.length > 1 && (
-            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-                {categories.map(cat => (
-                    <button
-                        key={cat}
-                        onClick={() => setActiveCategory(cat)}
-                        className={`px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-all border ${
-                            activeCategory === cat 
-                            ? 'bg-primary text-white border-primary shadow-md' 
-                            : 'bg-white dark:bg-dark text-text-secondary border-gray-200 dark:border-white/10 hover:border-primary/40'
-                        }`}
-                    >
-                        {cat}
-                    </button>
-                ))}
+            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide py-1">
+                {categories.map(cat => {
+                    const isActive = activeCategory === cat;
+                    return (
+                        <button
+                            key={cat}
+                            onClick={() => setActiveCategory(cat)}
+                            className={`px-5 py-2.5 rounded-2xl text-xs sm:text-sm font-bold whitespace-nowrap transition-all border backdrop-blur-xl shadow-xs active:scale-95 ${
+                                isActive 
+                                ? 'bg-primary text-white border-primary shadow-md shadow-primary/25' 
+                                : 'bg-white/80 dark:bg-gray-800/80 text-gray-700 dark:text-gray-300 border-white/80 dark:border-white/10 hover:border-primary/40'
+                            }`}
+                        >
+                            {cat}
+                        </button>
+                    );
+                })}
             </div>
         )}
 
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-sm sm:text-base text-text-secondary dark:text-white/80">
-          <span>
-            Productos elegidos: <span className="font-bold text-primary text-lg">{totalItems}</span>
-          </span>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 rounded-2xl bg-white/60 dark:bg-gray-800/60 border border-white/60 dark:border-white/10 backdrop-blur-xl">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+              <span className="material-symbols-outlined text-2xl">shopping_cart</span>
+            </div>
+            <div className="flex flex-col">
+              <span className="text-xs sm:text-sm text-text-secondary dark:text-white/70">
+                Productos seleccionados:
+              </span>
+              <span className="font-black text-primary text-xl sm:text-2xl leading-tight">
+                {totalItems} {totalItems === 1 ? 'producto' : 'productos'}
+              </span>
+            </div>
+          </div>
+
           <button 
             onClick={handleGoToRefill}
-            className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-dark border border-gray-200 dark:border-white/10 text-text-secondary dark:text-white/70 rounded-full text-sm font-bold hover:border-primary/40 transition-all active:scale-95"
+            className="flex items-center justify-center gap-2 px-5 py-2.5 bg-white/80 dark:bg-gray-800/80 hover:bg-primary hover:text-white text-gray-700 dark:text-gray-200 border border-white/80 dark:border-white/10 rounded-2xl text-xs sm:text-sm font-bold transition-all active:scale-95 shadow-xs"
           >
-            <span className="material-symbols-outlined text-lg">recycling</span>
-            ¿Añadir Recargas?
+            <span className="material-symbols-outlined text-lg text-emerald-500">recycling</span>
+            ¿Añadir Garrafones a Rellenar?
           </button>
         </div>
 
@@ -220,25 +234,26 @@ const BuyJugsStepOne = () => {
           </div>
         )}
 
-        <div className="flex justify-between items-center pt-4 border-t dark:border-white/10">
+        <div className="flex flex-col sm:flex-row justify-between items-center gap-4 pt-4 border-t border-gray-100 dark:border-white/10">
           <button
             type="button"
             onClick={() => navigate('/pedidos')}
-            className="text-sm font-medium text-text-secondary dark:text-white/70 hover:text-primary transition-colors"
+            className="hidden md:flex h-11 sm:h-12 items-center justify-center rounded-2xl border border-white/80 dark:border-white/10 bg-white/80 dark:bg-gray-800/80 text-gray-700 dark:text-gray-200 text-sm sm:text-base font-bold px-6 hover:bg-white dark:hover:bg-gray-700 backdrop-blur-xl shadow-sm transition-all duration-200 active:scale-95 cursor-pointer"
           >
-            &larr; Volver al inicio
+            Volver al inicio
           </button>
           <button
             type="button"
             onClick={handleContinue}
             disabled={totalItems === 0 && refillCount === 0}
-            className={`flex items-center justify-center rounded-xl
-                       bg-primary px-8 h-12 text-base font-semibold text-white
-                       shadow-sm hover:bg-primary/90
-                       transition-all active:scale-[0.98]
+            className={`w-full sm:w-auto flex items-center justify-center gap-2 rounded-2xl
+                       bg-primary hover:bg-primary-dark px-7 h-11 sm:h-12 text-sm sm:text-base font-bold text-white
+                       shadow-md shadow-primary/25 hover:shadow-lg
+                       transition-all duration-200 active:scale-95 cursor-pointer
                        ${totalItems === 0 && refillCount === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
-            Continuar al paso 2
+            <span>Continuar al paso 2</span>
+            <span className="material-symbols-outlined text-lg">arrow_forward</span>
           </button>
         </div>
       </div>

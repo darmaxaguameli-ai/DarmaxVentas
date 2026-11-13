@@ -223,7 +223,7 @@ const PickupClientDataStep = () => {
             <button
               type="button"
               onClick={handleBack}
-              className="w-full sm:w-auto h-12 px-8 rounded-xl bg-slate-100 dark:bg-dark/60 text-dark dark:text-white font-bold hover:bg-slate-200 dark:hover:bg-dark/80 transition-all border border-slate-200 dark:border-white/10"
+              className="w-full sm:w-auto h-11 sm:h-12 px-6 rounded-2xl bg-white/80 dark:bg-gray-800/80 text-gray-700 dark:text-gray-200 text-sm sm:text-base font-bold hover:bg-white dark:hover:bg-gray-700 transition-all duration-200 active:scale-95 border border-white/80 dark:border-white/10 backdrop-blur-xl shadow-sm cursor-pointer"
             >
               Volver
             </button>
@@ -231,9 +231,11 @@ const PickupClientDataStep = () => {
             <button
               type="submit"
               disabled={isSubmitting || postalCodeApiLoading}
-              className="w-full sm:w-auto h-14 px-12 rounded-xl bg-primary text-white font-black shadow-xl shadow-primary/20 hover:bg-primary/90 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:scale-100"
+              className="w-full sm:w-auto flex items-center justify-center gap-2 h-11 sm:h-12 px-8 rounded-2xl bg-primary text-white font-bold text-sm sm:text-base shadow-md shadow-primary/25 hover:shadow-lg hover:bg-primary-dark transition-all duration-200 active:scale-95 disabled:opacity-50 cursor-pointer"
             >
-              {isSubmitting ? 'Guardando...' : 'Confirmar y Continuar'}
+              {isSubmitting && <span className="material-symbols-outlined animate-spin text-lg">progress_activity</span>}
+              <span>{isSubmitting ? 'Guardando...' : 'Confirmar y Continuar'}</span>
+              {!isSubmitting && <span className="material-symbols-outlined text-lg">arrow_forward</span>}
             </button>
           </footer>
         </form>

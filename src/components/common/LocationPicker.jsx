@@ -5,6 +5,7 @@ import L from 'leaflet';
 import { toast } from 'sonner';
 import { geocodeAddress } from '../../api/apiClient';
 import { useTheme } from '../../context/ThemeContext'; // Importar contexto de tema
+import { getCartoTileUrl, CARTO_ATTRIBUTION, TILE_LAYER_OPTS } from '../../utils/mapConfig';
 
 // --- Icon Definitions ---
 const createIcon = (color) => {
@@ -88,9 +89,9 @@ const LocationPicker = ({ lat, lng, onLocationChange, addressToSearch }) => {
     const [isSearching, setIsSearching] = useState(false);
     const [isLoadingLocation, setIsLoadingLocation] = useState(false);
 
-    // Use CartoDB Voyager for base map (clean and modern)
-    const tileLayerUrl = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
-    const attribution = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>';
+    // Use CartoDB Voyager for base map with API key support
+    const tileLayerUrl = getCartoTileUrl('voyager');
+    const attribution = CARTO_ATTRIBUTION;
 
     // Watch for external updates to lat/lng to recenter map if needed (e.g. from DB load)
     useEffect(() => {
@@ -169,6 +170,7 @@ const LocationPicker = ({ lat, lng, onLocationChange, addressToSearch }) => {
                 <TileLayer
                     attribution={attribution}
                     url={tileLayerUrl}
+                    {...TILE_LAYER_OPTS}
                     className={theme === 'dark' ? '!filter !invert-[0.9] !hue-rotate-180 !brightness-95 !saturate-[0.6] !contrast-[1.1]' : ''}
                 />
                 <MapController center={mapCenter} zoom={zoom} />

@@ -522,7 +522,7 @@ const GestionSidebar = ({ isOpen, onClose, isCollapsed, toggleCollapsed }) => {
         bg-white/95 dark:bg-gray-900/95 backdrop-blur-2xl backdrop-saturate-150
         border border-gray-200/80 dark:border-gray-800/80
         
-        /* Móvil: Drawer flotante moderno con animación morphing circular desde el botón */
+        /* Móvil: Drawer flotante moderno con animación fluida acelerada por hardware */
         top-[max(0.75rem,env(safe-area-inset-top,0px))] bottom-[max(0.75rem,env(safe-area-inset-bottom,0px))] left-3 w-[296px] sm:w-80 max-w-[calc(100vw-1.5rem)]
         p-3.5 sm:p-4 rounded-3xl shadow-2xl ring-1 ring-black/5 dark:ring-white/10
         sidebar-mobile-morph ${isOpen ? 'sidebar-open' : 'sidebar-closed'}

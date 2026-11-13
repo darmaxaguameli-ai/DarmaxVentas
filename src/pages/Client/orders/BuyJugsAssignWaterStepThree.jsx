@@ -395,17 +395,20 @@ const BuyJugsAssignWaterStepThree = () => {
                   <span className="font-semibold text-dark dark:text-white">Tip:</span> Toca el icono <span className="material-symbols-outlined text-[14px] align-middle">info</span> para conocer los beneficios de cada tipo de agua.
                 </p>
             </div>
-            <div className="flex flex-col items-end gap-1">
-              <p className="text-sm font-medium">Total Asignado</p>
+            <div className="flex flex-col items-end gap-1 px-4 py-2 rounded-2xl bg-white/60 dark:bg-gray-800/60 border border-white/60 dark:border-white/10 backdrop-blur-xl">
+              <p className="text-xs font-bold text-text-secondary dark:text-white/60 uppercase tracking-wider">Total Asignado</p>
               <p className="text-3xl font-black">
                 <span className="text-primary">{totalJugsAssigned}</span>
-                <span className="text-text-secondary dark:text-white/60 text-xl"> / {maxJugs}</span>
+                <span className="text-text-secondary dark:text-white/50 text-xl font-bold"> / {maxJugs}</span>
               </p>
             </div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 min-h-[300px]">
-            <div className={`space-y-4 p-4 rounded-xl bg-white/50 dark:bg-gray-900/50 ${showAnimation ? "highlight-tutorial" : ""}`}>
-              <h2 className="text-xl font-bold text-center">Tus Garrafones</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 min-h-[300px]">
+            <div className={`space-y-4 p-5 sm:p-6 rounded-3xl bg-white/70 dark:bg-gray-800/70 border border-white/80 dark:border-white/10 backdrop-blur-2xl shadow-lg ${showAnimation ? "highlight-tutorial" : ""}`}>
+              <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-700/60 pb-3">
+                <h2 className="text-lg font-black">Tus Garrafones</h2>
+                <span className="text-xs text-text-secondary dark:text-white/60 font-semibold">Toca o arrastra</span>
+              </div>
               {[...sourceJugs]
                 .sort((a, b) => {
                     const getCapacity = (name) => {
@@ -425,45 +428,62 @@ const BuyJugsAssignWaterStepThree = () => {
                 })
                 .map((jug) => (
                 <DraggableJug key={jug.id} jug={jug}>
-                  <div className={`p-4 rounded-lg shadow flex items-center justify-between bg-white dark:bg-gray-800 transition-opacity ${jug.quantity === 0 ? "opacity-40" : "cursor-grab"}`}>
+                  <div className={`p-4 rounded-2xl shadow-xs border border-white/80 dark:border-white/5 flex items-center justify-between bg-white/90 dark:bg-gray-700/60 backdrop-blur-xl transition-all ${jug.quantity === 0 ? "opacity-35" : "cursor-grab hover:shadow-md hover:border-primary/40 active:scale-[0.98]"}`}>
                     <div className="flex items-center gap-3">
-                      <img src={jug.imageUrl} alt={jug.name} className="h-12 w-12 object-contain" />
+                      <div className="h-12 w-12 rounded-xl bg-gray-50 dark:bg-gray-800/50 flex items-center justify-center p-1">
+                        <img src={jug.imageUrl} alt={jug.name} className="h-full w-full object-contain" />
+                      </div>
                       <div className="flex flex-col">
-                        <span className="font-medium">{jug.name}</span>
+                        <span className="font-bold text-sm sm:text-base text-gray-900 dark:text-white">{jug.name}</span>
                         {jug.isNewPurchase && (
-                          <span className="text-[10px] uppercase font-bold text-primary">Envase Nuevo</span>
+                          <span className="text-[10px] uppercase font-black text-primary">Envase Nuevo</span>
                         )}
                       </div>
                     </div>
-                    <span className="text-2xl font-bold">{jug.quantity}</span>
+                    <span className="text-xl sm:text-2xl font-black px-3 py-1 rounded-xl bg-primary/10 text-primary">{jug.quantity}</span>
                   </div>
                 </DraggableJug>
               ))}
             </div>
-            <div className={`space-y-4 p-4 rounded-xl bg-white/50 dark:bg-gray-900/50 ${showAnimation ? "highlight-tutorial" : ""}`}>
-              <h2 className="text-xl font-bold text-center">Tipos de Agua</h2>
+            <div className={`space-y-4 p-5 sm:p-6 rounded-3xl bg-white/70 dark:bg-gray-800/70 border border-white/80 dark:border-white/10 backdrop-blur-2xl shadow-lg ${showAnimation ? "highlight-tutorial" : ""}`}>
+              <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-700/60 pb-3">
+                <h2 className="text-lg font-black">Tipos de Agua</h2>
+                <span className="text-xs text-text-secondary dark:text-white/60 font-semibold">Usa + / - para asignar</span>
+              </div>
               {targetWater.map((water) => (
                 <DroppableWaterType key={water.id} {...water}>
-                  <div className="p-4 rounded-lg shadow bg-white dark:bg-gray-800 flex flex-col items-center justify-center gap-2 min-h-[120px] relative overflow-hidden">
-                    <div className="wave-container">
+                  <div className="p-5 rounded-2xl shadow-sm border border-white/80 dark:border-white/10 bg-white/90 dark:bg-gray-700/60 flex flex-col items-center justify-center gap-3 min-h-[130px] relative overflow-hidden backdrop-blur-xl">
+                    <div className="wave-container opacity-40">
                       <div className="wave"></div>
                       <div className="wave two"></div>
                     </div>
-                    <div className="relative z-10 flex flex-col items-center justify-center gap-2">
+                    <div className="relative z-10 flex flex-col items-center justify-center gap-2.5 w-full">
                       <div className="flex items-center gap-2">
-                        <p className="text-lg font-bold text-center">{water.name}</p>
+                        <p className="text-base sm:text-lg font-black text-center text-gray-900 dark:text-white">{water.name}</p>
                         <button 
                           onClick={() => setInfoModalOpen(water.name)}
-                          className="text-gray-400 hover:text-primary transition-colors"
+                          className="h-6 w-6 rounded-full bg-cyan-50 dark:bg-cyan-900/40 text-cyan-600 dark:text-cyan-400 flex items-center justify-center hover:bg-cyan-100 transition-colors"
                           title="Ver beneficios"
                         >
-                          <span className="material-symbols-outlined text-lg">info</span>
+                          <span className="material-symbols-outlined text-sm">info</span>
                         </button>
                       </div>
-                      <div className="flex items-center gap-3">
-                        <button onClick={() => handleManualRemove(water.id)} className="btn-secondary flex h-11 w-11 items-center justify-center rounded-full text-xl">-</button>
+                      <div className="flex items-center gap-4">
+                        <button 
+                          onClick={() => handleManualRemove(water.id)} 
+                          disabled={water.quantity === 0}
+                          className="h-11 w-11 flex items-center justify-center rounded-2xl bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-600 text-xl font-black shadow-xs hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all active:scale-90"
+                        >
+                          -
+                        </button>
                         <span className="w-12 text-center text-3xl font-black text-primary tabular-nums">{water.quantity}</span>
-                        <button onClick={() => handleManualAdd(water.id)} className="btn-secondary flex h-11 w-11 items-center justify-center rounded-full text-xl">+</button>
+                        <button 
+                          onClick={() => handleManualAdd(water.id)} 
+                          disabled={totalJugsAssigned >= maxJugs}
+                          className="h-11 w-11 flex items-center justify-center rounded-2xl bg-primary text-white text-xl font-black shadow-md shadow-primary/25 hover:bg-primary-dark disabled:opacity-30 disabled:cursor-not-allowed transition-all active:scale-90"
+                        >
+                          +
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -494,23 +514,28 @@ const BuyJugsAssignWaterStepThree = () => {
           <span className="hidden md:inline">Asigna tus garrafones nuevos al agua</span>
         </>
       }
-      subtitle="Arrastra cada garrafón que compraste al tipo de agua que prefieras."
+      subtitle="Arrastra cada garrafón que compraste al tipo de agua que prefieras o usa los botones + y -."
       step={2}
       totalSteps={4}
     >
       <div className="flex flex-col gap-4 sm:gap-6">{renderContent()}</div>
-      <footer className="mt-auto pt-4 md:pt-8">
+      <footer className="mt-auto pt-4 md:pt-6">
         <div className="flex flex-col-reverse sm:flex-row gap-4 justify-between items-center">
-          <button type="button" onClick={handleBack} className="hidden md:flex h-12 sm:h-14 w-full sm:w-auto items-center justify-center rounded-lg border border-slate-300 bg-slate-100 text-dark dark:bg-slate-800 dark:text-white dark:border-slate-600 text-base sm:text-lg font-semibold px-6 sm:px-8 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all">
+          <button 
+            type="button" 
+            onClick={handleBack} 
+            className="hidden md:flex h-11 sm:h-12 w-full sm:w-auto items-center justify-center rounded-2xl border border-white/80 dark:border-white/10 bg-white/80 dark:bg-gray-800/80 text-gray-700 dark:text-gray-200 text-sm sm:text-base font-bold px-6 hover:bg-white dark:hover:bg-gray-700 backdrop-blur-xl shadow-sm transition-all duration-200 active:scale-95 cursor-pointer"
+          >
             Volver al paso 2
           </button>
           <button
             type="button"
             onClick={handleContinue}
-            className="flex h-12 w-full md:w-auto items-center justify-center rounded-xl bg-primary px-8 text-base font-semibold text-white shadow-sm hover:bg-primary/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+            className="flex h-11 sm:h-12 w-full sm:w-auto items-center justify-center gap-2 rounded-2xl bg-primary hover:bg-primary-dark px-7 text-sm sm:text-base font-bold text-white shadow-md shadow-primary/25 hover:shadow-lg transition-all duration-200 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             disabled={totalJugsAssigned !== maxJugs}
           >
-            Continuar al método de entrega
+            <span>Continuar al método de entrega</span>
+            <span className="material-symbols-outlined text-lg">arrow_forward</span>
           </button>
         </div>
       </footer>

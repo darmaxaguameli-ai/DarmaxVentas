@@ -59,8 +59,8 @@ const PromotionBanner = () => {
 
     return (
         <div className="w-full mb-6 animate-in fade-in slide-in-from-top-4 duration-500">
-            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-primary/20 via-primary/5 to-transparent border border-primary/20 p-4 sm:p-5 flex items-center gap-4">
-                <div className="flex h-12 w-12 sm:h-14 sm:w-14 shrink-0 items-center justify-center rounded-full bg-primary text-white shadow-lg shadow-primary/20">
+            <div className="relative overflow-hidden rounded-3xl bg-white/70 dark:bg-gray-800/70 backdrop-blur-2xl border border-white/80 dark:border-white/10 shadow-md p-4 sm:p-5 flex items-center gap-4">
+                <div className="flex h-12 w-12 sm:h-14 sm:w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-cyan-600 text-white shadow-lg shadow-primary/25">
                     <span className="material-symbols-outlined text-2xl sm:text-3xl animate-pulse">
                         {getPromoIcon(currentPromo.type)}
                     </span>
@@ -68,7 +68,7 @@ const PromotionBanner = () => {
                 
                 <div className="flex-1">
                     <div className="flex items-center gap-2">
-                        <span className="bg-primary/10 text-primary text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
+                        <span className="bg-primary/10 text-primary text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider">
                             Oferta Especial
                         </span>
                         {currentPromo.endDate && (
@@ -86,11 +86,11 @@ const PromotionBanner = () => {
                 </div>
 
                 {promotions.length > 1 && (
-                    <div className="absolute bottom-2 right-4 flex gap-1">
+                    <div className="absolute bottom-2.5 right-5 flex gap-1">
                         {promotions.map((_, idx) => (
                             <div 
                                 key={idx} 
-                                className={`h-1 rounded-full transition-all ${idx === currentIndex ? 'w-4 bg-primary' : 'w-1 bg-primary/20'}`}
+                                className={`h-1.5 rounded-full transition-all ${idx === currentIndex ? 'w-5 bg-primary' : 'w-1.5 bg-primary/20'}`}
                             />
                         ))}
                     </div>
