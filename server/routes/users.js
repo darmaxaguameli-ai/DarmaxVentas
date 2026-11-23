@@ -32,11 +32,73 @@ router.get('/users/me', verifyToken, async (req, res) => {
   }
 });
 
+// PUT /users/me/background - Guardar preferencia de fondo del usuario autenticado en BD
+router.put('/users/me/background', verifyToken, async (req, res) => {
+  try {
+    const { backgroundPreference } = req.body;
+    if (!backgroundPreference) {
+      return res.status(400).json({ error: 'backgroundPreference es requerido.' });
+    }
+
+    const current = await prisma.user.findUnique({
+      where: { id: req.user.id },
+      select: { clientPreferences: true }
+    });
+
+    const mergedPrefs = {
+      ...((current?.clientPreferences && typeof current.clientPreferences === 'object') ? current.clientPreferences : {}),
+      backgroundPreference
+    };
+
+    let updatedUser;
+    try {
+      updatedUser = await prisma.user.update({
+        where: { id: req.user.id },
+        data: {
+          backgroundPreference,
+          clientPreferences: mergedPrefs
+        },
+        select: { id: true, name: true, backgroundPreference: true, clientPreferences: true }
+      });
+    } catch (dbErr) {
+      // Fallback a clientPreferences si la columna directa aún no se ha desplegado en BD
+      updatedUser = await prisma.user.update({
+        where: { id: req.user.id },
+        data: {
+          clientPreferences: mergedPrefs
+        },
+        select: { id: true, name: true, clientPreferences: true }
+      });
+    }
+
+    res.json({
+      message: 'Fondo guardado exitosamente en tu perfil.',
+      backgroundPreference: updatedUser.backgroundPreference || backgroundPreference
+    });
+  } catch (error) {
+    console.error('Error in PUT /users/me/background:', error);
+    res.status(500).json({ error: 'Error al actualizar preferencia de fondo.' });
+  }
+});
+
 // GET all users (Staff only)
 router.get('/users', verifyToken, async (req, res) => {
   try {
     const requester = req.fullUser;
-    const canSeeAll = requester.role === 'ADMIN' || (requester.roles || []).some(r => r.canAccessRH || r.canAccessManagement);
+    const canSeeAll = requester.role === 'ADMIN' || 
+                      (requester.roles || []).some(r => 
+                        r.name?.toUpperCase() === 'ADMIN' ||
+                        r.canAccessRH || 
+                        r.canAccessManagement ||
+                        r.canAccessSistemas ||
+                        r.canManageSistemas ||
+                        r.canAccessMarketing ||
+                        r.name?.toUpperCase().includes('JEFE') ||
+                        r.name?.toUpperCase().includes('LIDER') ||
+                        (r.permisos || []).some(p => p.codigo === 'acceso.sistemas' || p.codigo === 'proyectosactividades.jefe' || p.codigo === 'acceso.proyectosactividades' || p.codigo === 'acceso.editorblog')
+                      ) ||
+                      requester.canAccessSistemas || requester.canManageSistemas || requester.canAccessMarketing ||
+                      (requester.permisos || []).some(p => p.codigo === 'acceso.sistemas' || p.codigo === 'proyectosactividades.jefe' || p.codigo === 'acceso.proyectosactividades' || p.codigo === 'acceso.editorblog');
     
     if (!canSeeAll) return res.status(403).json({ error: 'No tienes permiso para ver la lista de usuarios.' });
 

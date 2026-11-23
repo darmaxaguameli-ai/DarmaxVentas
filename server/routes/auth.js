@@ -8,6 +8,7 @@ const { sendEmail } = require('../utils/emailService');
 const { getResetPasswordEmailTemplate, getVerificationEmailTemplate } = require('../utils/templates/authEmailTemplates');
 const axios = require('axios');
 const rateLimit = require('express-rate-limit');
+const { syncDatabaseSchema } = require('../utils/dbSync');
 
 // Limitador de seguridad para intentos de login
 const isRateLimitDisabled = process.env.DISABLE_RATE_LIMIT === 'true';
@@ -27,6 +28,10 @@ router.post('/login', authLimiter, async (req, res) => {
   try {
     const { email: identifier, password } = req.body;
     if (!identifier || !password) return res.status(400).json({ error: 'Usuario y contraseña requeridos.' });
+    
+    // Auto-asegurar que las columnas existan en la BD
+    await syncDatabaseSchema();
+
     const cleanIdentifier = identifier.trim();
     const isEmail = cleanIdentifier.includes('@');
     const user = await prisma.user.findUnique({

@@ -29,7 +29,6 @@ export const menuStructure = [
     name: "Operaciones",
     icon: "storefront",
     children: [
-      { name: "Inventario Global", path: "inventario", icon: "inventory_2", permission: ["acceso.inventarioglobal", "canAccessInventory"] },
       { name: "Cortes Vending", path: "vending", icon: "smart_toy", permission: ["acceso.cortesvending", "canAccessVending"] },
     ],
   },
@@ -38,6 +37,7 @@ export const menuStructure = [
     name: "Ingeniería y Proyectos",
     icon: "engineering",
     children: [
+      { name: "Inventario para Instalación", path: "inventario", icon: "inventory_2", permission: ["acceso.inventarioparainstalacion", "acceso.inventarioglobal", "canAccessInventory"] },
       { name: "Control de Instalación", path: "instalacion", icon: "construction", permission: ["acceso.controlinstalacion", "canAccessInstallation"] },
       { name: "Mapa de Instalaciones", path: "mapa-instalaciones", icon: "map", permission: ["acceso.mapainstalaciones", "canAccessShowcase"] },
     ],
@@ -134,7 +134,7 @@ export const menuStructure = [
     children: [
       { name: "Directorio", path: "usuarios", icon: "group", permission: ["acceso.directorio"] },
       { name: "RRHH y Nóminas", path: "recursos-humanos", icon: "folder_managed", permission: ["acceso.rrhhynominas", "canAccessRH"] },
-      { name: "Configuración Base", path: "configuracion", icon: "tune", permission: ["acceso.configuracionbase", "canAccessConfig"] },
+      { name: "Configuración Base", path: "configuracion", icon: "tune", permission: ["acceso.configuracionbase", "canAccessConfig", "acceso.configuracion.fondo"] },
     ],
   },
   {
@@ -303,7 +303,7 @@ const SidebarItem = ({ item, isCollapsed, user, onClose, isMobile, isOpen, onTog
         to={item.path}
         end={item.path === "/gestion"}
         className={({ isActive }) =>
-          `group relative flex items-center transition-all duration-150 cursor-pointer select-none active:scale-[0.97] ${
+          `group relative flex items-center transition-colors duration-150 cursor-pointer select-none ${
             effectiveCollapsed
               ? `w-10 h-10 mx-auto justify-center rounded-2xl ${
                   isActive 
@@ -346,7 +346,7 @@ const SidebarItem = ({ item, isCollapsed, user, onClose, isMobile, isOpen, onTog
     >
       <div
         ref={groupRef}
-        className={`group relative flex items-center transition-all duration-150 cursor-pointer select-none active:scale-[0.97] ${
+        className={`group relative flex items-center transition-colors duration-150 cursor-pointer select-none ${
           effectiveCollapsed
             ? `w-10 h-10 mx-auto justify-center rounded-2xl ${
                 isActive && !isOpen
@@ -390,7 +390,7 @@ const SidebarItem = ({ item, isCollapsed, user, onClose, isMobile, isOpen, onTog
                 key={child.name}
                 to={child.path}
                 className={({ isActive }) =>
-                  `flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-xs transition-all active:scale-[0.98] ${isActive
+                  `flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-xs transition-colors duration-150 ${isActive
                     ? "bg-primary text-white hover:text-white hover:bg-primary-dark font-bold shadow-sm shadow-primary/25"
                     : "text-gray-600 dark:text-gray-400 hover:bg-gray-100/80 dark:hover:bg-gray-800/60 hover:text-gray-900 dark:hover:text-white font-medium"
                   }`
@@ -415,7 +415,7 @@ const SidebarItem = ({ item, isCollapsed, user, onClose, isMobile, isOpen, onTog
             left: `${itemRef.current.getBoundingClientRect().right + 12}px`,
             zIndex: 99999,
           }}
-          className="w-56 bg-white/95 dark:bg-gray-900/95 backdrop-blur-2xl rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-800/80 py-2 animate-fade-in ring-1 ring-black/5 dark:ring-white/10"
+          className="w-56 bg-white/95 dark:bg-gray-900/95 backdrop-blur-2xl rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-800/80 py-2 ring-1 ring-black/5 dark:ring-white/10"
         >
           <div className="px-3.5 py-1.5 border-b border-gray-100 dark:border-gray-800 mb-1 flex items-center justify-between">
             <span className="text-[10px] font-black text-gray-400 dark:text-gray-400 uppercase tracking-wider">{item.name}</span>
@@ -428,7 +428,7 @@ const SidebarItem = ({ item, isCollapsed, user, onClose, isMobile, isOpen, onTog
               key={child.name}
               to={child.path}
               className={({ isActive }) =>
-                `flex items-center gap-2.5 px-3 py-2 text-xs transition-all rounded-xl mx-1.5 active:scale-95 ${isActive
+                `flex items-center gap-2.5 px-3 py-2 text-xs transition-colors duration-150 rounded-xl mx-1.5 ${isActive
                   ? "bg-primary text-white hover:text-white hover:bg-primary-dark font-bold shadow-sm shadow-primary/25"
                   : "text-gray-600 dark:text-gray-300 hover:bg-gray-100/80 dark:hover:bg-gray-800/70 hover:text-gray-900 dark:hover:text-white font-medium"
                 }`
@@ -519,8 +519,8 @@ const GestionSidebar = ({ isOpen, onClose, isCollapsed, toggleCollapsed }) => {
   return (
     <aside
       className={`fixed z-50 flex flex-col flex-shrink-0
-        bg-white/95 dark:bg-gray-900/95 backdrop-blur-2xl backdrop-saturate-150
-        border border-gray-200/80 dark:border-gray-800/80
+        bg-white/85 dark:bg-gray-900/85 backdrop-blur-2xl backdrop-saturate-150
+        border border-white/60 dark:border-white/10
         
         /* Móvil: Drawer flotante moderno con animación fluida acelerada por hardware */
         top-[max(0.75rem,env(safe-area-inset-top,0px))] bottom-[max(0.75rem,env(safe-area-inset-bottom,0px))] left-3 w-[296px] sm:w-80 max-w-[calc(100vw-1.5rem)]
@@ -530,7 +530,7 @@ const GestionSidebar = ({ isOpen, onClose, isCollapsed, toggleCollapsed }) => {
         /* Escritorio: Isla flotante independiente */
         md:relative md:top-auto md:bottom-auto md:left-auto md:translate-x-0 md:opacity-100 md:visible md:pointer-events-auto
         md:my-3 md:ml-3 md:h-[calc(100dvh-1.5rem)] md:max-h-[calc(100dvh-1.5rem)]
-        md:rounded-3xl md:shadow-xl md:shadow-gray-900/5 dark:md:shadow-black/35
+        md:rounded-3xl md:shadow-xl md:shadow-cyan-950/5 dark:md:shadow-black/35
         md:overflow-visible
         md:transition-all md:duration-200 md:ease-out
         ${isCollapsed 
@@ -553,31 +553,28 @@ const GestionSidebar = ({ isOpen, onClose, isCollapsed, toggleCollapsed }) => {
       </button>
 
       <div className="flex flex-col h-full min-h-0 overflow-hidden md:overflow-visible">
-        {/* Encabezado con Logo, Empresa y Cerrar en móvil */}
+        {/* Encabezado con Logo y Cerrar en móvil */}
         <div className={`flex items-center justify-between pb-3.5 pt-1 px-1 mb-2.5 select-none flex-shrink-0 border-b border-gray-100 dark:border-gray-800/80 ${isCollapsed ? 'md:justify-center' : ''}`}>
-          <div className={`flex items-center gap-3 overflow-hidden ${isCollapsed ? 'md:justify-center' : ''}`}>
+          <div className={`flex items-center gap-2.5 overflow-hidden ${isCollapsed ? 'md:justify-center w-full' : 'flex-1 min-w-0'}`}>
             <button
               type="button"
               onClick={isCollapsed ? toggleCollapsed : undefined}
-              className={`flex-shrink-0 transition-transform active:scale-95 ${isCollapsed ? 'cursor-pointer hover:opacity-80' : 'cursor-default'}`}
+              className={`flex items-center gap-2.5 transition-opacity ${isCollapsed ? 'cursor-pointer hover:opacity-80 justify-center w-full' : 'cursor-default min-w-0'}`}
               title={isCollapsed ? "Click para expandir barra lateral" : undefined}
             >
-              <div className="h-10 w-10 rounded-2xl bg-white dark:bg-gray-800 flex items-center justify-center p-1.5 shadow-2xs border border-gray-150 dark:border-gray-700/60">
-                <img 
-                  src={theme === 'dark' ? '/img/logos/LogoTO.png' : '/img/logos/darmax-logo.png'} 
-                  alt="Darmax Logo" 
-                  className="h-full w-full object-contain" 
-                />
-              </div>
-            </button>
+              <img 
+                src={theme === 'dark' ? '/img/logos/LogoTO.png' : '/img/logos/darmax-logo.png'} 
+                alt="Darmax Logo" 
+                className={`object-contain transition-all duration-200 ${
+                  isCollapsed 
+                    ? 'h-8 sm:h-9 max-w-[48px] w-auto mx-auto' 
+                    : 'h-10 sm:h-11 max-w-[150px] w-auto'
+                }`} 
+              />
 
-            {(!isCollapsed || isOpen) && (
-              <div className={`flex flex-col overflow-hidden ${isCollapsed ? 'md:hidden' : ''}`}>
-                <span className="text-sm font-black tracking-tight text-gray-900 dark:text-white truncate">
-                  Darmax Gestión
-                </span>
-                <div className="flex items-center mt-1">
-                  <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider truncate border ${
+              {(!isCollapsed || isOpen) && (
+                <div className={`flex items-center overflow-hidden ${isCollapsed ? 'md:hidden' : ''}`}>
+                  <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider truncate border ${
                       user?.store 
                       ? 'bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800' 
                       : 'bg-primary/10 text-primary border-primary/20 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800'
@@ -585,8 +582,8 @@ const GestionSidebar = ({ isOpen, onClose, isCollapsed, toggleCollapsed }) => {
                       {user?.store?.name || 'Acceso Global'}
                   </span>
                 </div>
-              </div>
-            )}
+              )}
+            </button>
           </div>
 
           {/* Botón cerrar en móvil circular y táctil con respuesta háptica */}
@@ -643,7 +640,7 @@ const GestionSidebar = ({ isOpen, onClose, isCollapsed, toggleCollapsed }) => {
                 <button
                   type="button"
                   onClick={toggleTheme}
-                  className="flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl text-xs font-bold text-gray-700 dark:text-gray-200 hover:bg-white dark:hover:bg-gray-700/70 transition-all active:scale-95 border border-gray-200/70 dark:border-gray-700/60 shadow-xs"
+                  className="flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl text-xs font-bold text-gray-700 dark:text-gray-200 hover:bg-white dark:hover:bg-gray-700/70 transition-colors border border-gray-200/70 dark:border-gray-700/60 shadow-xs"
                   title={theme === 'dark' ? 'Cambiar a Modo Claro' : 'Cambiar a Modo Oscuro'}
                 >
                   <span className="material-symbols-outlined text-base">
@@ -655,7 +652,7 @@ const GestionSidebar = ({ isOpen, onClose, isCollapsed, toggleCollapsed }) => {
                 <button
                   type="button"
                   onClick={() => { handleLogout(); onClose(); }}
-                  className="flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl text-xs font-bold text-rose-600 dark:text-rose-400 hover:bg-rose-50/90 dark:hover:bg-rose-950/40 transition-all active:scale-95 border border-rose-200/70 dark:border-rose-900/50 shadow-xs"
+                  className="flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl text-xs font-bold text-rose-600 dark:text-rose-400 hover:bg-rose-50/90 dark:hover:bg-rose-950/40 transition-colors border border-rose-200/70 dark:border-rose-900/50 shadow-xs"
                   title="Cerrar Sesión"
                 >
                   <span className="material-symbols-outlined text-base">logout</span>
@@ -668,7 +665,7 @@ const GestionSidebar = ({ isOpen, onClose, isCollapsed, toggleCollapsed }) => {
             <div className="flex flex-col items-center gap-2 py-1">
               <div 
                 ref={avatarRef}
-                className="relative group w-10 h-10 rounded-2xl bg-gradient-to-tr from-primary to-blue-500 text-white flex items-center justify-center font-black text-xs shadow-xs cursor-pointer hover:opacity-90 active:scale-95 transition-all"
+                className="relative group w-10 h-10 rounded-2xl bg-gradient-to-tr from-primary to-blue-500 text-white flex items-center justify-center font-black text-xs shadow-xs cursor-pointer hover:opacity-90 transition-opacity"
               >
                 {(user?.name || 'U')[0]}
                 <DropletTooltip 
@@ -682,7 +679,7 @@ const GestionSidebar = ({ isOpen, onClose, isCollapsed, toggleCollapsed }) => {
                   ref={themeBtnRef}
                   type="button"
                   onClick={toggleTheme}
-                  className="w-10 h-10 flex items-center justify-center rounded-2xl text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors active:scale-95"
+                  className="w-10 h-10 flex items-center justify-center rounded-2xl text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                   title={theme === 'dark' ? 'Cambiar a Modo Claro' : 'Cambiar a Modo Oscuro'}
                 >
                   <span className="material-symbols-outlined text-base">
@@ -696,7 +693,7 @@ const GestionSidebar = ({ isOpen, onClose, isCollapsed, toggleCollapsed }) => {
                   ref={logoutBtnRef}
                   type="button"
                   onClick={() => { handleLogout(); onClose(); }}
-                  className="w-10 h-10 flex items-center justify-center rounded-2xl text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors active:scale-95"
+                  className="w-10 h-10 flex items-center justify-center rounded-2xl text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors"
                   title="Cerrar Sesión"
                 >
                   <span className="material-symbols-outlined text-base">logout</span>

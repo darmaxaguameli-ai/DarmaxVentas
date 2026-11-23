@@ -115,84 +115,97 @@ const Empleados = () => {
         />
       )}
 
-      {/* Encabezado sin avatar al lado del título */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800">
-              Expedientes & Nómina
-            </span>
+      {/* Bento Card Header de Gestión de Personal */}
+      <div className="p-5 sm:p-6 lg:p-7 bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-3xl shadow-xs border border-gray-100 dark:border-gray-700/80 mb-5 sm:mb-6 transition-all">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div className="space-y-1">
+            <h1 className="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white tracking-tight">
+              Gestión de Personal
+            </h1>
+            <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 font-medium">
+              Directorio integral de colaboradores, expedientes laborales, asignación de roles y accesos al sistema
+            </p>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white tracking-tight">
-            Gestión de Personal
-          </h1>
-          <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 font-medium">
-            Directorio integral de colaboradores, expedientes laborales, asignación de roles y accesos al sistema.
-          </p>
-        </div>
 
-        <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto">
-          <Link 
-            to="/gestion/recursos-humanos" 
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 font-bold text-xs hover:bg-gray-200 dark:hover:bg-gray-700 active:scale-95 transition-all border border-gray-200/60 dark:border-gray-700/60"
-          >
-            <span className="material-symbols-outlined text-base">arrow_back</span>
-            <span>Panel RRHH</span>
-          </Link>
-          <button 
-            type="button"
-            onClick={() => handleOpenModal()} 
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary text-white font-bold text-xs shadow-xs hover:bg-primary-dark active:scale-95 transition-all"
-          >
-            <span className="material-symbols-outlined text-base">person_add</span>
-            <span>Agregar Empleado</span>
-          </button>
+          <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto">
+            <Link 
+              to="/gestion/recursos-humanos" 
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 font-bold text-xs hover:bg-gray-200 dark:hover:bg-gray-700 active:scale-95 transition-all border border-gray-200/60 dark:border-gray-700/60 min-h-[38px]"
+            >
+              <span className="material-symbols-outlined text-base">arrow_back</span>
+              <span>Panel RRHH</span>
+            </Link>
+            <button 
+              type="button"
+              onClick={() => handleOpenModal()} 
+              className="flex items-center gap-1.5 px-4 py-2.5 rounded-2xl bg-primary text-white font-black text-xs shadow-md shadow-primary/25 hover:bg-primary-dark active:scale-95 transition-all touch-manipulation min-h-[38px]"
+            >
+              <span className="material-symbols-outlined text-base">person_add</span>
+              <span>Agregar Empleado</span>
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Resumen de Métricas de Personal */}
+      {/* Resumen de Métricas Bento de Personal */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-        <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border border-gray-200/80 dark:border-gray-800/80 p-4 rounded-2xl shadow-xs">
+        <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl border border-gray-100 dark:border-gray-700/80 p-4 rounded-3xl shadow-xs flex flex-col justify-between">
           <div className="flex items-center justify-between text-gray-400 mb-1">
             <span className="text-[10px] font-black uppercase tracking-wider">Total Plantilla</span>
-            <span className="material-symbols-outlined text-base text-blue-500">groups</span>
+            <span className="p-1.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-xl">
+              <span className="material-symbols-outlined text-base">groups</span>
+            </span>
           </div>
-          <p className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white">{totalCount}</p>
-          <p className="text-[10px] text-gray-400 font-medium mt-0.5">Colaboradores dados de alta</p>
+          <div className="mt-2">
+            <p className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white leading-none">{totalCount}</p>
+            <span className="text-[10px] text-gray-400 font-bold mt-1 block">Colaboradores dados de alta</span>
+          </div>
         </div>
 
-        <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border border-gray-200/80 dark:border-gray-800/80 p-4 rounded-2xl shadow-xs">
+        <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl border border-gray-100 dark:border-gray-700/80 p-4 rounded-3xl shadow-xs flex flex-col justify-between">
           <div className="flex items-center justify-between text-gray-400 mb-1">
-            <span className="text-[10px] font-black uppercase tracking-wider">Personal Activo</span>
-            <span className="material-symbols-outlined text-base text-emerald-500">check_circle</span>
+            <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Personal Activo</span>
+            <span className="p-1.5 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 rounded-xl">
+              <span className="material-symbols-outlined text-base">check_circle</span>
+            </span>
           </div>
-          <p className="text-xl sm:text-2xl font-black text-emerald-600 dark:text-emerald-400">{activeCount}</p>
-          <p className="text-[10px] text-gray-400 font-medium mt-0.5">En operación diaria</p>
+          <div className="mt-2">
+            <p className="text-xl sm:text-2xl font-black text-emerald-600 dark:text-emerald-400 leading-none">{activeCount}</p>
+            <span className="text-[10px] text-gray-400 font-bold mt-1 block">En operación diaria</span>
+          </div>
         </div>
 
-        <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border border-gray-200/80 dark:border-gray-800/80 p-4 rounded-2xl shadow-xs">
+        <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl border border-gray-100 dark:border-gray-700/80 p-4 rounded-3xl shadow-xs flex flex-col justify-between">
           <div className="flex items-center justify-between text-gray-400 mb-1">
-            <span className="text-[10px] font-black uppercase tracking-wider">Con Acceso al Sistema</span>
-            <span className="material-symbols-outlined text-base text-purple-500">key</span>
+            <span className="text-[10px] font-black uppercase tracking-wider text-purple-600 dark:text-purple-400">Con Acceso</span>
+            <span className="p-1.5 bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400 rounded-xl">
+              <span className="material-symbols-outlined text-base">key</span>
+            </span>
           </div>
-          <p className="text-xl sm:text-2xl font-black text-purple-600 dark:text-purple-400">{withAccessCount}</p>
-          <p className="text-[10px] text-gray-400 font-medium mt-0.5">Usuarios vinculados</p>
+          <div className="mt-2">
+            <p className="text-xl sm:text-2xl font-black text-purple-600 dark:text-purple-400 leading-none">{withAccessCount}</p>
+            <span className="text-[10px] text-gray-400 font-bold mt-1 block">Usuarios vinculados</span>
+          </div>
         </div>
 
-        <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border border-gray-200/80 dark:border-gray-800/80 p-4 rounded-2xl shadow-xs">
+        <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl border border-gray-100 dark:border-gray-700/80 p-4 rounded-3xl shadow-xs flex flex-col justify-between">
           <div className="flex items-center justify-between text-gray-400 mb-1">
             <span className="text-[10px] font-black uppercase tracking-wider">Nómina Mensual</span>
-            <span className="material-symbols-outlined text-base text-primary">payments</span>
+            <span className="p-1.5 bg-primary/10 text-primary rounded-xl">
+              <span className="material-symbols-outlined text-base">payments</span>
+            </span>
           </div>
-          <p className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white">
-            {new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 }).format(totalSalaries)}
-          </p>
-          <p className="text-[10px] text-gray-400 font-medium mt-0.5">Sueldo neto colaboradores activos</p>
+          <div className="mt-2">
+            <p className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white leading-none">
+              {new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 }).format(totalSalaries)}
+            </p>
+            <span className="text-[10px] text-gray-400 font-bold mt-1 block">Sueldo neto colaboradores</span>
+          </div>
         </div>
       </div>
 
       {/* Barra de Búsqueda y Filtros */}
-      <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border border-gray-200/80 dark:border-gray-800/80 p-3 sm:p-4 rounded-3xl shadow-xs space-y-3">
+      <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl border border-gray-100 dark:border-gray-700/80 p-3.5 sm:p-4 rounded-3xl shadow-xs space-y-3">
         <div className="flex flex-col sm:flex-row gap-3">
           {/* Input de Búsqueda */}
           <div className="relative flex-1">
@@ -267,7 +280,7 @@ const Empleados = () => {
       </div>
 
       {/* Contenedor Principal: Tabla en Escritorio / Tarjetas en Móvil */}
-      <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-3xl border border-gray-200/80 dark:border-gray-800/80 shadow-xs overflow-hidden">
+      <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-3xl border border-gray-100 dark:border-gray-700/80 shadow-xs overflow-hidden">
         {loading ? (
           <div className="p-16 text-center text-gray-400 font-bold uppercase tracking-widest animate-pulse text-xs">
             Cargando expedientes de personal...

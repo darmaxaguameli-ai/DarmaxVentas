@@ -18,8 +18,9 @@ const PERMISSION_EQUIVALENTS = {
 
     // 3. Operaciones
     'acceso.operaciones': ['canAccessInventory'],
-    'acceso.inventarioglobal': ['canAccessInventory'],
-    'canAccessInventory': ['acceso.inventarioglobal'],
+    'acceso.inventarioglobal': ['canAccessInventory', 'acceso.inventarioparainstalacion'],
+    'acceso.inventarioparainstalacion': ['canAccessInventory', 'acceso.inventarioglobal'],
+    'canAccessInventory': ['acceso.inventarioglobal', 'acceso.inventarioparainstalacion'],
     'acceso.cortesvending': ['canAccessVending'],
     'canAccessVending': ['acceso.cortesvending'],
 
@@ -32,22 +33,22 @@ const PERMISSION_EQUIVALENTS = {
 
     // 5. Sistemas (Estricto: cada permiso a su rol específico, sin filtraciones)
     'acceso.sistemas': ['canAccessSistemas'],
-    'canAccessSistemas': ['acceso.sistemas', 'acceso.proyectosactividades'],
+    'canAccessSistemas': ['acceso.sistemas', 'acceso.proyectosactividades', 'proyectosactividades.jefe', 'acceso.proyectosactividades.jefe'],
     'acceso.proyectosactividades': ['canAccessSistemas'],
-    'proyectosactividades.jefe': ['acceso.proyectosactividades.jefe'],
-    'acceso.proyectosactividades.jefe': ['proyectosactividades.jefe'],
+    'proyectosactividades.jefe': ['acceso.proyectosactividades.jefe', 'canManageSistemas'],
+    'acceso.proyectosactividades.jefe': ['proyectosactividades.jefe', 'canManageSistemas'],
     'proyectosactividades.colaborador': ['acceso.proyectosactividades.colaborador'],
     'acceso.proyectosactividades.colaborador': ['proyectosactividades.colaborador'],
     'acceso.permisosyroles': ['acceso.rolesypermisos', 'canManageSistemas'],
     'acceso.rolesypermisos': ['acceso.permisosyroles', 'canManageSistemas'],
-    'canManageSistemas': ['acceso.permisosyroles', 'acceso.rolesypermisos'],
+    'canManageSistemas': ['acceso.permisosyroles', 'acceso.rolesypermisos', 'proyectosactividades.jefe', 'acceso.proyectosactividades.jefe'],
 
     // 6. Marketing y Estrategia (Estricto)
     'acceso.marketingyestrategia': ['canAccessMarketing'],
     'canAccessMarketing': ['acceso.marketingyestrategia', 'acceso.plannerdigital'],
     'acceso.plannerdigital': ['canAccessMarketing'],
-    'plannerdigital.jefe': ['acceso.plannerdigital.jefe'],
-    'acceso.plannerdigital.jefe': ['plannerdigital.jefe'],
+    'plannerdigital.jefe': ['acceso.plannerdigital.jefe', 'canAccessMarketing'],
+    'acceso.plannerdigital.jefe': ['plannerdigital.jefe', 'canAccessMarketing'],
     'plannerdigital.colaborador': ['acceso.plannerdigital.colaborador'],
     'acceso.plannerdigital.colaborador': ['plannerdigital.colaborador'],
     'acceso.promociones': [],
@@ -80,8 +81,11 @@ const PERMISSION_EQUIVALENTS = {
     'canAccessRH': ['acceso.administracion', 'acceso.rrhhynominas'],
     'acceso.directorio': [],
     'acceso.rrhhynominas': ['canAccessRH'],
-    'acceso.configuracionbase': ['canAccessConfig'],
-    'canAccessConfig': ['acceso.configuracionbase'],
+    'acceso.configuracionbase': ['canAccessConfig', 'canAccessArticulosVenta'],
+    'acceso.configuracion.fondo': ['canAccessConfig'],
+    'acceso.articulosventa': ['canAccessArticulosVenta', 'canAccessConfig'],
+    'canAccessArticulosVenta': ['acceso.articulosventa', 'acceso.configuracionbase'],
+    'canAccessConfig': ['acceso.configuracionbase', 'acceso.configuracion.fondo', 'acceso.articulosventa'],
 
     // Módulos Principales (Entornos)
     'acceso.pos': ['canAccessPOS'],
@@ -119,6 +123,26 @@ export const AuthProvider = ({ children }) => {
         // 1. Verificación de SUPERUSUARIO (ADMIN)
         const isAdmin = user.roles?.some(r => r.name?.toUpperCase() === 'ADMIN') || user.role === 'ADMIN';
         if (isAdmin) return true;
+
+        // Verificación especial para Jefe de Área (Sistemas o Marketing)
+        if (permissionName === 'proyectosactividades.jefe' || permissionName === 'acceso.proyectosactividades.jefe' || permissionName === 'canManageSistemas') {
+            const hasJefeRole = user.roles?.some(r => {
+                if (r.canManageSistemas) return true;
+                const rn = (r.name || '').toUpperCase();
+                return rn.includes('JEFE') || rn.includes('LIDER') || rn.includes('ENCARGADO') || rn.includes('DIRECTOR') || rn.includes('GERENTE');
+            });
+            if (hasJefeRole) return true;
+            const userRoleName = (user.role || '').toUpperCase();
+            if (userRoleName.includes('JEFE') || userRoleName.includes('LIDER') || userRoleName.includes('ENCARGADO')) return true;
+        }
+
+        if (permissionName === 'plannerdigital.jefe' || permissionName === 'acceso.plannerdigital.jefe') {
+            const hasMarketingJefeRole = user.roles?.some(r => {
+                const rn = (r.name || '').toUpperCase();
+                return (rn.includes('JEFE') || rn.includes('LIDER') || rn.includes('ENCARGADO')) && rn.includes('MARKETING');
+            });
+            if (hasMarketingJefeRole) return true;
+        }
 
         // Lista de claves equivalentes a comprobar
         const targetsToCheck = [permissionName, ...(PERMISSION_EQUIVALENTS[permissionName] || [])];

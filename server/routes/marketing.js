@@ -193,6 +193,20 @@ router.get('/blog', async (req, res) => {
   }
 });
 
+// Helper para sanitizar autores y prevenir nombres combinados como "Juan y Pedro"
+const sanitizeBlogAuthor = (rawAuthor) => {
+  if (!rawAuthor) return 'Darmax';
+  const str = String(rawAuthor).trim();
+  // Si contiene conectores combinados (" y ", ",", " & ", " e ")
+  if (/(\s+y\s+|\s*,\s*|\s*&\s*)/i.test(str)) {
+    const parts = str.split(/(\s+y\s+|\s*,\s*|\s*&\s*)/i)
+      .map(s => s.trim())
+      .filter(s => s && !/^(&|,|y|e)$/i.test(s));
+    if (parts.length > 0) return parts[0];
+  }
+  return str || 'Darmax';
+};
+
 router.post('/blog', verifyToken, requirePermission('canAccessMarketing'), async (req, res) => {
   try {
     const { title, excerpt, content, blocks, image, videoUrl, category, tags, published, author, target } = req.body;
@@ -204,6 +218,8 @@ router.post('/blog', verifyToken, requirePermission('canAccessMarketing'), async
         .replace(/(^-|-$)+/g, '');
     
     const slug = `${slugBase}-${Math.random().toString(36).substring(2, 7)}`;
+
+    const cleanAuthor = sanitizeBlogAuthor(author);
 
     const post = await prisma.blogPost.create({
       data: {
@@ -217,7 +233,7 @@ router.post('/blog', verifyToken, requirePermission('canAccessMarketing'), async
         category: category || 'Articulo',
         tags: tags || ['Darmax'],
         published: published ?? true,
-        author: author || 'Darmax',
+        author: cleanAuthor,
         target: target || 'WEB'
       }
     });
@@ -233,6 +249,8 @@ router.put('/blog/:id', verifyToken, requirePermission('canAccessMarketing'), as
     const { id } = req.params;
     const data = req.body;
     
+    const cleanAuthor = data.author !== undefined ? sanitizeBlogAuthor(data.author) : undefined;
+
     const post = await prisma.blogPost.update({
       where: { id },
       data: {
@@ -245,7 +263,7 @@ router.put('/blog/:id', verifyToken, requirePermission('canAccessMarketing'), as
         category: data.category,
         tags: data.tags,
         published: data.published,
-        author: data.author,
+        author: cleanAuthor,
         target: data.target
       }
     });

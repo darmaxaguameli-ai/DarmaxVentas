@@ -291,7 +291,46 @@ router.get('/installation-models', verifyToken, requirePermission('canAccessInst
       }, 
       orderBy: { name: 'asc' } 
     });
-    res.json(models);
+
+    // Cargar todos los materiales técnicos de instalación para hidratar la respuesta
+    const allMaterials = await prisma.installationMaterial.findMany();
+    const materialsMap = new Map(allMaterials.map(m => [m.id, m]));
+
+    // Hidratar tanto los materiales directos como los submódulos integrados
+    const enrichedModels = models.map(model => {
+      const enrichMat = (mat) => {
+        const matId = mat.productId || mat.id;
+        const foundMat = materialsMap.get(matId);
+        return {
+          ...mat,
+          material: foundMat || null,
+          product: mat.product || (foundMat ? {
+            id: foundMat.id,
+            name: foundMat.name,
+            category: foundMat.category,
+            stock: foundMat.stock,
+            price: foundMat.cost || 0
+          } : null)
+        };
+      };
+
+      return {
+        ...model,
+        materials: (model.materials || []).map(enrichMat),
+        modules: (model.modules || []).map(modJoin => {
+          if (!modJoin.module) return modJoin;
+          return {
+            ...modJoin,
+            module: {
+              ...modJoin.module,
+              materials: (modJoin.module.materials || []).map(enrichMat)
+            }
+          };
+        })
+      };
+    });
+
+    res.json(enrichedModels);
   } catch (error) {
     console.error("Error fetching installation models:", error);
     res.status(500).json({ error: 'Error fetching models', details: error.message });
@@ -308,9 +347,9 @@ router.post('/installation-models', verifyToken, requirePermission('canAccessIns
         isModule: !!isModule,
         materials: {
           create: (materials || []).map(m => ({
-            quantity: parseFloat(m.quantity),
-            unit: m.unit,
-            productId: m.productId
+            quantity: parseFloat(m.quantity) || 1,
+            unit: m.unit || 'Pza',
+            productId: m.productId || m.materialId || null
           }))
         },
         modules: {
@@ -320,12 +359,15 @@ router.post('/installation-models', verifyToken, requirePermission('canAccessIns
           }))
         }
       },
-      include: { materials: true, modules: true }
+      include: { 
+        materials: { include: { product: true } }, 
+        modules: { include: { module: true } } 
+      }
     });
     res.json(model);
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Error al crear modelo de instalación' });
+    console.error('Error al crear modelo de instalación:', error);
+    res.status(500).json({ error: 'Error al crear modelo de instalación', details: error.message });
   }
 });
 
@@ -346,9 +388,9 @@ router.put('/installation-models/:id', verifyToken, requirePermission('canAccess
         isModule: !!isModule,
         materials: {
           create: (materials || []).map(m => ({
-            quantity: parseFloat(m.quantity),
-            unit: m.unit,
-            productId: m.productId
+            quantity: parseFloat(m.quantity) || 1,
+            unit: m.unit || 'Pza',
+            productId: m.productId || m.materialId || null
           }))
         },
         modules: {
@@ -358,12 +400,15 @@ router.put('/installation-models/:id', verifyToken, requirePermission('canAccess
           }))
         }
       },
-      include: { materials: true, modules: true }
+      include: { 
+        materials: { include: { product: true } }, 
+        modules: { include: { module: true } } 
+      }
     });
     res.json(model);
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Error al actualizar modelo de instalación' });
+    console.error('Error al actualizar modelo de instalación:', error);
+    res.status(500).json({ error: 'Error al actualizar modelo de instalación', details: error.message });
   }
 });
 

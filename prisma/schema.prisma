@@ -218,6 +218,7 @@ model User {
 
   clientCategory    ClientCategory @default(PARTICULAR)
   clientPreferences Json?          @default("{}")
+  backgroundPreference String?      @default("solid-light-ice")
   sexo              String?
 
   // Nuevos campos para concurrencia y preferencias de cliente
@@ -390,9 +391,18 @@ model JugBrand {
   id       String  @id @default(cuid())
   name     String  @unique
   imageUrl String?
+  order    Int     @default(0)
 
   compatibleCap   Product? @relation(fields: [compatibleCapId], references: [id])
   compatibleCapId String?
+
+  // Gestión de Tapas y Linners integrados
+  capStock   Int     @default(0)
+  capCost    Float   @default(0)
+  capSize    String?
+  linerStock Int     @default(0)
+  linerCost  Float   @default(0)
+  linerSize  String?
 
   servicePrices      ServicePrice[]
   userPreferences    UserJugPreference[]
@@ -511,8 +521,27 @@ model Promotion {
 }
 
 // =====================================================================
-// INGENIERÍA / INSTALACIONES
+// INGENIERÍA / INSTALACIONES (Separación de Inventario Técnico en BD)
 // =====================================================================
+
+model InstallationMaterial {
+  id          String   @id @default(cuid())
+  name        String   @unique // Ej: Filtro de Carbón Activado, Bomba 1HP, Tubo PVC 1/2"
+  code        String?  // Código o SKU técnico interno (ej: MAT-001)
+  category    String   @default("General") // Tubería, Eléctrico, Filtración, Bombas, Tornillería, Insumos
+  stock       Int      @default(0)
+  minStock    Int      @default(5)
+  unit        String   @default("Pza") // Pza, Mts, Rollo, Kg, Tramo, Lts
+  cost        Float    @default(0)     // Costo de adquisición
+  imageUrl    String?
+  status      String   @default("ACTIVE") // ACTIVE, INACTIVE
+  notes       String?
+
+  modelsUsed  ModelMaterial[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
 
 model InstallationModel {
   id          String  @id @default(cuid())
@@ -535,13 +564,16 @@ model ModelMaterial {
   quantity Float  @default(1)
   unit     String @default("Pza") // Ej: Pza, Mts, Lts, Kg
 
-  installationModel   InstallationModel @relation(fields: [installationModelId], references: [id])
+  installationModel   InstallationModel @relation(fields: [installationModelId], references: [id], onDelete: Cascade)
   installationModelId String
 
-  product   Product @relation(fields: [productId], references: [id])
-  productId String
+  product   Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  productId String?
 
-  @@unique([installationModelId, productId])
+  material   InstallationMaterial? @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  materialId String?
+
+  @@unique([installationModelId, id])
 }
 
 model InstallationModuleJoin {

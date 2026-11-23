@@ -82,7 +82,9 @@ const purchaseRoutes = require('./routes/purchases');
 const fiscalRoutes = require('./routes/fiscal');
 const leadRoutes = require('./routes/leads');
 const sistemasRoutes = require('./routes/sistemas');
+const installationMaterialRoutes = require('./routes/installationMaterials');
 const { procesarRentasMensuales } = require('./utils/accountingAutomations');
+const { syncDatabaseSchema } = require('./utils/dbSync');
 
 // --- CRON JOBS SIMULADOS ---
 // Endpoint manual para disparar los procesos automáticos diarios
@@ -118,6 +120,7 @@ app.use('/api/vending', vendingRoutes);
 app.use('/api/purchases', purchaseRoutes);
 app.use('/api/fiscal', fiscalRoutes);
 app.use('/api', sistemasRoutes);
+app.use('/api', installationMaterialRoutes);
 
 // Healthcheck
 app.get('/api/health', (req, res) => {
@@ -142,6 +145,7 @@ app.use((err, req, res, next) => {
 if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
   app.listen(port, () => {
     console.log(`🚀 Servidor modularizado en puerto ${port}`);
+    syncDatabaseSchema();
   });
 }
 

@@ -65,8 +65,8 @@ const verifyToken = async (req, res, next) => {
   }
 };
 
-// Middleware para requerir un permiso específico (RBAC)
-const requirePermission = (permissionName) => {
+// Middleware para requerir un permiso específico (RBAC y permisos dinámicos)
+const requirePermission = (permissionTarget) => {
     return async (req, res, next) => {
         if (!req.fullUser) return res.status(500).json({ error: 'Error de validación de permisos.' });
 
@@ -75,13 +75,28 @@ const requirePermission = (permissionName) => {
         
         if (isAdmin) return next();
 
-        const hasPerm = user.roles.some(role => role[permissionName] === true);
-        
-        if (hasPerm) return next();
+        const targets = Array.isArray(permissionTarget) ? permissionTarget : [permissionTarget];
 
+        // 1. Validar por flags booleanos en roles
+        const hasFlag = user.roles.some(role => targets.some(target => role[target] === true));
+        if (hasFlag) return next();
+
+        // 2. Validar por permisos directos del usuario
+        const hasDirectPerm = (user.permisos || []).some(p => 
+            targets.includes(p.codigo) || targets.includes(p.id)
+        );
+        if (hasDirectPerm) return next();
+
+        // 3. Validar por permisos asociados a los roles del usuario
+        const hasRolePerm = (user.roles || []).some(role => 
+            (role.permisos || []).some(p => targets.includes(p.codigo) || targets.includes(p.id))
+        );
+        if (hasRolePerm) return next();
+
+        const targetStr = targets.join(' o ');
         return res.status(403).json({ 
             error: 'Acceso Denegado', 
-            details: `No tienes el permiso necesario (${permissionName}) para realizar esta acción.` 
+            details: `No tienes el permiso necesario (${targetStr}) para realizar esta acción.` 
         });
     };
 };

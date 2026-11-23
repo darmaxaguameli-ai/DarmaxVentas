@@ -1,0 +1,6 @@
+-- AlterTable User
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "backgroundPreference" TEXT DEFAULT 'solid-light-ice';
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "sexo" TEXT;
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "purchaseFrequencyDays" INTEGER;
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "preferredJugs" TEXT;
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "lastPurchaseDate" TIMESTAMP(3);

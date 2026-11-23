@@ -76,11 +76,36 @@ const WORK_COLUMNS = [
 const Marketing = () => {
     const { user: authUser, hasPermission } = useAuth();
     
-    // Detección estricta de Jefe vs Colaborador (plannerdigital.jefe vs plannerdigital.colaborador)
-    const isRealJefe = authUser?.role === 'ADMIN' || 
-                        authUser?.roles?.some(r => r.name?.toUpperCase() === 'ADMIN') ||
-                        hasPermission('plannerdigital.jefe') ||
-                        hasPermission('acceso.plannerdigital.jefe');
+    // Detección exhaustiva de Jefe vs Colaborador (plannerdigital.jefe vs plannerdigital.colaborador)
+    const isRealJefe = useMemo(() => {
+        if (!authUser) return false;
+
+        // 1. Superusuario Administrador
+        const isAdmin = authUser?.role === 'ADMIN' || 
+                        authUser?.roles?.some(r => r.name?.toUpperCase() === 'ADMIN');
+        if (isAdmin) return true;
+
+        // 2. Permisos explícitos o equivalentes de Jefe de Marketing
+        if (
+            hasPermission('plannerdigital.jefe') ||
+            hasPermission('acceso.plannerdigital.jefe') ||
+            hasPermission('canAccessMarketing')
+        ) {
+            return true;
+        }
+
+        // 3. Verificación en la lista de roles del usuario
+        if (Array.isArray(authUser?.roles)) {
+            const hasJefeRole = authUser.roles.some(r => {
+                const rn = (r.name || '').toUpperCase().trim();
+                return (rn.includes('JEFE') || rn.includes('LIDER') || rn.includes('ENCARGADO') || rn.includes('DIRECTOR') || rn.includes('GERENTE')) &&
+                       (rn.includes('MARKETING') || rn.includes('DIGITAL') || rn.includes('ESTRATEGIA'));
+            });
+            if (hasJefeRole) return true;
+        }
+
+        return false;
+    }, [authUser, hasPermission]);
 
     const [viewAsRole, setViewAsRole] = useState(isRealJefe ? 'JEFE' : 'COLABORADOR');
 

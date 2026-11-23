@@ -49,7 +49,6 @@ const DEFAULT_MODULES_TREE = [
     icono: "storefront",
     permisos: [{ id: "p-operaciones", codigo: "acceso.operaciones", nombre: "Acceso a Operaciones" }],
     submodulos: [
-      { id: "sub-inventarioglobal", codigo: "inventarioglobal", nombre: "Inventario Global", path: "inventario", icono: "inventory_2", permisos: [{ id: "p-inventarioglobal", codigo: "acceso.inventarioglobal", nombre: "Acceso a Inventario Global" }] },
       { id: "sub-cortesvending", codigo: "cortesvending", nombre: "Cortes Vending", path: "vending", icono: "smart_toy", permisos: [{ id: "p-cortesvending", codigo: "acceso.cortesvending", nombre: "Acceso a Cortes Vending" }] }
     ]
   },
@@ -60,6 +59,17 @@ const DEFAULT_MODULES_TREE = [
     icono: "engineering",
     permisos: [{ id: "p-ingenieria", codigo: "acceso.ingenieriayproyectos", nombre: "Acceso a Ingeniería y Proyectos" }],
     submodulos: [
+      { 
+        id: "sub-inventarioparainstalacion", 
+        codigo: "inventarioparainstalacion", 
+        nombre: "Inventario para Instalación", 
+        path: "inventario", 
+        icono: "inventory_2", 
+        permisos: [
+          { id: "p-inventarioparainstalacion", codigo: "acceso.inventarioparainstalacion", nombre: "Acceso a Inventario para Instalación" },
+          { id: "p-inventarioglobal", codigo: "acceso.inventarioglobal", nombre: "Compatibilidad Inventario Global" }
+        ] 
+      },
       { id: "sub-controlinstalacion", codigo: "controlinstalacion", nombre: "Control de Instalación", path: "instalacion", icono: "construction", permisos: [{ id: "p-controlinstalacion", codigo: "acceso.controlinstalacion", nombre: "Acceso a Control de Instalación" }] },
       { id: "sub-mapainstalaciones", codigo: "mapainstalaciones", nombre: "Mapa de Instalaciones", path: "mapa-instalaciones", icono: "map", permisos: [{ id: "p-mapainstalaciones", codigo: "acceso.mapainstalaciones", nombre: "Acceso a Mapa de Instalaciones" }] }
     ]
@@ -164,7 +174,18 @@ const DEFAULT_MODULES_TREE = [
     submodulos: [
       { id: "sub-directorio", codigo: "directorio", nombre: "Directorio", path: "usuarios", icono: "group", permisos: [{ id: "p-directorio", codigo: "acceso.directorio", nombre: "Acceso a Directorio" }] },
       { id: "sub-rrhhynominas", codigo: "rrhhynominas", nombre: "RRHH y Nóminas", path: "recursos-humanos", icono: "folder_managed", permisos: [{ id: "p-rrhhynominas", codigo: "acceso.rrhhynominas", nombre: "Acceso a RRHH y Nóminas" }] },
-      { id: "sub-configuracionbase", codigo: "configuracionbase", nombre: "Configuración Base", path: "configuracion", icono: "tune", permisos: [{ id: "p-configuracionbase", codigo: "acceso.configuracionbase", nombre: "Acceso a Configuración Base" }] }
+      { 
+        id: "sub-configuracionbase", 
+        codigo: "configuracionbase", 
+        nombre: "Configuración Base", 
+        path: "configuracion", 
+        icono: "tune", 
+        permisos: [
+          { id: "p-configuracionbase", codigo: "acceso.configuracionbase", nombre: "Acceso a Configuración Base (Operativa: Sucursales, Precios)" },
+          { id: "p-configuracion-fondo", codigo: "acceso.configuracion.fondo", nombre: "Personalizar Fondo de Pantalla (Apariencia & Glassmorphism)" },
+          { id: "p-articulosventa", codigo: "acceso.articulosventa", nombre: "Gestión de Artículos para Venta (Catálogo POS / Tienda)" }
+        ] 
+      }
     ]
   }
 ];
@@ -177,19 +198,19 @@ const mapPermisoCodesToBooleans = (permCodes) => {
         canAccessManagement: s.has('acceso.resumenoperativo') || s.has('acceso.sistemas') || s.has('acceso.permisosyroles') || s.has('acceso.rolesypermisos'),
         canAccessQuotes: s.has('acceso.cotizadores') || s.has('acceso.cotizadordarmax'),
         canAccessDistributorQuotes: s.has('acceso.cotizadordistribuidor'),
-        canAccessInventory: s.has('acceso.operaciones') || s.has('acceso.inventarioglobal'),
+        canAccessInventory: s.has('acceso.operaciones') || s.has('acceso.inventarioglobal') || s.has('acceso.inventarioparainstalacion'),
         canAccessVending: s.has('acceso.cortesvending'),
-        canAccessInstallation: s.has('acceso.ingenieriayproyectos') || s.has('acceso.controlinstalacion'),
+        canAccessInstallation: s.has('acceso.ingenieriayproyectos') || s.has('acceso.controlinstalacion') || s.has('acceso.inventarioparainstalacion'),
         canAccessShowcase: s.has('acceso.mapainstalaciones'),
-        canAccessSistemas: s.has('acceso.sistemas') || s.has('acceso.proyectosactividades') || s.has('proyectosactividades.jefe') || s.has('proyectosactividades.colaborador') || s.has('acceso.permisosyroles') || s.has('acceso.rolesypermisos'),
-        canManageSistemas: s.has('acceso.sistemas') || s.has('proyectosactividades.jefe') || s.has('acceso.permisosyroles') || s.has('acceso.rolesypermisos'),
+        canAccessSistemas: s.has('acceso.sistemas') || s.has('acceso.proyectosactividades') || s.has('proyectosactividades.jefe') || s.has('acceso.proyectosactividades.jefe') || s.has('proyectosactividades.colaborador') || s.has('acceso.proyectosactividades.colaborador') || s.has('acceso.permisosyroles') || s.has('acceso.rolesypermisos'),
+        canManageSistemas: s.has('acceso.sistemas') || s.has('proyectosactividades.jefe') || s.has('acceso.proyectosactividades.jefe') || s.has('acceso.permisosyroles') || s.has('acceso.rolesypermisos'),
         canAccessMarketing: s.has('acceso.marketingyestrategia') || s.has('acceso.plannerdigital') || s.has('plannerdigital.jefe') || s.has('plannerdigital.colaborador') || s.has('acceso.promociones') || s.has('acceso.contenidoyrecursos') || s.has('acceso.editorblog'),
         canAccessFinances: s.has('acceso.finanzasycontabilidad') || s.has('acceso.tesoreriaingresos') || s.has('acceso.comprasxcp'),
         canAccessAccounting: s.has('acceso.contabilidaderp') || s.has('acceso.facturacioncfdi'),
         canAccessLeads: s.has('acceso.prospeccionleads') || s.has('acceso.crmycobranza'),
         canAccessLegal: s.has('acceso.legal') || s.has('acceso.gestiondocumental') || s.has('acceso.arealegal'),
         canAccessRH: s.has('acceso.administracion') || s.has('acceso.directorio') || s.has('acceso.rrhhynominas'),
-        canAccessConfig: s.has('acceso.configuracionbase')
+        canAccessConfig: s.has('acceso.configuracionbase') || s.has('acceso.configuracion.fondo') || s.has('acceso.articulosventa')
     };
 };
 
@@ -353,18 +374,25 @@ const Roles = () => {
         if (role.canViewSummary || role.canAccessManagement) matchedCodes.push('acceso.resumenoperativo');
         if (role.canAccessQuotes) matchedCodes.push('acceso.cotizadores', 'acceso.cotizadordarmax');
         if (role.canAccessDistributorQuotes) matchedCodes.push('acceso.cotizadordistribuidor');
-        if (role.canAccessInventory) matchedCodes.push('acceso.operaciones', 'acceso.inventarioglobal');
+        if (role.canAccessInventory) matchedCodes.push('acceso.operaciones', 'acceso.inventarioglobal', 'acceso.inventarioparainstalacion');
         if (role.canAccessVending) matchedCodes.push('acceso.cortesvending');
-        if (role.canAccessInstallation) matchedCodes.push('acceso.ingenieriayproyectos', 'acceso.controlinstalacion');
+        if (role.canAccessInstallation) matchedCodes.push('acceso.ingenieriayproyectos', 'acceso.controlinstalacion', 'acceso.inventarioparainstalacion');
         if (role.canAccessShowcase) matchedCodes.push('acceso.mapainstalaciones');
+        const roleUpper = (role.name || '').toUpperCase();
         if (role.canAccessSistemas || role.canManageSistemas) matchedCodes.push('acceso.sistemas', 'acceso.proyectosactividades', 'acceso.rolesypermisos');
+        if (role.canManageSistemas || roleUpper.includes('JEFE') || roleUpper.includes('LIDER') || roleUpper.includes('ENCARGADO') || roleUpper.includes('DIRECTOR')) {
+            matchedCodes.push('proyectosactividades.jefe', 'acceso.proyectosactividades.jefe');
+        }
         if (role.canAccessMarketing) matchedCodes.push('acceso.marketingyestrategia', 'acceso.plannerdigital', 'acceso.promociones', 'acceso.contenidoyrecursos', 'acceso.editorblog');
+        if (roleUpper.includes('MARKETING') && (roleUpper.includes('JEFE') || roleUpper.includes('LIDER') || roleUpper.includes('ENCARGADO'))) {
+            matchedCodes.push('plannerdigital.jefe', 'acceso.plannerdigital.jefe');
+        }
         if (role.canAccessFinances) matchedCodes.push('acceso.finanzasycontabilidad', 'acceso.tesoreriaingresos', 'acceso.comprasxcp');
         if (role.canAccessAccounting) matchedCodes.push('acceso.contabilidaderp', 'acceso.facturacioncfdi');
         if (role.canAccessLeads) matchedCodes.push('acceso.prospeccionleads', 'acceso.crmycobranza');
         if (role.canAccessLegal) matchedCodes.push('acceso.legal', 'acceso.gestiondocumental', 'acceso.arealegal');
         if (role.canAccessRH) matchedCodes.push('acceso.administracion', 'acceso.directorio', 'acceso.rrhhynominas');
-        if (role.canAccessConfig) matchedCodes.push('acceso.configuracionbase');
+        if (role.canAccessConfig) matchedCodes.push('acceso.configuracionbase', 'acceso.configuracion.fondo', 'acceso.articulosventa');
 
         // Mapear los matchedCodes a los IDs de allPermisosList
         const ids = [];

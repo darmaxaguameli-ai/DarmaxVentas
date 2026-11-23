@@ -188,7 +188,7 @@ function App() {
           }
         >
           <Route index element={<Resumen />} />
-          <Route path="inventario" element={<GestionRouteGuard permission={["acceso.inventarioglobal", "canAccessInventory"]}><Inventario /></GestionRouteGuard>} />
+          <Route path="inventario" element={<GestionRouteGuard permission={["acceso.inventarioparainstalacion", "acceso.inventarioglobal", "canAccessInventory"]}><Inventario /></GestionRouteGuard>} />
           <Route path="ingresos" element={<GestionRouteGuard permission={["acceso.tesoreriaingresos", "canAccessFinances"]}><Ingresos /></GestionRouteGuard>} />
           <Route path="gastos" element={<GestionRouteGuard permission={["acceso.comprasxcp", "canAccessFinances"]}><Gastos /></GestionRouteGuard>} />
           <Route path="usuarios" element={<GestionRouteGuard permission={["acceso.directorio", "canAccessRH"]}><Usuarios /></GestionRouteGuard>} />
@@ -212,7 +212,7 @@ function App() {
           <Route path="fiscal" element={<GestionRouteGuard permission={["acceso.facturacioncfdi"]}><Fiscal /></GestionRouteGuard>} />
           <Route path="crm" element={<GestionRouteGuard permission={["acceso.crmycobranza"]}><CRM /></GestionRouteGuard>} />
           <Route path="documentos" element={<GestionRouteGuard permission={["acceso.gestiondocumental"]}><GestionDocumental /></GestionRouteGuard>} />
-          <Route path="configuracion" element={<GestionRouteGuard permission={["acceso.configuracionbase", "canAccessConfig"]}><Configuracion /></GestionRouteGuard>} />
+          <Route path="configuracion" element={<GestionRouteGuard permission={["acceso.configuracionbase", "canAccessConfig", "acceso.configuracion.fondo", "acceso.articulosventa"]}><Configuracion /></GestionRouteGuard>} />
           <Route path="cotizador" element={<GestionRouteGuard permission={["acceso.cotizadordarmax", "canAccessQuotes"]}><DarmaxQuote /></GestionRouteGuard>} />
           <Route path="cotizador-distribuidores" element={<GestionRouteGuard permission={["acceso.cotizadordistribuidor", "canAccessDistributorQuotes"]}><CotizadorDistribuidoresPage /></GestionRouteGuard>} />
         </Route>

@@ -70,27 +70,33 @@ const SortableItem = ({ id, children, onRemove }) => {
 // Modales
 // ====================================================================
 
-const InstallationModelModal = ({ isOpen, onClose, modelToEdit, onSave, inventory, allModels }) => {
+const InstallationModelModal = ({ isOpen, onClose, modelToEdit, onSave, inventory = [], allModels = [] }) => {
     const [name, setName] = useState(modelToEdit?.name || '');
     const [description, setDescription] = useState(modelToEdit?.description || '');
     const [isModule, setIsModule] = useState(modelToEdit?.isModule || false);
+    const [isSaving, setIsSaving] = useState(false);
     
-    const [selectedModules, setSelectedModules] = useState(
-        modelToEdit?.modules?.map(m => ({
-            id: m.moduleId,
-            name: m.module?.name,
-            materialCount: m.module?.materials?.length || 0
-        })) || []
-    );
+    const [selectedModules, setSelectedModules] = useState(() => {
+        return (modelToEdit?.modules || []).map(m => {
+            const foundMod = (allModels || []).find(mod => mod.id === (m.moduleId || m.module?.id));
+            return {
+                id: m.moduleId || m.module?.id || m.id,
+                name: m.module?.name || foundMod?.name || 'Módulo',
+                materialCount: m.module?.materials?.length || foundMod?.materials?.length || 0
+            };
+        });
+    });
 
-    const [materials, setMaterials] = useState(
-        modelToEdit?.materials?.map(m => ({
-            productId: m.productId,
-            name: m.product?.name,
-            quantity: m.quantity,
-            unit: m.unit || 'Pza'
-        })) || []
-    );
+    const [materials, setMaterials] = useState(() => {
+        return (modelToEdit?.materials || []).map(m => ({
+            id: m.materialId || m.productId || m.id,
+            materialId: m.materialId || m.productId || m.id,
+            productId: m.productId || m.materialId || m.id,
+            name: m.material?.name || m.product?.name || m.name || 'Componente',
+            quantity: m.quantity || 1,
+            unit: m.unit || m.material?.unit || 'Pza'
+        }));
+    });
 
     const [searchQuery, setSearchQuery] = useState('');
     const [moduleSearch, setModuleSearch] = useState('');
@@ -100,17 +106,22 @@ const InstallationModelModal = ({ isOpen, onClose, modelToEdit, onSave, inventor
             setName(modelToEdit.name || '');
             setDescription(modelToEdit.description || '');
             setIsModule(modelToEdit.isModule || false);
-            setSelectedModules(modelToEdit.modules?.map(m => ({
-                id: m.moduleId,
-                name: m.module?.name,
-                materialCount: m.module?.materials?.length || 0
-            })) || []);
-            setMaterials(modelToEdit.materials?.map(m => ({
-                productId: m.productId,
-                name: m.product?.name,
-                quantity: m.quantity,
-                unit: m.unit || 'Pza'
-            })) || []);
+            setSelectedModules((modelToEdit.modules || []).map(m => {
+                const foundMod = (allModels || []).find(mod => mod.id === (m.moduleId || m.module?.id));
+                return {
+                    id: m.moduleId || m.module?.id || m.id,
+                    name: m.module?.name || foundMod?.name || 'Módulo',
+                    materialCount: m.module?.materials?.length || foundMod?.materials?.length || 0
+                };
+            }));
+            setMaterials((modelToEdit.materials || []).map(m => ({
+                id: m.materialId || m.productId || m.id,
+                materialId: m.materialId || m.productId || m.id,
+                productId: m.productId || m.materialId || m.id,
+                name: m.material?.name || m.product?.name || m.name || 'Componente',
+                quantity: m.quantity || 1,
+                unit: m.unit || m.material?.unit || 'Pza'
+            })));
         } else {
             setName('');
             setDescription('');
@@ -118,7 +129,8 @@ const InstallationModelModal = ({ isOpen, onClose, modelToEdit, onSave, inventor
             setSelectedModules([]);
             setMaterials([]);
         }
-    }, [modelToEdit, isOpen]);
+        setIsSaving(false);
+    }, [modelToEdit, isOpen, allModels]);
 
     const sensors = useSensors(
         useSensor(PointerSensor),
@@ -126,37 +138,63 @@ const InstallationModelModal = ({ isOpen, onClose, modelToEdit, onSave, inventor
     );
 
     const filteredInventory = useMemo(() => {
-        if (!searchQuery) return [];
+        if (!searchQuery?.trim()) return [];
+        const cleanQuery = searchQuery.toLowerCase().trim();
         return (inventory || []).filter(p => 
-            p.name.toLowerCase().includes(searchQuery.toLowerCase()) &&
-            !materials.some(m => m.productId === p.id)
-        ).slice(0, 5);
+            (p?.name || '').toLowerCase().includes(cleanQuery) &&
+            !materials.some(m => (m.materialId || m.productId || m.id) === p.id)
+        ).slice(0, 8);
     }, [inventory, searchQuery, materials]);
 
     const availableModules = useMemo(() => {
+        const cleanQuery = (moduleSearch || '').toLowerCase().trim();
         return (allModels || []).filter(m => 
-            m.isModule && 
+            m?.isModule && 
             m.id !== modelToEdit?.id && 
             !selectedModules.some(sm => sm.id === m.id) &&
-            (moduleSearch === '' || m.name.toLowerCase().includes(moduleSearch.toLowerCase()))
+            (cleanQuery === '' || (m?.name || '').toLowerCase().includes(cleanQuery))
         );
     }, [allModels, selectedModules, modelToEdit, moduleSearch]);
 
-    const addMaterial = (product) => {
-        setMaterials([...materials, { productId: product.id, name: product.name, quantity: 1, unit: 'Pza' }]);
+    const addMaterial = (item) => {
+        if (!item?.id) return;
+        setMaterials(prev => [
+            ...prev, 
+            { 
+                id: item.id,
+                materialId: item.id, 
+                productId: item.id, 
+                name: item.name || 'Componente', 
+                quantity: 1, 
+                unit: item.unit || 'Pza' 
+            }
+        ]);
         setSearchQuery('');
     };
 
     const addModule = (mod) => {
-        setSelectedModules([...selectedModules, { id: mod.id, name: mod.name, materialCount: mod.materials?.length || 0 }]);
+        if (!mod?.id) return;
+        setSelectedModules(prev => [
+            ...prev, 
+            { 
+                id: mod.id, 
+                name: mod.name || 'Módulo', 
+                materialCount: mod.materials?.length || 0 
+            }
+        ]);
     };
 
-    const updateMaterialField = (productId, field, value) => {
-        setMaterials(materials.map(m => m.productId === productId ? { ...m, [field]: field === 'quantity' ? (parseFloat(value) || 0) : value } : m));
+    const updateMaterialField = (id, field, value) => {
+        setMaterials(prev => prev.map(m => {
+            if ((m.materialId || m.productId || m.id) === id) {
+                return { ...m, [field]: field === 'quantity' ? (parseFloat(value) || 0) : value };
+            }
+            return m;
+        }));
     };
 
-    const removeMaterial = (productId) => setMaterials(materials.filter(m => m.productId !== productId));
-    const removeModule = (moduleId) => setSelectedModules(selectedModules.filter(m => m.id !== moduleId));
+    const removeMaterial = (id) => setMaterials(prev => prev.filter(m => (m.materialId || m.productId || m.id) !== id));
+    const removeModule = (moduleId) => setSelectedModules(prev => prev.filter(m => m.id !== moduleId));
 
     const handleDragEnd = (event) => {
         const { active, over } = event;
@@ -164,27 +202,52 @@ const InstallationModelModal = ({ isOpen, onClose, modelToEdit, onSave, inventor
             setSelectedModules((items) => {
                 const oldIndex = items.findIndex(i => i.id === active.id);
                 const newIndex = items.findIndex(i => i.id === over.id);
-                return arrayMove(items, oldIndex, newIndex);
+                if (oldIndex !== -1 && newIndex !== -1) {
+                    return arrayMove(items, oldIndex, newIndex);
+                }
+                return items;
             });
         }
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        onSave({ name, description, isModule, materials, moduleIds: selectedModules.map(m => m.id) });
-        onClose();
+        if (!name.trim()) {
+            toast.error('Por favor ingresa el nombre del diseño técnico');
+            return;
+        }
+        setIsSaving(true);
+        try {
+            await onSave({ 
+                name: name.trim(), 
+                description: description.trim(), 
+                isModule, 
+                materials: materials.map(m => ({
+                    materialId: m.materialId || m.productId || m.id,
+                    productId: m.productId || m.materialId || m.id,
+                    quantity: parseFloat(m.quantity) || 1,
+                    unit: m.unit || 'Pza'
+                })), 
+                moduleIds: selectedModules.map(m => m.id) 
+            });
+            onClose();
+        } catch (err) {
+            console.error('Error al guardar diseño de instalación:', err);
+        } finally {
+            setIsSaving(false);
+        }
     };
 
     if (!isOpen) return null;
 
     return createPortal(
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm">
-            <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl w-full max-w-5xl flex flex-col h-[95vh] sm:h-[90vh] overflow-hidden animate-in zoom-in duration-300">
+            <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl w-full max-w-5xl flex flex-col h-[95vh] sm:h-[90vh] overflow-hidden">
                 <div className="p-6 border-b dark:border-gray-700 flex justify-between items-center bg-gray-50/50 dark:bg-gray-900/20">
                     <h2 className="text-xl font-black text-dark dark:text-white uppercase tracking-tight">
                         {modelToEdit ? 'Editar Ingeniería' : 'Nuevo Diseño'}
                     </h2>
-                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-white p-2">&times;</button>
+                    <button type="button" onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-white p-2 text-2xl leading-none">&times;</button>
                 </div>
 
                 <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
@@ -193,11 +256,11 @@ const InstallationModelModal = ({ isOpen, onClose, modelToEdit, onSave, inventor
                         <div className="hidden md:flex w-64 border-r dark:border-gray-700 flex-col bg-gray-50/50 dark:bg-gray-900/10 overflow-hidden shrink-0">
                             <div className="p-4 border-b dark:border-gray-700">
                                 <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 italic">Módulos Reutilizables</p>
-                                <input type="text" placeholder="Filtrar módulos..." className="w-full p-2.5 bg-white dark:bg-gray-800 rounded-xl text-xs font-bold outline-none border border-gray-100 dark:border-gray-700 focus:ring-2 focus:ring-primary/20 transition-all" value={moduleSearch} onChange={e => setModuleSearch(e.target.value)} />
+                                <input type="text" placeholder="Filtrar módulos..." className="w-full p-2.5 bg-white dark:bg-gray-800 rounded-xl text-xs font-bold outline-none border border-gray-100 dark:border-gray-700 focus:ring-2 focus:ring-primary/20 transition-colors" value={moduleSearch} onChange={e => setModuleSearch(e.target.value)} />
                             </div>
                             <div className="flex-1 overflow-y-auto p-3 space-y-2 custom-scrollbar">
                                 {availableModules.map(mod => (
-                                    <div key={mod.id} onClick={() => addModule(mod)} className="p-4 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm cursor-pointer hover:border-primary transition-all group">
+                                    <div key={mod.id} onClick={() => addModule(mod)} className="p-4 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm cursor-pointer hover:border-primary transition-colors group">
                                         <p className="text-[10px] font-black uppercase truncate leading-none">{mod.name}</p>
                                         <p className="text-[8px] font-bold text-gray-400 uppercase mt-1 italic">{mod.materials?.length || 0} piezas</p>
                                     </div>
@@ -213,7 +276,13 @@ const InstallationModelModal = ({ isOpen, onClose, modelToEdit, onSave, inventor
                                 <div className="space-y-4">
                                     <div>
                                         <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 block italic">Nombre del Diseño *</label>
-                                        <input value={name} onChange={(e) => setName(e.target.value)} required className="w-full input-style font-black text-lg uppercase" placeholder="VENDING 300 MAX" />
+                                        <input 
+                                            value={name} 
+                                            onChange={(e) => setName(e.target.value)} 
+                                            required 
+                                            className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl outline-none focus:ring-2 focus:ring-primary/20 text-gray-900 dark:text-white font-black text-base uppercase transition-colors" 
+                                            placeholder="VENDING 300 MAX" 
+                                        />
                                     </div>
                                     <div className="flex items-center gap-3 p-4 bg-gray-50 dark:bg-gray-900/50 rounded-2xl border border-gray-100 dark:border-gray-700">
                                         <label className="relative inline-flex items-center cursor-pointer">
@@ -225,7 +294,13 @@ const InstallationModelModal = ({ isOpen, onClose, modelToEdit, onSave, inventor
                                 </div>
                                 <div>
                                     <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 block italic">Especificaciones Técnicas</label>
-                                    <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows="4" className="w-full input-style text-xs font-medium resize-none h-full" placeholder="Detalles de ensamblaje o notas importantes..." />
+                                    <textarea 
+                                        value={description} 
+                                        onChange={(e) => setDescription(e.target.value)} 
+                                        rows="3" 
+                                        className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl outline-none focus:ring-2 focus:ring-primary/20 text-gray-800 dark:text-gray-200 text-xs font-medium resize-none transition-colors" 
+                                        placeholder="Detalles de ensamblaje o notas importantes..." 
+                                    />
                                 </div>
                             </div>
 
@@ -252,34 +327,75 @@ const InstallationModelModal = ({ isOpen, onClose, modelToEdit, onSave, inventor
                                 <h4 className="text-[11px] font-black text-emerald-600 uppercase tracking-widest flex items-center gap-2 italic"><FaBoxOpen /> Lista de Materiales</h4>
                                 <div className="relative">
                                     <FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300" />
-                                    <input type="text" placeholder="Añadir componente del inventario..." className="w-full input-style pl-11" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+                                    <input 
+                                        type="text" 
+                                        placeholder="Añadir componente del inventario de instalación..." 
+                                        className="w-full pl-11 pr-4 py-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl outline-none focus:ring-2 focus:ring-primary/20 text-xs font-bold text-gray-900 dark:text-white transition-colors" 
+                                        value={searchQuery} 
+                                        onChange={(e) => setSearchQuery(e.target.value)} 
+                                    />
                                     {filteredInventory.length > 0 && (
-                                        <div className="absolute top-full left-0 right-0 z-20 mt-1 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl shadow-2xl overflow-hidden animate-in slide-in-from-top-2">
+                                        <div className="absolute top-full left-0 right-0 z-20 mt-1 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl shadow-2xl overflow-hidden max-h-60 overflow-y-auto">
                                             {filteredInventory.map(p => (
-                                                <button key={p.id} type="button" onClick={() => addMaterial(p)} className="w-full text-left px-6 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 flex justify-between items-center transition-colors"><span className="text-[10px] font-bold uppercase">{p.name}</span><FaPlus size={8} className="text-primary"/></button>
+                                                <button key={p.id} type="button" onClick={() => addMaterial(p)} className="w-full text-left px-5 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 flex justify-between items-center transition-colors">
+                                                    <div>
+                                                        <span className="text-xs font-bold uppercase block text-gray-900 dark:text-white">{p.name}</span>
+                                                        <span className="text-[9px] text-gray-400 font-medium">{p.category || 'General'} • Existencia: {p.stock || 0} {p.unit || 'Pza'}</span>
+                                                    </div>
+                                                    <span className="px-2.5 py-1 bg-primary/10 text-primary text-[10px] font-bold rounded-lg flex items-center gap-1">
+                                                        <FaPlus size={8} /> Agregar
+                                                    </span>
+                                                </button>
                                             ))}
                                         </div>
                                     )}
                                 </div>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                    {materials.map((m) => (
-                                        <div key={m.productId} className="flex items-center gap-3 bg-gray-50 dark:bg-gray-900/40 p-3 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
-                                            <p className="flex-1 text-[10px] font-black uppercase truncate leading-none">{m.name}</p>
-                                            <div className="flex items-center gap-1 bg-white dark:bg-gray-800 rounded-lg p-1 border border-black/5">
-                                                <input type="number" step="any" value={m.quantity} onChange={(e) => updateMaterialField(m.productId, 'quantity', e.target.value)} className="w-10 bg-transparent border-none py-0.5 text-[10px] font-black text-center focus:ring-0" />
-                                                <select value={m.unit} onChange={(e) => updateMaterialField(m.productId, 'unit', e.target.value)} className="bg-transparent border-none py-0.5 text-[9px] font-bold text-gray-400 outline-none focus:ring-0"><option value="Pza">Pza</option><option value="Mts">Mts</option><option value="Lts">Lts</option><option value="Kg">Kg</option></select>
+                                    {materials.map((m) => {
+                                        const matId = m.materialId || m.productId || m.id;
+                                        return (
+                                            <div key={matId} className="flex items-center gap-3 bg-gray-50 dark:bg-gray-900/40 p-3 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
+                                                <p className="flex-1 text-[10px] font-black uppercase truncate leading-none text-gray-900 dark:text-white">{m.name}</p>
+                                                <div className="flex items-center gap-1 bg-white dark:bg-gray-800 rounded-lg p-1 border border-black/5 dark:border-gray-700">
+                                                    <input 
+                                                        type="number" 
+                                                        step="any" 
+                                                        min="0"
+                                                        value={m.quantity} 
+                                                        onChange={(e) => updateMaterialField(matId, 'quantity', e.target.value)} 
+                                                        className="w-12 bg-transparent border-none py-0.5 text-[10px] font-black text-center focus:ring-0 text-gray-900 dark:text-white" 
+                                                    />
+                                                    <select 
+                                                        value={m.unit} 
+                                                        onChange={(e) => updateMaterialField(matId, 'unit', e.target.value)} 
+                                                        className="bg-transparent border-none py-0.5 text-[9px] font-bold text-gray-400 outline-none focus:ring-0"
+                                                    >
+                                                        <option value="Pza">Pza</option>
+                                                        <option value="Mts">Mts</option>
+                                                        <option value="Lts">Lts</option>
+                                                        <option value="Kg">Kg</option>
+                                                        <option value="Tramo">Tramo</option>
+                                                        <option value="Rollo">Rollo</option>
+                                                    </select>
+                                                </div>
+                                                <button type="button" onClick={() => removeMaterial(matId)} className="p-1.5 text-gray-300 hover:text-red-500 transition-colors">
+                                                    <FaTrash size={10}/>
+                                                </button>
                                             </div>
-                                            <button type="button" onClick={() => removeMaterial(m.productId)} className="p-1.5 text-gray-300 hover:text-red-500 transition-all"><FaTrash size={10}/></button>
-                                        </div>
-                                    ))}
+                                        );
+                                    })}
                                 </div>
                             </div>
                         </div>
 
                         <div className="p-6 border-t dark:border-gray-700 flex gap-3 bg-gray-50/50 dark:bg-gray-900/20">
                             <button type="button" onClick={onClose} className="flex-1 py-4 bg-white dark:bg-gray-800 text-gray-500 font-black rounded-2xl uppercase tracking-widest text-[10px] border border-gray-200 dark:border-gray-700">Cancelar</button>
-                            <button type="submit" className="flex-[2] py-4 bg-primary text-white font-black rounded-2xl uppercase tracking-widest text-[10px] shadow-2xl shadow-primary/30 flex items-center justify-center gap-3 active:scale-95 transition-all">
-                                <FaSave size={16} /> {modelToEdit ? 'Guardar Cambios' : 'Registrar Diseño'}
+                            <button 
+                                type="submit" 
+                                disabled={isSaving}
+                                className="flex-[2] py-4 bg-primary hover:bg-primary-dark text-white font-black rounded-2xl uppercase tracking-widest text-[10px] shadow-2xl shadow-primary/30 flex items-center justify-center gap-3 transition-colors disabled:opacity-50"
+                            >
+                                <FaSave size={16} /> {isSaving ? 'Guardando...' : modelToEdit ? 'Guardar Cambios' : 'Registrar Diseño'}
                             </button>
                         </div>
                     </form>
@@ -324,9 +440,9 @@ const ModelDetailsModal = ({ isOpen, onClose, model }) => {
                 doc.setFont('helvetica', 'bold');
                 doc.text(`MÓDULO: ${modJoin.module.name.toUpperCase()}`, 20, finalY);
                 
-                const modTableData = modJoin.module.materials.map(m => [
-                    m.product?.name || 'S/N',
-                    m.product?.category || 'General',
+                const modTableData = (modJoin.module.materials || []).map(m => [
+                    m.material?.name || m.product?.name || m.name || 'Componente',
+                    m.material?.category || m.product?.category || 'General',
                     m.quantity,
                     m.unit
                 ]);
@@ -353,8 +469,8 @@ const ModelDetailsModal = ({ isOpen, onClose, model }) => {
             doc.text(model.isModule ? "LISTA DE MATERIALES" : "COMPONENTES ADICIONALES", 20, finalY);
 
             const directData = model.materials.map(m => [
-                m.product?.name || 'S/N',
-                m.product?.category || 'General',
+                m.material?.name || m.product?.name || m.name || 'Componente',
+                m.material?.category || m.product?.category || 'General',
                 m.quantity,
                 m.unit
             ]);
@@ -378,7 +494,7 @@ const ModelDetailsModal = ({ isOpen, onClose, model }) => {
 
     return createPortal(
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm">
-            <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl w-full max-w-4xl flex flex-col h-[95vh] sm:h-[90vh] overflow-hidden animate-in zoom-in duration-300 border border-gray-100 dark:border-gray-700">
+            <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl w-full max-w-4xl flex flex-col h-[95vh] sm:h-[90vh] overflow-hidden border border-gray-100 dark:border-gray-700">
                 <div className="p-6 border-b dark:border-gray-700 flex justify-between items-start bg-gray-50/50 dark:bg-gray-900/20 shrink-0">
                     <div>
                         <div className="flex flex-wrap items-center gap-3">
@@ -390,7 +506,7 @@ const ModelDetailsModal = ({ isOpen, onClose, model }) => {
                         <p className="text-[10px] text-gray-400 font-bold uppercase tracking-[0.2em] mt-2 italic">Análisis de Estructura de Materiales</p>
                     </div>
                     <div className="flex gap-2">
-                        <button onClick={generatePDF} className="bg-primary text-white p-3 rounded-2xl shadow-lg shadow-primary/20 hover:scale-110 transition-all flex items-center gap-2 text-[10px] font-black uppercase"><FaDownload /> Descargar PDF</button>
+                        <button onClick={generatePDF} className="bg-primary hover:bg-primary-dark text-white p-3 rounded-2xl shadow-lg shadow-primary/20 transition-colors flex items-center gap-2 text-[10px] font-black uppercase"><FaDownload /> Descargar PDF</button>
                         <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-white transition-colors p-2 text-2xl font-light">&times;</button>
                     </div>
                 </div>
@@ -411,18 +527,20 @@ const ModelDetailsModal = ({ isOpen, onClose, model }) => {
                                         >
                                             <div className="flex items-center gap-3">
                                                 <div className="w-8 h-8 rounded-xl bg-white dark:bg-gray-800 flex items-center justify-center text-indigo-500 shadow-sm border dark:border-gray-700"><FaCube size={14}/></div>
-                                                <span className="font-black text-dark dark:text-white uppercase text-xs">{modJoin.module.name}</span>
+                                                <span className="font-black text-dark dark:text-white uppercase text-xs">{modJoin.module?.name || 'Módulo'}</span>
                                             </div>
                                             <div className="flex items-center gap-3">
-                                                <span className="text-[9px] font-bold text-gray-400 uppercase">{modJoin.module.materials?.length || 0} materiales</span>
+                                                <span className="text-[9px] font-bold text-gray-400 uppercase">{modJoin.module?.materials?.length || 0} materiales</span>
                                                 {openModules[modJoin.moduleId] ? <FaChevronUp size={10} className="text-gray-300"/> : <FaChevronDown size={10} className="text-gray-300"/>}
                                             </div>
                                         </button>
                                         {openModules[modJoin.moduleId] && (
-                                            <div className="p-4 pt-0 grid grid-cols-1 sm:grid-cols-2 gap-2 animate-in slide-in-from-top-2">
-                                                {modJoin.module.materials?.map((m, j) => (
+                                            <div className="p-4 pt-0 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                                {modJoin.module?.materials?.map((m, j) => (
                                                     <div key={j} className="flex justify-between items-center bg-white dark:bg-gray-800 p-3 rounded-xl border border-black/5 shadow-sm">
-                                                        <span className="text-[9px] font-bold text-gray-500 uppercase truncate pr-2">{m.product?.name}</span>
+                                                        <span className="text-[9px] font-bold text-gray-500 uppercase truncate pr-2">
+                                                            {m.material?.name || m.product?.name || m.name || 'Componente'}
+                                                        </span>
                                                         <span className="text-[10px] font-black text-indigo-600 whitespace-nowrap">{m.quantity} {m.unit}</span>
                                                     </div>
                                                 ))}
@@ -444,8 +562,12 @@ const ModelDetailsModal = ({ isOpen, onClose, model }) => {
                             {model.materials?.map((m, i) => (
                                 <div key={i} className="flex justify-between items-center bg-emerald-50/50 dark:bg-emerald-900/10 p-4 rounded-2xl border border-emerald-100 dark:border-emerald-800/30">
                                     <div className="min-w-0">
-                                        <p className="text-[10px] font-black text-emerald-800 dark:text-emerald-300 uppercase truncate">{m.product?.name || m.name}</p>
-                                        <p className="text-[8px] font-bold text-emerald-600/50 uppercase">{m.product?.category || 'General'}</p>
+                                        <p className="text-[10px] font-black text-emerald-800 dark:text-emerald-300 uppercase truncate">
+                                            {m.material?.name || m.product?.name || m.name || 'Componente'}
+                                        </p>
+                                        <p className="text-[8px] font-bold text-emerald-600/50 uppercase">
+                                            {m.material?.category || m.product?.category || 'General'}
+                                        </p>
                                     </div>
                                     <span className="text-xs font-black text-emerald-700 dark:text-emerald-400">{m.quantity} <small className="text-[8px]">{m.unit}</small></span>
                                 </div>
@@ -455,7 +577,7 @@ const ModelDetailsModal = ({ isOpen, onClose, model }) => {
                 </div>
 
                 <div className="p-6 bg-gray-50 dark:bg-gray-900/40 border-t dark:border-gray-700 flex justify-center">
-                    <button onClick={onClose} className="w-full sm:w-64 py-4 bg-gray-800 text-white font-black rounded-2xl uppercase tracking-widest text-[10px] hover:bg-black transition-all shadow-lg active:scale-95">Cerrar Visualizador</button>
+                    <button onClick={onClose} className="w-full sm:w-64 py-4 bg-gray-800 text-white font-black rounded-2xl uppercase tracking-widest text-[10px] hover:bg-black transition-colors shadow-lg">Cerrar Visualizador</button>
                 </div>
             </div>
         </div>,
@@ -470,8 +592,13 @@ const ModelDetailsModal = ({ isOpen, onClose, model }) => {
 const Instalacion = () => {
     const { user } = useAuth();
     const { state, addInstallationModel, updateInstallationModel, deleteInstallationModel } = useGestion();
-    const { installationModels, inventory, loading: contextLoading } = state;
+    const { installationModels, installationMaterials = [], loading: contextLoading } = state;
     
+    // Conectar exclusivamente con el inventario de materiales técnicos de instalación
+    const availableMaterials = useMemo(() => {
+        return installationMaterials || [];
+    }, [installationMaterials]);
+
     const [isFormModalOpen, setIsFormModalOpen] = useState(false);
     const [isViewModalOpen, setIsViewModalOpen] = useState(false);
     const [selectedModel, setSelectedModel] = useState(null);
@@ -490,8 +617,10 @@ const Instalacion = () => {
                 toast.success('Nuevo diseño registrado');
             }
             setSelectedModel(null);
+            setIsFormModalOpen(false);
         } catch (error) {
             console.error(error);
+            toast.error('Error al guardar el diseño de instalación');
         }
     };
 
@@ -531,9 +660,9 @@ const Instalacion = () => {
     );
 
     return (
-        <div className="animate-fade-in space-y-6 pb-20">
+        <div className="space-y-6 pb-20">
             {/* Bento Card: Encabezado Ingeniería e Instalación */}
-            <div className="p-5 sm:p-6 lg:p-7 bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-3xl shadow-xs border border-gray-100 dark:border-gray-700/80 mb-5 sm:mb-6 transition-all">
+            <div className="p-5 sm:p-6 lg:p-7 bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-3xl shadow-xs border border-gray-100 dark:border-gray-700/80 mb-5 sm:mb-6">
                 <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
                     <div className="space-y-1">
                         <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-gray-900 dark:text-white">
@@ -547,7 +676,7 @@ const Instalacion = () => {
                         <div className="flex items-center gap-2.5 w-full xl:w-auto">
                             <button 
                                 onClick={() => { setSelectedModel(null); setIsFormModalOpen(true); }}
-                                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-2xl text-xs sm:text-sm font-bold bg-primary hover:bg-primary-dark active:bg-primary-dark text-white shadow-md shadow-primary/25 active:scale-95 transition-all"
+                                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-2xl text-xs sm:text-sm font-bold bg-primary hover:bg-primary-dark text-white shadow-md shadow-primary/25 transition-colors"
                             >
                                 <FaPlus className="text-xs" />
                                 <span>Nuevo {activeTab === 'MODELS' ? 'Modelo' : 'Módulo'}</span>
@@ -562,13 +691,13 @@ const Instalacion = () => {
                 <div className="flex bg-gray-100 dark:bg-gray-900/50 p-1 rounded-2xl w-full lg:w-fit shrink-0">
                     <button 
                         onClick={() => setActiveTab('MODELS')}
-                        className={`flex-1 lg:flex-none flex items-center justify-center gap-2 px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'MODELS' ? 'bg-white dark:bg-gray-800 shadow-md text-primary' : 'text-gray-400'}`}
+                        className={`flex-1 lg:flex-none flex items-center justify-center gap-2 px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-colors ${activeTab === 'MODELS' ? 'bg-white dark:bg-gray-800 shadow-md text-primary' : 'text-gray-400'}`}
                     >
                         <FaLayerGroup /> Modelos Vending
                     </button>
                     <button 
                         onClick={() => setActiveTab('MODULES')}
-                        className={`flex-1 lg:flex-none flex items-center justify-center gap-2 px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'MODULES' ? 'bg-white dark:bg-gray-800 shadow-md text-indigo-600' : 'text-gray-400'}`}
+                        className={`flex-1 lg:flex-none flex items-center justify-center gap-2 px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-colors ${activeTab === 'MODULES' ? 'bg-white dark:bg-gray-800 shadow-md text-indigo-600' : 'text-gray-400'}`}
                     >
                         <FaCube /> Módulos Reutilizables
                     </button>
@@ -578,7 +707,7 @@ const Instalacion = () => {
                     <input 
                         type="text"
                         placeholder="Buscar por nombre técnico..."
-                        className="w-full pl-14 pr-6 py-4 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl text-sm font-bold outline-none focus:ring-4 focus:ring-primary/5 transition-all"
+                        className="w-full pl-14 pr-6 py-4 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl text-sm font-bold outline-none focus:ring-4 focus:ring-primary/5 transition-colors"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
@@ -589,8 +718,8 @@ const Instalacion = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {filteredList.length > 0 ? (
                     filteredList.map(model => (
-                        <div key={model.id} className="group bg-white dark:bg-gray-800 p-8 rounded-[3rem] border border-gray-50 dark:border-gray-700 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all relative overflow-hidden flex flex-col">
-                            <div className="absolute top-0 right-0 w-40 h-40 bg-primary/5 rounded-full -mr-20 -mt-20 group-hover:scale-150 transition-transform duration-700" />
+                        <div key={model.id} className="group bg-white dark:bg-gray-800 p-8 rounded-[3rem] border border-gray-50 dark:border-gray-700 shadow-sm hover:shadow-md transition-colors relative overflow-hidden flex flex-col">
+                            <div className="absolute top-0 right-0 w-40 h-40 bg-primary/5 rounded-full -mr-20 -mt-20" />
                             
                             <div className="flex justify-between items-start mb-8 relative z-10">
                                 <div className={`p-4 rounded-2xl shadow-inner transition-colors ${activeTab === 'MODELS' ? 'bg-blue-50 text-blue-500 group-hover:bg-primary group-hover:text-white' : 'bg-indigo-50 text-indigo-500 group-hover:bg-indigo-600 group-hover:text-white'}`}>
@@ -599,8 +728,8 @@ const Instalacion = () => {
                                 <div className="flex gap-2">
                                     {isAdmin && (
                                         <>
-                                            <button onClick={() => { setSelectedModel(model); setIsFormModalOpen(true); }} className="p-3 bg-gray-50 dark:bg-gray-700 text-gray-400 hover:text-blue-500 rounded-xl transition-all"><FaEdit size={14}/></button>
-                                            <button onClick={() => handleDelete(model.id, model.name)} className="p-3 bg-gray-50 dark:bg-gray-700 text-gray-400 hover:text-red-500 rounded-xl transition-all"><FaTrash size={14}/></button>
+                                            <button onClick={() => { setSelectedModel(model); setIsFormModalOpen(true); }} className="p-3 bg-gray-50 dark:bg-gray-700 text-gray-400 hover:text-blue-500 rounded-xl transition-colors"><FaEdit size={14}/></button>
+                                            <button onClick={() => handleDelete(model.id, model.name)} className="p-3 bg-gray-50 dark:bg-gray-700 text-gray-400 hover:text-red-500 rounded-xl transition-colors"><FaTrash size={14}/></button>
                                         </>
                                     )}
                                 </div>
@@ -631,7 +760,7 @@ const Instalacion = () => {
                                     </div>
                                     <button 
                                         onClick={() => { setSelectedModel(model); setIsViewModalOpen(true); }}
-                                        className="bg-gray-800 text-white px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-primary transition-all shadow-lg active:scale-95"
+                                        className="bg-gray-800 text-white px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-primary transition-colors shadow-lg"
                                     >
                                         Ficha Técnica
                                     </button>
@@ -656,7 +785,7 @@ const Instalacion = () => {
                     onClose={() => { setIsFormModalOpen(false); setSelectedModel(null); }}
                     modelToEdit={selectedModel}
                     onSave={handleSaveModel}
-                    inventory={inventory}
+                    inventory={availableMaterials}
                     allModels={installationModels}
                 />
             )}

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import { useAuth } from '../../context/AuthContext';
 import apiClient, { 
     fetchBlogPosts, 
     createBlogPost, 
@@ -176,6 +177,7 @@ const RichTextToolbar = ({ onAction, onUndo, onRedo, canUndo, canRedo, hideForma
 };
 
 const Blog = () => {
+    const { user: authUser } = useAuth();
     const [posts, setPosts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [view, setView] = useState('list');
@@ -183,11 +185,12 @@ const Blog = () => {
     const [editingPost, setEditingPost] = useState(null);
     const [extrasDisponibles, setExtrasDisponibles] = useState([]);
     const [loadingExtras, setLoadingExtras] = useState(false);
+    const [activeCollaborators, setActiveCollaborators] = useState([]);
     const [formData, setFormData] = useState({
         title: '',
         excerpt: '',
         category: 'Articulo',
-        author: 'Darmax',
+        author: authUser?.name || 'Darmax',
         image: '',
         videoUrl: '',
         tags: 'Darmax',
@@ -197,7 +200,71 @@ const Blog = () => {
     const [blocks, setBlocks] = useState([]);
     const [blockHistories, setBlockHistories] = useState({});
 
-    useEffect(() => { loadPosts(); loadExtras(); }, [activeTab]);
+    useEffect(() => { 
+        loadPosts(); 
+        loadExtras(); 
+        loadActiveCollaborators();
+    }, [activeTab]);
+
+    // Sincronizar el autor por defecto con el usuario logueado al iniciar
+    useEffect(() => {
+        if (!editingPost && authUser?.name && (formData.author === 'Darmax' || !formData.author)) {
+            setFormData(prev => ({ ...prev, author: authUser.name }));
+        }
+    }, [authUser, editingPost]);
+
+    const loadActiveCollaborators = async () => {
+        try {
+            const hrRes = await apiClient.get('/hr/empleados');
+            if (Array.isArray(hrRes.data)) {
+                const actives = hrRes.data
+                    .filter(emp => emp.estatus === 'ACTIVO' && !emp.fechaTerminacion)
+                    .map(emp => ({
+                        id: emp.usuarioId || emp.id,
+                        name: `${emp.nombre || ''} ${emp.apellidos || ''}`.trim(),
+                        puesto: emp.puesto || ''
+                    }))
+                    .filter(c => c.name);
+                setActiveCollaborators(actives);
+                return;
+            }
+        } catch (e) {
+            // Fallback a /users
+            try {
+                const uRes = await apiClient.get('/users');
+                if (Array.isArray(uRes.data)) {
+                    const actives = uRes.data
+                        .filter(u => {
+                            if (u.empleado && u.empleado.estatus !== 'ACTIVO') return false;
+                            if (u.empleado && u.empleado.fechaTerminacion) return false;
+                            return true;
+                        })
+                        .map(u => ({
+                            id: u.id,
+                            name: u.name,
+                            puesto: u.roles?.[0]?.name || ''
+                        }))
+                        .filter(c => c.name);
+                    setActiveCollaborators(actives);
+                }
+            } catch (err) {
+                console.warn("No se pudieron cargar colaboradores para el autor del blog:", err);
+            }
+        }
+    };
+
+    // Helper para garantizar que nunca se envíen nombres combinados como "Juan y Pedro"
+    const sanitizeBlogAuthor = (raw) => {
+        if (!raw) return authUser?.name || 'Darmax';
+        const str = String(raw).trim();
+        if (/(\s+y\s+|\s*,\s*|\s*&\s*)/i.test(str)) {
+            const parts = str.split(/(\s+y\s+|\s*,\s*|\s*&\s*)/i)
+                .map(s => s.trim())
+                .filter(s => s && !/^(&|,|y|e)$/i.test(s));
+            if (parts.length > 0) return parts[0];
+        }
+        return str || 'Darmax';
+    };
 
     const saveToBlockHistory = (id, content) => {
         setBlockHistories(prev => {
@@ -272,7 +339,17 @@ const Blog = () => {
         e.preventDefault();
         const htmlContent = compileToHTML(blocks, extrasDisponibles);
         const tagsArray = formData.tags.split(',').map(t => t.trim()).filter(t => t !== "");
-        const payload = { ...formData, content: htmlContent, blocks: blocks, tags: tagsArray };
+        const cleanAuthor = sanitizeBlogAuthor(formData.author);
+        if (formData.author && formData.author.trim() !== cleanAuthor) {
+            toast.info(`Autor asignado individualmente como "${cleanAuthor}" para evitar nombres compuestos.`);
+        }
+        const payload = { 
+            ...formData, 
+            author: cleanAuthor, 
+            content: htmlContent, 
+            blocks: blocks, 
+            tags: tagsArray 
+        };
         
         try {
             if (activeTab === 'WEB') {
@@ -300,7 +377,17 @@ const Blog = () => {
     };
 
     const resetForm = () => {
-        setFormData({ title: '', excerpt: '', category: 'Articulo', author: 'Darmax', image: '', videoUrl: '', tags: 'Darmax', published: true, target: activeTab });
+        setFormData({ 
+            title: '', 
+            excerpt: '', 
+            category: 'Articulo', 
+            author: authUser?.name || 'Darmax', 
+            image: '', 
+            videoUrl: '', 
+            tags: 'Darmax', 
+            published: true, 
+            target: activeTab 
+        });
         setBlocks([]); setEditingPost(null);
     };
 
@@ -428,8 +515,42 @@ const Blog = () => {
                                                 </select>
                                             </div>
                                             <div>
-                                                <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1.5 block italic">Autor</label>
-                                                <input type="text" className="w-full bg-gray-50 dark:bg-gray-900 p-3 rounded-xl border-none font-bold text-[10px] outline-none" value={formData.author} onChange={e => setFormData({...formData, author: e.target.value})} />
+                                                <div className="flex justify-between items-center mb-1.5">
+                                                    <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest block italic">Autor (Individual)</label>
+                                                    {formData.author && /(\s+y\s+|\s*,\s*|\s*&\s*)/i.test(formData.author) && (
+                                                        <span className="text-[9px] font-black text-amber-500 uppercase tracking-tight">⚠️ 1 solo autor</span>
+                                                    )}
+                                                </div>
+                                                <input 
+                                                    type="text" 
+                                                    list="blog-authors-list"
+                                                    required
+                                                    placeholder="Nombre de autor..."
+                                                    className={`w-full bg-gray-50 dark:bg-gray-900 p-3 rounded-xl border font-bold text-[10px] outline-none transition-all ${
+                                                        formData.author && /(\s+y\s+|\s*,\s*|\s*&\s*)/i.test(formData.author)
+                                                            ? 'border-amber-400 focus:border-amber-500 text-amber-700 dark:text-amber-300'
+                                                            : 'border-transparent focus:border-primary/20'
+                                                    }`} 
+                                                    value={formData.author} 
+                                                    onChange={e => setFormData({...formData, author: e.target.value})} 
+                                                />
+                                                <datalist id="blog-authors-list">
+                                                    {authUser?.name && <option value={authUser.name}>{authUser.name} (Tú)</option>}
+                                                    <option value="Darmax">Darmax</option>
+                                                    <option value="Equipo Darmax">Equipo Darmax</option>
+                                                    {activeCollaborators.map(c => (
+                                                        <option key={c.id || c.name} value={c.name}>{c.name} {c.puesto ? `(${c.puesto})` : ''}</option>
+                                                    ))}
+                                                </datalist>
+                                                {formData.author && /(\s+y\s+|\s*,\s*|\s*&\s*)/i.test(formData.author) ? (
+                                                    <p className="text-[8px] text-amber-600 dark:text-amber-400 mt-1 font-bold">
+                                                        No uses nombres combinados como "Juan y Pedro".
+                                                    </p>
+                                                ) : (
+                                                    <p className="text-[8px] text-gray-400 mt-1 italic">
+                                                        Colaborador individual o equipo.
+                                                    </p>
+                                                )}
                                             </div>
                                         </div>
                                         <div>

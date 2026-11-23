@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useNotification } from './context/NotificationContext';
@@ -13,7 +13,8 @@ import {
     FaStream, FaChartBar, FaThList, FaThLarge, FaInfoCircle,
     FaFolderPlus, FaFolderOpen, FaLayerGroup, FaUserTie,
     FaUsers, FaEye, FaTimes,
-    FaSortAmountDown, FaSortAmountUp
+    FaSortAmountDown, FaSortAmountUp,
+    FaLink, FaExternalLinkAlt, FaCopy, FaCheck, FaChevronDown
 } from 'react-icons/fa';
 import { 
     format, parseISO, differenceInDays, isAfter, isBefore, 
@@ -21,29 +22,29 @@ import {
 } from 'date-fns';
 import { es } from 'date-fns/locale';
 
-// Estados del flujo de trabajo en lenguaje cotidiano y claro
+// Estados del flujo de trabajo en lenguaje cotidiano y claro (sin emojis ni iconos de cohete)
 const WORK_COLUMNS = [
     { 
         id: 'POR_HACER', 
-        title: '💡 Por Empezar', 
+        title: 'Por Empezar', 
         subtitle: 'Actividades programadas',
         badge: 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300' 
     },
     { 
         id: 'EN_PROCESO', 
-        title: '⚡ En Marcha', 
+        title: 'En Marcha', 
         subtitle: 'En desarrollo activo',
         badge: 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300' 
     },
     { 
         id: 'EN_REVISION', 
-        title: '🧪 En Pruebas', 
+        title: 'En Pruebas', 
         subtitle: 'Revisión y validación',
         badge: 'bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300' 
     },
     { 
         id: 'TERMINADO', 
-        title: '🚀 Concluido', 
+        title: 'Concluido', 
         subtitle: 'Entregado con éxito',
         badge: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300' 
     }
@@ -184,11 +185,87 @@ const Sistemas = () => {
     const { user: authUser, hasPermission } = useAuth();
     const { addNotification } = useNotification();
 
-    // Detección estricta de Jefe vs Colaborador
-    const isRealJefe = authUser?.role === 'ADMIN' || 
-                        authUser?.roles?.some(r => r.name?.toUpperCase() === 'ADMIN') ||
-                        hasPermission('proyectosactividades.jefe') ||
-                        hasPermission('acceso.proyectosactividades.jefe');
+    // Detección exhaustiva de Jefe vs Colaborador (soporta superusuario, permisos dinámicos RBAC v2, roles nombrados y booleanos legacy)
+    const isRealJefe = useMemo(() => {
+        if (!authUser) return false;
+
+        // 1. Superusuario Administrador
+        const isAdmin = authUser?.role === 'ADMIN' || 
+                        authUser?.roles?.some(r => r.name?.toUpperCase() === 'ADMIN');
+        if (isAdmin) return true;
+
+        // 2. Permisos explícitos o equivalentes de Jefe / Encargado de Sistemas
+        if (
+            hasPermission('proyectosactividades.jefe') ||
+            hasPermission('acceso.proyectosactividades.jefe') ||
+            hasPermission('canManageSistemas')
+        ) {
+            return true;
+        }
+
+        // 3. Verificación directa en el objeto authUser
+        if (authUser?.canManageSistemas) return true;
+
+        // 4. Verificación en la lista de roles del usuario (nombres o booleanos)
+        if (Array.isArray(authUser?.roles)) {
+            const hasJefeRole = authUser.roles.some(r => {
+                if (r.canManageSistemas) return true;
+                const roleName = (r.name || '').toUpperCase().trim();
+                return (
+                    roleName === 'JEFE' ||
+                    roleName === 'JEFE DE SISTEMAS' ||
+                    roleName.includes('JEFE') ||
+                    roleName.includes('LIDER') ||
+                    roleName.includes('ENCARGADO') ||
+                    roleName.includes('COORDINADOR') ||
+                    roleName.includes('DIRECTOR') ||
+                    roleName.includes('GERENTE')
+                );
+            });
+            if (hasJefeRole) return true;
+        }
+
+        // 5. Verificación en el string de rol legado
+        const legacyRoleName = (authUser?.role || '').toUpperCase().trim();
+        if (
+            legacyRoleName === 'JEFE' ||
+            legacyRoleName.includes('JEFE') ||
+            legacyRoleName.includes('LIDER') ||
+            legacyRoleName.includes('ENCARGADO')
+        ) {
+            return true;
+        }
+
+        return false;
+    }, [authUser, hasPermission]);
+
+    // Helper para determinar si un colaborador de la lista es Jefe / Encargado
+    const isUserJefe = useCallback((u) => {
+        if (!u) return false;
+        if (u.role === 'ADMIN' || (u.roles || []).some(r => r.name?.toUpperCase() === 'ADMIN')) return true;
+        if (u.canManageSistemas || (u.roles || []).some(r => r.canManageSistemas)) return true;
+        const hasJefeRole = (u.roles || []).some(r => {
+            const n = (r.name || '').toUpperCase();
+            return n === 'JEFE' || n.includes('JEFE') || n.includes('LIDER') || n.includes('ENCARGADO') || n.includes('DIRECTOR');
+        });
+        if (hasJefeRole) return true;
+        const hasJefePerm = (u.permisos || []).some(p => {
+            const c = typeof p === 'string' ? p : p?.codigo;
+            return c === 'proyectosactividades.jefe' || c === 'acceso.proyectosactividades.jefe';
+        });
+        if (hasJefePerm) return true;
+        const uRole = (u.role || '').toUpperCase();
+        return uRole.includes('JEFE') || uRole.includes('LIDER') || uRole.includes('ENCARGADO');
+    }, []);
+
+    // Helper para obtener el título legible del rol de cualquier colaborador
+    const getUserRoleTitle = useCallback((u) => {
+        if (!u) return 'Colaborador';
+        if (u.roles && u.roles.length > 0) {
+            return u.roles.map(r => r.name).join(', ');
+        }
+        return u.role || 'Colaborador';
+    }, []);
 
     // Si es Colaborador queda bloqueado en Colaborador; si es Jefe puede probar vista previa
     const [viewAsRole, setViewAsRole] = useState(isRealJefe ? 'JEFE' : 'COLABORADOR');
@@ -216,6 +293,24 @@ const Sistemas = () => {
     const [filterCollaborator, setFilterCollaborator] = useState('TODOS');
     const [searchQuery, setSearchQuery] = useState('');
     const [sortOption, setSortOption] = useState('DIAS_RESTANTES_ASC'); // 'DIAS_RESTANTES_ASC' | 'DIAS_RESTANTES_DESC' | 'FECHA_INICIO_ASC' | 'FECHA_INICIO_DESC' | 'FECHA_FIN_ASC' | 'FECHA_FIN_DESC'
+
+    // Acordeón para Proyectos Registrados (muestra 1 sola fila por defecto y permite desplegar todos los demás)
+    const [isProjectsExpanded, setIsProjectsExpanded] = useState(false);
+
+    const visibleProjects = useMemo(() => {
+        if (isProjectsExpanded || projects.length <= 2) {
+            return projects;
+        }
+        // Si está colapsado y el proyecto seleccionado no está entre los primeros 2,
+        // lo incluimos en la fila visible para que el usuario no pierda de vista su filtro activo
+        if (selectedProjectId !== 'TODOS') {
+            const selectedIdx = projects.findIndex(p => p.id === selectedProjectId);
+            if (selectedIdx > 1) {
+                return [projects[0], projects[selectedIdx]];
+            }
+        }
+        return projects.slice(0, 2);
+    }, [projects, isProjectsExpanded, selectedProjectId]);
 
     // Modales
     const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
@@ -256,8 +351,17 @@ const Sistemas = () => {
         progreso: 0,
         responsableId: '',
         responsableNombre: '',
-        responsables: []
+        responsables: [],
+        links: [],
+        fechaTerminada: null
     });
+
+    // Estados para gestión interactiva de links
+    const [newLinkTitle, setNewLinkTitle] = useState('');
+    const [newLinkUrl, setNewLinkUrl] = useState('');
+    const [detailNewLinkTitle, setDetailNewLinkTitle] = useState('');
+    const [detailNewLinkUrl, setDetailNewLinkUrl] = useState('');
+    const [isAddingDetailLink, setIsAddingDetailLink] = useState(false);
 
     const [noteForm, setNoteForm] = useState({
         mensaje: '',
@@ -291,7 +395,15 @@ const Sistemas = () => {
                     apiClient.get('/hr/empleados')
                 ]);
 
-                const usersList = (uRes.status === 'fulfilled' && Array.isArray(uRes.value?.data)) ? uRes.value.data : [];
+                let usersList = (uRes.status === 'fulfilled' && Array.isArray(uRes.value?.data)) ? uRes.value.data : [];
+                if (usersList.length === 0) {
+                    try {
+                        const cRes = await apiClient.get('/collaborators');
+                        if (Array.isArray(cRes.data) && cRes.data.length > 0) {
+                            usersList = cRes.data;
+                        }
+                    } catch {}
+                }
                 const empList = (empRes.status === 'fulfilled' && Array.isArray(empRes.value?.data)) ? empRes.value.data : [];
 
                 const inactiveUserIds = new Set();
@@ -299,7 +411,8 @@ const Sistemas = () => {
                 const inactiveEmails = new Set();
 
                 empList.forEach(emp => {
-                    if (emp.estatus === 'INACTIVO') {
+                    // Siguiendo el estándar de Recursos Humanos: solo 'ACTIVO' sin fecha de terminación
+                    if (emp.estatus !== 'ACTIVO' || emp.fechaTerminacion) {
                         if (emp.userId) inactiveUserIds.add(emp.userId);
                         if (emp.nombreCompleto) inactiveNames.add(emp.nombreCompleto.trim().toLowerCase());
                         if (emp.emailPersonal) inactiveEmails.add(emp.emailPersonal.trim().toLowerCase());
@@ -310,10 +423,10 @@ const Sistemas = () => {
                     const isColaborador = u.type === 'COLABORADOR' || (u.role && u.role !== 'CLIENTE');
                     if (!isColaborador) return false;
 
-                    // Si está marcado como inactivo directamente
+                    // Si está marcado como inactivo directamente en User
                     if (u.status === 'INACTIVO' || u.status === 'INACTIVE' || u.estatus === 'INACTIVO' || u.isActive === false) return false;
-                    // Si su ficha de empleado está inactiva
-                    if (u.empleado?.estatus === 'INACTIVO') return false;
+                    // Si su ficha de empleado en RH no está activa o tiene baja
+                    if (u.empleado && (u.empleado.estatus !== 'ACTIVO' || u.empleado.fechaTerminacion)) return false;
                     // Si coincide con baja en RH por id, email o nombre
                     if (u.id && inactiveUserIds.has(u.id)) return false;
                     if (u.email && inactiveEmails.has(u.email.trim().toLowerCase())) return false;
@@ -522,8 +635,74 @@ const Sistemas = () => {
         }
     };
 
+    const handleAddLinkToTaskForm = () => {
+        if (!newLinkUrl.trim()) {
+            toast.error('Por favor escribe la URL del enlace');
+            return;
+        }
+        let url = newLinkUrl.trim();
+        if (!url.startsWith('http://') && !url.startsWith('https://')) {
+            url = 'https://' + url;
+        }
+        const title = newLinkTitle.trim() || url;
+        const newLinkObj = {
+            id: 'link-' + Date.now(),
+            titulo: title,
+            url: url
+        };
+        setTaskForm(prev => ({
+            ...prev,
+            links: [...(prev.links || []), newLinkObj]
+        }));
+        setNewLinkTitle('');
+        setNewLinkUrl('');
+    };
+
+    const handleRemoveLinkFromTaskForm = (linkId) => {
+        setTaskForm(prev => ({
+            ...prev,
+            links: (prev.links || []).filter(l => l.id !== linkId)
+        }));
+    };
+
+    const handleAddLinkToDetailTask = () => {
+        if (!detailNewLinkUrl.trim()) {
+            toast.error('Ingresa una URL válida');
+            return;
+        }
+        let url = detailNewLinkUrl.trim();
+        if (!url.startsWith('http://') && !url.startsWith('https://')) {
+            url = 'https://' + url;
+        }
+        const title = detailNewLinkTitle.trim() || url;
+        const newLinkObj = {
+            id: 'link-' + Date.now(),
+            titulo: title,
+            url: url
+        };
+
+        const updatedLinks = [...(detailTask.links || []), newLinkObj];
+        const updatedTasks = tasks.map(t => t.id === detailTask.id ? { ...t, links: updatedLinks } : t);
+        persistTasks(updatedTasks);
+        setDetailTask(prev => prev ? { ...prev, links: updatedLinks } : prev);
+        setDetailNewLinkTitle('');
+        setDetailNewLinkUrl('');
+        setIsAddingDetailLink(false);
+        toast.success('Enlace agregado');
+    };
+
+    const handleRemoveLinkFromDetailTask = (linkId) => {
+        const updatedLinks = (detailTask.links || []).filter(l => l.id !== linkId);
+        const updatedTasks = tasks.map(t => t.id === detailTask.id ? { ...t, links: updatedLinks } : t);
+        persistTasks(updatedTasks);
+        setDetailTask(prev => prev ? { ...prev, links: updatedLinks } : prev);
+        toast.success('Enlace eliminado');
+    };
+
     const handleOpenCreateTask = () => {
         setSelectedTask(null);
+        setNewLinkTitle('');
+        setNewLinkUrl('');
         const defaultProjId = projects.length > 0 ? projects[0].id : '';
         const defaultProj = projects.find(p => p.id === defaultProjId);
 
@@ -544,7 +723,9 @@ const Sistemas = () => {
             progreso: 0,
             responsableId: '',
             responsableNombre: '',
-            responsables: initialResp
+            responsables: initialResp,
+            links: [],
+            fechaTerminada: null
         });
         setIsTaskModalExpanded(false);
         setIsTaskModalOpen(true);
@@ -552,13 +733,28 @@ const Sistemas = () => {
 
     const handleOpenEditTask = (task) => {
         setSelectedTask(task);
+        setNewLinkTitle('');
+        setNewLinkUrl('');
         const proj = projects.find(p => p.id === task.proyectoId);
 
         let currentResp = [];
         if (Array.isArray(task.responsables) && task.responsables.length > 0) {
             currentResp = [...task.responsables];
-        } else if (task.responsableId) {
-            currentResp = [{ id: task.responsableId, name: task.responsableNombre || 'Colaborador', email: '' }];
+        } else if (task.responsableId || task.responsableNombre) {
+            const raw = task.responsableNombre || '';
+            const pieces = raw.split(/,| y | & /i).map(s => s.trim()).filter(Boolean);
+            if (pieces.length > 1) {
+                pieces.forEach(p => {
+                    const match = teamUsers.find(u => u.name?.toLowerCase() === p.toLowerCase());
+                    currentResp.push({
+                        id: match ? match.id : `resp-${p.toLowerCase().replace(/\s+/g, '-')}`,
+                        name: match ? match.name : p,
+                        email: match ? match.email : ''
+                    });
+                });
+            } else {
+                currentResp = [{ id: task.responsableId || 'collab-1', name: task.responsableNombre || 'Colaborador', email: '' }];
+            }
         }
 
         setTaskForm({
@@ -573,7 +769,9 @@ const Sistemas = () => {
             progreso: task.progreso || 0,
             responsableId: task.responsableId || '',
             responsableNombre: task.responsableNombre || '',
-            responsables: currentResp
+            responsables: currentResp,
+            links: Array.isArray(task.links) ? [...task.links] : [],
+            fechaTerminada: task.fechaTerminada || null
         });
         setIsTaskModalExpanded(false);
         setIsTaskModalOpen(true);
@@ -594,6 +792,8 @@ const Sistemas = () => {
         const proj = projects.find(p => p.id === taskForm.proyectoId);
         const nombresUnidos = taskForm.responsables.map(r => r.name).join(', ');
         const primerId = taskForm.responsables[0]?.id || '';
+        const isDone = taskForm.estado === 'TERMINADO' || taskForm.estado === 'COMPLETADO';
+        const fechaTerminada = isDone ? (selectedTask?.fechaTerminada || new Date().toISOString()) : null;
 
         const fullTaskData = {
             ...taskForm,
@@ -602,7 +802,9 @@ const Sistemas = () => {
             proyectoNombre: proj ? proj.nombre : (taskForm.proyectoNombre || 'General'),
             responsables: taskForm.responsables,
             responsableId: primerId,
-            responsableNombre: nombresUnidos
+            responsableNombre: taskForm.responsables[0]?.name || nombresUnidos,
+            fechaTerminada: fechaTerminada,
+            links: Array.isArray(taskForm.links) ? taskForm.links : []
         };
 
         let updated;
@@ -655,10 +857,12 @@ const Sistemas = () => {
     const handleUpdateTaskStatusDirect = (task, targetStatus) => {
         handleDrop(null, targetStatus, task.id);
         setMobileActiveColumn(targetStatus);
+        const isDone = targetStatus === 'TERMINADO' || targetStatus === 'COMPLETADO';
         setDetailTask(prev => prev && prev.id === task.id ? {
             ...prev,
             estado: targetStatus,
-            progreso: targetStatus === 'TERMINADO' ? 100 : (targetStatus === 'EN_REVISION' ? 85 : (targetStatus === 'EN_PROCESO' ? 50 : 10))
+            fechaTerminada: isDone ? (prev.fechaTerminada || new Date().toISOString()) : null,
+            progreso: isDone ? 100 : (targetStatus === 'EN_REVISION' ? 85 : (targetStatus === 'EN_PROCESO' ? 50 : 10))
         } : prev);
     };
 
@@ -670,7 +874,8 @@ const Sistemas = () => {
                 return {
                     ...t,
                     progreso: val,
-                    estado: isAutoDone ? 'TERMINADO' : t.estado
+                    estado: isAutoDone ? 'TERMINADO' : (val < 100 && t.estado === 'TERMINADO' ? 'EN_PROCESO' : t.estado),
+                    fechaTerminada: (val === 100 || isAutoDone) ? (t.fechaTerminada || new Date().toISOString()) : (val < 100 ? null : t.fechaTerminada)
                 };
             }
             return t;
@@ -680,7 +885,8 @@ const Sistemas = () => {
         setDetailTask(prev => prev && prev.id === task.id ? { 
             ...prev, 
             progreso: val, 
-            estado: val === 100 ? 'TERMINADO' : prev.estado 
+            estado: val === 100 ? 'TERMINADO' : (val < 100 && prev.estado === 'TERMINADO' ? 'EN_PROCESO' : prev.estado),
+            fechaTerminada: val === 100 ? (prev.fechaTerminada || new Date().toISOString()) : (val < 100 ? null : prev.fechaTerminada)
         } : prev);
         toast.success(`Progreso actualizado a ${val}%`);
     };
@@ -907,10 +1113,11 @@ const Sistemas = () => {
 
         const updated = tasks.map(t => {
             if (t.id === taskId) {
-                const isDone = targetStatus === 'TERMINADO';
+                const isDone = targetStatus === 'TERMINADO' || targetStatus === 'COMPLETADO';
                 return {
                     ...t,
                     estado: targetStatus,
+                    fechaTerminada: isDone ? (t.fechaTerminada || new Date().toISOString()) : null,
                     progreso: isDone ? 100 : (targetStatus === 'EN_REVISION' ? 85 : (targetStatus === 'EN_PROCESO' ? 50 : 10))
                 };
             }
@@ -933,55 +1140,53 @@ const Sistemas = () => {
     };
 
     // ==========================================
-    // COLABORADORES ACTIVOS CON ACTIVIDADES ASIGNADAS
+    // COLABORADORES ACTIVOS CON ACTIVIDADES ASIGNADAS (EXCLUSIVO PARA EL JEFE)
+    // Solo lista colaboradores individuales reales (sin cadenas combinadas tipo "Juan y Pedro")
+    // que están ACTIVOS y tienen al menos una actividad.
     // ==========================================
     const distinctCollaborators = useMemo(() => {
         if (!Array.isArray(tasks) || tasks.length === 0) return [];
 
-        const hasTeamUsers = Array.isArray(teamUsers) && teamUsers.length > 0;
-        const activeUserIds = new Set(hasTeamUsers ? teamUsers.map(u => u.id) : []);
-        const activeUserNames = new Set(hasTeamUsers ? teamUsers.map(u => u.name?.trim().toLowerCase()) : []);
+        const activeMap = new Map();
+        teamUsers.forEach(u => {
+            if (u.id) activeMap.set(u.id, u);
+            if (u.name) activeMap.set(u.name.trim().toLowerCase(), u);
+        });
 
-        const map = new Map();
+        const resultMap = new Map();
 
         tasks.forEach(t => {
-            // Revisar asignación colaborativa (array de responsables)
-            if (Array.isArray(t.responsables)) {
+            // 1. Revisar array de responsables individuales
+            if (Array.isArray(t.responsables) && t.responsables.length > 0) {
                 t.responsables.forEach(r => {
+                    if (!r) return;
                     const rId = r.id;
                     const rName = r.name?.trim();
-                    if (!rName) return;
-
-                    if (hasTeamUsers) {
-                        const isActive = (rId && activeUserIds.has(rId)) || (rName && activeUserNames.has(rName.toLowerCase()));
-                        if (isActive) {
-                            map.set(rId || rName, rName);
-                        }
-                    } else {
-                        map.set(rId || rName, rName);
+                    const activeUser = (rId && activeMap.get(rId)) || (rName && activeMap.get(rName.toLowerCase()));
+                    if (activeUser) {
+                        resultMap.set(activeUser.id, { id: activeUser.id, name: activeUser.name });
                     }
                 });
-            }
+            } else if (t.responsableNombre || t.responsableId) {
+                // 2. Si viene de formato con nombres combinados (ej: "Juan y Pedro" o "Juan, Pedro")
+                const raw = t.responsableNombre || '';
+                const parts = raw.split(/,| y | & /i).map(s => s.trim()).filter(Boolean);
 
-            // Revisar asignación directa (responsableId / responsableNombre)
-            if (t.responsableNombre) {
-                const rId = t.responsableId;
-                const rName = t.responsableNombre.trim();
-
-                if (hasTeamUsers) {
-                    const isActive = (rId && activeUserIds.has(rId)) || (rName && activeUserNames.has(rName.toLowerCase()));
-                    if (isActive) {
-                        map.set(rId || rName, rName);
-                    }
-                } else {
-                    map.set(rId || rName, rName);
+                if (parts.length > 0) {
+                    parts.forEach(partName => {
+                        const activeUser = activeMap.get(partName.toLowerCase()) || (t.responsableId && activeMap.get(t.responsableId));
+                        if (activeUser) {
+                            resultMap.set(activeUser.id, { id: activeUser.id, name: activeUser.name });
+                        }
+                    });
+                } else if (t.responsableId && activeMap.get(t.responsableId)) {
+                    const activeUser = activeMap.get(t.responsableId);
+                    resultMap.set(activeUser.id, { id: activeUser.id, name: activeUser.name });
                 }
             }
         });
 
-        return Array.from(map.entries())
-            .map(([id, name]) => ({ id, name }))
-            .sort((a, b) => a.name.localeCompare(b.name));
+        return Array.from(resultMap.values()).sort((a, b) => a.name.localeCompare(b.name));
     }, [tasks, teamUsers]);
 
     // ==========================================
@@ -1238,18 +1443,32 @@ const Sistemas = () => {
                 </div>
             </div>
 
-            {/* Selector de Proyectos (Entidad Padre) */}
+            {/* Selector de Proyectos (Entidad Padre) - Con Acordeón (1 fila por defecto) */}
             <div className="bg-white dark:bg-gray-800 p-4 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm space-y-3">
-                <div className="flex items-center justify-between">
-                    <span className="text-xs font-black uppercase tracking-wider text-gray-400 flex items-center gap-2">
-                        <FaLayerGroup /> Proyectos Registrados
-                    </span>
-                    <span className="text-xs text-gray-500 font-medium">
-                        {projects.length} proyecto{projects.length !== 1 ? 's' : ''} activo{projects.length !== 1 ? 's' : ''}
-                    </span>
+                <div className="flex flex-wrap items-center justify-between gap-2.5">
+                    <div className="flex items-center gap-2.5">
+                        <span className="text-xs font-black uppercase tracking-wider text-gray-500 dark:text-gray-400 flex items-center gap-2">
+                            <FaLayerGroup className="text-primary text-sm" /> Proyectos Registrados
+                        </span>
+                        <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
+                            {projects.length} activo{projects.length !== 1 ? 's' : ''}
+                        </span>
+                    </div>
+
+                    {projects.length > 2 && (
+                        <button
+                            type="button"
+                            onClick={() => setIsProjectsExpanded(!isProjectsExpanded)}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-gray-700 dark:text-gray-200 hover:text-primary hover:bg-gray-100 dark:hover:bg-gray-700/60 transition-all border border-gray-200/80 dark:border-gray-700/80 active:scale-95 shadow-2xs"
+                            title={isProjectsExpanded ? "Colapsar a una sola fila" : "Desplegar todos los proyectos"}
+                        >
+                            <span>{isProjectsExpanded ? 'Mostrar 1 fila' : `Ver todos (${projects.length})`}</span>
+                            <FaChevronDown className={`text-[10px] text-gray-500 transition-transform duration-300 ${isProjectsExpanded ? 'rotate-180 text-primary' : ''}`} />
+                        </button>
+                    )}
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 transition-all duration-300">
                     {/* Botón para ver todos */}
                     <div
                         onClick={() => setSelectedProjectId('TODOS')}
@@ -1268,8 +1487,8 @@ const Sistemas = () => {
                         <p className="text-xs text-gray-500 dark:text-gray-400">Ver conjunto global de entregas</p>
                     </div>
 
-                    {/* Tarjetas individuales de proyecto */}
-                    {projects.map((proj) => {
+                    {/* Tarjetas de proyectos (1 fila por defecto o todos si se expande) */}
+                    {visibleProjects.map((proj) => {
                         const projTasks = tasks.filter(t => t.proyectoId === proj.id);
                         const doneCount = projTasks.filter(t => t.estado === 'TERMINADO').length;
                         const projRate = projTasks.length > 0 ? Math.round((doneCount / projTasks.length) * 100) : 0;
@@ -1286,7 +1505,7 @@ const Sistemas = () => {
                                 }`}
                             >
                                 <div className="flex items-start justify-between gap-2 mb-1">
-                                    <h4 className="font-bold text-sm text-gray-800 dark:text-white line-clamp-1 flex-1">
+                                    <h4 className="font-bold text-sm text-gray-800 dark:text-white line-clamp-1 flex-1" title={proj.nombre}>
                                         {proj.nombre}
                                     </h4>
                                     <div className="flex items-center gap-1.5 flex-shrink-0">
@@ -1336,6 +1555,21 @@ const Sistemas = () => {
                         );
                     })}
                 </div>
+
+                {/* Botón inferior desplegable si hay más de 1 fila */}
+                {projects.length > 2 && (
+                    <button
+                        type="button"
+                        onClick={() => setIsProjectsExpanded(!isProjectsExpanded)}
+                        className="w-full py-2 px-4 bg-gray-50/80 hover:bg-gray-100/80 dark:bg-gray-900/40 dark:hover:bg-gray-700/50 text-xs font-bold text-gray-600 dark:text-gray-300 rounded-xl border border-dashed border-gray-200 dark:border-gray-700 flex items-center justify-center gap-2 transition-all active:scale-[0.99]"
+                    >
+                        <span>
+                            {isProjectsExpanded 
+                                ? '▲ Colapsar a una sola fila' 
+                                : `▼ Ver ${projects.length - 2} proyecto${projects.length - 2 !== 1 ? 's' : ''} más`}
+                        </span>
+                    </button>
+                )}
             </div>
 
             {/* Banner si hay un Proyecto filtrado */}
@@ -1377,7 +1611,7 @@ const Sistemas = () => {
             })()}
 
             {/* Barra de Filtros y Vistas */}
-            <div className="bg-white dark:bg-gray-800 p-3.5 sm:p-4 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm flex flex-col xl:flex-row xl:items-center justify-between gap-3 sm:gap-4 select-none w-full max-w-full overflow-hidden">
+            <div className="bg-white dark:bg-gray-800 p-3.5 sm:p-4 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm flex flex-col xl:flex-row xl:items-center justify-between gap-3 sm:gap-4 w-full max-w-full">
                 <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2.5 w-full xl:w-auto min-w-0 max-w-full">
                     {/* Botones de Vistas */}
                     <div className="bg-gray-100 dark:bg-gray-900 p-1 rounded-xl flex items-center overflow-x-auto overscroll-contain touch-pan-x [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden w-full sm:w-auto max-w-full flex-shrink-0">
@@ -1418,34 +1652,56 @@ const Sistemas = () => {
 
                     {/* Filtro por Colaborador Activo (Exclusivo para el Jefe/Encargado) */}
                     {isJefe && distinctCollaborators.length > 0 && (
-                        <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-900 px-3 py-1.5 rounded-xl border border-gray-200 dark:border-gray-700 min-h-[40px] w-full sm:w-auto max-w-full min-w-0">
-                            <FaFilter className="text-gray-400 text-xs flex-shrink-0" />
+                        <div 
+                            onClick={(e) => {
+                                const sel = e.currentTarget.querySelector('select');
+                                if (sel && e.target !== sel) {
+                                    try { sel.showPicker?.(); } catch (err) {}
+                                    sel.focus();
+                                }
+                            }}
+                            className="relative flex items-center gap-2 bg-gray-50 dark:bg-gray-900 px-3 py-1.5 rounded-xl border border-gray-200 dark:border-gray-700 min-h-[40px] w-full sm:w-auto cursor-pointer hover:border-gray-300 dark:hover:border-gray-600 transition-colors shadow-2xs"
+                        >
+                            <FaFilter className="text-gray-400 text-xs flex-shrink-0 pointer-events-none" />
                             <select
+                                id="filtro-colaborador-sistemas"
                                 value={filterCollaborator}
                                 onChange={(e) => setFilterCollaborator(e.target.value)}
                                 aria-label="Filtrar por colaborador activo"
-                                className="bg-transparent text-base sm:text-xs font-bold text-gray-700 dark:text-gray-200 outline-none cursor-pointer py-1 flex-1 w-0 min-w-0 max-w-full truncate"
+                                className="bg-transparent text-xs font-bold text-gray-700 dark:text-gray-200 outline-none cursor-pointer py-1.5 w-full sm:w-auto sm:min-w-[160px] max-w-full appearance-none pr-6 z-10"
                             >
                                 <option value="TODOS" className="dark:bg-gray-800">Todo el equipo</option>
                                 {distinctCollaborators.map(c => (
                                     <option key={c.id} value={c.id} className="dark:bg-gray-800">👤 {c.name}</option>
                                 ))}
                             </select>
+                            <FaChevronDown className="text-gray-400 text-[10px] flex-shrink-0 pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 z-0" />
                         </div>
                     )}
 
                     {/* Selector de Orden: Días restantes / Fecha Inicial / Fecha Entrega */}
-                    <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-900 px-3 py-1.5 rounded-xl border border-gray-200 dark:border-gray-700 min-h-[40px] w-full sm:w-auto max-w-full min-w-0">
+                    <div 
+                        onClick={(e) => {
+                            if (e.target.closest('button')) return;
+                            const sel = e.currentTarget.querySelector('select');
+                            if (sel && e.target !== sel) {
+                                try { sel.showPicker?.(); } catch (err) {}
+                                sel.focus();
+                            }
+                        }}
+                        className="relative flex items-center gap-2 bg-gray-50 dark:bg-gray-900 px-3 py-1.5 rounded-xl border border-gray-200 dark:border-gray-700 min-h-[40px] w-full sm:w-auto cursor-pointer hover:border-gray-300 dark:hover:border-gray-600 transition-colors shadow-2xs"
+                    >
                         {sortOption.startsWith('DIAS_RESTANTES') ? (
-                            <FaClock className="text-amber-500 text-xs flex-shrink-0" />
+                            <FaClock className="text-amber-500 text-xs flex-shrink-0 pointer-events-none" />
                         ) : (
-                            <FaCalendarAlt className="text-primary text-xs flex-shrink-0" />
+                            <FaCalendarAlt className="text-primary text-xs flex-shrink-0 pointer-events-none" />
                         )}
                         <select
+                            id="selector-orden-sistemas"
                             value={sortOption}
                             onChange={(e) => setSortOption(e.target.value)}
                             aria-label="Ordenar actividades"
-                            className="bg-transparent text-base sm:text-xs font-bold text-gray-700 dark:text-gray-200 outline-none cursor-pointer py-1 flex-1 w-0 min-w-0 max-w-full truncate"
+                            className="bg-transparent text-xs font-bold text-gray-700 dark:text-gray-200 outline-none cursor-pointer py-1.5 w-full sm:w-auto sm:min-w-[190px] max-w-full appearance-none pr-6 z-10"
                         >
                             <option value="DIAS_RESTANTES_ASC" className="dark:bg-gray-800">⏳ Días restantes (Urgentes primero)</option>
                             <option value="DIAS_RESTANTES_DESC" className="dark:bg-gray-800">⏳ Días restantes (Más holgadas)</option>
@@ -1454,9 +1710,11 @@ const Sistemas = () => {
                             <option value="FECHA_FIN_ASC" className="dark:bg-gray-800">🏁 Fecha entrega (Próximas primero)</option>
                             <option value="FECHA_FIN_DESC" className="dark:bg-gray-800">🏁 Fecha entrega (Lejanas primero)</option>
                         </select>
+                        <FaChevronDown className="text-gray-400 text-[10px] flex-shrink-0 pointer-events-none absolute right-9 top-1/2 -translate-y-1/2 z-0" />
                         <button
                             type="button"
-                            onClick={() => {
+                            onClick={(e) => {
+                                e.stopPropagation();
                                 setSortOption(prev => {
                                     if (prev === 'DIAS_RESTANTES_ASC') return 'DIAS_RESTANTES_DESC';
                                     if (prev === 'DIAS_RESTANTES_DESC') return 'DIAS_RESTANTES_ASC';
@@ -1468,7 +1726,7 @@ const Sistemas = () => {
                                 });
                             }}
                             title={sortOption.endsWith('_ASC') ? "Orden ascendente. Clic para invertir a descendente" : "Orden descendente. Clic para invertir a ascendente"}
-                            className="p-1.5 rounded-lg text-gray-500 hover:text-primary hover:bg-gray-200/60 dark:hover:bg-gray-700/60 transition-colors flex-shrink-0 active:scale-90"
+                            className="p-1.5 rounded-lg text-gray-500 hover:text-primary hover:bg-gray-200/60 dark:hover:bg-gray-700/60 transition-colors flex-shrink-0 active:scale-90 z-20"
                         >
                             {sortOption.endsWith('_ASC') ? <FaSortAmountDown size={13} className="text-primary" /> : <FaSortAmountUp size={13} className="text-primary" />}
                         </button>
@@ -1574,13 +1832,23 @@ const Sistemas = () => {
                                                             📁 {task.proyectoNombre || 'General'}
                                                         </span>
 
-                                                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
-                                                            task.prioridad === 'ALTA' 
-                                                            ? 'text-rose-600 bg-rose-50 dark:bg-rose-950/40' 
-                                                            : (task.prioridad === 'MEDIA' ? 'text-amber-600 bg-amber-50 dark:bg-amber-950/40' : 'text-gray-500 bg-gray-100 dark:bg-gray-700')
-                                                        }`}>
-                                                            {task.prioridad === 'ALTA' ? '🔥 Alta' : (task.prioridad === 'MEDIA' ? '⚡ Media' : '☕ Normal')}
-                                                        </span>
+                                                        <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                                                            {task.links && task.links.length > 0 && (
+                                                                <span 
+                                                                    className="inline-flex items-center gap-1 text-[10px] font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 px-1.5 py-0.5 rounded border border-blue-200/50"
+                                                                    title={`${task.links.length} enlace${task.links.length > 1 ? 's' : ''} adjunto${task.links.length > 1 ? 's' : ''}`}
+                                                                >
+                                                                    <FaLink className="text-[9px]" /> {task.links.length}
+                                                                </span>
+                                                            )}
+                                                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                                                                task.prioridad === 'ALTA' 
+                                                                ? 'text-rose-600 bg-rose-50 dark:bg-rose-950/40' 
+                                                                : (task.prioridad === 'MEDIA' ? 'text-amber-600 bg-amber-50 dark:bg-amber-950/40' : 'text-gray-500 bg-gray-100 dark:bg-gray-700')
+                                                            }`}>
+                                                                {task.prioridad === 'ALTA' ? '🔥 Alta' : (task.prioridad === 'MEDIA' ? '⚡ Media' : '☕ Normal')}
+                                                            </span>
+                                                        </div>
                                                     </div>
 
                                                     <h4 className="font-bold text-sm text-gray-800 dark:text-white leading-snug mb-1 group-hover:text-primary transition-colors">
@@ -1620,8 +1888,11 @@ const Sistemas = () => {
                                                             </span>
                                                         </div>
                                                         {task.estado === 'TERMINADO' ? (
-                                                            <span className="font-bold flex-shrink-0 px-2 py-0.5 rounded-md text-[10px] text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/50">
-                                                                ✅ Concluida
+                                                            <span 
+                                                                className="font-bold flex-shrink-0 px-2 py-0.5 rounded-md text-[10px] text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/50"
+                                                                title={task.fechaTerminada ? `Concluida el ${format(new Date(task.fechaTerminada), "dd MMMM yyyy, HH:mm 'hrs'", { locale: es })}` : 'Concluida con éxito'}
+                                                            >
+                                                                ✅ {task.fechaTerminada ? `Concluida ${format(new Date(task.fechaTerminada), 'dd MMM', { locale: es })}` : 'Concluida'}
                                                             </span>
                                                         ) : task.fechaFin ? (
                                                             <span className={`font-bold flex-shrink-0 px-2 py-0.5 rounded-md text-[10px] ${
@@ -2239,8 +2510,15 @@ const Sistemas = () => {
                                                             {(user.name || 'C')[0]}
                                                         </div>
                                                         <div className="min-w-0">
-                                                            <p className="text-xs font-bold text-gray-800 dark:text-white truncate">{user.name}</p>
-                                                            <p className="text-[10px] text-gray-400 truncate">{user.email || user.role || 'Colaborador'}</p>
+                                                            <div className="flex items-center gap-1.5 flex-wrap">
+                                                                <p className="text-xs font-bold text-gray-800 dark:text-white truncate">{user.name}</p>
+                                                                {isUserJefe(user) && (
+                                                                    <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300">
+                                                                        Jefe
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                            <p className="text-[10px] text-gray-400 truncate">{getUserRoleTitle(user)}</p>
                                                         </div>
                                                     </div>
                                                     <input
@@ -2252,6 +2530,89 @@ const Sistemas = () => {
                                                 </div>
                                             );
                                         })
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* APARTADO DE ENLACES / LINKS */}
+                            <div className="space-y-2 pt-2 border-t border-gray-100 dark:border-gray-800">
+                                <div className="flex items-center justify-between select-none">
+                                    <label className="text-[11px] font-black uppercase tracking-wider text-gray-500 flex items-center gap-1.5">
+                                        <FaLink className="text-primary text-xs" />
+                                        Apartado de Enlaces y Recursos ({taskForm.links?.length || 0})
+                                    </label>
+                                    <span className="text-[10px] text-gray-400 font-medium">
+                                        GitHub, Figma, Docs, etc.
+                                    </span>
+                                </div>
+
+                                <div className="p-3 bg-gray-50/70 dark:bg-gray-900/40 rounded-2xl border border-gray-200/70 dark:border-gray-700/60 space-y-2.5">
+                                    <div className="grid grid-cols-1 sm:grid-cols-12 gap-2">
+                                        <input
+                                            type="text"
+                                            placeholder="Título del enlace (ej: Repositorio GitHub)"
+                                            value={newLinkTitle}
+                                            onChange={(e) => setNewLinkTitle(e.target.value)}
+                                            className="sm:col-span-5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2 text-xs text-gray-800 dark:text-white outline-none focus:ring-2 focus:ring-primary font-medium"
+                                        />
+                                        <input
+                                            type="url"
+                                            placeholder="https://..."
+                                            value={newLinkUrl}
+                                            onChange={(e) => setNewLinkUrl(e.target.value)}
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter') {
+                                                    e.preventDefault();
+                                                    handleAddLinkToTaskForm();
+                                                }
+                                            }}
+                                            className="sm:col-span-5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2 text-xs text-gray-800 dark:text-white outline-none focus:ring-2 focus:ring-primary font-medium"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={handleAddLinkToTaskForm}
+                                            className="sm:col-span-2 px-3 py-2 bg-primary hover:bg-primary-dark active:bg-primary-dark text-white rounded-xl text-xs font-bold transition-all active:scale-95 flex items-center justify-center gap-1 shadow-xs"
+                                        >
+                                            <FaPlus className="text-[10px]" />
+                                            <span>Agregar</span>
+                                        </button>
+                                    </div>
+
+                                    {/* Lista de enlaces agregados */}
+                                    {taskForm.links && taskForm.links.length > 0 ? (
+                                        <div className="space-y-1.5 pt-1">
+                                            {taskForm.links.map((lnk) => (
+                                                <div 
+                                                    key={lnk.id} 
+                                                    className="flex items-center justify-between gap-2 p-2.5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200/80 dark:border-gray-700/80 text-xs shadow-2xs"
+                                                >
+                                                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                                                        <FaExternalLinkAlt className="text-primary text-[11px] flex-shrink-0" />
+                                                        <span className="font-bold text-gray-800 dark:text-white truncate">{lnk.titulo}</span>
+                                                        <a 
+                                                            href={lnk.url} 
+                                                            target="_blank" 
+                                                            rel="noopener noreferrer" 
+                                                            className="text-[10px] text-blue-500 hover:underline truncate max-w-[200px]"
+                                                        >
+                                                            {lnk.url}
+                                                        </a>
+                                                    </div>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleRemoveLinkFromTaskForm(lnk.id)}
+                                                        className="w-6 h-6 flex items-center justify-center text-gray-400 hover:text-rose-500 font-bold rounded-lg transition-colors"
+                                                        title="Eliminar enlace"
+                                                    >
+                                                        ✕
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <p className="text-[11px] text-gray-400 italic text-center py-1">
+                                            Sin enlaces agregados aún. Escribe el título y URL arriba.
+                                        </p>
                                     )}
                                 </div>
                             </div>
@@ -2667,6 +3028,22 @@ const Sistemas = () => {
 
                         {/* Cuerpo en dos columnas responsivas */}
                         <div className="flex-1 overflow-y-auto overscroll-contain p-4 sm:p-6 custom-scrollbar touch-pan-y">
+                            {/* Banner de fecha en que se terminó si la actividad está concluida */}
+                            {(detailTask.estado === 'TERMINADO' || detailTask.estado === 'COMPLETADO') && (
+                                <div className="mb-5 p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-emerald-500/15 via-emerald-500/5 to-transparent border border-emerald-300 dark:border-emerald-800 flex items-center justify-between gap-3 text-xs shadow-xs">
+                                    <div className="flex items-center gap-2.5 text-emerald-800 dark:text-emerald-300 font-bold">
+                                        <FaCheckCircle className="text-emerald-500 text-lg flex-shrink-0" />
+                                        <div>
+                                            <p className="font-extrabold text-xs sm:text-sm leading-tight">Actividad Concluida con Éxito</p>
+                                            <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">Esta entrega ya cumplió con todos los requerimientos programados.</p>
+                                        </div>
+                                    </div>
+                                    <span className="text-[11px] font-black text-emerald-700 dark:text-emerald-300 bg-white/90 dark:bg-emerald-950/60 px-3 py-1.5 rounded-xl border border-emerald-200 dark:border-emerald-800 flex-shrink-0 shadow-2xs">
+                                        {detailTask.fechaTerminada ? `Concluida: ${format(new Date(detailTask.fechaTerminada), "dd MMM yyyy, HH:mm 'hrs'", { locale: es })}` : 'Concluida'}
+                                    </span>
+                                </div>
+                            )}
+
                             <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6">
                                 {/* COLUMNA IZQUIERDA: Alcance, Estado y Progreso (7 cols) */}
                                 <div className="lg:col-span-7 space-y-5">
@@ -2695,6 +3072,125 @@ const Sistemas = () => {
                                                 {detailTask.descripcion?.trim() || 'No se registraron especificaciones adicionales escritas para esta actividad. Consulta a tu encargado si tienes alguna duda sobre el alcance.'}
                                             </p>
                                         </div>
+                                    </div>
+
+                                    {/* APARTADO DE ENLACES / LINKS DE LA ACTIVIDAD */}
+                                    <div className="space-y-2.5 p-4 rounded-2xl bg-slate-50/80 dark:bg-gray-900/60 border border-slate-200/80 dark:border-gray-700/80">
+                                        <div className="flex items-center justify-between select-none">
+                                            <span className="text-xs font-black uppercase tracking-wider text-gray-600 dark:text-gray-300 flex items-center gap-1.5">
+                                                <FaLink className="text-primary text-xs" />
+                                                Apartado de Enlaces y Recursos ({detailTask.links?.length || 0})
+                                            </span>
+                                            <button
+                                                type="button"
+                                                onClick={() => setIsAddingDetailLink(!isAddingDetailLink)}
+                                                className="text-[11px] font-bold text-primary hover:underline flex items-center gap-1 min-h-[32px] px-2 py-0.5 rounded-lg active:scale-95"
+                                            >
+                                                <FaPlus size={10} /> {isAddingDetailLink ? 'Cerrar' : '+ Agregar enlace'}
+                                            </button>
+                                        </div>
+
+                                        {/* Formulario rápido para añadir enlace directamente en el detalle */}
+                                        {isAddingDetailLink && (
+                                            <div className="p-3 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 space-y-2 animate-in fade-in">
+                                                <div className="grid grid-cols-1 sm:grid-cols-12 gap-2">
+                                                    <input
+                                                        type="text"
+                                                        placeholder="Título (ej: Repositorio GitHub)"
+                                                        value={detailNewLinkTitle}
+                                                        onChange={(e) => setDetailNewLinkTitle(e.target.value)}
+                                                        className="sm:col-span-5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg px-2.5 py-1.5 text-xs text-gray-800 dark:text-white outline-none focus:ring-1 focus:ring-primary font-medium"
+                                                    />
+                                                    <input
+                                                        type="url"
+                                                        placeholder="https://..."
+                                                        value={detailNewLinkUrl}
+                                                        onChange={(e) => setDetailNewLinkUrl(e.target.value)}
+                                                        onKeyDown={(e) => {
+                                                            if (e.key === 'Enter') {
+                                                                e.preventDefault();
+                                                                handleAddLinkToDetailTask();
+                                                            }
+                                                        }}
+                                                        className="sm:col-span-5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg px-2.5 py-1.5 text-xs text-gray-800 dark:text-white outline-none focus:ring-1 focus:ring-primary font-medium"
+                                                    />
+                                                    <button
+                                                        type="button"
+                                                        onClick={handleAddLinkToDetailTask}
+                                                        className="sm:col-span-2 px-3 py-1.5 bg-primary text-white text-xs font-bold rounded-lg hover:bg-primary-dark transition-all flex items-center justify-center gap-1 active:scale-95 shadow-xs"
+                                                    >
+                                                        <FaPlus size={10} /> Guardar
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Lista de enlaces existentes */}
+                                        {detailTask.links && detailTask.links.length > 0 ? (
+                                            <div className="space-y-2 max-h-48 overflow-y-auto custom-scrollbar pr-0.5">
+                                                {detailTask.links.map((lnk) => (
+                                                    <div 
+                                                        key={lnk.id}
+                                                        className="p-2.5 rounded-xl bg-white dark:bg-gray-800 border border-gray-200/80 dark:border-gray-700/80 flex items-center justify-between gap-3 text-xs shadow-2xs hover:border-primary/40 transition-colors"
+                                                    >
+                                                        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                                                            <div className="w-7 h-7 rounded-lg bg-blue-50 dark:bg-blue-950/40 text-primary flex items-center justify-center flex-shrink-0">
+                                                                <FaExternalLinkAlt size={11} />
+                                                            </div>
+                                                            <div className="min-w-0 flex-1">
+                                                                <p className="font-bold text-gray-800 dark:text-white truncate">{lnk.titulo}</p>
+                                                                <a 
+                                                                    href={lnk.url} 
+                                                                    target="_blank" 
+                                                                    rel="noopener noreferrer" 
+                                                                    className="text-[10px] text-blue-500 hover:underline truncate block"
+                                                                    title={lnk.url}
+                                                                >
+                                                                    {lnk.url}
+                                                                </a>
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex items-center gap-1 flex-shrink-0">
+                                                            <a
+                                                                href={lnk.url}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className="px-2.5 py-1 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary font-bold text-[10px] transition-colors inline-flex items-center gap-1"
+                                                                title="Abrir enlace en nueva pestaña"
+                                                            >
+                                                                <span>Abrir</span>
+                                                                <FaExternalLinkAlt size={9} />
+                                                            </a>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    navigator.clipboard.writeText(lnk.url);
+                                                                    toast.success('URL copiada al portapapeles');
+                                                                }}
+                                                                className="p-1.5 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                                                                title="Copiar URL"
+                                                            >
+                                                                <FaCopy size={11} />
+                                                            </button>
+                                                            {(isJefe || detailTask.responsables?.some(r => r.id === authUser?.id)) && (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => handleRemoveLinkFromDetailTask(lnk.id)}
+                                                                    className="p-1.5 text-gray-400 hover:text-rose-500 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
+                                                                    title="Eliminar enlace"
+                                                                >
+                                                                    ✕
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <p className="text-xs text-gray-400 italic py-1 text-center select-none">
+                                                Sin enlaces ni recursos adjuntos a esta actividad.
+                                            </p>
+                                        )}
                                     </div>
 
                                     {/* 2. CAMBIO DIRECTO DE ESTADO */}
@@ -2813,13 +3309,24 @@ const Sistemas = () => {
                                                                 {(r.name || 'C')[0]}
                                                             </div>
                                                             <div className="min-w-0 flex-1">
-                                                                <div className="flex items-center gap-1.5">
+                                                                <div className="flex items-center gap-1.5 flex-wrap">
                                                                     <p className="text-xs font-bold text-gray-800 dark:text-white truncate">{r.name}</p>
                                                                     {isMe && (
                                                                         <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300">
                                                                             Tú
                                                                         </span>
                                                                     )}
+                                                                    {(() => {
+                                                                        const member = teamUsers.find(u => u.id === r.id || u.name === r.name);
+                                                                        if (member && isUserJefe(member)) {
+                                                                            return (
+                                                                                <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.2 rounded bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300">
+                                                                                    Jefe
+                                                                                </span>
+                                                                            );
+                                                                        }
+                                                                        return null;
+                                                                    })()}
                                                                 </div>
                                                                 {r.email && (
                                                                     <p className="text-[10px] text-gray-400 truncate">{r.email}</p>

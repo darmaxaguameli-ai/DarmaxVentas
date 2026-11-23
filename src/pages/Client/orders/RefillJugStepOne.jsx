@@ -81,7 +81,9 @@ const RefillJugStepOne = () => {
 
   useEffect(() => {
     if (!configLoading && !configError && fetchedJugBrands.length > 0) {
-      const initial = initializeJugs(fetchedJugBrands, location.state?.fromStepOne, preferences);
+      // Asegurar que las marcas sigan el orden de aparición definido en Configuración
+      const sorted = [...fetchedJugBrands].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+      const initial = initializeJugs(sorted, location.state?.fromStepOne, preferences);
       setSelectedJugs(initial);
     }
   }, [fetchedJugBrands, configLoading, configError, location.state, preferences, initializeJugs]);

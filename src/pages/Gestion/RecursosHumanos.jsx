@@ -13,30 +13,25 @@ import Swal from 'sweetalert2';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
-// Tarjeta de métricas moderna con diseño glassmorphic
-const StatCard = ({ icon, title, value, subtitle, badge, badgeColor, iconColor, iconBg }) => (
-    <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border border-gray-200/80 dark:border-gray-800/80 p-5 rounded-3xl shadow-xs hover:shadow-md transition-all duration-200 flex flex-col justify-between">
-        <div className="flex items-start justify-between">
-            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${iconBg} ${iconColor} shadow-inner`}>
-                <span className="material-symbols-outlined text-2xl">{icon}</span>
-            </div>
-            {badge && (
-                <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full border ${badgeColor}`}>
-                    {badge}
-                </span>
-            )}
-        </div>
-        <div className="mt-4">
-            <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+// Tarjeta de métricas estilo Bento (alineada con Gestión de Clientes y Sistemas)
+const StatCard = ({ icon, title, value, subtitle, iconColor = "text-primary", iconBg = "bg-primary/10" }) => (
+    <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl p-4 sm:p-5 rounded-3xl border border-gray-100 dark:border-gray-700/80 shadow-xs flex flex-col justify-between hover:shadow-md transition-all duration-200">
+        <div className="flex items-center justify-between">
+            <span className="text-[10px] font-black uppercase tracking-wider text-gray-400">
                 {title}
-            </p>
-            <p className="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white tracking-tight mt-0.5">
+            </span>
+            <span className={`p-2 rounded-xl text-xs flex items-center justify-center ${iconBg} ${iconColor}`}>
+                <span className="material-symbols-outlined text-base">{icon}</span>
+            </span>
+        </div>
+        <div className="mt-2.5 sm:mt-3">
+            <p className="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white leading-none">
                 {value}
             </p>
             {subtitle && (
-                <p className="text-[11px] text-gray-400 dark:text-gray-500 font-medium mt-1">
+                <span className="text-[10px] font-bold text-gray-400 mt-1 block truncate">
                     {subtitle}
-                </p>
+                </span>
             )}
         </div>
     </div>
@@ -537,76 +532,71 @@ const RecursosHumanos = () => {
                 />
             )}
 
-            {/* Encabezado sin avatar al lado del título, con badge moderno y selector de vistas */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <div>
-                    <div className="flex items-center gap-2 mb-1">
-                        <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800">
-                            Capital Humano & Operación
-                        </span>
-                    </div>
-                    <h1 className="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white tracking-tight">
-                        Recursos Humanos
-                    </h1>
-                    <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 font-medium">
-                        Administración de colaboradores, estructura organizacional y dispersión de nóminas.
-                    </p>
-                </div>
-
-                {/* Controles de vista segmentados y acciones */}
-                <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto">
-                    <div className="flex items-center bg-gray-100 dark:bg-gray-800/80 p-1 rounded-2xl border border-gray-200/60 dark:border-gray-700/60">
-                        <button 
-                            type="button"
-                            onClick={() => setView('resumen')} 
-                            className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-                                view === 'resumen' 
-                                ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-xs' 
-                                : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'
-                            }`}
-                        >
-                            <span className="material-symbols-outlined text-base">dashboard</span>
-                            <span>Dashboard</span>
-                        </button>
-                        <button 
-                            type="button"
-                            onClick={() => setView('nominas')} 
-                            className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-                                view === 'nominas' 
-                                ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-xs' 
-                                : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'
-                            }`}
-                        >
-                            <span className="material-symbols-outlined text-base">payments</span>
-                            <span>Nóminas</span>
-                        </button>
+            {/* Bento Card Header de Recursos Humanos */}
+            <div className="p-5 sm:p-6 lg:p-7 bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-3xl shadow-xs border border-gray-100 dark:border-gray-700/80 mb-5 sm:mb-6 transition-all">
+                <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+                    <div className="space-y-1">
+                        <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-gray-900 dark:text-white">
+                            Recursos Humanos
+                        </h1>
+                        <p className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">
+                            Administración de colaboradores, estructura organizacional y dispersión de nóminas
+                        </p>
                     </div>
 
-                    <button 
-                        type="button"
-                        onClick={() => {
-                            setEmpleadoToEdit(null);
-                            setIsEmpleadoModalOpen(true);
-                        }}
-                        className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary text-white text-xs font-bold shadow-xs hover:bg-primary-dark active:scale-95 transition-all"
-                    >
-                        <span className="material-symbols-outlined text-base">person_add</span>
-                        <span>Nuevo Empleado</span>
-                    </button>
+                    {/* Controles de vista segmentados y acciones */}
+                    <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto">
+                        <div className="flex items-center bg-gray-100 dark:bg-gray-900 p-1 rounded-2xl border border-gray-200/80 dark:border-gray-700">
+                            <button 
+                                type="button"
+                                onClick={() => setView('resumen')} 
+                                className={`flex items-center gap-1.5 px-3.5 sm:px-4 py-2 rounded-xl text-xs font-bold transition-all touch-manipulation ${
+                                    view === 'resumen' 
+                                    ? 'bg-white dark:bg-gray-800 text-primary shadow-xs' 
+                                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                                }`}
+                            >
+                                <span className="material-symbols-outlined text-base">dashboard</span>
+                                <span>Dashboard</span>
+                            </button>
+                            <button 
+                                type="button"
+                                onClick={() => setView('nominas')} 
+                                className={`flex items-center gap-1.5 px-3.5 sm:px-4 py-2 rounded-xl text-xs font-bold transition-all touch-manipulation ${
+                                    view === 'nominas' 
+                                    ? 'bg-white dark:bg-gray-800 text-primary shadow-xs' 
+                                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                                }`}
+                            >
+                                <span className="material-symbols-outlined text-base">payments</span>
+                                <span>Nóminas</span>
+                            </button>
+                        </div>
+
+                        <button 
+                            type="button"
+                            onClick={() => {
+                                setEmpleadoToEdit(null);
+                                setIsEmpleadoModalOpen(true);
+                            }}
+                            className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-black bg-primary hover:bg-primary-dark active:bg-primary-dark text-white shadow-md shadow-primary/25 transition-all active:scale-95 whitespace-nowrap touch-manipulation min-h-[38px]"
+                        >
+                            <span className="material-symbols-outlined text-base">person_add</span>
+                            <span>Nuevo Empleado</span>
+                        </button>
+                    </div>
                 </div>
             </div>
 
             {view === 'resumen' ? (
                 <div className="space-y-6">
-                    {/* Tarjetas de Métricas Principales */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {/* Tarjetas de Métricas Principales en Bento Grid (2x2 en móvil, 4 cols en desktop) */}
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                         <StatCard 
                             icon="groups" 
-                            title="Total de Plantilla" 
+                            title="Total Plantilla" 
                             value={totalEmpleados} 
                             subtitle="Colaboradores registrados"
-                            badge="Institucional"
-                            badgeColor="bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800"
                             iconColor="text-blue-600 dark:text-blue-400"
                             iconBg="bg-blue-50 dark:bg-blue-900/30"
                         />
@@ -615,8 +605,6 @@ const RecursosHumanos = () => {
                             title="Personal Activo" 
                             value={empleadosActivos} 
                             subtitle={totalEmpleados > 0 ? `${Math.round((empleadosActivos / totalEmpleados) * 100)}% de la plantilla` : '0% activo'}
-                            badge="Operando"
-                            badgeColor="bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-800"
                             iconColor="text-emerald-600 dark:text-emerald-400"
                             iconBg="bg-emerald-50 dark:bg-emerald-900/30"
                         />
@@ -625,8 +613,6 @@ const RecursosHumanos = () => {
                             title="Bajas / Inactivos" 
                             value={empleadosInactivos} 
                             subtitle="Expedientes cerrados"
-                            badge="Historial"
-                            badgeColor="bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-900/30 dark:text-rose-300 dark:border-rose-800"
                             iconColor="text-rose-600 dark:text-rose-400"
                             iconBg="bg-rose-50 dark:bg-rose-900/30"
                         />
@@ -635,29 +621,27 @@ const RecursosHumanos = () => {
                             title="Masa Salarial" 
                             value={new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 }).format(masaSalarial)} 
                             subtitle="Sueldos activos mensuales"
-                            badge="Mensual"
-                            badgeColor="bg-purple-50 text-purple-600 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-800"
                             iconColor="text-purple-600 dark:text-purple-400"
                             iconBg="bg-purple-50 dark:bg-purple-900/30"
                         />
                     </div>
 
-                    {/* Tarjetas de Navegación Rápida */}
+                    {/* Tarjetas de Navegación Rápida Bento */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <Link 
                             to="/gestion/empleados" 
-                            className="group p-5 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border border-gray-200/80 dark:border-gray-800/80 rounded-3xl shadow-xs hover:shadow-md hover:border-primary/50 transition-all flex items-center justify-between"
+                            className="group p-5 bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl border border-gray-100 dark:border-gray-700/80 rounded-3xl shadow-xs hover:shadow-md hover:border-primary/40 dark:hover:border-primary/40 transition-all flex items-center justify-between"
                         >
                             <div className="flex items-center gap-4">
                                 <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
                                     <span className="material-symbols-outlined text-2xl">badge</span>
                                 </div>
                                 <div>
-                                    <h3 className="text-base font-bold text-gray-900 dark:text-white group-hover:text-primary transition-colors">
+                                    <h3 className="text-base font-extrabold text-gray-900 dark:text-white group-hover:text-primary transition-colors">
                                         Expedientes y Personal
                                     </h3>
-                                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                                        Consulta la lista completa, salarios, filtros por estatus y permisos de acceso.
+                                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 font-medium">
+                                        Directorio completo, salarios, filtros por estatus y permisos de acceso
                                     </p>
                                 </div>
                             </div>
@@ -668,18 +652,18 @@ const RecursosHumanos = () => {
 
                         <div 
                             onClick={handleGenerarNomina} 
-                            className="cursor-pointer group p-5 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border border-gray-200/80 dark:border-gray-800/80 rounded-3xl shadow-xs hover:shadow-md hover:border-emerald-500/50 transition-all flex items-center justify-between"
+                            className="cursor-pointer group p-5 bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl border border-gray-100 dark:border-gray-700/80 rounded-3xl shadow-xs hover:shadow-md hover:border-emerald-500/50 transition-all flex items-center justify-between"
                         >
                             <div className="flex items-center gap-4">
-                                <div className="w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
+                                <div className="w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
                                     <span className="material-symbols-outlined text-2xl">add_card</span>
                                 </div>
                                 <div>
-                                    <h3 className="text-base font-bold text-gray-900 dark:text-white group-hover:text-emerald-600 transition-colors">
+                                    <h3 className="text-base font-extrabold text-gray-900 dark:text-white group-hover:text-emerald-600 transition-colors">
                                         Generar Nueva Nómina
                                     </h3>
-                                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                                        Calcula y prepara el periodo de pago para los colaboradores activos.
+                                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 font-medium">
+                                        Calcula y prepara el periodo de pago para los colaboradores activos
                                     </p>
                                 </div>
                             </div>
@@ -690,14 +674,14 @@ const RecursosHumanos = () => {
                     </div>
 
                     {/* Contrataciones Recientes */}
-                    <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border border-gray-200/80 dark:border-gray-800/80 rounded-3xl p-6 shadow-xs">
-                        <div className="flex items-center justify-between mb-4">
+                    <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl border border-gray-100 dark:border-gray-700/80 rounded-3xl p-5 sm:p-6 shadow-xs space-y-4">
+                        <div className="flex items-center justify-between">
                             <div>
-                                <h3 className="text-base font-bold text-gray-900 dark:text-white">
+                                <h3 className="text-base font-extrabold text-gray-900 dark:text-white">
                                     Contrataciones Recientes
                                 </h3>
-                                <p className="text-xs text-gray-500 dark:text-gray-400">
-                                    Últimos colaboradores incorporados al equipo de trabajo.
+                                <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">
+                                    Últimos colaboradores incorporados al equipo de trabajo
                                 </p>
                             </div>
                             <Link 
@@ -723,17 +707,17 @@ const RecursosHumanos = () => {
                                     >
                                         <div className="flex items-center gap-3 min-w-0 flex-1">
                                             <div className="min-w-0 flex-1">
-                                                <p className="text-sm font-bold text-gray-900 dark:text-white leading-tight truncate group-hover:text-primary transition-colors">
+                                                <p className="text-sm font-extrabold text-gray-900 dark:text-white leading-tight truncate group-hover:text-primary transition-colors">
                                                     {empleado.nombreCompleto}
                                                 </p>
                                                 <div className="flex items-center gap-2 mt-0.5">
                                                     <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400 truncate">
                                                         {empleado.puesto || 'Sin puesto'}
                                                     </span>
-                                                    <span className={`text-[9px] px-1.5 py-0.2 rounded font-black uppercase flex-shrink-0 ${
+                                                    <span className={`text-[9px] px-1.5 py-0.2 rounded-md font-black uppercase flex-shrink-0 ${
                                                         empleado.estatus === 'ACTIVO'
-                                                            ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400'
-                                                            : 'bg-rose-50 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400'
+                                                            ? 'bg-emerald-50 text-emerald-600 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800'
+                                                            : 'bg-rose-50 text-rose-600 border border-rose-200 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-800'
                                                     }`}>
                                                         {empleado.estatus}
                                                     </span>
@@ -770,9 +754,9 @@ const RecursosHumanos = () => {
                 /* Vista de Nóminas */
                 <div className="space-y-6">
                     {/* Barra de Filtro de Empresa y Acción de Nómina */}
-                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl p-4 rounded-3xl border border-gray-200/80 dark:border-gray-800/80 shadow-xs">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl p-4 sm:p-5 rounded-3xl border border-gray-100 dark:border-gray-700/80 shadow-xs">
                         <div className="flex items-center gap-3 w-full sm:w-auto">
-                            <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
+                            <div className="w-10 h-10 rounded-2xl bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
                                 <span className="material-symbols-outlined text-xl">domain</span>
                             </div>
                             <div className="min-w-0 flex-1">
@@ -796,7 +780,7 @@ const RecursosHumanos = () => {
                         <button 
                             type="button"
                             onClick={handleGenerarNomina} 
-                            className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 bg-primary text-white text-xs font-bold rounded-xl shadow-xs hover:bg-primary-dark active:scale-95 transition-all"
+                            className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 bg-primary text-white text-xs font-black rounded-2xl shadow-md shadow-primary/25 hover:bg-primary-dark active:scale-95 transition-all touch-manipulation min-h-[38px]"
                         >
                             <span className="material-symbols-outlined text-base">add_circle</span>
                             <span>Generar Nómina Mensual</span>
@@ -804,7 +788,7 @@ const RecursosHumanos = () => {
                     </div>
 
                     {/* Tabla de Nóminas en Desktop / Tarjetas en Móvil */}
-                    <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-3xl border border-gray-200/80 dark:border-gray-800/80 overflow-hidden shadow-xs">
+                    <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-3xl border border-gray-100 dark:border-gray-700/80 overflow-hidden shadow-xs">
                         {loadingNominas ? (
                             <div className="p-12 text-center text-gray-400 font-bold text-xs uppercase tracking-widest animate-pulse">
                                 Cargando Nóminas...
@@ -825,9 +809,9 @@ const RecursosHumanos = () => {
                             <>
                                 {/* Versión Tabla para pantallas medianas/grandes */}
                                 <div className="hidden md:block overflow-x-auto">
-                                    <table className="w-full text-left">
+                                    <table className="w-full text-left text-xs border-collapse">
                                         <thead>
-                                            <tr className="bg-gray-50/70 dark:bg-gray-800/50 border-b border-gray-100 dark:border-gray-800 text-[11px] font-black text-gray-400 uppercase tracking-wider">
+                                            <tr className="bg-gray-50/80 dark:bg-gray-900/60 border-b border-gray-100 dark:border-gray-700 text-[10px] font-black text-gray-400 uppercase tracking-wider sticky top-0 backdrop-blur-md">
                                                 <th className="px-6 py-4">Folio / Periodo</th>
                                                 <th className="px-6 py-4">Colaboradores</th>
                                                 <th className="px-6 py-4">Monto Total</th>
@@ -835,38 +819,38 @@ const RecursosHumanos = () => {
                                                 <th className="px-6 py-4 text-right">Acciones</th>
                                             </tr>
                                         </thead>
-                                        <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                                        <tbody className="divide-y divide-gray-100 dark:divide-gray-800/80">
                                             {nominas.map(nom => (
-                                                <tr key={nom.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/40 transition-colors">
-                                                    <td className="px-6 py-4">
-                                                        <p className="font-bold text-sm text-gray-900 dark:text-white">
+                                                <tr key={nom.id} className="hover:bg-gray-50/70 dark:hover:bg-gray-900/40 transition-colors">
+                                                    <td className="px-6 py-4 align-middle">
+                                                        <p className="font-extrabold text-sm text-gray-900 dark:text-white">
                                                             {nom.folio || `NOM-${nom.id.slice(0, 6)}`}
                                                         </p>
                                                         <p className="text-[11px] text-gray-400 font-medium">
                                                             Periodo: {format(new Date(nom.anio, nom.mes - 1), 'MMMM yyyy', { locale: es })}
                                                         </p>
                                                     </td>
-                                                    <td className="px-6 py-4 text-xs font-bold text-gray-600 dark:text-gray-300">
+                                                    <td className="px-6 py-4 text-xs font-bold text-gray-600 dark:text-gray-300 align-middle">
                                                         {nom._count?.detalles || 0} Personal
                                                     </td>
-                                                    <td className="px-6 py-4 font-black text-primary text-base">
+                                                    <td className="px-6 py-4 font-black text-primary text-base align-middle">
                                                         ${Number(nom.total || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
                                                     </td>
-                                                    <td className="px-6 py-4">
+                                                    <td className="px-6 py-4 align-middle">
                                                         <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
                                                             nom.estatus === 'PAGADA'
-                                                                ? 'bg-emerald-50 text-emerald-600 border border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-800'
-                                                                : 'bg-amber-50 text-amber-600 border border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800'
+                                                                ? 'bg-emerald-50 text-emerald-600 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800'
+                                                                : 'bg-amber-50 text-amber-600 border border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800'
                                                         }`}>
                                                             {nom.estatus === 'PAGADA' ? 'Pagada' : 'Borrador'}
                                                         </span>
                                                     </td>
-                                                    <td className="px-6 py-4 text-right">
+                                                    <td className="px-6 py-4 text-right align-middle">
                                                         {nom.estatus === 'BORRADOR' ? (
                                                             <button 
                                                                 type="button"
                                                                 onClick={() => handlePagarNomina(nom)} 
-                                                                className="px-4 py-2 bg-emerald-600 text-white font-bold rounded-xl text-xs hover:bg-emerald-700 active:scale-95 transition-all shadow-xs"
+                                                                className="px-4 py-2 bg-emerald-600 text-white font-bold rounded-xl text-xs hover:bg-emerald-700 active:scale-95 transition-all shadow-xs touch-manipulation"
                                                             >
                                                                 Dispersar Pago
                                                             </button>
@@ -884,22 +868,22 @@ const RecursosHumanos = () => {
                                 </div>
 
                                 {/* Versión Tarjetas para Móviles */}
-                                <div className="md:hidden divide-y divide-gray-100 dark:divide-gray-800 p-2">
+                                <div className="md:hidden divide-y divide-gray-100 dark:divide-gray-800/80 p-2">
                                     {nominas.map(nom => (
                                         <div key={nom.id} className="p-4 space-y-3">
                                             <div className="flex justify-between items-start">
                                                 <div>
-                                                    <p className="font-bold text-sm text-gray-900 dark:text-white">
+                                                    <p className="font-extrabold text-sm text-gray-900 dark:text-white">
                                                         {nom.folio || `NOM-${nom.id.slice(0, 6)}`}
                                                     </p>
                                                     <p className="text-xs text-gray-400 font-medium capitalize">
                                                         {format(new Date(nom.anio, nom.mes - 1), 'MMMM yyyy', { locale: es })}
                                                     </p>
                                                 </div>
-                                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${
+                                                <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase ${
                                                     nom.estatus === 'PAGADA'
-                                                        ? 'bg-emerald-50 text-emerald-600 border border-emerald-200'
-                                                        : 'bg-amber-50 text-amber-600 border border-amber-200'
+                                                        ? 'bg-emerald-50 text-emerald-600 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800'
+                                                        : 'bg-amber-50 text-amber-600 border border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800'
                                                 }`}>
                                                     {nom.estatus === 'PAGADA' ? 'Pagada' : 'Borrador'}
                                                 </span>
@@ -916,7 +900,7 @@ const RecursosHumanos = () => {
                                                 <button 
                                                     type="button"
                                                     onClick={() => handlePagarNomina(nom)} 
-                                                    className="w-full py-2 bg-emerald-600 text-white font-bold rounded-xl text-xs active:scale-95 transition-all shadow-xs"
+                                                    className="w-full py-2.5 bg-emerald-600 text-white font-bold rounded-xl text-xs active:scale-95 transition-all shadow-xs touch-manipulation min-h-[38px]"
                                                 >
                                                     Dispersar Pago
                                                 </button>

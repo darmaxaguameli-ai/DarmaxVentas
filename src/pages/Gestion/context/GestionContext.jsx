@@ -47,6 +47,7 @@ import {
   createJugBrand as apiCreateJugBrand,
   updateJugBrand as apiUpdateJugBrand,
   deleteJugBrand as apiDeleteJugBrand,
+  reorderJugBrands as apiReorderJugBrands,
   // Empleados
   fetchEmpleados as apiFetchEmpleados,
   createEmpleado as apiCreateEmpleado,
@@ -61,11 +62,16 @@ import {
   createStore as apiCreateStore,
   updateStore as apiUpdateStore,
   deleteStore as apiDeleteStore,
-  // Instalaciones
+  // Instalaciones y Modelos
   fetchInstallationModels as apiFetchInstallationModels,
   createInstallationModel as apiCreateInstallationModel,
   updateInstallationModel as apiUpdateInstallationModel,
   deleteInstallationModel as apiDeleteInstallationModel,
+  // Materiales de Instalación (BD Separada)
+  fetchInstallationMaterials as apiFetchInstallationMaterials,
+  createInstallationMaterial as apiCreateInstallationMaterial,
+  updateInstallationMaterial as apiUpdateInstallationMaterial,
+  deleteInstallationMaterial as apiDeleteInstallationMaterial,
 } from "../../../api/apiClient";
 
 export const GestionContext = createContext(null);
@@ -79,7 +85,8 @@ export const useGestion = () => {
 };
 
 const initialState = {
-  inventory: [],
+  inventory: [], // Productos de Venta (POS)
+  installationMaterials: [], // Materiales de Instalación (BD Separada)
   users: [], // Personal y Colaboradores
   clients: [], // Clientes dedicados (CRM)
   roles: [], 
@@ -106,6 +113,7 @@ const gestionReducer = (state, action) => {
       return {
         ...state,
         inventory: action.payload.inventory || state.inventory,
+        installationMaterials: action.payload.installationMaterials || state.installationMaterials,
         users: action.payload.users || state.users,
         clients: action.payload.clients || state.clients,
         roles: action.payload.roles || state.roles,
@@ -136,15 +144,15 @@ export const GestionProvider = ({ children }) => {
     dispatch({ type: "SET_LOADING", payload: true });
     try {
       const [
-        inventory, users, roles, income, expenses,
+        inventory, installationMaterials, users, roles, income, expenses,
         waterTypes, servicePrices, jugBrands, empleados, franchises, stores, installationModels, clients
       ] = await Promise.all([
-        apiFetchProducts(), apiFetchUsers(), apiFetchRoles(), apiFetchIncomes(), apiFetchExpenses(),
+        apiFetchProducts(), apiFetchInstallationMaterials(), apiFetchUsers(), apiFetchRoles(), apiFetchIncomes(), apiFetchExpenses(),
         apiFetchWaterTypes(), apiFetchServicePrices(), apiFetchJugBrands(), apiFetchEmpleados(), apiFetchFranchises(), apiFetchStores(), apiFetchInstallationModels(), apiFetchClients()
       ]);
       dispatch({
         type: "SET_INITIAL_DATA",
-        payload: { inventory, users, roles, income, expenses, waterTypes, servicePrices, jugBrands, empleados, franchises, stores, installationModels, clients },
+        payload: { inventory, installationMaterials, users, roles, income, expenses, waterTypes, servicePrices, jugBrands, empleados, franchises, stores, installationModels, clients },
       });
     } catch (error) {
       dispatch({ type: "SET_ERROR", payload: error.message });
@@ -196,7 +204,19 @@ export const GestionProvider = ({ children }) => {
   
   const waterTypeActions = createCrudActions('WaterType', { createWaterType: apiCreateWaterType, updateWaterType: apiUpdateWaterType, deleteWaterType: apiDeleteWaterType });
   const servicePriceActions = createCrudActions('ServicePrice', { createServicePrice: apiCreateServicePrice, updateServicePrice: apiUpdateServicePrice, deleteServicePrice: apiDeleteServicePrice });
-  const jugBrandActions = createCrudActions('JugBrand', { createJugBrand: apiCreateJugBrand, updateJugBrand: apiUpdateJugBrand, deleteJugBrand: apiDeleteJugBrand });
+  const jugBrandActions = {
+    ...createCrudActions('JugBrand', { createJugBrand: apiCreateJugBrand, updateJugBrand: apiUpdateJugBrand, deleteJugBrand: apiDeleteJugBrand }),
+    reorderJugBrands: useCallback(async (orderedIds) => {
+      try {
+        const result = await apiReorderJugBrands(orderedIds);
+        await fetchManagementData();
+        return result;
+      } catch (error) {
+        Swal.fire('Error', `Error al reordenar: ${error.message}`, 'error');
+        throw error;
+      }
+    }, [fetchManagementData])
+  };
   const expenseActions = createCrudActions('Expense', { createExpense: apiCreateExpense, updateExpense: apiUpdateExpense, deleteExpense: apiDeleteExpense });
   const incomeActions = createCrudActions('Income', { createIncome: apiCreateIncome, updateIncome: apiUpdateIncome, deleteIncome: apiDeleteIncome });
   
@@ -295,11 +315,13 @@ export const GestionProvider = ({ children }) => {
   const franchiseActions = createCrudActions('Franchise', { createFranchise: apiCreateFranchise, updateFranchise: apiUpdateFranchise, deleteFranchise: apiDeleteFranchise });
   const storeActions = createCrudActions('Store', { createStore: apiCreateStore, updateStore: apiUpdateStore, deleteStore: apiDeleteStore });
   const installationModelActions = createCrudActions('InstallationModel', { createInstallationModel: apiCreateInstallationModel, updateInstallationModel: apiUpdateInstallationModel, deleteInstallationModel: apiDeleteInstallationModel });
+  const installationMaterialActions = createCrudActions('InstallationMaterial', { createInstallationMaterial: apiCreateInstallationMaterial, updateInstallationMaterial: apiUpdateInstallationMaterial, deleteInstallationMaterial: apiDeleteInstallationMaterial });
 
   const value = {
     state,
     fetchManagementData,
     ...productActions,
+    ...installationMaterialActions, // addInstallationMaterial, updateInstallationMaterial, deleteInstallationMaterial
     ...clientActions, // Esto proporciona addClient, updateClient, deleteClient
     ...waterTypeActions,
     ...servicePriceActions,

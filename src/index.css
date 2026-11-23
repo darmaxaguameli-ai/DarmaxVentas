@@ -120,3 +120,8 @@
     transition: opacity 150ms ease-out !important;
   }
 }
+
+/* Asegurar que las alertas de SweetAlert2 siempre aparezcan por encima de modales con z-[9999] */
+.swal2-container {
+  z-index: 100000 !important;
+}

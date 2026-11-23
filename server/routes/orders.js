@@ -156,25 +156,54 @@ router.post('/pedidos', async (req, res) => {
           // --- LÓGICA DE DESCUENTO DE INVENTARIO (TAPAS Y PRODUCTOS) ---
           const qty = item.quantity;
           if (qty > 0) {
-              // 1. Descontar Tapa compatible si el garrafón tiene una asociada
+              // 1. Descontar Tapa y Linner de la Marca de Garrafón seleccionada (Si no hay existencia o no existe tapa, la venta NO se detiene)
               if (item.jugBrandId) {
-                  const brand = await tx.jugBrand.findUnique({
-                      where: { id: item.jugBrandId },
-                      select: { compatibleCapId: true }
-                  });
-
-                  if (brand && brand.compatibleCapId) {
-                      const inv = await tx.storeInventory.findUnique({
-                          where: { storeId_productId: { storeId, productId: brand.compatibleCapId } }
+                  try {
+                      const brand = await tx.jugBrand.findUnique({
+                          where: { id: item.jugBrandId },
+                          select: { 
+                              id: true,
+                              compatibleCapId: true,
+                              capStock: true,
+                              linerStock: true
+                          }
                       });
-                      // Solo descontar si hay stock y no permitir negativos (según requerimiento)
-                      if (inv && inv.stock > 0) {
-                          const toDeduct = Math.min(inv.stock, qty);
-                          await tx.storeInventory.update({
-                              where: { id: inv.id },
-                              data: { stock: { decrement: toDeduct } }
-                          });
+
+                      if (brand) {
+                          const brandUpdates = {};
+                          if (typeof brand.capStock === 'number' && brand.capStock > 0) {
+                              const toDeductCap = Math.min(brand.capStock, qty);
+                              brandUpdates.capStock = { decrement: toDeductCap };
+                          }
+                          if (typeof brand.linerStock === 'number' && brand.linerStock > 0) {
+                              const toDeductLiner = Math.min(brand.linerStock, qty);
+                              brandUpdates.linerStock = { decrement: toDeductLiner };
+                          }
+
+                          if (Object.keys(brandUpdates).length > 0) {
+                              await tx.jugBrand.update({
+                                  where: { id: brand.id },
+                                  data: brandUpdates
+                              });
+                          }
+
+                          // Fallback: si además tuviera compatibleCapId configurado en inventario general
+                          if (brand.compatibleCapId) {
+                              const inv = await tx.storeInventory.findUnique({
+                                  where: { storeId_productId: { storeId, productId: brand.compatibleCapId } }
+                              });
+                              if (inv && inv.stock > 0) {
+                                  const toDeduct = Math.min(inv.stock, qty);
+                                  await tx.storeInventory.update({
+                                      where: { id: inv.id },
+                                      data: { stock: { decrement: toDeduct } }
+                                  });
+                              }
+                          }
                       }
+                  } catch (capError) {
+                      // Garantizar que la venta jamás se detenga por discrepancias o ausencia de tapas
+                      console.warn(`[Venta POS] No se pudo descontar tapa para la marca ${item.jugBrandId}, la venta continúa con normalidad:`, capError.message);
                   }
               }
 

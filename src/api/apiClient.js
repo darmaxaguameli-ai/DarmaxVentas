@@ -70,6 +70,8 @@ export const deleteStore = (id) => apiClient.delete(`/stores/${id}`).then(res =>
 export const fetchProductCategories = () => apiClient.get('/product-categories').then(res => res.data);
 export const createProductCategory = (data) => apiClient.post('/product-categories', data).then(res => res.data);
 export const updateProductCategory = (id, data) => apiClient.put(`/product-categories/${id}`, data).then(res => res.data);
+export const deleteProductCategory = (id) => apiClient.delete(`/product-categories/${id}`).then(res => res.data);
+export const deleteProductCategoriesBatch = (ids) => apiClient.post('/product-categories/batch-delete', { ids }).then(res => res.data).catch(() => Promise.all(ids.map(id => apiClient.delete(`/product-categories/${id}`))));
 
 // ====================================================================
 //  PRODUCTOS
@@ -79,6 +81,22 @@ export const createProduct = (productData) => apiClient.post('/products', produc
 export const importProductsBulk = (products) => apiClient.post('/products/bulk', products).then(res => res.data);
 export const updateProduct = (id, productData) => apiClient.put(`/products/${id}`, productData).then(res => res.data);
 export const deleteProduct = (id) => apiClient.delete(`/products/${id}`).then(res => res.data);
+export const deleteProductsBatch = (ids) => apiClient.post('/products/batch-delete', { ids }).then(res => res.data).catch(() => Promise.all(ids.map(id => apiClient.delete(`/products/${id}`))));
+
+// ====================================================================
+//  MATERIALES DE INSTALACIÓN (Inventario Técnico en BD)
+// ====================================================================
+export const fetchInstallationMaterials = () => apiClient.get('/installation-materials').then(res => res.data);
+export const createInstallationMaterial = (materialData) => apiClient.post('/installation-materials', materialData).then(res => res.data);
+export const importInstallationMaterialsBulk = (materials) => apiClient.post('/installation-materials/bulk', materials).then(res => res.data);
+export const updateInstallationMaterial = (id, materialData) => apiClient.put(`/installation-materials/${id}`, materialData).then(res => res.data);
+export const deleteInstallationMaterial = (id) => apiClient.delete(`/installation-materials/${id}`).then(res => res.data);
+
+// Categorías Técnicas de Instalación
+export const fetchInstallationCategories = () => apiClient.get('/installation-categories').then(res => res.data);
+export const createInstallationCategory = (data) => apiClient.post('/installation-categories', data).then(res => res.data);
+export const deleteInstallationCategory = (id) => apiClient.delete(`/installation-categories/${id}`).then(res => res.data);
+export const deleteInstallationCategoriesBatch = (ids) => apiClient.post('/installation-categories/batch-delete', { ids }).then(res => res.data).catch(() => Promise.all(ids.map(id => apiClient.delete(`/installation-categories/${id}`))));
 
 // ====================================================================
 //  INGRESOS
@@ -141,6 +159,7 @@ export const fetchJugBrands = () => apiClient.get('/jug-brands').then(res => res
 export const createJugBrand = (data) => apiClient.post('/jug-brands', data).then(res => res.data);
 export const updateJugBrand = (id, data) => apiClient.put(`/jug-brands/${id}`, data).then(res => res.data);
 export const deleteJugBrand = (id) => apiClient.delete(`/jug-brands/${id}`).then(res => res.data);
+export const reorderJugBrands = (orderedIds) => apiClient.put('/jug-brands-reorder', { orderedIds }).then(res => res.data);
 
 // ====================================================================
 //  EMPLEADOS (HR)
@@ -412,5 +431,6 @@ export const updateCollaboratorRoles = (userId, roleIds, permisoIds) => apiClien
 export const updateCollaboratorPermissions = (userId, permisoIds) => apiClient.put(`/users/${userId}/permissions`, { permisoIds }).then(res => res.data);
 
 // =====================================================================
-// OTROS
+// OTROS & PREFERENCIAS DE USUARIO
 // =====================================================================
+export const updateBackgroundPreference = (backgroundPreference) => apiClient.put('/users/me/background', { backgroundPreference }).then(res => res.data);
